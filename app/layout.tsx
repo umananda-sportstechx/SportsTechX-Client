@@ -1,26 +1,30 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Open_Sans, DM_Mono } from 'next/font/google';
+import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
 import { Providers } from './providers';
 import './globals.css';
 
-const bebasNeue = Bebas_Neue({
-  weight: '400',
-  variable: '--font-bebas',
+// Three font families per the ui_design system:
+//  • Space Grotesk — display (headings, brand)
+//  • Inter         — body
+//  • JetBrains Mono — mono (KPIs, tickers, code, monospace small caps)
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
-const openSans = Open_Sans({
-  variable: '--font-open-sans',
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
   display: 'swap',
-});
-
-const dmMono = DM_Mono({
-  weight: ['300', '400', '500'],
-  variable: '--font-dm-mono',
-  subsets: ['latin'],
-  display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -41,8 +45,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
+      // Default to dark theme to match the ui_design prototype's primary look.
+      data-theme="dark"
+      // Default density. Tweaks panel can flip this at runtime.
+      data-density="comfortable"
       suppressHydrationWarning
-      className={`${bebasNeue.variable} ${openSans.variable} ${dmMono.variable} h-full`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="min-h-full bg-background text-foreground antialiased">
         <Providers>{children}</Providers>

@@ -1,99 +1,172 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { Trash2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Bookmark, Trash2, ExternalLink, Search } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { formatDate } from '@/lib/utils';
+import { Page, SectionHead, Tag, Empty } from '@/components/ui/atoms';
 
 interface SavedSearch {
-  id: string; name: string; query?: string; filters?: Record<string, unknown>;
-  entity_type?: string; created_at: string; result_count?: number;
+	id: string;
+	name: string;
+	entity_type: string;
+	filters?: Record<string, unknown>;
+	results_count?: number | null;
+	updated_at?: string;
+	created_at?: string;
 }
 
+interface SavedSearchesResponse {
+	data: SavedSearch[];
+}
+
+const ENTITY_PATHS: Record<string, string> = {
+	companies: '/companies',
+	deals: '/funding',
+	investors: '/investors',
+	acquisitions: '/ma',
+	reports: '/reports',
+	programs: '/programs',
+	events: '/events',
+};
+
+/**
+ * Saved searches — design-token-styled list. Reads /api/saved-searches;
+ * clicking a row re-runs the search by navigating to the entity page with the
+ * stored filters serialized into query params.
+ */
 export default function SavedSearchesPage() {
-  const router = useRouter();
-  const qc = useQueryClient();
+	const router = useRouter();
+	const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<SavedSearch[]>({
-    queryKey: ['/api/saved-searches'],
-    staleTime: 2 * 60_000,
-  });
+	const { data, isLoading } = useQuery<SavedSearchesResponse>({
+		queryKey: qk.savedSearches.list(),
+		staleTime: 30_000,
+	});
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/saved-searches/${id}`);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['/api/saved-searches'] });
-      toast.success('Saved search deleted');
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+	const remove = useMutation({
+		mutationFn: (id: string) => apiRequest('DELETE', `/api/saved-searches/${id}`),
+		onSuccess: () => {
+			toast.success('Saved search removed');
+			queryClient.invalidateQueries({ queryKey: qk.savedSearches.list() });
+		},
+		onError: (e: Error) => toast.error(e.message ?? 'Could not remove'),
+	});
 
-  const runSearch = (search: SavedSearch) => {
-    const basePath = search.entity_type === 'investor' ? '/investors' : search.entity_type === 'deal' ? '/funding' : '/companies';
-    const params = new URLSearchParams();
-    if (search.query) params.set('q', search.query);
-    if (search.filters) {
-      Object.entries(search.filters).forEach(([k, v]) => { if (v) params.set(k, String(v)); });
-    }
-    router.push(`${basePath}?${params.toString()}`);
-  };
+	const searches = data?.data ?? [];
 
-  const searches = data ?? [];
+	const open = (s: SavedSearch) => {
+		const base = ENTITY_PATHS[s.entity_type] ?? '/companies';
+		const sp = new URLSearchParams();
+		for (const [k, v] of Object.entries(s.filters ?? {})) {
+			if (v == null || v === '') continue;
+			sp.set(k, String(v));
+		}
+		router.push(`${base}?${sp.toString()}`);
+	};
 
-  return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Saved Searches</h1>
-        <span className="text-sm text-muted-foreground">{searches.length} saved</span>
-      </div>
+	return (
+		<Page>
+			<div style={{ marginBottom: 'var(--space-5)' }}>
+				<div
+					style={{
+						fontFamily: 'var(--font-mono)',
+						fontSize: 11,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+						marginBottom: 6,
+					}}
+				>
+					Workspace · {searches.length.toLocaleString()} saved
+				</div>
+				<h1
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 38,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1,
+						margin: '0 0 6px',
+					}}
+				>
+					Saved searches
+				</h1>
+				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
+					Re-run a previously saved filter set against the live database.
+				</p>
+			</div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-48"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : searches.length > 0 ? (
-        <div className="space-y-3">
-          {searches.map(search => (
-            <Card key={search.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Bookmark className="h-4 w-4 text-primary shrink-0" />
-                      <h3 className="font-medium truncate">{search.name}</h3>
-                      {search.entity_type && <Badge variant="secondary" className="text-xs shrink-0">{search.entity_type}</Badge>}
-                    </div>
-                    {search.query && <p className="text-sm text-muted-foreground truncate">Query: {search.query}</p>}
-                    {search.result_count != null && <p className="text-xs text-muted-foreground mt-1">{search.result_count.toLocaleString()} results</p>}
-                    <p className="text-xs text-muted-foreground mt-1">{formatDate(search.created_at)}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => runSearch(search)}>
-                      <Search className="h-3.5 w-3.5 mr-1.5" />Run
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteMutation.mutate(search.id)} disabled={deleteMutation.isPending}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16">
-          <Bookmark className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground mb-2">No saved searches yet</p>
-          <p className="text-sm text-muted-foreground mb-4">Save filters and searches from the database pages for quick access.</p>
-          <Button variant="outline" onClick={() => router.push('/companies')}>Browse Companies</Button>
-        </div>
-      )}
-    </div>
-  );
+			<div className="card">
+				<SectionHead title="Your saved filters" meta={`${searches.length} total`} />
+				{isLoading && searches.length === 0 ? (
+					<Empty msg="Loading…" />
+				) : searches.length === 0 ? (
+					<Empty msg="Save a filter set from any database page to see it here" />
+				) : (
+					<div style={{ display: 'flex', flexDirection: 'column' }}>
+						{searches.map((s, i) => (
+							<div
+								key={s.id}
+								style={{
+									display: 'flex',
+									alignItems: 'center',
+									gap: 12,
+									padding: '14px var(--space-4)',
+									borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+								}}
+							>
+								<div style={{ flex: 1, minWidth: 0 }}>
+									<div
+										style={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: 8,
+											marginBottom: 4,
+											flexWrap: 'wrap',
+										}}
+									>
+										<div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
+										<Tag>{s.entity_type}</Tag>
+										{s.results_count != null && (
+											<span
+												style={{
+													fontFamily: 'var(--font-mono)',
+													fontSize: 11,
+													color: 'var(--fg-muted)',
+												}}
+											>
+												{s.results_count.toLocaleString()} matches
+											</span>
+										)}
+									</div>
+									<div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+										{Object.entries(s.filters ?? {})
+											.filter(([, v]) => v != null && v !== '')
+											.slice(0, 4)
+											.map(([k, v]) => `${k}: ${String(v)}`)
+											.join(' · ') || 'No filters'}
+									</div>
+								</div>
+								<button
+									className="btn ghost"
+									onClick={() => remove.mutate(s.id)}
+									disabled={remove.isPending}
+									aria-label="Remove"
+								>
+									<Trash2 size={14} />
+								</button>
+								<button className="btn" onClick={() => open(s)}>
+									Run <ArrowRight size={12} />
+								</button>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
+		</Page>
+	);
 }

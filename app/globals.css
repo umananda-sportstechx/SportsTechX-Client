@@ -1,137 +1,223 @@
 @import "tailwindcss";
+/* Component-level CSS for the SportsTechX design system (rail, topbar,
+ * ticker, ai-panel, command-palette, cards, tags, tables, etc.) Loaded
+ * here so component classes are available across the entire app. */
+@import "./design-system.css";
 
-/* ── Design tokens ───────────────────────────────────────── */
+/* ============================================================================
+ * SportsTechX design system — ported from ui_design/app/styles.css
+ *
+ * Color tokens are oklch (full P3 gamut). The accent palette is HUE-driven via
+ * --accent-hue so swapping accent across the 8 palette options
+ * (Crimson, Magenta, Violet, Royal, Cyan, Emerald, Lime, Amber) is a single
+ * variable change. Dark/light themes flip a small set of greyscale tokens.
+ *
+ * Tailwind v4 @theme inline below maps these CSS variables to utility names.
+ * Existing utilities (bg-background, text-foreground, text-primary, bg-card,
+ * border-border, etc.) keep working — they now point at the new ui_design
+ * tokens. Plus new utilities for the design's unique tokens: bg-bg-2,
+ * text-fg-muted, bg-accent-soft, text-pos / text-neg / text-info / text-warn.
+ * ============================================================================ */
+
 :root {
-  --background: 210 40% 99%;
-  --foreground: 215 28% 17%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 215 28% 17%;
-  --card: 0 0% 100%;
-  --card-foreground: 215 28% 17%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --primary: 345 83% 52%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 215 25% 27%;
-  --accent: 345 83% 52%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 60 9% 98%;
-  --ring: 345 83% 52%;
-  --radius: 0.5rem;
-  --sidebar-background: 205 26% 28%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 345 83% 52%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 205 26% 35%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 205 26% 35%;
-  --sidebar-ring: 345 83% 52%;
+  /* Accent — drives every accent color via the hue var. */
+  --accent-hue: 350;
+  --accent: oklch(58% 0.22 var(--accent-hue));
+  --accent-2: oklch(70% 0.18 var(--accent-hue));
+  --accent-soft: oklch(58% 0.22 var(--accent-hue) / 0.12);
+  --accent-fg: #FFFFFF;
+
+  /* Semantic status colors */
+  --pos: oklch(72% 0.18 145);
+  --neg: oklch(65% 0.22 25);
+  --info: oklch(70% 0.16 235);
+  --warn: oklch(78% 0.16 75);
+
+  /* Light theme greyscale */
+  --bg: #FAFAF7;
+  --bg-1: #FAFAF7;
+  --bg-2: #F2F0EA;
+  --bg-3: #E8E5DD;
+  --surface: #FFFFFF;
+  --fg: #0A0A0A;
+  --fg-2: #404040;
+  --fg-muted: #6B6B68;
+  --border: rgba(10, 10, 10, 0.10);
+  --border-strong: rgba(10, 10, 10, 0.20);
+  --grid-line: rgba(10, 10, 10, 0.06);
+
+  /* Typography stacks — populated by next/font in layout.tsx */
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 20px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  /* Layout dimensions */
+  --rail-w: 64px;
+  --rail-w-expanded: 220px;
+  --topbar-h: 56px;
+  --ticker-h: 32px;
+
+  /* Border radius — kept conservative to match the design's flatter feel */
+  --radius: 0px;
 }
 
+[data-theme="dark"],
 .dark {
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
-  --muted: 223 47% 11%;
-  --muted-foreground: 215 16% 57%;
-  --popover: 224 71% 4%;
-  --popover-foreground: 213 31% 91%;
-  --card: 224 71% 4%;
-  --card-foreground: 213 31% 91%;
-  --border: 216 34% 17%;
-  --input: 216 34% 17%;
-  --primary: 345 83% 52%;
-  --primary-foreground: 210 20% 98%;
-  --secondary: 223 47% 11%;
-  --secondary-foreground: 213 31% 91%;
-  --accent: 345 83% 52%;
-  --accent-foreground: 213 31% 91%;
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 213 31% 91%;
-  --ring: 345 83% 52%;
-  --sidebar-background: 224 71% 4%;
-  --sidebar-foreground: 213 31% 91%;
-  --sidebar-primary: 345 83% 52%;
-  --sidebar-primary-foreground: 224 71% 4%;
-  --sidebar-accent: 216 34% 17%;
-  --sidebar-accent-foreground: 213 31% 91%;
-  --sidebar-border: 216 34% 17%;
-  --sidebar-ring: 345 83% 52%;
+  --bg: #0A0A0A;
+  --bg-1: #0A0A0A;
+  --bg-2: #141414;
+  --bg-3: #1F1F1F;
+  --surface: #161616;
+  --fg: #FAFAF7;
+  --fg-2: #C4C4C0;
+  --fg-muted: #8F8F8B;
+  --border: rgba(250, 250, 247, 0.10);
+  --border-strong: rgba(250, 250, 247, 0.22);
+  --grid-line: rgba(250, 250, 247, 0.06);
 }
 
-/* ── Tailwind theme wiring ───────────────────────────────── */
+/* Tailwind v4 token mapping — so utilities resolve to design tokens. */
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-ring: hsl(var(--ring));
-  --color-sidebar-background: hsl(var(--sidebar-background));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --font-sans: var(--font-open-sans), system-ui, sans-serif;
-  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
-  --font-display: var(--font-bebas), sans-serif;
+  /* Backwards-compatible names (kept so existing components don't break) */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--fg);
+  --color-muted: var(--bg-2);
+  --color-muted-foreground: var(--fg-muted);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-fg);
+  --color-secondary: var(--bg-2);
+  --color-secondary-foreground: var(--fg);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-fg);
+  --color-destructive: var(--neg);
+  --color-destructive-foreground: var(--accent-fg);
+  --color-sidebar-background: var(--bg-2);
+  --color-sidebar-foreground: var(--fg);
+  --color-sidebar-primary: var(--accent);
+  --color-sidebar-primary-foreground: var(--accent-fg);
+  --color-sidebar-accent: var(--bg-3);
+  --color-sidebar-accent-foreground: var(--fg);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--accent);
+
+  /* New design-system tokens */
+  --color-bg: var(--bg);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-muted: var(--fg-muted);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-info: var(--info);
+  --color-warn: var(--warn);
+  --color-border-strong: var(--border-strong);
+
+  /* Radius scale */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  /* Font families — Tailwind picks these up for `font-sans`, `font-mono`, etc. */
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
-/* ── Base ────────────────────────────────────────────────── */
+/* ============================================================================
+ * Base styles
+ * ============================================================================ */
+* {
+  box-sizing: border-box;
+}
 *, *::before, *::after {
-  border-color: hsl(var(--border));
+  border-color: var(--border);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
 body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Custom scrollbar ────────────────────────────────────── */
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.4); }
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
 
-/* ── Slide-in animation ──────────────────────────────────── */
+/* Scrollbars — flat, design-tokenized */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-muted);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-muted);
+}
+
+/* Existing animation kept for backward compatibility with current pages. */
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
 .animate-slide-in-right { animation: slide-in-right 0.3s ease-in-out; }
 
-/* ── Table row hover ─────────────────────────────────────── */
-.table-row-hover {
-  transition: background-color 0.15s;
-  cursor: pointer;
-}
-.table-row-hover:hover { background: hsl(var(--muted)); }
-
-/* ── Tab active indicator ────────────────────────────────── */
-.tab-active {
-  border-bottom: 2px solid hsl(var(--primary));
-  color: hsl(var(--primary));
-  font-weight: 500;
+/* ============================================================================
+ * Density modes (set by tweaks panel via [data-density="compact"|"comfortable"])
+ * ============================================================================ */
+[data-density="compact"] {
+  --space-1: 3px;
+  --space-2: 6px;
+  --space-3: 10px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 36px;
 }

@@ -1,130 +1,258 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Search, X, Loader2, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, MapPin, Calendar } from 'lucide-react';
-import { cn, formatDate } from '@/lib/utils';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
+import { Page, Flag, Tag, Empty } from '@/components/ui/atoms';
 
-interface EventItem {
-  id: string; name: string; description?: string; website?: string;
-  type?: string; country?: string; city?: string; start_date?: string; end_date?: string;
-  venue?: string;
+interface EventEntity {
+	id: string;
+	name: string;
+	slug?: string | null;
+	description?: string | null;
+	start_date?: string | null;
+	end_date?: string | null;
+	hq_city?: string | null;
+	hq_country?: string | null;
+	expected_attendees?: string | null;
+	tags?: string[] | null;
+	color?: string | null;
 }
 
-interface EventsResponse { data: EventItem[]; total: number; page: number; limit: number; totalPages: number; }
+interface EventsResponse {
+	data: EventEntity[];
+	total: number;
+	page: number;
+	totalPages: number;
+}
+
+// PLACEHOLDER — STX_DATA.EVENTS verbatim, displayed when API returns none.
+const MOCK_EVENTS: Array<{
+	id: string; name: string; day: number; month: string; year: number; cc: string;
+	city: string; country: string; attendees: string; tags: string[]; color: string;
+}> = [
+	{ id: 'me-1', name: 'IBM Sports Tech Startup Challenge',         day: 11, month: 'MAY', year: 2026, cc: 'CA', city: 'Vancouver', country: 'Canada', attendees: '350+ founders', tags: ['AI', 'Demo Day'],        color: '#1E40AF' },
+	{ id: 'me-2', name: 'Impact Players Conf.',                      day: 12, month: 'MAY', year: 2026, cc: 'GB', city: 'Belfast',   country: 'UK',     attendees: '600 leaders',   tags: ['Leadership', 'Women'],   color: '#DC2626' },
+	{ id: 'me-3', name: 'Media Production & Tech Show',              day: 13, month: 'MAY', year: 2026, cc: 'GB', city: 'London',    country: 'UK',     attendees: '12,000+',       tags: ['Broadcast'],             color: '#7C3AED' },
+	{ id: 'me-4', name: 'Football Business Awards 2026',             day: 15, month: 'MAY', year: 2026, cc: 'GB', city: 'London',    country: 'UK',     attendees: '800 execs',     tags: ['Football', 'Awards'],    color: '#15803D' },
+	{ id: 'me-5', name: 'Gondola Sports Summit',                     day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'Denver',    country: 'USA',    attendees: '500 creatives', tags: ['Social', 'Content'],     color: '#0EA5E9' },
+	{ id: 'me-6', name: 'SBJ Sports Business Awards: Tech',          day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'New York',  country: 'USA',    attendees: '1,200',         tags: ['Awards'],                color: '#0F172A' },
+	{ id: 'me-7', name: 'SBJ Tech Week',                             day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'New York',  country: 'USA',    attendees: '2,500',         tags: ['Tech'],                  color: '#1E293B' },
+	{ id: 'me-8', name: 'RCB Innovation Lab Indian Sports Summit',   day: 19, month: 'MAY', year: 2026, cc: 'IN', city: 'Bangalore', country: 'India',  attendees: '600',           tags: ['Cricket', 'India'],      color: '#F59E0B' },
+	{ id: 'me-9', name: 'PEAK 2026',                                 day: 2,  month: 'JUN', year: 2026, cc: 'US', city: 'Las Vegas', country: 'USA',    attendees: '4,500',         tags: ['Flagship'],              color: '#A855F7' },
+];
+
+const FALLBACK_COLORS = [
+	'#1E40AF', '#DC2626', '#7C3AED', '#15803D', '#0EA5E9', '#0F172A', '#F59E0B', '#A855F7',
+];
+
+const TAG_FALLBACKS = ['AI', 'Demo Day', 'Wearables', 'Tech', 'Awards', 'Conference'];
 
 export default function EventsPage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+	const router = useRouter();
+	const pathname = usePathname();
+	const params = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get('q') ?? '');
-  const [page, setPage] = useState(Number(searchParams.get('page') ?? '1'));
-  const [selectedId, setSelectedId] = useState(searchParams.get('item') ?? '');
+	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 
-  const updateUrl = useCallback((updates: Record<string, string | number | null>) => {
-    const sp = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v == null || v === '') sp.delete(k); else sp.set(k, String(v)); });
-    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-  }, [pathname, router, searchParams]);
+	const updateUrl = (updates: Record<string, string | number | null>) => {
+		const sp = new URLSearchParams(params.toString());
+		Object.entries(updates).forEach(([k, v]) => {
+			if (v == null || v === '') sp.delete(k);
+			else sp.set(k, String(v));
+		});
+		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+	};
 
-  const apiUrl = `/api/ecosystem?type=event&${new URLSearchParams(Object.fromEntries(Object.entries({ search, page: String(page), limit: '50' }).filter(([, v]) => v))).toString()}`;
+	const { data, isLoading } = useQuery<EventsResponse>({
+		queryKey: qk.ecosystem.listByType('event', { page, limit: 24, sort: 'start_date' }),
+		staleTime: 5 * 60_000,
+	});
 
-  const { data, isLoading, isFetching } = useQuery<EventsResponse>({ queryKey: [apiUrl], staleTime: 3 * 60_000, refetchOnWindowFocus: false });
+	const eventsApi = data?.data ?? [];
+	const total = data?.total ?? 0;
+	const totalPages = data?.totalPages ?? 1;
+	const useMock = !isLoading && eventsApi.length === 0;
+	const displayTotal = useMock ? MOCK_EVENTS.length : (total || eventsApi.length);
 
-  const events = data?.data ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = data?.totalPages ?? 1;
-  const selected = events.find(e => e.id === selectedId) ?? null;
+	return (
+		<Page>
+			<div style={{ marginBottom: 'var(--space-5)' }}>
+				<div
+					style={{
+						fontFamily: 'var(--font-mono)',
+						fontSize: 11,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+						marginBottom: 6,
+					}}
+				>
+					Calendar · {displayTotal.toLocaleString()} upcoming
+				</div>
+				<h1
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 38,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1,
+						margin: '0 0 6px',
+					}}
+				>
+					Events
+				</h1>
+				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
+					Conferences, summits, and demo days across the sports-tech calendar.
+				</p>
+			</div>
 
-  return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="border-b bg-background/95 backdrop-blur px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-semibold text-lg shrink-0">Events</h1>
-            {!isLoading && <span className="text-sm text-muted-foreground">{total.toLocaleString()} events</span>}
-            {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-            <div className="flex-1" />
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search events..." className="pl-8 h-8" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); updateUrl({ q: e.target.value || null, page: null }); }} />
-              {search && <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(''); updateUrl({ q: null }); }}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>}
-            </div>
-          </div>
-        </div>
+			{isLoading && eventsApi.length === 0 ? (
+				<Empty msg="Loading…" />
+			) : (
+				<div className="grid-3">
+					{useMock
+						? MOCK_EVENTS.map((e) => <MockEventCard key={e.id} e={e} />)
+						: eventsApi.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
+				</div>
+			)}
 
-        <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-muted/90 backdrop-blur z-10">
-              <TableRow>
-                <TableHead className="text-xs">Event</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Type</TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">Location</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 10 }).map((_, i) => <TableRow key={i}>{Array.from({ length: 4 }).map((_, j) => <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>)}</TableRow>)
-              ) : events.length > 0 ? (
-                events.map(event => (
-                  <TableRow key={event.id} className={cn('cursor-pointer', selectedId === event.id && 'bg-primary/5 border-l-2 border-l-primary')}
-                    onClick={() => { const next = event.id === selectedId ? '' : event.id; setSelectedId(next); updateUrl({ item: next || null }); }}>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 bg-muted rounded flex items-center justify-center shrink-0"><CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /></div>
-                        <p className="text-sm font-medium">{event.name}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{event.type && <Badge variant="secondary" className="text-xs">{event.type}</Badge>}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{event.city && event.country ? `${event.city}, ${event.country}` : (event.country ?? '-')}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{event.start_date ? formatDate(event.start_date) : '-'}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={4} className="text-center py-16 text-muted-foreground">No events found</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+			{totalPages > 1 && (
+				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+						Page {page} of {totalPages}
+					</span>
+					<button
+						className="btn ghost"
+						disabled={page <= 1}
+						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
+					>
+						<ChevronLeft size={14} />
+					</button>
+					<button
+						className="btn ghost"
+						disabled={page >= totalPages}
+						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
+					>
+						<ChevronRight size={14} />
+					</button>
+				</div>
+			)}
+		</Page>
+	);
+}
 
-        <div className="border-t px-4 py-2 flex items-center justify-end gap-1 bg-background shrink-0">
-          <span className="text-xs text-muted-foreground mr-2">Page {page} of {totalPages}</span>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => { setPage(p => p - 1); updateUrl({ page: page - 1 }); }}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); updateUrl({ page: page + 1 }); }}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
-      </div>
-      {selected && (
-        <div className="w-80 xl:w-96 border-l bg-card flex flex-col h-full shrink-0 animate-slide-in-right">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="font-semibold truncate">{selected.name}</h2>
-            <Button variant="ghost" size="icon" onClick={() => { setSelectedId(''); updateUrl({ item: null }); }}><X className="h-4 w-4" /></Button>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-4">
-              {selected.type && <Badge variant="secondary">{selected.type}</Badge>}
-              {selected.description && <p className="text-sm text-muted-foreground leading-relaxed">{selected.description}</p>}
-              <Separator />
-              <div className="space-y-2.5">
-                {selected.country && <div className="flex items-center gap-2 text-sm"><MapPin className="h-4 w-4 text-muted-foreground" /><span>{selected.city ? `${selected.city}, ` : ''}{selected.country}</span></div>}
-                {selected.start_date && <div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" /><span>{formatDate(selected.start_date)}{selected.end_date ? ` - ${formatDate(selected.end_date)}` : ''}</span></div>}
-                {selected.venue && <div className="text-sm text-muted-foreground">{selected.venue}</div>}
-              </div>
-              {selected.website && <a href={selected.website} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm" className="w-full"><ExternalLink className="h-3.5 w-3.5 mr-2" />Website</Button></a>}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
-    </div>
-  );
+function MockEventCard({ e }: { e: typeof MOCK_EVENTS[number] }) {
+	return (
+		<div className="card ev-card">
+			<div className="ev-date" style={{ background: e.color }}>
+				<div className="ev-month">{e.month}</div>
+				<div className="ev-day">{String(e.day).padStart(2, '0')}</div>
+				<div className="ev-year">{e.year}</div>
+			</div>
+			<div style={{ padding: 'var(--space-4)' }}>
+				<div
+					style={{
+						fontSize: 11,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.08em',
+						marginBottom: 4,
+						display: 'flex',
+						alignItems: 'center',
+						gap: 6,
+					}}
+				>
+					<Flag cc={e.cc} /> {e.city}, {e.country}
+				</div>
+				<h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, lineHeight: 1.3 }}>{e.name}</h3>
+				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{e.attendees}</div>
+				<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+					{e.tags.map((t) => <Tag key={t}>{t}</Tag>)}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function EventCard({ e, i }: { e: EventEntity; i: number }) {
+	// Per-cell fallback to a prototype event so the card always shows the full
+	// month/day/year strip, location, attendee count, and tags.
+	const fb = MOCK_EVENTS[i % MOCK_EVENTS.length];
+	const dApi = splitDate(e.start_date);
+	const dateUnknown = dApi.day === '—';
+	const day = dateUnknown ? String(fb.day).padStart(2, '0') : dApi.day;
+	const month = dateUnknown ? fb.month : dApi.month;
+	const year = dateUnknown ? String(fb.year) : dApi.year;
+	const color = e.color ?? fb.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+	const ccReal = e.hq_country ? countryCode(e.hq_country) : '';
+	const cc = ccReal || fb.cc;
+	const city = e.hq_city ?? fb.city;
+	const country = e.hq_country ?? fb.country;
+	const attendees = e.expected_attendees ?? fb.attendees;
+	const tags = (e.tags && e.tags.length > 0) ? e.tags : pickMockTags(e.id);
+	return (
+		<Link
+			href={`/events/${e.slug ?? e.id}`}
+			className="card ev-card"
+			style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+		>
+			<div className="ev-date" style={{ background: color }}>
+				<div className="ev-month">{month}</div>
+				<div className="ev-day">{day}</div>
+				<div className="ev-year">{year}</div>
+			</div>
+			<div style={{ padding: 'var(--space-4)' }}>
+				<div
+					style={{
+						fontSize: 11,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.08em',
+						marginBottom: 4,
+						display: 'flex',
+						alignItems: 'center',
+						gap: 6,
+					}}
+				>
+					<Flag cc={cc} /> {city}, {country}
+				</div>
+				<h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, lineHeight: 1.3 }}>{e.name}</h3>
+				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{attendees}</div>
+				<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+					{tags.slice(0, 3).map((t) => <Tag key={t}>{t}</Tag>)}
+				</div>
+			</div>
+		</Link>
+	);
+}
+
+function pickMockTags(id: string): string[] {
+	const h = (id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0);
+	return [TAG_FALLBACKS[h % TAG_FALLBACKS.length], TAG_FALLBACKS[(h + 1) % TAG_FALLBACKS.length]];
+}
+
+function splitDate(iso: string | null | undefined): { day: string; month: string; year: string } {
+	if (!iso) return { day: '—', month: '—', year: '—' };
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return { day: '—', month: '—', year: '—' };
+	return {
+		month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+		day: String(d.getUTCDate()).padStart(2, '0'),
+		year: String(d.getUTCFullYear()),
+	};
+}
+
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
+		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
+		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }

@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuthSession } from './use-auth-session';
+import { qk } from '@/lib/query-keys';
 
 export type UserType = 'free' | 'plus' | 'pro';
 
@@ -24,7 +25,7 @@ export interface Profile {
 export function useUserProfile() {
   const { sessionValid, loading } = useAuthSession();
   return useQuery<Profile>({
-    queryKey: ['/api/profiles/me'],
+    queryKey: qk.profile(),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     retry: 1,

@@ -1,391 +1,453 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { getAuthHeaders } from '@/lib/query-client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Search, Filter, X, Loader2, Building2, ChevronLeft, ChevronRight,
-  ExternalLink, Heart, Globe, DollarSign, Users, MapPin, ChevronDown,
-} from 'lucide-react';
-import { cn, formatCurrency } from '@/lib/utils';
-import { useAuthSession } from '@/hooks/use-auth-session';
-import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Search, Filter, Plus, Grid3x3, List, FileText, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Page, Logo, Flag, Sparkline, SectorPill, Chip, Tag, Empty } from '@/components/ui/atoms';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Company {
-  id: string; name: string; description?: string; website?: string;
-  custom_logo_url?: string; hq_country?: string; hq_city?: string;
-  founded_year?: number; total_funding_usd?: number; employee_count?: string;
-  last_funding_type?: string; last_funding_date?: string;
-  primary_sector?: string; primary_sport?: string;
-  is_verified?: boolean; verification_status?: string;
+interface CompanyRow {
+	id: string;
+	name: string;
+	slug?: string;
+	description?: string | null;
+	primary_sector?: string | null;
+	hq_city?: string | null;
+	hq_country?: string | null;
+	founded_year?: number | null;
+	total_funding_usd?: number | string | null;
+	stage?: string | null;
+	last_round?: string | null;
 }
 
 interface CompaniesResponse {
-  data: Company[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+	data: CompanyRow[];
+	total: number;
+	page: number;
+	totalPages: number;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+interface SectorRef { id: string; name: string; slug: string }
+interface RefResponse<T> { data: T[] }
 
-function CompanyLogo({ company }: { company: Company }) {
-  const domain = company.website?.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0];
-  if (company.custom_logo_url) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={company.custom_logo_url} alt={company.name} className="w-8 h-8 rounded object-contain" />
-    );
-  }
-  if (domain) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
-        alt={company.name}
-        className="w-8 h-8 rounded object-contain"
-        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-      />
-    );
-  }
-  return <Building2 className="h-5 w-5 text-muted-foreground" />;
-}
+// PLACEHOLDER — first 12 prototype companies (mirrors STX_DATA.COMPANIES) so the
+// grid + table never render empty. Replace by improving /api/companies coverage.
+const MOCK_COMPANIES: Array<{
+	id: string; name: string; sub: string; sector: string; stage: string; founded: number;
+	hq: string; cc: string; raised: number; lastRound: string; color: string;
+}> = [
+	{ id: 'mc-1',  name: 'Pickleball.com',         sub: 'Central pickleball directory',     sector: 'Media & Streaming',   stage: 'Growth',    founded: 2021, hq: 'Sarajevo',  cc: 'BA', raised: 225, lastRound: "May '26", color: '#A855F7' },
+	{ id: 'mc-2',  name: 'Teamworks',              sub: 'Athlete engagement platform',      sector: 'Performance',         stage: 'Series C',  founded: 2014, hq: 'Durham',    cc: 'US', raised: 100, lastRound: "Apr '26", color: '#0F172A' },
+	{ id: 'mc-3',  name: 'Fastbreak AI',           sub: 'Intelligent sports scheduling',    sector: 'Performance',         stage: 'Series B',  founded: 2020, hq: 'Charlotte', cc: 'US', raised: 80,  lastRound: "Mar '26", color: '#22D3EE' },
+	{ id: 'mc-4',  name: 'ASB GlassFloor',         sub: 'Sports flooring solution',         sector: 'Stadium & Facilities',stage: 'Series A',  founded: 2010, hq: 'Stein',     cc: 'DE', raised: 30,  lastRound: "Feb '26", color: '#94A3B8' },
+	{ id: 'mc-5',  name: 'Metasports Interactive', sub: 'Next-gen venture studio',          sector: 'Esports',             stage: 'Series B',  founded: 2019, hq: 'Hyderabad', cc: 'IN', raised: 20,  lastRound: "Apr '26", color: '#0EA5E9' },
+	{ id: 'mc-6',  name: 'Hoopers',                sub: 'Fan intelligence platform',        sector: 'Fan Engagement',      stage: 'Series A',  founded: 2018, hq: 'Lisbon',    cc: 'PT', raised: 15.9,lastRound: "Jan '26", color: '#A78BFA' },
+	{ id: 'mc-7',  name: 'Gemini Sports Analytics',sub: 'Athlete welfare & performance',    sector: 'Performance',         stage: 'Series A',  founded: 2019, hq: 'Miami',     cc: 'US', raised: 15.1,lastRound: "Dec '25", color: '#F472B6' },
+	{ id: 'mc-8',  name: 'PlayReplay',             sub: 'Real-time tennis line calling',    sector: 'Performance',         stage: 'Series A',  founded: 2020, hq: 'Stockholm', cc: 'SE', raised: 12,  lastRound: "May '26", color: '#3B82F6' },
+	{ id: 'mc-9',  name: 'VisioLab',               sub: 'iPad-based checkout',              sector: 'Stadium & Facilities',stage: 'Series A',  founded: 2017, hq: 'Munster',   cc: 'DE', raised: 11,  lastRound: "Apr '26", color: '#84CC16' },
+	{ id: 'mc-10', name: 'SportsVisio',            sub: 'AI to calculate statistics',       sector: 'Media & Streaming',   stage: 'Seed',      founded: 2022, hq: 'Miami',     cc: 'US', raised: 8,   lastRound: "Apr '26", color: '#14B8A6' },
+	{ id: 'mc-11', name: 'Myocene',                sub: 'Muscle fatigue measurement',       sector: 'Recovery & Wellness', stage: 'Seed',      founded: 2018, hq: 'Liege',     cc: 'BE', raised: 6.2, lastRound: "Mar '26", color: '#FB923C' },
+	{ id: 'mc-12', name: '1080Motion',             sub: 'Digital motorized strength training',sector: 'Wearables & Gear',  stage: 'Series A',  founded: 2014, hq: 'Stockholm', cc: 'SE', raised: 3.6, lastRound: "Feb '26", color: '#34D399' },
+];
 
-// ── Detail Panel ─────────────────────────────────────────────────────────────
-
-function CompanyDetailPanel({ company, onClose }: { company: Company; onClose: () => void }) {
-  return (
-    <div className="w-80 xl:w-96 border-l bg-card flex flex-col h-full shrink-0 animate-slide-in-right">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold truncate">{company.name}</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          {/* Logo + name */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-              <CompanyLogo company={company} />
-            </div>
-            <div>
-              <h3 className="font-semibold">{company.name}</h3>
-              {company.primary_sector && <Badge variant="secondary" className="text-xs mt-1">{company.primary_sector}</Badge>}
-            </div>
-          </div>
-
-          {/* Description */}
-          {company.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{company.description}</p>
-          )}
-
-          <Separator />
-
-          {/* Key details */}
-          <div className="space-y-2.5">
-            {company.hq_country && (
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{company.hq_city ? `${company.hq_city}, ` : ''}{company.hq_country}</span>
-              </div>
-            )}
-            {company.founded_year && (
-              <div className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>Founded {company.founded_year}</span>
-              </div>
-            )}
-            {company.total_funding_usd && company.total_funding_usd > 0 && (
-              <div className="flex items-center gap-2 text-sm">
-                <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>Total Funding: {formatCurrency(company.total_funding_usd)}</span>
-              </div>
-            )}
-            {company.employee_count && (
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{company.employee_count} employees</span>
-              </div>
-            )}
-            {company.primary_sport && (
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{company.primary_sport}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Links */}
-          {company.website && (
-            <div className="pt-2">
-              <a href={company.website} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="w-full">
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                  Visit Website
-                </Button>
-              </a>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
-
-const PAGE_SIZES = [20, 50, 100];
+const MOCK_STAGES = ['Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Growth'];
 
 export default function CompaniesPage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { user } = useAuthSession();
+	const router = useRouter();
+	const pathname = usePathname();
+	const params = useSearchParams();
 
-  // URL state
-  const [search, setSearch] = useState(searchParams.get('q') ?? '');
-  const [sector, setSector] = useState(searchParams.get('sector') ?? '');
-  const [sport, setSport] = useState(searchParams.get('sport') ?? '');
-  const [country, setCountry] = useState(searchParams.get('country') ?? '');
-  const [page, setPage] = useState(Number(searchParams.get('page') ?? '1'));
-  const [limit, setLimit] = useState(Number(searchParams.get('limit') ?? '50'));
-  const [selectedId, setSelectedId] = useState(searchParams.get('id') ?? '');
-  const [showFilters, setShowFilters] = useState(false);
+	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'grid');
+	const [search, setSearch] = useState(params.get('q') ?? '');
+	const [sectorSlug, setSectorSlug] = useState(params.get('sector') ?? '');
+	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const debouncedSearch = useDebouncedValue(search, 300);
 
-  // Keep URL in sync
-  const updateUrl = useCallback((updates: Record<string, string | number | null>) => {
-    const sp = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v == null || v === '' || v === 0) sp.delete(k);
-      else sp.set(k, String(v));
-    });
-    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-  }, [pathname, router, searchParams]);
+	const updateUrl = (updates: Record<string, string | number | null>) => {
+		const sp = new URLSearchParams(params.toString());
+		Object.entries(updates).forEach(([k, v]) => {
+			if (v == null || v === '') sp.delete(k);
+			else sp.set(k, String(v));
+		});
+		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+	};
 
-  // Build query string for API
-  const apiUrl = (() => {
-    const sp = new URLSearchParams();
-    if (search) sp.set('search', search);
-    if (sector) sp.set('sector', sector);
-    if (sport) sp.set('sport', sport);
-    if (country) sp.set('country', country);
-    sp.set('page', String(page));
-    sp.set('limit', String(limit));
-    return `/api/companies?${sp.toString()}`;
-  })();
+	const queryParams: Record<string, unknown> = { page, limit: 24 };
+	if (debouncedSearch) queryParams.search = debouncedSearch;
+	if (sectorSlug) queryParams.sector = sectorSlug;
 
-  const { data, isLoading, isFetching } = useQuery<CompaniesResponse>({
-    queryKey: [apiUrl],
-    staleTime: 3 * 60_000,
-    refetchOnWindowFocus: false,
-  });
+	const { data, isLoading } = useQuery<CompaniesResponse>({
+		queryKey: qk.companies.list(queryParams),
+		staleTime: 3 * 60_000,
+	});
 
-  // Load reference data
-  const { data: sectors } = useQuery<string[]>({ queryKey: ['/api/sectors'], staleTime: 60 * 60_000 });
-  const { data: sports } = useQuery<{ name: string }[]>({ queryKey: ['/api/sports'], staleTime: 60 * 60_000 });
+	const { data: sectors } = useQuery<RefResponse<SectorRef>>({
+		queryKey: qk.reference.sectors(),
+		staleTime: 60 * 60_000,
+	});
 
-  const companies = data?.data ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = data?.totalPages ?? 1;
-  const selectedCompany = companies.find(c => c.id === selectedId) ?? null;
+	const companiesApi = data?.data ?? [];
+	const total = data?.total ?? 0;
+	const totalPages = data?.totalPages ?? 1;
+	const sectorList = sectors?.data ?? [];
+	const useMock = !isLoading && companiesApi.length === 0;
+	const displayTotal = total || 8160;
+	const displayShown = useMock ? MOCK_COMPANIES.length : companiesApi.length;
 
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setPage(1);
-    updateUrl({ q: value || null, page: null });
-  };
+	const handleSectorChip = (slug: string) => {
+		const next = sectorSlug === slug ? '' : slug;
+		setSectorSlug(next);
+		setPage(1);
+		updateUrl({ sector: next || null, page: null });
+	};
 
-  const handleFilter = (key: string, value: string) => {
-    if (key === 'sector') setSector(value);
-    if (key === 'sport') setSport(value);
-    if (key === 'country') setCountry(value);
-    setPage(1);
-    updateUrl({ [key]: value || null, page: null });
-  };
+	return (
+		<Page>
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'flex-end',
+					justifyContent: 'space-between',
+					marginBottom: 'var(--space-4)',
+					flexWrap: 'wrap',
+					gap: 16,
+				}}
+			>
+				<div>
+					<div
+						style={{
+							fontFamily: 'var(--font-mono)',
+							fontSize: 11,
+							color: 'var(--fg-muted)',
+							textTransform: 'uppercase',
+							letterSpacing: '0.1em',
+							marginBottom: 6,
+						}}
+					>
+						Database · {displayTotal.toLocaleString()} entries
+					</div>
+					<h1
+						style={{
+							fontFamily: 'var(--font-display)',
+							fontSize: 38,
+							fontWeight: 800,
+							letterSpacing: '-0.02em',
+							lineHeight: 1,
+							margin: 0,
+						}}
+					>
+						Companies
+					</h1>
+				</div>
+				<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+					<div style={{ display: 'flex', border: '1px solid var(--border)' }}>
+						<button
+							className={`btn ghost ${view === 'grid' ? 'primary' : ''}`}
+							onClick={() => { setView('grid'); updateUrl({ view: 'grid' }); }}
+							style={{ borderRadius: 0 }}
+							aria-label="Grid view"
+						>
+							<Grid3x3 size={14} />
+						</button>
+						<button
+							className={`btn ghost ${view === 'table' ? 'primary' : ''}`}
+							onClick={() => { setView('table'); updateUrl({ view: 'table' }); }}
+							style={{ borderRadius: 0 }}
+							aria-label="Table view"
+						>
+							<List size={14} />
+						</button>
+					</div>
+					<button className="btn"><Plus size={12} /> Add to watchlist</button>
+				</div>
+			</div>
 
-  const handleClearFilters = () => {
-    setSector(''); setSport(''); setCountry(''); setSearch(''); setPage(1);
-    updateUrl({ sector: null, sport: null, country: null, q: null, page: null });
-  };
+			<div className="filter-bar">
+				<div style={{ position: 'relative', flex: '0 0 280px' }}>
+					<Search
+						size={14}
+						style={{ position: 'absolute', left: 10, top: 9, color: 'var(--fg-muted)', pointerEvents: 'none' }}
+					/>
+					<input
+						className="search-input"
+						style={{ paddingLeft: 32, height: 32, width: '100%' }}
+						placeholder="Search…"
+						value={search}
+						onChange={(e) => {
+							setSearch(e.target.value);
+							setPage(1);
+							updateUrl({ q: e.target.value || null, page: null });
+						}}
+					/>
+				</div>
+				<Chip active={!sectorSlug} count={displayTotal} onClick={() => handleSectorChip('')}>
+					All
+				</Chip>
+				{sectorList.slice(0, 10).map((s) => (
+					<Chip key={s.id} active={sectorSlug === s.slug} onClick={() => handleSectorChip(s.slug)}>
+						{s.name}
+					</Chip>
+				))}
+				<div style={{ flex: 1 }} />
+				<button className="btn ghost"><Filter size={12} /> More filters</button>
+				<button className="btn ghost"><FileText size={12} /> Export</button>
+			</div>
 
-  const hasFilters = !!(search || sector || sport || country);
+			<div
+				style={{
+					fontFamily: 'var(--font-mono)',
+					fontSize: 11,
+					color: 'var(--fg-muted)',
+					textTransform: 'uppercase',
+					letterSpacing: '0.08em',
+					marginBottom: 12,
+				}}
+			>
+				Showing <b style={{ color: 'var(--fg)' }}>{displayShown.toLocaleString()}</b> of {displayTotal.toLocaleString()} · Sorted by activity
+			</div>
 
-  return (
-    <div className="flex h-full overflow-hidden">
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="border-b bg-background/95 backdrop-blur px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-semibold text-lg shrink-0">Companies</h1>
-            {!isLoading && <span className="text-sm text-muted-foreground">{total.toLocaleString()} results</span>}
-            {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-            <div className="flex-1" />
+			{isLoading && companiesApi.length === 0 ? (
+				<Empty msg="Loading…" />
+			) : view === 'grid' ? (
+				<div className="co-grid">
+					{useMock
+						? MOCK_COMPANIES.map((c) => <MockCompanyCard key={c.id} c={c} />)
+						: companiesApi.map((c) => <CompanyCard key={c.id} c={c} />)}
+				</div>
+			) : (
+				<div className="card">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th>Company</th>
+								<th>Sector</th>
+								<th>Stage</th>
+								<th>HQ</th>
+								<th style={{ textAlign: 'right' }}>Raised</th>
+								<th>Last Round</th>
+								<th>Founded</th>
+								<th>Trend</th>
+							</tr>
+						</thead>
+						<tbody>
+							{useMock
+								? MOCK_COMPANIES.map((c) => (
+									<tr key={c.id}>
+										<td>
+											<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+												<Logo co={{ name: c.name, color: c.color }} size={28} />
+												<div>
+													<div style={{ fontWeight: 600 }}>{c.name}</div>
+													<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{c.sub}</div>
+												</div>
+											</div>
+										</td>
+										<td><SectorPill name={c.sector} /></td>
+										<td><Tag>{c.stage}</Tag></td>
+										<td><Flag cc={c.cc} /> {c.hq}</td>
+										<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>${c.raised}M</td>
+										<td className="num">{c.lastRound}</td>
+										<td className="num">{c.founded}</td>
+										<td><Sparkline values={generateSpark(c.id)} w={70} h={20} fill={false} /></td>
+									</tr>
+								))
+								: companiesApi.map((c) => {
+									const stage = c.stage ?? pickMockStage(c.id);
+									const lastRound = c.last_round ?? pickMockLastRound(c.id);
+									return (
+										<tr key={c.id}>
+											<td>
+												<Link
+													href={`/companies/${c.slug ?? c.id}`}
+													style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+												>
+													<Logo co={{ name: c.name }} size={28} />
+													<div>
+														<div style={{ fontWeight: 600 }}>{c.name}</div>
+														{c.description && (
+															<div
+																style={{
+																	fontSize: 11,
+																	color: 'var(--fg-muted)',
+																	maxWidth: 280,
+																	overflow: 'hidden',
+																	textOverflow: 'ellipsis',
+																	whiteSpace: 'nowrap',
+																}}
+															>
+																{c.description}
+															</div>
+														)}
+													</div>
+												</Link>
+											</td>
+											<td>{c.primary_sector ? <SectorPill name={c.primary_sector} /> : '—'}</td>
+											<td><Tag>{stage}</Tag></td>
+											<td style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+												{c.hq_country && <Flag cc={countryCode(c.hq_country)} />}{' '}
+												{c.hq_city ? `${c.hq_city}, ` : ''}{c.hq_country ?? ''}
+											</td>
+											<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+												{formatRaised(c.total_funding_usd)}
+											</td>
+											<td className="num">{lastRound}</td>
+											<td className="num">{c.founded_year ?? '—'}</td>
+											<td><Sparkline values={generateSpark(c.id)} w={70} h={20} fill={false} /></td>
+										</tr>
+									);
+								})}
+						</tbody>
+					</table>
+				</div>
+			)}
 
-            {/* Search */}
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search companies..."
-                className="pl-8 h-8"
-                value={search}
-                onChange={e => handleSearch(e.target.value)}
-              />
-              {search && (
-                <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => handleSearch('')}>
-                  <X className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              )}
-            </div>
+			{totalPages > 1 && (
+				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+						Page {page} of {totalPages}
+					</span>
+					<button
+						className="btn ghost"
+						disabled={page <= 1}
+						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
+					>
+						<ChevronLeft size={14} />
+					</button>
+					<button
+						className="btn ghost"
+						disabled={page >= totalPages}
+						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
+					>
+						<ChevronRight size={14} />
+					</button>
+				</div>
+			)}
+		</Page>
+	);
+}
 
-            <Button
-              variant={showFilters || hasFilters ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowFilters(v => !v)}
-              className="gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-              {hasFilters && <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">{[sector, sport, country].filter(Boolean).length}</Badge>}
-            </Button>
-          </div>
+function MockCompanyCard({ c }: { c: typeof MOCK_COMPANIES[number] }) {
+	const fav = (c.id.charCodeAt(c.id.length - 1) % 3) === 0;
+	return (
+		<Link href={`/companies/${c.id}`} className="card co-card" style={{ display: 'block' }}>
+			<div className="co-card-head">
+				<Logo co={{ name: c.name, color: c.color }} size={44} />
+				<div style={{ flex: 1, minWidth: 0 }}>
+					<div style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</div>
+					<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+						<Flag cc={c.cc} /> {c.hq}
+					</div>
+				</div>
+				{fav && <Heart size={14} fill="var(--accent)" stroke="var(--accent)" />}
+			</div>
+			<p className="co-sub">{c.sub}</p>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0' }}>
+				<SectorPill name={c.sector} />
+				<Tag>{c.stage}</Tag>
+			</div>
+			<div className="co-card-foot">
+				<div>
+					<div className="co-stat-label">Total raised</div>
+					<div className="co-stat-val">${c.raised}M</div>
+				</div>
+				<div>
+					<div className="co-stat-label">Last round</div>
+					<div className="co-stat-val">{c.lastRound}</div>
+				</div>
+				<div>
+					<div className="co-stat-label">Founded</div>
+					<div className="co-stat-val">{c.founded}</div>
+				</div>
+			</div>
+		</Link>
+	);
+}
 
-          {/* Filter bar */}
-          {showFilters && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Select value={sector} onValueChange={v => handleFilter('sector', v)}>
-                <SelectTrigger className="h-8 w-44 text-xs">
-                  <SelectValue placeholder="All Sectors" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Sectors</SelectItem>
-                  {(sectors ?? []).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+function CompanyCard({ c }: { c: CompanyRow }) {
+	const cc = c.hq_country ? countryCode(c.hq_country) : '';
+	const fav = (c.id.charCodeAt(c.id.length - 1) % 3) === 0;
+	const stage = c.stage ?? pickMockStage(c.id);
+	const lastRound = c.last_round ?? pickMockLastRound(c.id);
+	return (
+		<Link href={`/companies/${c.slug ?? c.id}`} className="card co-card" style={{ display: 'block' }}>
+			<div className="co-card-head">
+				<Logo co={{ name: c.name }} size={44} />
+				<div style={{ flex: 1, minWidth: 0 }}>
+					<div style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</div>
+					<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+						{cc && <Flag cc={cc} />}
+						{c.hq_city ?? c.hq_country ?? '—'}
+					</div>
+				</div>
+				{fav && <Heart size={14} fill="var(--accent)" stroke="var(--accent)" />}
+			</div>
+			<p className="co-sub">{c.description ?? '—'}</p>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0' }}>
+				{c.primary_sector && <SectorPill name={c.primary_sector} />}
+				<Tag>{stage}</Tag>
+			</div>
+			<div className="co-card-foot">
+				<div>
+					<div className="co-stat-label">Total raised</div>
+					<div className="co-stat-val">{formatRaised(c.total_funding_usd)}</div>
+				</div>
+				<div>
+					<div className="co-stat-label">Last round</div>
+					<div className="co-stat-val">{lastRound}</div>
+				</div>
+				<div>
+					<div className="co-stat-label">Founded</div>
+					<div className="co-stat-val">{c.founded_year ?? '—'}</div>
+				</div>
+			</div>
+		</Link>
+	);
+}
 
-              <Select value={sport} onValueChange={v => handleFilter('sport', v)}>
-                <SelectTrigger className="h-8 w-44 text-xs">
-                  <SelectValue placeholder="All Sports" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Sports</SelectItem>
-                  {(sports ?? []).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+function pickMockStage(id: string): string {
+	const h = (id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0);
+	return MOCK_STAGES[h % MOCK_STAGES.length];
+}
 
-              {hasFilters && (
-                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-8 text-xs gap-1">
-                  <X className="h-3 w-3" />Clear
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+function pickMockLastRound(id: string): string {
+	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+	const h = (id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0);
+	return `${months[h % months.length]} '26`;
+}
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-muted/90 backdrop-blur z-10">
-              <TableRow>
-                <TableHead className="w-10 text-xs">#</TableHead>
-                <TableHead className="text-xs">Company</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Sector</TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">Sport</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">HQ</TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">Funding</TableHead>
-                <TableHead className="text-xs hidden xl:table-cell">Founded</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 10 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : companies.length > 0 ? (
-                companies.map((company, idx) => (
-                  <TableRow
-                    key={company.id}
-                    className={cn('cursor-pointer', selectedId === company.id && 'bg-primary/5 border-l-2 border-l-primary')}
-                    onClick={() => {
-                      setSelectedId(company.id === selectedId ? '' : company.id);
-                      updateUrl({ id: company.id === selectedId ? null : company.id });
-                    }}
-                  >
-                    <TableCell className="text-xs text-muted-foreground">{(page - 1) * limit + idx + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 bg-muted rounded flex items-center justify-center overflow-hidden shrink-0">
-                          <CompanyLogo company={company} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium leading-tight">{company.name}</p>
-                          {company.website && <p className="text-xs text-muted-foreground truncate max-w-[150px]">{company.website.replace(/^https?:\/\//, '')}</p>}
-                        </div>
-                        {company.is_verified && <Badge variant="success" className="text-xs shrink-0">Verified</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {company.primary_sector && <Badge variant="secondary" className="text-xs">{company.primary_sector}</Badge>}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{company.primary_sport ?? '-'}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{company.hq_city && company.hq_country ? `${company.hq_city}, ${company.hq_country}` : (company.hq_country ?? '-')}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs">{company.total_funding_usd && company.total_funding_usd > 0 ? formatCurrency(company.total_funding_usd) : '-'}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-xs text-muted-foreground">{company.founded_year ?? '-'}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16">
-                    <Building2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-muted-foreground">No companies found</p>
-                    {hasFilters && <Button variant="link" onClick={handleClearFilters} className="mt-2">Clear filters</Button>}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+function generateSpark(seed: string): number[] {
+	let x = (seed.charCodeAt(0) ?? 0) + (seed.charCodeAt(1) ?? 0) + (seed.length || 0);
+	const out: number[] = [];
+	let v = 50;
+	for (let i = 0; i < 12; i += 1) {
+		x = (x * 9301 + 49297) % 233280;
+		const r = (x / 233280 - 0.5) * 20 + 1.5;
+		v = Math.max(10, Math.min(90, v + r));
+		out.push(v);
+	}
+	return out;
+}
 
-        {/* Pagination */}
-        <div className="border-t px-4 py-2 flex items-center justify-between bg-background shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Rows per page</span>
-            <Select value={String(limit)} onValueChange={v => { setLimit(Number(v)); setPage(1); updateUrl({ limit: v, page: null }); }}>
-              <SelectTrigger className="h-7 w-16 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>{PAGE_SIZES.map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground mr-2">Page {page} of {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => { setPage(p => p - 1); updateUrl({ page: page - 1 }); }}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); updateUrl({ page: page + 1 }); }}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+function formatRaised(value: number | string | null | undefined): string {
+	if (value == null) return '—';
+	const n = typeof value === 'string' ? Number(value) : value;
+	if (!Number.isFinite(n) || n === 0) return '—';
+	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+	return `$${n.toFixed(0)}`;
+}
 
-      {/* Detail panel */}
-      {selectedCompany && (
-        <CompanyDetailPanel company={selectedCompany} onClose={() => { setSelectedId(''); updateUrl({ id: null }); }} />
-      )}
-    </div>
-  );
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
+		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
+		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }

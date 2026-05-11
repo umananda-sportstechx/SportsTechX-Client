@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import { useUserProfile, useIsAdmin, getUserType, type UserType } from '@/hooks/use-user-profile';
+import { qk } from '@/lib/query-keys';
 
 export interface Feature {
   id: number;
@@ -37,7 +38,7 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   const { isAdmin, isLoading: profileLoading } = useIsAdmin();
 
   const { data: features = [], isLoading } = useQuery<Feature[]>({
-    queryKey: ['/api/features'],
+    queryKey: qk.features(),
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
     refetchOnWindowFocus: false,

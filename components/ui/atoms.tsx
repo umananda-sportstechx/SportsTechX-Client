@@ -1,0 +1,619 @@
+'use client';
+
+import type { CSSProperties } from 'react';
+
+/**
+ * Atomic primitives ported from ui_design/app/atoms.jsx.
+ *
+ * Conventions:
+ *   • Each atom uses CSS variables defined in app/globals.css and
+ *     app/design-system.css — no inline color values that would break
+ *     dark/light theming or accent-hue swaps.
+ *   • SVG-based atoms (Sparkline, Donut, MiniBars, WorldMap) accept explicit
+ *     width/height so consumers control sizing.
+ *   • All atoms are pure presentational — no data fetching, no router refs.
+ */
+
+// ============================================================================
+// FLAG — pseudo country flags as 3-stripe gradients (matches ui_design exactly)
+// ============================================================================
+
+const FLAG_COLORS: Record<string, [string, string, string]> = {
+	US: ['#B22234', '#FFF', '#3C3B6E'], CA: ['#FF0000', '#FFF', '#FF0000'],
+	GB: ['#012169', '#FFF', '#C8102E'], DE: ['#000', '#DD0000', '#FFCE00'],
+	FR: ['#0055A4', '#FFF', '#EF4135'], IT: ['#009246', '#FFF', '#CE2B37'],
+	ES: ['#AA151B', '#F1BF00', '#AA151B'], NL: ['#AE1C28', '#FFF', '#21468B'],
+	SE: ['#006AA7', '#FECC00', '#006AA7'], PT: ['#006600', '#FF0000', '#FFCC29'],
+	CH: ['#D52B1E', '#FFF', '#D52B1E'], BE: ['#000', '#FAE042', '#ED2939'],
+	AT: ['#ED2939', '#FFF', '#ED2939'], PL: ['#FFF', '#DC143C', '#FFF'],
+	IN: ['#FF9933', '#FFF', '#138808'], CN: ['#DE2910', '#FFDE00', '#DE2910'],
+	JP: ['#FFF', '#BC002D', '#FFF'], KR: ['#FFF', '#003478', '#CD2E3A'],
+	SG: ['#EF3340', '#FFF', '#EF3340'], AU: ['#012169', '#FFF', '#E4002B'],
+	NZ: ['#012169', '#FFF', '#CC142B'], BR: ['#009C3B', '#FFDF00', '#002776'],
+	AR: ['#74ACDF', '#FFF', '#74ACDF'], MX: ['#006847', '#FFF', '#CE1126'],
+	SA: ['#006C35', '#FFF', '#006C35'], AE: ['#00732F', '#FFF', '#FF0000'],
+	EG: ['#CE1126', '#FFF', '#000'], ZA: ['#007749', '#FFF', '#DE3831'],
+	KE: ['#000', '#BB0000', '#006600'], BA: ['#002F6C', '#FFCC29', '#002F6C'],
+	HK: ['#DE2408', '#FFF', '#DE2408'], LU: ['#ED2939', '#FFF', '#00A1DE'],
+	AD: ['#10069F', '#FFCD00', '#D50032'], KW: ['#007A3D', '#FFF', '#CE1126'],
+};
+
+export function Flag({ cc, size = 14 }: { cc: string; size?: number }) {
+	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+	return (
+		<span
+			className="flag"
+			title={cc}
+			style={{
+				width: size,
+				height: size * 0.7,
+				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
+			}}
+		/>
+	);
+}
+
+// ============================================================================
+// LOGO — colored block with company initials
+// ============================================================================
+
+interface LogoProps {
+	co: { name?: string; logo?: string; color?: string };
+	size?: number;
+}
+
+export function Logo({ co, size = 32 }: LogoProps) {
+	return (
+		<div
+			className="co-logo"
+			style={{
+				width: size,
+				height: size,
+				background: co.color ?? 'var(--bg-3)',
+				color: '#fff',
+				fontSize: size * 0.35,
+			}}
+		>
+			{co.logo ?? co.name?.slice(0, 2).toUpperCase() ?? '—'}
+		</div>
+	);
+}
+
+// ============================================================================
+// SPARKLINE — small line chart, optional fill
+// ============================================================================
+
+/**
+ * Build an SVG path for a sparkline scaled to (w, h). Min/max normalised.
+ * Replaces ui_design's `STX_DATA.sparkPath` helper so this atom is self-contained.
+ */
+function sparkPath(values: number[], w: number, h: number): string {
+	if (values.length === 0) return '';
+	const min = Math.min(...values);
+	const max = Math.max(...values);
+	const range = max - min || 1;
+	const step = w / Math.max(values.length - 1, 1);
+	return values
+		.map((v, i) => {
+			const x = i * step;
+			const y = h - ((v - min) / range) * h;
+			return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+		})
+		.join(' ');
+}
+
+interface SparklineProps {
+	values: number[];
+	w?: number;
+	h?: number;
+	color?: string;
+	fill?: boolean;
+}
+
+export function Sparkline({ values, w = 70, h = 28, color, fill = true }: SparklineProps) {
+	const path = sparkPath(values, w, h);
+	const c = color ?? 'var(--accent)';
+	const fillPath = fill ? `${path} L${w},${h} L0,${h} Z` : null;
+	return (
+		<svg className="stat-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+			{fill && fillPath && <path d={fillPath} fill={c} opacity="0.12" />}
+			<path d={path} stroke={c} strokeWidth="1.5" fill="none" />
+		</svg>
+	);
+}
+
+// ============================================================================
+// STAT — KPI card cell (label + big value + delta + sparkline)
+// ============================================================================
+
+interface StatProps {
+	label: string;
+	value: React.ReactNode;
+	unit?: string;
+	delta?: string;
+	deltaDir?: 'pos' | 'neg';
+	spark?: number[];
+	sparkColor?: string;
+}
+
+export function Stat({ label, value, unit, delta, deltaDir = 'pos', spark, sparkColor }: StatProps) {
+	return (
+		<div className="stat">
+			<div className="stat-label">{label}</div>
+			<div className="stat-value">
+				{value}
+				{unit && <span className="unit">{unit}</span>}
+			</div>
+			<div className="stat-foot">
+				{delta && (
+					<span className={`stat-delta ${deltaDir}`}>
+						{deltaDir === 'pos' ? '▲' : '▼'} {delta}
+					</span>
+				)}
+				{spark && <Sparkline values={spark} color={sparkColor} />}
+			</div>
+		</div>
+	);
+}
+
+// ============================================================================
+// TAG — small uppercase label chip
+// ============================================================================
+
+interface TagProps {
+	children: React.ReactNode;
+	variant?: '' | 'pos' | 'neg' | 'pill' | 'warn';
+	dot?: boolean;
+}
+
+export function Tag({ children, variant = '', dot }: TagProps) {
+	return (
+		<span className={`tag ${variant}`}>
+			{dot && (
+				<span
+					style={{
+						width: 6,
+						height: 6,
+						background: 'currentColor',
+						display: 'inline-block',
+						borderRadius: '50%',
+					}}
+				/>
+			)}
+			{children}
+		</span>
+	);
+}
+
+// ============================================================================
+// CHIP — interactive filter chip
+// ============================================================================
+
+interface ChipProps {
+	active?: boolean;
+	count?: number;
+	onClick?: () => void;
+	children: React.ReactNode;
+}
+
+export function Chip({ active, count, onClick, children }: ChipProps) {
+	return (
+		<button className={`chip ${active ? 'on' : ''}`} onClick={onClick}>
+			{children}
+			{count != null && <span className="ct">{count}</span>}
+		</button>
+	);
+}
+
+// ============================================================================
+// SECTION HEAD — page section title bar with optional meta + action slot
+// ============================================================================
+
+interface SectionHeadProps {
+	title: React.ReactNode;
+	meta?: React.ReactNode;
+	action?: React.ReactNode;
+}
+
+export function SectionHead({ title, meta, action }: SectionHeadProps) {
+	return (
+		<div className="section-head">
+			<h2>{title}</h2>
+			<div className="flex-center">
+				{meta && <span className="meta">{meta}</span>}
+				{action}
+			</div>
+		</div>
+	);
+}
+
+// ============================================================================
+// EMPTY — empty state placeholder
+// ============================================================================
+
+export function Empty({ msg = 'No results' }: { msg?: string }) {
+	return (
+		<div
+			style={{
+				padding: 60,
+				textAlign: 'center',
+				color: 'var(--fg-muted)',
+				fontFamily: 'var(--font-mono)',
+				fontSize: 12,
+				letterSpacing: '0.1em',
+			}}
+		>
+			{msg.toUpperCase()}
+		</div>
+	);
+}
+
+// ============================================================================
+// SECTOR PILL — sector chip with colored icon block
+// ============================================================================
+
+interface SectorPillProps {
+	color?: string;
+	icon?: string;
+	name: string;
+}
+
+export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps) {
+	return (
+		<span
+			style={{
+				display: 'inline-flex',
+				alignItems: 'center',
+				gap: 6,
+				fontSize: 12,
+				fontWeight: 500,
+				color: 'var(--fg-2)',
+			}}
+		>
+			<span
+				style={{
+					width: 14,
+					height: 14,
+					background: color,
+					color: '#fff',
+					display: 'grid',
+					placeItems: 'center',
+					fontSize: 9,
+					fontWeight: 700,
+					fontFamily: 'var(--font-display)',
+				}}
+			>
+				{icon}
+			</span>
+			{name}
+		</span>
+	);
+}
+
+// ============================================================================
+// MINI BARS — vertical bar chart with optional X labels
+// ============================================================================
+
+interface MiniBarsProps {
+	values: number[];
+	w?: number;
+	h?: number;
+	color?: string;
+	labels?: string[];
+}
+
+export function MiniBars({ values, w = 240, h = 60, color = 'var(--accent)', labels }: MiniBarsProps) {
+	if (values.length === 0) return null;
+	const max = Math.max(...values, 1);
+	const bw = (w - (values.length - 1) * 2) / values.length;
+	return (
+		<svg width={w} height={h + 16} viewBox={`0 0 ${w} ${h + 16}`}>
+			{values.map((v, i) => {
+				const bh = (v / max) * h;
+				return (
+					<g key={i}>
+						<rect
+							x={i * (bw + 2)}
+							y={h - bh}
+							width={bw}
+							height={bh}
+							fill={color}
+							opacity={0.25 + (v / max) * 0.75}
+						/>
+						{labels && (
+							<text
+								x={i * (bw + 2) + bw / 2}
+								y={h + 12}
+								textAnchor="middle"
+								fontSize="9"
+								fill="var(--fg-muted)"
+								fontFamily="var(--font-mono)"
+							>
+								{labels[i]}
+							</text>
+						)}
+					</g>
+				);
+			})}
+		</svg>
+	);
+}
+
+// ============================================================================
+// DONUT — concentric ring chart
+// ============================================================================
+
+interface DonutSegment {
+	v: number;
+	color: string;
+	label?: string;
+}
+
+interface DonutProps {
+	segments: DonutSegment[];
+	size?: number;
+	thickness?: number;
+}
+
+export function Donut({ segments, size = 120, thickness = 18 }: DonutProps) {
+	const r = (size - thickness) / 2;
+	const C = 2 * Math.PI * r;
+	const total = segments.reduce((s, x) => s + x.v, 0) || 1;
+	let off = 0;
+	return (
+		<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+			<circle
+				cx={size / 2}
+				cy={size / 2}
+				r={r}
+				stroke="var(--bg-3)"
+				strokeWidth={thickness}
+				fill="none"
+			/>
+			{segments.map((seg, i) => {
+				const len = (seg.v / total) * C;
+				const dasharray = `${len} ${C - len}`;
+				const dashoffset = -off;
+				off += len;
+				return (
+					<circle
+						key={i}
+						cx={size / 2}
+						cy={size / 2}
+						r={r}
+						stroke={seg.color}
+						strokeWidth={thickness}
+						fill="none"
+						strokeDasharray={dasharray}
+						strokeDashoffset={dashoffset}
+						transform={`rotate(-90 ${size / 2} ${size / 2})`}
+					/>
+				);
+			})}
+		</svg>
+	);
+}
+
+// ============================================================================
+// WORLD MAP — stippled continent outlines + accent dots for active locations
+// ============================================================================
+
+const CONTINENT_PATHS: string[] = [
+	'M 130 130 Q 145 110 175 115 L 215 110 Q 245 105 275 115 L 305 125 Q 320 135 318 155 L 312 175 Q 320 190 315 205 L 305 220 Q 295 215 285 220 L 275 235 Q 280 250 270 260 L 255 270 Q 245 285 250 300 L 245 315 Q 240 320 232 318 L 225 310 Q 218 295 220 280 L 215 265 Q 205 255 195 248 L 180 240 Q 165 230 155 215 L 145 200 Q 138 185 142 170 L 138 155 Q 130 145 130 130 Z',
+	'M 365 80 Q 380 70 405 72 L 425 80 Q 432 95 428 115 L 420 130 Q 405 138 388 132 L 375 120 Q 365 105 365 80 Z',
+	'M 270 295 Q 290 285 312 290 L 335 300 Q 348 315 352 335 L 358 360 Q 355 385 340 405 L 322 425 Q 308 438 295 432 L 285 415 Q 282 395 278 380 L 272 360 Q 268 340 268 320 L 270 295 Z',
+	'M 458 138 Q 466 132 472 138 L 475 152 Q 472 162 463 165 L 456 158 Q 454 148 458 138 Z',
+	'M 445 110 Q 455 105 462 110 L 460 118 Q 452 120 445 117 Z',
+	'M 478 145 Q 495 130 515 122 L 535 105 Q 555 95 575 100 L 595 115 Q 600 135 588 152 L 595 175 Q 588 195 568 200 L 545 205 Q 525 210 508 200 L 490 195 Q 478 180 478 165 L 478 145 Z',
+	'M 488 220 Q 510 215 540 218 L 575 222 Q 600 230 605 250 L 600 275 Q 605 295 600 315 L 590 340 Q 580 365 570 385 L 560 408 Q 548 422 535 418 L 525 405 Q 515 385 510 365 L 500 340 Q 490 315 488 290 L 485 260 Q 482 240 488 220 Z',
+	'M 590 230 Q 615 232 638 240 L 655 258 Q 660 275 650 285 L 632 290 Q 615 285 600 275 L 588 258 Q 585 245 590 230 Z',
+	'M 595 105 Q 640 92 700 92 L 770 88 Q 830 90 880 100 L 915 115 Q 925 135 918 155 L 905 175 Q 890 188 870 192 L 855 195 Q 838 210 820 215 L 800 220 Q 785 215 778 230 L 775 250 Q 770 270 755 280 L 738 285 Q 720 280 710 295 L 705 315 Q 695 325 685 320 L 678 305 Q 680 285 685 268 L 690 248 Q 685 230 670 222 L 650 218 Q 628 218 612 208 L 600 195 Q 595 180 596 162 L 595 140 L 595 105 Z',
+	'M 882 175 Q 892 168 898 178 L 905 195 Q 902 210 893 215 L 884 205 Q 880 190 882 175 Z',
+	'M 760 282 Q 778 278 798 282 L 815 288 Q 818 298 808 302 L 790 305 Q 772 302 762 295 Z',
+	'M 825 280 Q 838 278 845 285 L 842 295 Q 832 297 825 290 Z',
+	'M 820 245 Q 832 240 838 250 L 835 262 Q 825 264 820 255 Z',
+	'M 800 370 Q 825 360 855 362 L 885 372 Q 895 390 888 408 L 865 418 Q 838 422 815 418 L 798 408 Q 790 390 800 370 Z',
+	'M 920 415 Q 928 412 932 420 L 928 432 Q 920 432 918 422 Z',
+	'M 615 360 Q 622 358 626 368 L 622 388 Q 615 388 612 378 Z',
+];
+
+interface WorldMapDot { x: number; y: number; r: number }
+
+interface WorldMapProps {
+	height?: number;
+	dots?: WorldMapDot[];
+}
+
+export function WorldMap({ height = 280, dots = [] }: WorldMapProps) {
+	const id = 'stx-world';
+	return (
+		<svg className="map-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" style={{ height }}>
+			<defs>
+				<pattern id={`${id}-dots`} x="0" y="0" width="13" height="13" patternUnits="userSpaceOnUse">
+					<circle cx="6.5" cy="6.5" r="1.3" fill="var(--fg-muted)" opacity="0.75" />
+				</pattern>
+				<mask id={`${id}-continents`}>
+					<rect width="1000" height="500" fill="black" />
+					{CONTINENT_PATHS.map((d, i) => (
+						<path key={i} d={d} fill="white" />
+					))}
+				</mask>
+			</defs>
+			<rect width="1000" height="500" fill={`url(#${id}-dots)`} mask={`url(#${id}-continents)`} />
+			<g fill="none" stroke="var(--border)" strokeWidth="0.6" opacity="0.5">
+				{CONTINENT_PATHS.map((d, i) => (
+					<path key={i} d={d} />
+				))}
+			</g>
+			{dots.map((d, i) => (
+				<g key={i}>
+					<circle cx={d.x} cy={d.y} r={d.r + 6} fill="var(--accent)" opacity="0.15" />
+					<circle cx={d.x} cy={d.y} r={d.r} fill="var(--accent)" />
+					<circle cx={d.x} cy={d.y} r={d.r * 0.4} fill="#fff" />
+				</g>
+			))}
+		</svg>
+	);
+}
+
+// ============================================================================
+// HEATMAP — 8-column grid of color-mixed cells with row labels + Cool/Hot scale
+// Matches ui_design/screens-1.jsx HeatGrid exactly.
+// ============================================================================
+
+interface HeatmapRow {
+	label: string;
+	values: number[];
+}
+
+interface HeatmapProps {
+	data: HeatmapRow[];
+	/** Optional column labels; defaults to Q1'24..Q4'25 to match the design. */
+	columns?: string[];
+}
+
+export function Heatmap({ data, columns }: HeatmapProps) {
+	if (data.length === 0) return null;
+	const all = data.flatMap((r) => r.values);
+	const max = Math.max(...all);
+	const min = Math.min(...all);
+	const cols = columns ?? data[0].values.map((_, i) => `Q${(i % 4) + 1}${i >= 4 ? "'25" : "'24"}`);
+	const colCount = data[0].values.length;
+	const gridCols = `110px repeat(${colCount}, 1fr)`;
+	return (
+		<div>
+			<div
+				style={{
+					display: 'grid',
+					gridTemplateColumns: gridCols,
+					gap: 2,
+					fontSize: 10,
+					fontFamily: 'var(--font-mono)',
+					color: 'var(--fg-muted)',
+					marginBottom: 6,
+					textTransform: 'uppercase',
+					letterSpacing: '0.06em',
+				}}
+			>
+				<span />
+				{cols.map((c, i) => <span key={i} style={{ textAlign: 'center' }}>{c}</span>)}
+			</div>
+			{data.map((row) => (
+				<div key={row.label} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 2, marginBottom: 2 }}>
+					<span style={{ fontSize: 12, color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
+						{row.label}
+					</span>
+					{row.values.map((v, i) => {
+						const t = (v - min) / (max - min || 1);
+						const intensity = 0.15 + t * 0.85;
+						return (
+							<div
+								key={i}
+								style={{
+									aspectRatio: '1',
+									background: `color-mix(in oklch, var(--accent) ${intensity * 100}%, var(--bg-2))`,
+									display: 'grid',
+									placeItems: 'center',
+									fontSize: 9,
+									fontFamily: 'var(--font-mono)',
+									fontWeight: 600,
+									color: t > 0.6 ? 'var(--accent-fg)' : 'var(--fg-2)',
+								}}
+							>
+								{v}
+							</div>
+						);
+					})}
+				</div>
+			))}
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 8,
+					marginTop: 12,
+					fontSize: 10,
+					fontFamily: 'var(--font-mono)',
+					color: 'var(--fg-muted)',
+					textTransform: 'uppercase',
+					letterSpacing: '0.08em',
+				}}
+			>
+				<span>Cool</span>
+				{[0.1, 0.3, 0.5, 0.7, 0.9].map((t) => (
+					<div
+						key={t}
+						style={{
+							flex: 1,
+							height: 6,
+							background: `color-mix(in oklch, var(--accent) ${t * 100}%, var(--bg-2))`,
+						}}
+					/>
+				))}
+				<span>Hot</span>
+			</div>
+		</div>
+	);
+}
+
+// ============================================================================
+// PIPELINE FUNNEL — horizontal 5-stage funnel bars (ui_design/screens-1.jsx)
+// ============================================================================
+
+interface FunnelStage {
+	label: string;
+	value: number;
+	color?: string;
+}
+
+export function PipelineFunnel({ stages }: { stages: FunnelStage[] }) {
+	if (stages.length === 0) return null;
+	const max = stages[0].value;
+	return (
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+			{stages.map((s, i) => {
+				const w = (s.value / max) * 100;
+				const c = s.color ?? (i === 0 ? 'var(--bg-3)' : 'var(--accent)');
+				return (
+					<div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+						<div style={{ width: 130, fontSize: 12, color: 'var(--fg-2)' }}>{s.label}</div>
+						<div style={{ flex: 1, height: 22, background: 'var(--bg-2)', position: 'relative' }}>
+							<div
+								style={{
+									position: 'absolute',
+									inset: 0,
+									width: `${w}%`,
+									background: c,
+									opacity: i === 0 ? 0.4 : 1,
+								}}
+							/>
+							<div
+								style={{
+									position: 'relative',
+									padding: '0 8px',
+									height: '100%',
+									display: 'flex',
+									alignItems: 'center',
+									fontFamily: 'var(--font-mono)',
+									fontSize: 11,
+									fontWeight: 700,
+									color: i >= 1 ? '#fff' : 'var(--fg)',
+								}}
+							>
+								{s.value.toLocaleString()}
+							</div>
+						</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+// ============================================================================
+// PAGE — page-level container that applies the design's `page-pad` class
+// ============================================================================
+
+export function Page({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
+	return <div className="page-pad" style={style}>{children}</div>;
+}

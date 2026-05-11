@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Search, X, Loader2, Building2, ChevronLeft, ChevronRight, ExternalLink, MapPin, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 
 interface EcosystemEntity {
   id: string; name: string; description?: string; website?: string;
@@ -59,6 +60,7 @@ export default function EcosystemPage() {
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [type, setType] = useState(searchParams.get('type') ?? '');
   const [page, setPage] = useState(Number(searchParams.get('page') ?? '1'));
   const [selectedId, setSelectedId] = useState(searchParams.get('item') ?? '');
@@ -71,7 +73,7 @@ export default function EcosystemPage() {
 
   const apiUrl = (() => {
     const sp = new URLSearchParams();
-    if (search) sp.set('search', search);
+    if (debouncedSearch) sp.set('search', debouncedSearch);
     if (type) sp.set('type', type);
     sp.set('page', String(page)); sp.set('limit', '50');
     return `/api/ecosystem?${sp.toString()}`;

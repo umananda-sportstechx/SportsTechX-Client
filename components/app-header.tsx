@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Bell, Search, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,12 @@ export function AppHeader() {
   const { theme, setTheme } = useTheme();
   const { data: profile } = useUserProfile();
   const router = useRouter();
+
+  // next-themes can't know the user's theme during SSR (it's stored in
+  // localStorage). Wait for client mount before rendering theme-dependent UI
+  // to avoid the Sun/Moon icon hydration mismatch.
+  const [themeMounted, setThemeMounted] = useState(false);
+  useEffect(() => { setThemeMounted(true); }, []);
 
   const initials = profile?.display_name
     ? profile.display_name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -47,13 +53,20 @@ export function AppHeader() {
         {/* Search — spacer on left */}
         <div className="flex-1" />
 
-        {/* Theme toggle */}
+        {/* Theme toggle. Render an empty placeholder during SSR to keep layout
+            stable, then swap in the real icon once we know the theme. */}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label="Toggle theme"
+          suppressHydrationWarning
         >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {themeMounted ? (
+            theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />
+          ) : (
+            <span className="h-4 w-4" />
+          )}
         </Button>
 
         {/* Profile dropdown */}

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { queryClient } from '@/lib/query-client';
+import { qk } from '@/lib/query-keys';
 import { toast } from 'sonner';
 
 export default function SuccessPage() {
@@ -24,20 +25,31 @@ export default function SuccessPage() {
       return;
     }
 
+    // cancelled flag guards setState/toast calls if the user navigates away
+    // mid-sync. apiRequest doesn't accept an AbortSignal, so we rely on this
+    // flag instead of true cancellation — the request still resolves in the
+    // background, we just don't react to it.
+    let cancelled = false;
+
     (async () => {
       try {
         const res = await apiRequest('POST', '/api/billing/sync-from-session', { session_id: sessionId });
         const result = await res.json();
-        await queryClient.invalidateQueries({ queryKey: ['/api/profiles/me'] });
+        if (cancelled) return;
+        await queryClient.invalidateQueries({ queryKey: qk.profile() });
+        if (cancelled) return;
         setPlanName(result.user_type ?? 'subscription');
         setSyncComplete(true);
         toast.success(`Your ${result.user_type ?? 'subscription'} plan has been activated`);
       } catch (err) {
+        if (cancelled) return;
         toast.error('Payment received — still processing. Refresh or contact support if it persists.');
       } finally {
-        setSyncing(false);
+        if (!cancelled) setSyncing(false);
       }
     })();
+
+    return () => { cancelled = true; };
   }, [sessionId]);
 
   return (

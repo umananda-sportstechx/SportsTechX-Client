@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Shield, Users, CreditCard, BarChart3, Activity, CheckCircle, XCircle,
   Loader2, RefreshCw, Search, ChevronLeft, ChevronRight, Eye, Check, X,
@@ -654,13 +655,11 @@ export default function AdminPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="h-7 w-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Manage claims, users, billing, sales, and performance</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Admin Dashboard"
+        subtitle="Manage claims, users, billing, sales, and performance"
+        actions={<Shield className="h-7 w-7 text-primary" />}
+      />
 
       <Tabs defaultValue="claims">
         <TabsList className="inline-flex h-auto p-1 bg-muted/50 rounded-full gap-1 flex-wrap mb-6">
