@@ -1,7 +1,6 @@
 'use client';
 
 import { Search, Sun, Moon, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 interface TopbarProps {
@@ -39,13 +38,6 @@ export function Topbar({
 	liveLabel = DEFAULT_LIVE_LABEL,
 }: TopbarProps) {
 	const { data: profile } = useUserProfile();
-
-	// Hydration-safe theme icon: render an empty placeholder during SSR, swap
-	// to the correct icon after mount. Without this, the server can't know
-	// the user's theme and renders a different icon than the client → React
-	// hydration mismatch warning.
-	const [mounted, setMounted] = useState(false);
-	useEffect(() => { setMounted(true); }, []);
 
 	const initials = profile?.display_name
 		? profile.display_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -85,11 +77,10 @@ export function Topbar({
 				aria-label="Toggle theme"
 				suppressHydrationWarning
 			>
-				{mounted ? (
-					theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />
-				) : (
-					<span style={{ width: 16, height: 16, display: 'inline-block' }} />
-				)}
+				{/* Both icons rendered; CSS hides the inactive one. Avoids the */}
+				{/* hydration flash from server-vs-client theme guess.            */}
+				<Sun size={16} style={{ display: theme === 'dark' ? 'block' : 'none' }} suppressHydrationWarning />
+				<Moon size={16} style={{ display: theme === 'dark' ? 'none' : 'block' }} suppressHydrationWarning />
 			</button>
 
 			<button className={`topbar-btn ${aiOpen ? 'primary' : ''}`} onClick={onToggleAi}>
