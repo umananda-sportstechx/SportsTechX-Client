@@ -45,10 +45,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
-        attribute="class"
+        attribute="data-theme"
         defaultTheme="dark"
         enableSystem={false}
         disableTransitionOnChange
+        storageKey="stx:theme"
       >
         <TooltipProvider delayDuration={300}>
           {/* AuthSessionProvider must wrap FeatureAccessProvider because the

@@ -41,17 +41,39 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/**
+ * Inline boot script: reads the saved accent hue from localStorage and sets
+ * `--accent-hue` on <html> *before* React paints. Without this the user would
+ * see a brief flash of the default accent when navigating between pages until
+ * `AppInit` runs in useEffect.
+ *
+ * next-themes already injects its own boot script for the theme attribute, so
+ * we only need to handle the accent hue here. `data-density` stays as a
+ * hardcoded default since there's no runtime toggle for it yet.
+ */
+const ACCENT_BOOT_SCRIPT = `
+(function(){
+  try {
+    var hue = localStorage.getItem('stx:accent-hue');
+    if (hue) document.documentElement.style.setProperty('--accent-hue', hue);
+  } catch (_) { /* ignore */ }
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      // Default to dark theme to match the ui_design prototype's primary look.
-      data-theme="dark"
-      // Default density. Tweaks panel can flip this at runtime.
+      // Default density. Tweaks panel can flip this at runtime. The theme
+      // attribute (data-theme) is now managed entirely by next-themes via
+      // providers.tsx — no hardcoded default here, otherwise it sticks.
       data-density="comfortable"
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: ACCENT_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
