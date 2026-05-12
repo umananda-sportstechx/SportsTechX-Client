@@ -10,6 +10,11 @@ export interface Profile {
   id: string;
   email: string | null;
   display_name: string | null;
+  // `user_role` is the RBAC role: 'admin' | 'user'. Gates the admin panel
+  // and any @RequireRole('admin') endpoints on the server.
+  user_role: string | null;
+  // `user_type` is the subscription tier: 'free' | 'plus' | 'pro'. Drives
+  // feature gating in the user-facing app, NOT admin access.
   user_type: string | null;
   user_type_detail: string | null;
   avatar_url: string | null;
@@ -41,7 +46,7 @@ export function getUserType(profile: Profile | null | undefined): UserType {
 export function useIsAdmin() {
   const { data: profile, isLoading } = useUserProfile();
   return {
-    isAdmin: profile?.user_type_detail === 'admin',
+    isAdmin: profile?.user_role === 'admin',
     isLoading,
     profile,
   };
