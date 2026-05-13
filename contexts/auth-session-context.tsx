@@ -38,20 +38,42 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 	const monitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	/**
+	 * Hard logout used when we know the session is unrecoverable — refresh
+	 * token revoked, JWT secret rotated, or cookie corruption. We force-clear
+	 * the `sb-*` cookies on top of calling signOut(), because signOut() can
+	 * silently no-op when the SDK can't talk to Supabase Auth (e.g. when the
+	 * refresh token is missing the call returns `{error: AuthSessionMissingError}`
+	 * but the rejected cookies sit there forever).
+	 */
+	const clearAuthCookies = useCallback(() => {
+		if (typeof document === 'undefined') return;
+		const hostname = window.location.hostname;
+		for (const raw of document.cookie.split(';')) {
+			const name = raw.split('=')[0]?.trim();
+			if (!name?.startsWith('sb-')) continue;
+			// Try several path/domain combos so the right cookie definitely
+			// drops regardless of how it was set.
+			document.cookie = `${name}=; Max-Age=0; path=/;`;
+			document.cookie = `${name}=; Max-Age=0; path=/; domain=${hostname};`;
+			document.cookie = `${name}=; Max-Age=0; path=/; domain=.${hostname};`;
+		}
+	}, []);
+
 	const handleSessionExpired = useCallback(() => {
 		if (logoutState.isLoggingOut()) return;
 		if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
 		if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
 		const supabase = getSupabaseBrowser();
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			if (session) return;
-			queryClient.clear();
-			supabase.auth.signOut().then(() => {
-				setState({ user: null, loading: false, sessionValid: false });
-				window.location.href = '/login?reason=session_expired';
-			});
-		});
-	}, []);
+		// Fire-and-forget signOut; we don't depend on it succeeding because
+		// the refresh token may already be invalid (which is precisely why
+		// we're here). Forcible cookie clear runs in parallel.
+		supabase.auth.signOut().catch(() => undefined);
+		clearAuthCookies();
+		queryClient.clear();
+		setState({ user: null, loading: false, sessionValid: false });
+		window.location.href = '/login?reason=session_expired';
+	}, [clearAuthCookies]);
 
 	const scheduleRefresh = useCallback(
 		(expiresAt: number) => {
@@ -113,6 +135,15 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 			if (!mounted) return;
 			if (error || !session) {
 				setState({ user: null, loading: false, sessionValid: false });
+				return;
+			}
+			// If the cookie carries an already-expired access token, don't
+			// schedule a refresh — the SDK's own auto-refresh will fire and
+			// throw "Invalid Refresh Token: Refresh Token Not Found" if the
+			// refresh token is also stale, which is the common case for a
+			// long-idle tab. Bail straight to the login flow instead.
+			if (session.expires_at && session.expires_at * 1000 <= Date.now()) {
+				handleSessionExpired();
 				return;
 			}
 			logoutState.setSessionValid(true);
@@ -184,7 +215,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 			if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
 			if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
 		};
-	}, [scheduleRefresh, startMonitoring, checkAndRefresh]);
+	}, [scheduleRefresh, startMonitoring, checkAndRefresh, handleSessionExpired]);
 
 	return (
 		<AuthSessionContext.Provider value={state}>
