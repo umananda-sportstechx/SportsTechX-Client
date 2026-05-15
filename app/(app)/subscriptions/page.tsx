@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@/lib/query-client';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';

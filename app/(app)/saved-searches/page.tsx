@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@/lib/query-client';
 import { useRouter } from 'next/navigation';
 import { Trash2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';

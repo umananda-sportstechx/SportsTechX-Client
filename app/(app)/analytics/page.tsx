@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@/lib/query-client';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Stat, SectionHead, Donut, WorldMap, Empty } from '@/components/ui/atoms';

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Send, X, Download } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@/lib/query-client';
 import { getAuthHeaders } from '@/lib/query-client';
 
 /**

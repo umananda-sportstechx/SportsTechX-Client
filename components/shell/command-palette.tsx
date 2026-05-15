@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { Building2, Wallet, Sparkles, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -65,12 +65,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 		.filter((i) => !q || i.name.toLowerCase().includes(q.toLowerCase()))
 		.map((i) => ({ id: i.id, name: i.name, cat: 'Navigate', kind: 'nav', href: i.path }));
 
-	// Backend search — only fires when query is at least 2 chars.
-	const { data: searchData } = useQuery<BackendSearchResponse>({
-		queryKey: qk.search.typeahead(debouncedQ, ['companies', 'investors']),
-		enabled: open && debouncedQ.trim().length >= 2,
-		staleTime: 30_000,
-	});
+	// Backend search — only fires at 3+ chars. /api/search rejects shorter
+	// queries with VALIDATION_ERROR because at 1-2 chars the GIN trigram scan
+	// returns too many candidates to be useful.
+	const enabled = open && debouncedQ.trim().length >= 3;
+	const { data: searchData } = useSWR<BackendSearchResponse>(
+		enabled ? qk.search.typeahead(debouncedQ, ['companies', 'investors']) : null,
+		{ dedupingInterval: 30_000 },
+	);
 
 	const coResults: PaletteRow[] = (searchData?.results.companies ?? []).slice(0, 5).map((c) => ({
 		id: c.id,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@/lib/query-client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,20 +42,20 @@ interface UserProfile {
   stripe_subscription_id?: string;
 }
 
+// Matches the AdminSalesController response — rows joined from
+// billing_events × profiles. The columns are snake_case (canonical Postgres),
+// not the Excel-style names this UI used to assume.
 interface SalesRecord {
-  id: number;
-  Year: number | null;
-  'Invoice Date (MM-YY)': string | null;
-  Quarter: string | null;
-  'Invoice / Source': string | null;
-  'Product Category': string | null;
-  'Product / Service Name': string | null;
-  'Client Name': string | null;
-  Website: string | null;
-  'Client Type': string | null;
-  'Lead Source': string | null;
-  'Revenue Amount (Incl. VAT)': number | null;
-  'Discount Applied (Yes/No)': string | null;
+  id: string;
+  profile_id: string;
+  email: string | null;
+  display_name: string | null;
+  plan: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  status: string | null;
+  stripe_subscription_id: string | null;
+  created_at: string;
 }
 
 interface PerformanceSummary {
@@ -90,11 +90,16 @@ function ClaimsTab() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ id, action, note }: { id: string; action: 'approve' | 'reject'; note: string }) => {
-      const res = await apiRequest('POST', `/api/admin/claims/${id}/review`, { action, note });
+      // Backend has two distinct routes — there is no /:id/review aggregator.
+      // approve → POST /:id/verify  (optionally send email),
+      // reject  → POST /:id/reject  (note is informational; backend accepts it).
+      const path = action === 'approve' ? 'verify' : 'reject';
+      const body = action === 'approve' ? { send_email: true, note } : { note };
+      const res = await apiRequest('POST', `/api/admin/claims/${id}/${path}`, body);
       return res.json();
     },
     onSuccess: (_, { action }) => {
-      toast.success(`Claim ${action}d successfully`);
+      toast.success(`Claim ${action === 'approve' ? 'verified' : 'rejected'} successfully`);
       setSelected(null);
       setReviewNote('');
       qc.invalidateQueries({ queryKey: ['/api/admin/claims'] });
@@ -357,7 +362,7 @@ function BillingTab() {
 
   const grantMutation = useMutation({
     mutationFn: async (payload: { emails: string[]; planKey: string; trialDays: number }) => {
-      const res = await apiRequest('POST', '/api/admin/bulk-grant-trial', payload);
+      const res = await apiRequest('POST', '/api/admin/billing/bulk-grant-trial', payload);
       return res.json() as Promise<BulkTrialResponse>;
     },
     onSuccess: data => setResults(data),
@@ -476,19 +481,21 @@ function SalesTab() {
   });
 
   const records = data?.data ?? [];
-  const totalRevenue = records.reduce((sum, r) => sum + (r['Revenue Amount (Incl. VAT)'] ?? 0), 0);
+  // amount_cents is per-event in the smallest currency unit; sum to dollars/euros.
+  const totalRevenue = records.reduce((sum, r) => sum + (r.amount_cents ?? 0), 0) / 100;
+  const displayCurrency = records.find(r => r.currency)?.currency?.toUpperCase() ?? 'USD';
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search sales records..." className="pl-8 h-8" value={search}
+          <Input placeholder="Search by email or name..." className="pl-8 h-8" value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} records</span>
         {records.length > 0 && (
-          <span className="text-sm font-medium ml-auto">{formatCurrency(totalRevenue)} on this page</span>
+          <span className="text-sm font-medium ml-auto">{formatCurrency(totalRevenue)} {displayCurrency} on this page</span>
         )}
       </div>
 
@@ -497,11 +504,11 @@ function SalesTab() {
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Date</TableHead>
-              <TableHead className="text-xs">Client</TableHead>
-              <TableHead className="text-xs">Product</TableHead>
-              <TableHead className="text-xs">Category</TableHead>
-              <TableHead className="text-xs">Quarter</TableHead>
-              <TableHead className="text-xs text-right">Revenue</TableHead>
+              <TableHead className="text-xs">Customer</TableHead>
+              <TableHead className="text-xs">Plan</TableHead>
+              <TableHead className="text-xs">Status</TableHead>
+              <TableHead className="text-xs">Stripe sub</TableHead>
+              <TableHead className="text-xs text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -511,16 +518,16 @@ function SalesTab() {
               ))
             ) : records.length > 0 ? records.map(r => (
               <TableRow key={r.id}>
-                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{r['Invoice Date (MM-YY)'] ?? '—'}</TableCell>
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(r.created_at)}</TableCell>
                 <TableCell className="text-sm">
-                  <div>{r['Client Name'] ?? '—'}</div>
-                  {r.Website && <a href={r.Website.startsWith('http') ? r.Website : `https://${r.Website}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-0.5"><Globe className="h-3 w-3" />{r.Website}</a>}
+                  <div>{r.display_name ?? '—'}</div>
+                  {r.email && <div className="text-xs text-muted-foreground">{r.email}</div>}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{r['Product / Service Name'] ?? '—'}</TableCell>
-                <TableCell><Badge variant="secondary" className="text-xs">{r['Product Category'] ?? '—'}</Badge></TableCell>
-                <TableCell className="text-xs text-muted-foreground">{r.Quarter && r.Year ? `${r.Quarter} ${r.Year}` : '—'}</TableCell>
+                <TableCell><Badge variant="secondary" className="text-xs capitalize">{r.plan ?? '—'}</Badge></TableCell>
+                <TableCell className="text-xs text-muted-foreground capitalize">{r.status ?? '—'}</TableCell>
+                <TableCell className="text-xs text-muted-foreground font-mono">{r.stripe_subscription_id ?? '—'}</TableCell>
                 <TableCell className="text-sm font-medium text-right whitespace-nowrap">
-                  {r['Revenue Amount (Incl. VAT)'] != null ? formatCurrency(r['Revenue Amount (Incl. VAT)']) : '—'}
+                  {r.amount_cents != null ? `${formatCurrency(r.amount_cents / 100)} ${r.currency?.toUpperCase() ?? ''}`.trim() : '—'}
                 </TableCell>
               </TableRow>
             )) : (

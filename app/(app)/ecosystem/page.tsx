@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@/lib/query-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -73,10 +73,12 @@ export default function EcosystemPage() {
 
   const apiUrl = (() => {
     const sp = new URLSearchParams();
-    if (debouncedSearch) sp.set('search', debouncedSearch);
-    if (type) sp.set('type', type);
+    if (debouncedSearch) sp.set('q', debouncedSearch);
+    if (type) sp.set('entity_type', type);
     sp.set('page', String(page)); sp.set('limit', '50');
-    return `/api/ecosystem?${sp.toString()}`;
+    // Backend route is /api/ecosystem-entities — there is no /api/ecosystem.
+    // Param names also: `q` (not `search`), `entity_type` (not `type`).
+    return `/api/ecosystem-entities?${sp.toString()}`;
   })();
 
   const { data, isLoading, isFetching } = useQuery<EcosystemResponse>({ queryKey: [apiUrl], staleTime: 3 * 60_000, refetchOnWindowFocus: false });

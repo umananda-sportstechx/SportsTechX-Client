@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@/lib/query-client';
 import { ArrowRight, Lock } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Tag, SectionHead, Empty } from '@/components/ui/atoms';

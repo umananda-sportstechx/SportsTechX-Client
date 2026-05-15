@@ -1,11 +1,10 @@
 'use client';
 
-import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { SWRConfig } from 'swr';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { queryClient, enableQueryPolling } from '@/lib/query-client';
+import { swrConfig, enableQueryPolling } from '@/lib/query-client';
 import { logoutState } from '@/lib/logout-state';
 import { AuthSessionProvider } from '@/contexts/auth-session-context';
 import { useAuthSession } from '@/hooks/use-auth-session';
@@ -43,7 +42,7 @@ function AppInit() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <SWRConfig value={swrConfig}>
       <ThemeProvider
         attribute="data-theme"
         defaultTheme="dark"
@@ -65,9 +64,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           </AuthSessionProvider>
         </TooltipProvider>
       </ThemeProvider>
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </QueryClientProvider>
+    </SWRConfig>
   );
 }

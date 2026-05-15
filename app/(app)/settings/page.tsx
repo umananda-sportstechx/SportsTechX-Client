@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@/lib/query-client';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';

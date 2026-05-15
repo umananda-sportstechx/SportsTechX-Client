@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import useSWR from 'swr';
 import { useAuthSession } from './use-auth-session';
 import { qk } from '@/lib/query-keys';
 
@@ -29,12 +29,13 @@ export interface Profile {
 
 export function useUserProfile() {
   const { sessionValid, loading } = useAuthSession();
-  return useQuery<Profile>({
-    queryKey: qk.profile(),
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
-    retry: 1,
-    enabled: sessionValid && !loading,
+  // Conditional key: passing null to useSWR is the documented way to disable
+  // a fetch (equivalent to TanStack's `enabled: false`). When sessionValid
+  // flips true, SWR rebuilds the key and fetches.
+  const enabled = sessionValid && !loading;
+  return useSWR<Profile>(enabled ? qk.profile() : null, {
+    dedupingInterval: 5 * 60_000,
+    errorRetryCount: 1,
   });
 }
 

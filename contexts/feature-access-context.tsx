@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import useSWR from 'swr';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import { useUserProfile, useIsAdmin, getUserType, type UserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
@@ -37,14 +37,14 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   const userType = getUserType(profile);
   const { isAdmin, isLoading: profileLoading } = useIsAdmin();
 
-  const { data: features = [], isLoading } = useQuery<Feature[]>({
-    queryKey: qk.features(),
-    staleTime: 30 * 60_000,
-    gcTime: 60 * 60_000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    enabled: sessionValid && !authLoading,
+  const enabled = sessionValid && !authLoading;
+  const { data, isLoading } = useSWR<Feature[]>(enabled ? qk.features() : null, {
+    // Feature matrix barely changes — keep deduped for 30 min, no auto-revalidate.
+    dedupingInterval: 30 * 60_000,
+    revalidateOnFocus: false,
+    revalidateOnMount: false,
   });
+  const features = data ?? [];
 
   const [featureMap, setFeatureMap] = useState<Map<string, Feature>>(new Map());
 

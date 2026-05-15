@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@/lib/query-client';
 import { Page, SectionHead, Empty } from '@/components/ui/atoms';
 
 interface SectorNode {
