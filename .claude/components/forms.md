@@ -79,13 +79,13 @@ export function ProfileForm({ defaults }: { defaults: Partial<FormValues> }) {
 - **Zod schema colocated** with the form component. The inferred `FormValues` type is single-source-of-truth.
 - **`<Form>` from [components/ui/form.tsx](../../components/ui/form.tsx)** wraps the RHF Provider so `<FormField>` children can `useFormContext`.
 - **`<FormMessage />` renders the Zod error** for that field automatically.
-- **`apiRequest` for the submit call** — preserves 401-retry, doesn't need useMutation wrapper.
+- **`apiRequest` for the submit call** — preserves 401-retry; pair with `useSWRConfig().mutate(key)` for invalidation.
 
 ## Variations
 
 ### When you need loading state in multiple places
 
-Wrap the submit in `useMutation` (the shim, see [../data-fetching.md](../data-fetching.md)) instead of an inline `try/catch`. The shim gives you `m.isPending` / `m.error` / `m.data` accessible across the component tree.
+`form.formState.isSubmitting` is already true while the `onSubmit` promise is in flight — read it from any descendant via `useFormContext()`. If you need the state outside the form's React tree, lift it into local `useState` around the `apiRequest` call (see [.claude/skills/new-swr-mutation/SKILL.md](../skills/new-swr-mutation/SKILL.md)).
 
 ### When the form is in a Dialog/Sheet
 

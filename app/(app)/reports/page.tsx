@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { ArrowRight, Lock } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Tag, SectionHead, Empty } from '@/components/ui/atoms';
@@ -44,9 +44,8 @@ const COVER_COLORS = [
 
 export default function ReportsPage() {
 	const reportsAccess = useFeatureAccess('reports_access');
-	const { data, isLoading } = useQuery<ReportsResponse>({
-		queryKey: qk.reports.list(),
-		staleTime: 10 * 60_000,
+	const { data, isLoading } = useSWR<ReportsResponse>(qk.reports.list(), {
+		dedupingInterval: 10 * 60_000,
 	});
 
 	const reportsApi = data?.data ?? [];

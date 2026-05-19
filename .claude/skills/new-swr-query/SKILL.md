@@ -68,20 +68,12 @@ The fetcher is global. You just need to pick a key and call `useSWR`.
    const totalPages = data?.totalPages ?? 1;
    ```
 
-## Backwards-compat (existing pages)
+6. **Manual refetch** — alias `mutate` from the hook return:
 
-If you're editing a page that still uses the `useQuery` shim, you can keep that style — both go through the same SWR cache:
-
-```ts
-import { useQuery } from '@/lib/query-client';
-const { data } = useQuery<XRow[]>({
-  queryKey: qk.x.list(params),
-  staleTime: 60_000,
-  enabled: !!something,
-});
-```
-
-But new code should prefer raw `useSWR` since the shim adds zero value.
+   ```ts
+   const { data, mutate: refetch } = useSWR(...);
+   <Button onClick={() => void refetch()}>Refresh</Button>
+   ```
 
 ## URL query params
 
@@ -97,8 +89,9 @@ Don't include `?` in the path. Pass clean param objects.
 
 - Don't pass a raw URL string: `useSWR('/api/x')` works but bypasses `qk` and won't dedup with other call sites that use the helper.
 - Don't catch 401 / 403 per-component. The global fetcher owns redirect-to-login.
-- Don't use `fetch()` directly for reads — you lose auth header + 401 retry. Use `useSWR` (or the `useQuery` shim).
-- Don't add `refetchInterval` polling without a clear reason. SWR's dedup + on-demand revalidation is usually enough.
+- Don't use `fetch()` directly for reads — you lose auth header + 401 retry. Use `useSWR`.
+- Don't add `refreshInterval` polling without a clear reason. SWR's dedup + on-demand revalidation is usually enough.
+- Don't import `useQuery` from `@/lib/query-client` — the compat shim is gone, that path no longer exports a TanStack-shaped hook.
 
 ## See also
 

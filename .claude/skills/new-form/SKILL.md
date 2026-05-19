@@ -35,15 +35,16 @@ One canonical pattern. The full recipe lives at [.claude/components/forms.md](..
 3. **Wire submit to `apiRequest`** (and optionally invalidate cache after):
 
    ```ts
-   import { apiRequest, useQueryClient } from '@/lib/query-client';
+   import { apiRequest } from '@/lib/query-client';
+   import { useSWRConfig } from 'swr';
    import { qk } from '@/lib/query-keys';
    import { toast } from 'sonner';
 
-   const qc = useQueryClient();
+   const { mutate } = useSWRConfig();
    async function onSubmit(values: FormValues) {
      try {
        await apiRequest('PATCH', '/api/me', values);
-       qc.invalidateQueries({ queryKey: qk.profile() });
+       void mutate(qk.profile());
        toast.success('Saved');
      } catch (err) {
        toast.error((err as Error).message);

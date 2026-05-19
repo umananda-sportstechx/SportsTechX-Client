@@ -12,17 +12,18 @@
 
 ## Mutations
 
-- **Checkout:** `POST /api/billing/checkout` with `{ plan: '<plan-slug>' }` (e.g. `plus_yearly`). Backend resolves the slug to a Stripe `price_id` via `subscription_plans.stripe_price_id`, returns `{ url, id }`. Client does `window.location.href = url` to redirect to Stripe Checkout.
+- **Checkout:** `POST /api/billing/checkout` with `{ plan: '<plan-slug>' }` (e.g. `growth-yearly`). Backend resolves the slug to a Stripe `price_id` via `subscription_plans.stripe_price_id`, returns `{ url, id }`. Client does `window.location.href = url` to redirect to Stripe Checkout.
+
+The plan catalog itself is fetched from `GET /api/billing/plans` — slugs are not hardcoded; the page renders whatever `subscription_plans.is_active=true` rows the server returns.
 
 ## Feature gates
 
 None on the page itself. Each tier card's CTA is gated by current tier:
 
 ```
-currentTier === 'pro'        → "Current plan"
-currentTier === tier.tierKey → "Current plan"
-tier.tierKey === 'enterprise'→ mailto: link to sales
-otherwise                    → "Upgrade" → checkout
+plan.tier === 'free'          → button disabled (no checkout)
+currentTier === plan.tier     → "Current plan"
+otherwise                     → "Upgrade" → checkout
 ```
 
 ## Related components

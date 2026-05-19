@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { mutate as globalMutate } from 'swr';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
-import { queryClient, enableQueryPolling, clearAuthCache } from '@/lib/query-client';
+import { enableQueryPolling, clearAuthCache } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { sessionRefreshLock } from '@/lib/session-refresh-lock';
 import { logoutState } from '@/lib/logout-state';
@@ -27,9 +28,9 @@ export const AuthSessionContext = createContext<AuthSessionState>(INITIAL_STATE)
  * created its own subscription + timers. The sidebar alone has ~15 NavItem
  * components, each calling the hook → 15 subscribers. When Supabase fired
  * SIGNED_IN (on initial mount and on token refresh), each subscriber called
- * `queryClient.invalidateQueries({ queryKey: qk.profile() })`, and React
- * Query queues invalidations behind in-flight fetches → 15 sequential
- * refetches per event. This Provider eliminates that fan-out at the source.
+ * `mutate(qk.profile())`, and SWR queues revalidations behind in-flight
+ * fetches → 15 sequential refetches per event. This Provider eliminates
+ * that fan-out at the source.
  */
 export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
 	const [state, setState] = useState<AuthSessionState>(INITIAL_STATE);
@@ -70,7 +71,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		// we're here). Forcible cookie clear runs in parallel.
 		supabase.auth.signOut().catch(() => undefined);
 		clearAuthCookies();
-		queryClient.clear();
+		void globalMutate(() => true, undefined, { revalidate: false });
 		setState({ user: null, loading: false, sessionValid: false });
 		window.location.href = '/login?reason=session_expired';
 	}, [clearAuthCookies]);
@@ -168,7 +169,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 					monitorIntervalRef.current = null;
 				}
 				setState({ user: null, loading: false, sessionValid: false });
-				if (!logoutState.isLoggingOut()) queryClient.clear();
+				if (!logoutState.isLoggingOut()) void globalMutate(() => true, undefined, { revalidate: false });
 				if (logoutState.isLoggingOut()) {
 					logoutState.setLoggingOut(false);
 					enableQueryPolling();
@@ -184,7 +185,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 						// Real sign-in (after a SIGNED_OUT or fresh login flow).
 						// Invalidate the profile so we pick up tier/role changes.
 						clearAuthCache();
-						queryClient.invalidateQueries({ queryKey: qk.profile() });
+						void globalMutate(qk.profile());
 					} else {
 						// First SIGNED_IN at subscription = the existing-session
 						// synthesized event. The initial fetch is already gated

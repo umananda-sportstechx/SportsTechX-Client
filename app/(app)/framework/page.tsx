@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { Page, SectionHead, Empty } from '@/components/ui/atoms';
 
 interface SectorNode {
@@ -59,10 +59,10 @@ const PILLAR_SUBS: Record<string, string> = {
 };
 
 export default function FrameworkPage() {
-	const { data, isLoading } = useQuery<SectorNode[]>({
-		queryKey: ['/api/sectors', { tree: true }],
-		staleTime: 60 * 60_000,
-	});
+	const { data, isLoading } = useSWR<SectorNode[]>(
+		['/api/sectors', { tree: true }],
+		{ dedupingInterval: 60 * 60_000 },
+	);
 
 	const pillars = useMemo(() => {
 		const tree = data ?? [];

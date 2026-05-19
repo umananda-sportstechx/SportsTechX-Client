@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -79,10 +79,10 @@ export default function ProgramsPage() {
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (status) queryParams.status = status;
 
-	const { data, isLoading } = useQuery<EcosystemResponse>({
-		queryKey: qk.ecosystem.listByType('program', queryParams),
-		staleTime: 5 * 60_000,
-	});
+	const { data, isLoading } = useSWR<EcosystemResponse>(
+		qk.ecosystem.listByType('program', queryParams),
+		{ dedupingInterval: 5 * 60_000 },
+	);
 
 	const programsApi = data?.data ?? [];
 	const total = data?.total ?? 0;

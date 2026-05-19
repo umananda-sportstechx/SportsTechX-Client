@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -73,22 +73,13 @@ export default function MnaPage() {
 	};
 
 	const allTimeParams = { limit: 1, sort: '-acquisition_date' };
-	const { data: allTime } = useQuery<AcquisitionsResponse>({
-		queryKey: qk.acquisitions.list(allTimeParams),
-		staleTime: 10 * 60_000,
-	});
+	const { data: allTime } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(allTimeParams), { dedupingInterval: 10 * 60_000 });
 
 	const ytdParams = { limit: 100, year: currentYear, sort: '-acquisition_date' };
-	const { data: ytd } = useQuery<AcquisitionsResponse>({
-		queryKey: qk.acquisitions.list(ytdParams),
-		staleTime: 5 * 60_000,
-	});
+	const { data: ytd } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(ytdParams), { dedupingInterval: 5 * 60_000 });
 
 	const tableParams = { page, limit: 30, sort: '-acquisition_date' };
-	const { data: tableData, isLoading } = useQuery<AcquisitionsResponse>({
-		queryKey: qk.acquisitions.list(tableParams),
-		staleTime: 3 * 60_000,
-	});
+	const { data: tableData, isLoading } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(tableParams), { dedupingInterval: 3 * 60_000 });
 
 	const totalAllTime = allTime?.total ?? 0;
 	const ytdDeals = ytd?.data ?? [];

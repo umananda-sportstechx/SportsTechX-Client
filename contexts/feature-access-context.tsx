@@ -11,8 +11,15 @@ export interface Feature {
   slug: string;
   name: string;
   free: boolean;
-  plus: boolean;
+  growth: boolean;
   pro: boolean;
+}
+
+/** A per-user override fetched from /api/me/feature-grants. Merged on top of
+ *  the tier matrix. expires_at=null means permanent. */
+interface FeatureGrant {
+  feature_slug: string;
+  expires_at: string | null;
 }
 
 export interface FeatureAccessResult {
@@ -46,6 +53,15 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   });
   const features = data ?? [];
 
+  // Per-user overrides: admins can grant individual features outside the tier
+  // matrix (e.g. give a free user CSV export). The server returns ONLY active
+  // (non-revoked, non-expired) grants so we don't filter client-side.
+  const { data: grantsResp } = useSWR<{ data: FeatureGrant[] }>(
+    enabled ? qk.me.featureGrants() : null,
+    { dedupingInterval: 5 * 60_000, revalidateOnFocus: false },
+  );
+  const grantedSlugs = new Set((grantsResp?.data ?? []).map((g) => g.feature_slug));
+
   const [featureMap, setFeatureMap] = useState<Map<string, Feature>>(new Map());
 
   useEffect(() => {
@@ -68,17 +84,23 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
 
     if (!feature) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false };
 
+    // Per-user override wins regardless of tier. Lets admins unlock individual
+    // features for specific users without bumping their whole tier.
+    if (grantedSlugs.has(feature.slug)) {
+      return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false };
+    }
+
     let hasAccess = false;
     let requiredTier: UserType | null = null;
 
     if (userType === 'pro') {
       hasAccess = feature.pro;
-    } else if (userType === 'plus') {
-      hasAccess = feature.free || feature.plus;
+    } else if (userType === 'growth') {
+      hasAccess = feature.free || feature.growth;
       if (!hasAccess) requiredTier = 'pro';
     } else {
       hasAccess = feature.free;
-      if (!hasAccess) requiredTier = feature.plus ? 'plus' : 'pro';
+      if (!hasAccess) requiredTier = feature.growth ? 'growth' : 'pro';
     }
 
     return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false };

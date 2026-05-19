@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
  * Pattern:
  *   const [search, setSearch] = useState('');
  *   const debouncedSearch = useDebouncedValue(search, 300);
- *   const { data } = useQuery({ queryKey: [..., debouncedSearch], ... });
+ *   const { data } = useSWR(qk.x.list({ search: debouncedSearch }));
  *   <Input value={search} onChange={e => setSearch(e.target.value)} />
  *
  * The input remains controlled by `search` so typing feels instant, but the

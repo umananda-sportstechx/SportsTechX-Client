@@ -70,9 +70,10 @@ Order is load-bearing. From [components/sidebar.tsx](../components/sidebar.tsx) 
 ```ts
 async function handleSignOut() {
   logoutState.setLoggingOut(true);    // tells fetcher to short-circuit auth header
-  const { disableQueryPolling, queryClient } = await import('@/lib/query-client');
-  disableQueryPolling();              // stop new fetches, mutate-all to undefined
-  queryClient.clear();                // clear SWR cache
+  const { disableQueryPolling } = await import('@/lib/query-client');
+  const { mutate } = await import('swr');
+  disableQueryPolling();              // stop new fetches via the gated fetcher
+  await mutate(() => true, undefined, { revalidate: false }); // drop SWR cache
   await getSupabaseBrowser().auth.signOut();
   router.push('/login');
 }
@@ -81,7 +82,7 @@ async function handleSignOut() {
 **Why this order:**
 1. `setLoggingOut(true)` first — prevents `getAuthHeaders()` from returning the soon-to-be-stale token.
 2. `disableQueryPolling()` second — stops any in-flight request from racing with the cookie clear.
-3. `queryClient.clear()` third — drops cached profile, features, etc. so a fast re-login starts fresh.
+3. `mutate(() => true, undefined, { revalidate: false })` third — drops cached profile, features, etc. so a fast re-login starts fresh.
 4. `signOut()` fourth — Supabase invalidates the refresh token server-side.
 5. `router.push('/login')` last.
 
