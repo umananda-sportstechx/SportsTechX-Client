@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { Filter, Plus, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import {
@@ -150,11 +150,11 @@ interface EventRow {
 interface AcquisitionResp { total?: number; }
 
 export default function DashboardPage() {
-	const { data: companies } = useQuery<CompanyResp>({ queryKey: qk.companies.list({ limit: 6 }), staleTime: 5 * 60_000 });
-	const { data: dealsResp } = useQuery<DealResp>({ queryKey: qk.deals.list({ limit: 20, sort: '-announced_date' }), staleTime: 5 * 60_000 });
-	const { data: acquisitions } = useQuery<AcquisitionResp>({ queryKey: qk.acquisitions.list({ limit: 1 }), staleTime: 60 * 60_000 });
-	const { data: reports } = useQuery<ReportResp>({ queryKey: qk.reports.list(), staleTime: 30 * 60_000 });
-	const { data: events } = useQuery<EventResp>({ queryKey: qk.ecosystem.listByType('event', { limit: 3 }), staleTime: 30 * 60_000 });
+	const { data: companies } = useSWR<CompanyResp>(qk.companies.list({ limit: 6 }), { dedupingInterval: 5 * 60_000 });
+	const { data: dealsResp } = useSWR<DealResp>(qk.deals.list({ limit: 20, sort: '-announced_date' }), { dedupingInterval: 5 * 60_000 });
+	const { data: acquisitions } = useSWR<AcquisitionResp>(qk.acquisitions.list({ limit: 1 }), { dedupingInterval: 60 * 60_000 });
+	const { data: reports } = useSWR<ReportResp>(qk.reports.list(), { dedupingInterval: 30 * 60_000 });
+	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3 }), { dedupingInterval: 30 * 60_000 });
 
 	const totalCompanies = companies?.total ?? 0;
 	const recentDealsApi = (dealsResp?.data ?? []).slice(0, 20);

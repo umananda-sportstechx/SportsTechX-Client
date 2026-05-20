@@ -1,19 +1,20 @@
 /**
- * Canonical TanStack Query keys. Single source of truth — typo-proof.
+ * Canonical SWR cache keys. Single source of truth — typo-proof.
  *
  * Conventions:
  *   - Each function returns a tuple `as const` so TypeScript can match
- *     prefixes for `invalidateQueries({ queryKey: qk.companies.list._def })`
- *     style invalidations later.
- *   - First element is always the API path string (used by the default
- *     queryFn in `lib/query-client.ts` to derive the URL).
+ *     against keys for prefix-invalidation via the global `mutate`.
+ *   - First element is always the API path string (used by the fetcher
+ *     in `lib/query-client.ts` to derive the URL).
  *   - Subsequent elements are search-param objects that participate in
  *     cache-key identity. Two queries with different params are different
  *     cache entries.
  *
  * Usage:
- *   useQuery({ queryKey: qk.companies.list({ page: 1, q: 'football' }), ... })
- *   queryClient.invalidateQueries({ queryKey: qk.profile() });
+ *   useSWR(qk.companies.list({ page: 1, q: 'football' }))
+ *   useSWRConfig().mutate(qk.profile())
+ *   // prefix-invalidate every /api/companies cache entry:
+ *   useSWRConfig().mutate((key) => Array.isArray(key) && key[0] === '/api/companies')
  */
 
 export const qk = {
@@ -54,7 +55,6 @@ export const qk = {
   // ── Search ──────────────────────────────────────────────────────────────
   search: {
     typeahead: (q: string, types?: string[]) => ['/api/search', { q, types }] as const,
-    semantic: (entityType: string, q: string) => ['/api/search/semantic', { entity_type: entityType, q }] as const,
   },
 
   // ── User-owned ──────────────────────────────────────────────────────────
@@ -93,8 +93,16 @@ export const qk = {
 
   // ── Billing ─────────────────────────────────────────────────────────────
   billing: {
+    plans: () => ['/api/billing/plans'] as const,
     subscription: () => ['/api/billing/subscription'] as const,
     invoices: () => ['/api/billing/invoices'] as const,
+  },
+
+  // ── Per-user feature overrides ─────────────────────────────────────────
+  // Merged with `qk.features()` (the catalog) by the FeatureAccessProvider
+  // to compute final access. Per-user, authenticated.
+  me: {
+    featureGrants: () => ['/api/me/feature-grants'] as const,
   },
 
   // ── Credits ─────────────────────────────────────────────────────────────
@@ -108,6 +116,7 @@ export const qk = {
   chat: {
     conversations: () => ['/api/chat/conversations'] as const,
     conversationDetail: (id: string) => ['/api/chat/conversations', id] as const,
+    suggestions: () => ['/api/chat/suggestions'] as const,
   },
 
   // ── Developer (admin) ───────────────────────────────────────────────────
@@ -125,5 +134,6 @@ export const qk = {
     sales: (params: Record<string, unknown>) => ['/api/admin/sales', params] as const,
     performance: (range: string) => ['/api/admin/performance', { range }] as const,
     dataChangeRequests: () => ['/api/admin/data-change-requests'] as const,
+    userFeatureGrants: (profileId: string) => [`/api/admin/users/${profileId}/feature-grants`] as const,
   },
 } as const;

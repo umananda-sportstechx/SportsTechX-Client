@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Filter, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -95,22 +95,13 @@ export default function FundingPage() {
 	};
 
 	const ytdParams = { limit: 200, year: currentYear, sort: '-announced_date' };
-	const { data: ytd } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list(ytdParams),
-		staleTime: 5 * 60_000,
-	});
+	const { data: ytd } = useSWR<DealsResponse>(qk.deals.list(ytdParams), { dedupingInterval: 5 * 60_000 });
 
 	const trailingParams = { limit: 500, year_min: currentYear - 2, sort: '-announced_date' };
-	const { data: trailing } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list(trailingParams),
-		staleTime: 10 * 60_000,
-	});
+	const { data: trailing } = useSWR<DealsResponse>(qk.deals.list(trailingParams), { dedupingInterval: 10 * 60_000 });
 
 	const tableParams = { page, limit: 30, year: currentYear, sort: '-announced_date' };
-	const { data: tableData, isLoading } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list(tableParams),
-		staleTime: 3 * 60_000,
-	});
+	const { data: tableData, isLoading } = useSWR<DealsResponse>(qk.deals.list(tableParams), { dedupingInterval: 3 * 60_000 });
 
 	const ytdDeals = ytd?.data ?? [];
 	const totalYtdDeals = ytd?.total ?? 0;

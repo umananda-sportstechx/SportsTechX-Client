@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Logo, Flag, SectorPill, Tag, SectionHead, Sparkline, Empty } from '@/components/ui/atoms';
@@ -40,17 +40,15 @@ export default function CompanyDetailPage() {
 	const params = useParams<{ slug: string }>();
 	const slug = params?.slug ?? '';
 
-	const { data: company, isLoading, error } = useQuery<Company>({
-		queryKey: qk.companies.detail(slug),
-		enabled: !!slug,
-		staleTime: 5 * 60_000,
-	});
+	const { data: company, isLoading, error } = useSWR<Company>(
+		slug ? qk.companies.detail(slug) : null,
+		{ dedupingInterval: 5 * 60_000 },
+	);
 
-	const { data: dealsResp } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list({ company_id: company?.id, limit: 30, sort: '-announced_date' }),
-		enabled: !!company?.id,
-		staleTime: 5 * 60_000,
-	});
+	const { data: dealsResp } = useSWR<DealsResponse>(
+		company?.id ? qk.deals.list({ company_id: company.id, limit: 30, sort: '-announced_date' }) : null,
+		{ dedupingInterval: 5 * 60_000 },
+	);
 
 	const deals = dealsResp?.data ?? [];
 

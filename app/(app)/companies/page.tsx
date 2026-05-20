@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Filter, Plus, Grid3x3, List, FileText, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -79,14 +79,12 @@ export default function CompaniesPage() {
 	if (debouncedSearch) queryParams.search = debouncedSearch;
 	if (sectorSlug) queryParams.sector = sectorSlug;
 
-	const { data, isLoading } = useQuery<CompaniesResponse>({
-		queryKey: qk.companies.list(queryParams),
-		staleTime: 3 * 60_000,
+	const { data, isLoading } = useSWR<CompaniesResponse>(qk.companies.list(queryParams), {
+		dedupingInterval: 3 * 60_000,
 	});
 
-	const { data: sectors } = useQuery<RefResponse<SectorRef>>({
-		queryKey: qk.reference.sectors(),
-		staleTime: 60 * 60_000,
+	const { data: sectors } = useSWR<RefResponse<SectorRef>>(qk.reference.sectors(), {
+		dedupingInterval: 60 * 60_000,
 	});
 
 	const companiesApi = data?.data ?? [];

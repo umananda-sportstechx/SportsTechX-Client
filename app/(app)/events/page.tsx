@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -67,10 +67,10 @@ export default function EventsPage() {
 		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
 	};
 
-	const { data, isLoading } = useQuery<EventsResponse>({
-		queryKey: qk.ecosystem.listByType('event', { page, limit: 24, sort: 'start_date' }),
-		staleTime: 5 * 60_000,
-	});
+	const { data, isLoading } = useSWR<EventsResponse>(
+		qk.ecosystem.listByType('event', { page, limit: 24, sort: 'start_date' }),
+		{ dedupingInterval: 5 * 60_000 },
+	);
 
 	const eventsApi = data?.data ?? [];
 	const total = data?.total ?? 0;

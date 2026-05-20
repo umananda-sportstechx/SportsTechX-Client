@@ -26,8 +26,8 @@ Next.js 16 App Router + React 19 + TypeScript + Tailwind 4 + shadcn/ui + Supabas
 
 ## Hard rules (full list in [rules.md](.claude/rules.md))
 
-- **Use `qk.*` for every fetch key** — see [lib/query-keys.ts](lib/query-keys.ts). Never pass raw URL strings to `useSWR` or `useQuery`.
-- **No direct `@tanstack/react-query` imports.** The package has been removed (security incident upstream). The TanStack-shaped hooks (`useQuery`, `useMutation`, `useQueryClient`) now live in [lib/query-client.ts](lib/query-client.ts) and are SWR-backed shims for migration compatibility. New code should prefer `useSWR` directly.
+- **Use `qk.*` for every fetch key** — see [lib/query-keys.ts](lib/query-keys.ts). Never pass raw URL strings to `useSWR`.
+- **No `@tanstack/react-query` imports.** The package was removed (upstream security incident) and the compat shim (`useQuery` / `useMutation` / `useQueryClient`) has also been deleted. Use native `useSWR` + `useSWRConfig` + `apiRequest` everywhere.
 - **All writes go through `apiRequest()`** from [lib/query-client.ts](lib/query-client.ts) so the 401-retry contract stays consistent.
 - **Don't instantiate Supabase per-component** — go through [contexts/auth-session-context.tsx](contexts/auth-session-context.tsx) (`useAuthSession`).
 - **Page components stay `'use client'`** — this codebase has no RSC data fetching.

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -94,9 +94,8 @@ export default function InvestorsPage() {
 	if (debouncedSearch) queryParams.search = debouncedSearch;
 	if (category) queryParams.category = category;
 
-	const { data, isLoading } = useQuery<InvestorsResponse>({
-		queryKey: qk.investors.list(queryParams),
-		staleTime: 3 * 60_000,
+	const { data, isLoading } = useSWR<InvestorsResponse>(qk.investors.list(queryParams), {
+		dedupingInterval: 3 * 60_000,
 	});
 
 	const investorsApi = data?.data ?? [];
