@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@/lib/query-client';
+import { useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,38 +74,36 @@ interface BulkTrialResponse { results: TrialResult[]; summary: { total: number; 
 // ─── Claims Tab ───────────────────────────────────────────────────────────────
 
 function ClaimsTab() {
-  const qc = useQueryClient();
+  const { mutate: globalMutate } = useSWRConfig();
   const [status, setStatus] = useState('pending');
   const [selected, setSelected] = useState<Claim | null>(null);
   const [reviewNote, setReviewNote] = useState('');
+  const [reviewPending, setReviewPending] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery<{ data: Claim[]; total: number }>({
-    queryKey: ['/api/admin/claims', status],
-    queryFn: async ({ queryKey }) => {
-      const res = await apiRequest('GET', `/api/admin/claims?status=${queryKey[1]}&limit=50`);
-      return res.json();
-    },
-    staleTime: 30_000,
-  });
+  const { data, isLoading, mutate: refetch } = useSWR<{ data: Claim[]; total: number }>(
+    ['/api/admin/claims', { status, limit: 50 }],
+    { dedupingInterval: 30_000 },
+  );
 
-  const reviewMutation = useMutation({
-    mutationFn: async ({ id, action, note }: { id: string; action: 'approve' | 'reject'; note: string }) => {
-      // Backend has two distinct routes — there is no /:id/review aggregator.
-      // approve → POST /:id/verify  (optionally send email),
-      // reject  → POST /:id/reject  (note is informational; backend accepts it).
-      const path = action === 'approve' ? 'verify' : 'reject';
-      const body = action === 'approve' ? { send_email: true, note } : { note };
-      const res = await apiRequest('POST', `/api/admin/claims/${id}/${path}`, body);
-      return res.json();
-    },
-    onSuccess: (_, { action }) => {
-      toast.success(`Claim ${action === 'approve' ? 'verified' : 'rejected'} successfully`);
+  const reviewClaim = async (args: { id: string; action: 'approve' | 'reject'; note: string }) => {
+    // Backend has two distinct routes — there is no /:id/review aggregator.
+    // approve → POST /:id/verify  (optionally send email),
+    // reject  → POST /:id/reject  (note is informational; backend accepts it).
+    const path = args.action === 'approve' ? 'verify' : 'reject';
+    const body = args.action === 'approve' ? { send_email: true, note: args.note } : { note: args.note };
+    setReviewPending(true);
+    try {
+      await apiRequest('POST', `/api/admin/claims/${args.id}/${path}`, body);
+      toast.success(`Claim ${args.action === 'approve' ? 'verified' : 'rejected'} successfully`);
       setSelected(null);
       setReviewNote('');
-      qc.invalidateQueries({ queryKey: ['/api/admin/claims'] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+      void globalMutate((key) => Array.isArray(key) && key[0] === '/api/admin/claims');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setReviewPending(false);
+    }
+  };
 
   const claims = data?.data ?? [];
 
@@ -199,14 +197,14 @@ function ClaimsTab() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
-            <Button variant="destructive" disabled={reviewMutation.isPending}
-              onClick={() => reviewMutation.mutate({ id: selected!.id, action: 'reject', note: reviewNote })}>
-              {reviewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            <Button variant="destructive" disabled={reviewPending}
+              onClick={() => void reviewClaim({ id: selected!.id, action: 'reject', note: reviewNote })}>
+              {reviewPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
               Reject
             </Button>
-            <Button disabled={reviewMutation.isPending}
-              onClick={() => reviewMutation.mutate({ id: selected!.id, action: 'approve', note: reviewNote })}>
-              {reviewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            <Button disabled={reviewPending}
+              onClick={() => void reviewClaim({ id: selected!.id, action: 'approve', note: reviewNote })}>
+              {reviewPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Approve
             </Button>
           </DialogFooter>
@@ -219,35 +217,32 @@ function ClaimsTab() {
 // ─── Users Tab ────────────────────────────────────────────────────────────────
 
 function UsersTab() {
-  const qc = useQueryClient();
+  const { mutate: globalMutate } = useSWRConfig();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<UserProfile | null>(null);
   const [newType, setNewType] = useState('');
+  const [updatePending, setUpdatePending] = useState(false);
 
-  const { data, isLoading } = useQuery<{ data: UserProfile[]; total: number; totalPages: number }>({
-    queryKey: ['/api/admin/users', search, page],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (search) params.set('search', search);
-      const res = await apiRequest('GET', `/api/admin/users?${params}`);
-      return res.json();
-    },
-    staleTime: 30_000,
-  });
+  const usersKey: [string, Record<string, unknown>] = ['/api/admin/users', { page, limit: 20, ...(search ? { search } : {}) }];
+  const { data, isLoading } = useSWR<{ data: UserProfile[]; total: number; totalPages: number }>(
+    usersKey,
+    { dedupingInterval: 30_000 },
+  );
 
-  const updateTypeMutation = useMutation({
-    mutationFn: async ({ id, user_type }: { id: string; user_type: string }) => {
-      const res = await apiRequest('PATCH', `/api/admin/users/${id}`, { user_type });
-      return res.json();
-    },
-    onSuccess: () => {
+  const updateUserType = async (args: { id: string; user_type: string }) => {
+    setUpdatePending(true);
+    try {
+      await apiRequest('PATCH', `/api/admin/users/${args.id}`, { user_type: args.user_type });
       toast.success('User type updated');
       setSelected(null);
-      qc.invalidateQueries({ queryKey: ['/api/admin/users'] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+      void globalMutate((key) => Array.isArray(key) && key[0] === '/api/admin/users');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUpdatePending(false);
+    }
+  };
 
   const users = data?.data ?? [];
 
@@ -287,7 +282,7 @@ function UsersTab() {
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{u.company_name ?? '—'}</TableCell>
                 <TableCell>
-                  <Badge variant={u.user_type === 'pro' ? 'default' : u.user_type === 'plus' ? 'secondary' : 'outline'} className="text-xs capitalize">
+                  <Badge variant={u.user_type === 'pro' ? 'default' : u.user_type === 'growth' ? 'secondary' : 'outline'} className="text-xs capitalize">
                     {u.user_type}
                   </Badge>
                 </TableCell>
@@ -313,29 +308,40 @@ function UsersTab() {
       )}
 
       <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Change User Plan</DialogTitle>
+            <DialogTitle>Manage User</DialogTitle>
             <DialogDescription>{selected?.email}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label>Plan / User Type</Label>
-            <Select value={newType} onValueChange={setNewType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {['free', 'plus', 'pro', 'enterprise', 'admin'].map(t => (
-                  <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          {/* Section 1: permanent tier change */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Plan / role (permanent)</Label>
+            <div className="flex gap-2">
+              <Select value={newType} onValueChange={setNewType}>
+                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['free', 'growth', 'pro', 'admin'].map(t => (
+                    <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button disabled={updatePending || newType === selected?.user_type}
+                onClick={() => void updateUserType({ id: selected!.id, user_type: newType })}>
+                {updatePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save
+              </Button>
+            </div>
           </div>
+
+          {/* Section 2: time-bounded grant */}
+          {selected && <GrantAccessSection profileId={selected.id} />}
+
+          {/* Section 3: per-feature grants */}
+          {selected && <FeatureGrantsSection profileId={selected.id} />}
+
           <DialogFooter className="gap-2 mt-2">
-            <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
-            <Button disabled={updateTypeMutation.isPending || newType === selected?.user_type}
-              onClick={() => updateTypeMutation.mutate({ id: selected!.id, user_type: newType })}>
-              {updateTypeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
-            </Button>
+            <Button variant="outline" onClick={() => setSelected(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -343,35 +349,195 @@ function UsersTab() {
   );
 }
 
+// ─── Time-bounded grant section ────────────────────────────────────────────────
+
+function GrantAccessSection({ profileId }: { profileId: string }) {
+  const [tier, setTier] = useState<'growth' | 'pro'>('pro');
+  const [days, setDays] = useState(30);
+  const [reason, setReason] = useState('');
+  const [pending, setPending] = useState(false);
+  const { mutate: globalMutate } = useSWRConfig();
+
+  const grant = async () => {
+    setPending(true);
+    try {
+      await apiRequest('POST', '/api/admin/billing/grant-access', {
+        profile_id: profileId,
+        tier,
+        days,
+        reason: reason.trim() || undefined,
+      });
+      toast.success(`Granted ${tier} access for ${days} days`);
+      setReason('');
+      void globalMutate((key) => Array.isArray(key) && key[0] === '/api/admin/users');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 border-b py-4">
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Grant time-bounded access</Label>
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={tier} onValueChange={(v) => setTier(v as 'growth' | 'pro')}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="growth">Growth</SelectItem>
+            <SelectItem value="pro">Pro</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input type="number" min={1} max={3650} value={days}
+          onChange={e => setDays(Math.max(1, parseInt(e.target.value) || 30))} />
+      </div>
+      <Input placeholder="Reason (optional)" value={reason} onChange={e => setReason(e.target.value)} />
+      <Button size="sm" disabled={pending} onClick={() => void grant()}>
+        {pending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+        Grant {tier} for {days}d
+      </Button>
+    </div>
+  );
+}
+
+// ─── Per-feature grants section ────────────────────────────────────────────────
+
+interface GrantRow {
+  id: string;
+  feature_slug: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  reason: string | null;
+  created_at: string;
+}
+
+function FeatureGrantsSection({ profileId }: { profileId: string }) {
+  const { mutate: globalMutate } = useSWRConfig();
+  const { data, isLoading } = useSWR<{ data: GrantRow[] }>(
+    [`/api/admin/users/${profileId}/feature-grants`],
+    { dedupingInterval: 30_000 },
+  );
+  const [slug, setSlug] = useState('csv_export');
+  const [days, setDays] = useState<number | null>(30);
+  const [reason, setReason] = useState('');
+  const [pending, setPending] = useState(false);
+
+  const grants = data?.data ?? [];
+  const activeGrants = grants.filter(g => !g.revoked_at && (!g.expires_at || new Date(g.expires_at) > new Date()));
+
+  const submit = async () => {
+    if (!slug.trim()) return;
+    setPending(true);
+    try {
+      await apiRequest('POST', `/api/admin/users/${profileId}/feature-grants`, {
+        feature_slug: slug.trim(),
+        days: days ?? undefined,
+        expires_at: days == null ? null : undefined,
+        reason: reason.trim() || undefined,
+      });
+      toast.success(`Granted ${slug}`);
+      setReason('');
+      void globalMutate([`/api/admin/users/${profileId}/feature-grants`]);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const revoke = async (s: string) => {
+    try {
+      await apiRequest('DELETE', `/api/admin/users/${profileId}/feature-grants/${s}`);
+      toast.success(`Revoked ${s}`);
+      void globalMutate([`/api/admin/users/${profileId}/feature-grants`]);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  // Feature slugs from the in-app catalog — matches features.controller.ts on the server.
+  const FEATURE_OPTIONS = [
+    'reports_access', 'companies_full', 'deals_full', 'investors_full', 'acquisitions_full',
+    'programs_access', 'events_access', 'framework_access', 'newsletter_access',
+    'analytics_access', 'csv_export', 'api_access', 'ai_chat',
+    'saved_searches', 'watchlists', 'recommendations',
+  ];
+
+  return (
+    <div className="space-y-2 py-2">
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Per-feature grants</Label>
+
+      {isLoading ? (
+        <Skeleton className="h-8 w-full" />
+      ) : activeGrants.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No active feature grants.</p>
+      ) : (
+        <div className="space-y-1">
+          {activeGrants.map(g => (
+            <div key={g.id} className="flex items-center gap-2 text-xs border rounded px-2 py-1">
+              <span className="font-mono flex-1">{g.feature_slug}</span>
+              <span className="text-muted-foreground">
+                {g.expires_at ? `expires ${formatDate(g.expires_at)}` : 'permanent'}
+              </span>
+              <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => void revoke(g.feature_slug)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2">
+        <Select value={slug} onValueChange={setSlug}>
+          <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {FEATURE_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Input type="number" min={0} placeholder="days (0 = permanent)" value={days ?? 0}
+          onChange={e => {
+            const v = parseInt(e.target.value);
+            setDays(Number.isFinite(v) && v > 0 ? v : null);
+          }} />
+      </div>
+      <Input placeholder="Reason (optional)" value={reason} onChange={e => setReason(e.target.value)} />
+      <Button size="sm" disabled={pending} onClick={() => void submit()}>
+        {pending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+        Grant {slug} {days != null ? `for ${days}d` : '(permanent)'}
+      </Button>
+    </div>
+  );
+}
+
 // ─── Billing Tab ──────────────────────────────────────────────────────────────
 
 const PLAN_OPTIONS = [
-  { value: 'plus_yearly', label: 'Plus Yearly' },
-  { value: 'plus_monthly', label: 'Plus Monthly' },
+  { value: 'growth_yearly', label: 'Growth Yearly' },
   { value: 'pro_yearly', label: 'Pro Yearly' },
-  { value: 'pro_monthly', label: 'Pro Monthly' },
 ];
 
 function BillingTab() {
   const [emailsText, setEmailsText] = useState('');
-  const [planKey, setPlanKey] = useState('plus_yearly');
+  const [planKey, setPlanKey] = useState('growth_yearly');
   const [trialDays, setTrialDays] = useState(30);
   const [results, setResults] = useState<BulkTrialResponse | null>(null);
+  const [grantPending, setGrantPending] = useState(false);
 
   const emailCount = emailsText.split(/[\n,;]+/).map(e => e.trim()).filter(Boolean).length;
 
-  const grantMutation = useMutation({
-    mutationFn: async (payload: { emails: string[]; planKey: string; trialDays: number }) => {
-      const res = await apiRequest('POST', '/api/admin/billing/bulk-grant-trial', payload);
-      return res.json() as Promise<BulkTrialResponse>;
-    },
-    onSuccess: data => setResults(data),
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const handleGrant = () => {
+  const handleGrant = async () => {
     const emails = emailsText.split(/[\n,;]+/).map(e => e.trim()).filter(Boolean);
-    if (emails.length) grantMutation.mutate({ emails, planKey, trialDays });
+    if (!emails.length) return;
+    setGrantPending(true);
+    try {
+      const res = await apiRequest('POST', '/api/admin/billing/bulk-grant-trial', { emails, planKey, trialDays });
+      const data = (await res.json()) as BulkTrialResponse;
+      setResults(data);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGrantPending(false);
+    }
   };
 
   return (
@@ -408,8 +574,8 @@ function BillingTab() {
             </div>
           </div>
 
-          <Button onClick={handleGrant} disabled={grantMutation.isPending || emailCount === 0} className="w-full">
-            {grantMutation.isPending
+          <Button onClick={() => void handleGrant()} disabled={grantPending || emailCount === 0} className="w-full">
+            {grantPending
               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Granting...</>
               : <>Grant {trialDays}-day trial to {emailCount} user{emailCount !== 1 ? 's' : ''}</>}
           </Button>
@@ -469,16 +635,10 @@ function SalesTab() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery<{ data: SalesRecord[]; total: number; totalPages: number }>({
-    queryKey: ['/api/admin/sales', search, page],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (search) params.set('search', search);
-      const res = await apiRequest('GET', `/api/admin/sales?${params}`);
-      return res.json();
-    },
-    staleTime: 60_000,
-  });
+  const { data, isLoading } = useSWR<{ data: SalesRecord[]; total: number; totalPages: number }>(
+    ['/api/admin/sales', { page, limit: 20, ...(search ? { search } : {}) }],
+    { dedupingInterval: 60_000 },
+  );
 
   const records = data?.data ?? [];
   // amount_cents is per-event in the smallest currency unit; sum to dollars/euros.
@@ -553,15 +713,10 @@ function SalesTab() {
 function PerformanceTab() {
   const [timeRange, setTimeRange] = useState('24h');
 
-  const { data, isLoading, refetch } = useQuery<{ summary: PerformanceSummary[]; slowest: unknown[] }>({
-    queryKey: ['/api/admin/performance', timeRange],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/admin/performance?range=${timeRange}`);
-      return res.json();
-    },
-    staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
-  });
+  const { data, isLoading, mutate: refetch } = useSWR<{ summary: PerformanceSummary[]; slowest: unknown[] }>(
+    ['/api/admin/performance', { range: timeRange }],
+    { dedupingInterval: 60_000, refreshInterval: 5 * 60_000 },
+  );
 
   const summary = data?.summary ?? [];
 

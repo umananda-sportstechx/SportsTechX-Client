@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Stat, SectionHead, Donut, WorldMap, Empty } from '@/components/ui/atoms';
@@ -88,18 +88,9 @@ export default function AnalyticsPage() {
 	const ytdParams = { limit: 500, year: currentYear, sort: '-announced_date' };
 	const maParams = { limit: 200, year: currentYear, sort: '-acquisition_date' };
 
-	const { data: trailing, isLoading: tLoading } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list(trailingParams),
-		staleTime: 10 * 60_000,
-	});
-	const { data: ytd } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list(ytdParams),
-		staleTime: 10 * 60_000,
-	});
-	const { data: ma } = useQuery<AcquisitionsResponse>({
-		queryKey: qk.acquisitions.list(maParams),
-		staleTime: 10 * 60_000,
-	});
+	const { data: trailing, isLoading: tLoading } = useSWR<DealsResponse>(qk.deals.list(trailingParams), { dedupingInterval: 10 * 60_000 });
+	const { data: ytd } = useSWR<DealsResponse>(qk.deals.list(ytdParams), { dedupingInterval: 10 * 60_000 });
+	const { data: ma } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(maParams), { dedupingInterval: 10 * 60_000 });
 
 	const trailingDeals = trailing?.data ?? [];
 	const ytdDeals = ytd?.data ?? [];

@@ -4,8 +4,8 @@ Non-negotiable. Violations break security, observability, or the auth contract.
 
 ## Data fetching
 
-- **Never `import` anything from `@tanstack/react-query`.** The package is removed (security incident). The TanStack-shaped hooks (`useQuery`, `useMutation`, `useQueryClient`) live in [lib/query-client.ts](../lib/query-client.ts) and are SWR-backed shims. Why: prevents the compromised dep tree from sneaking back in via a transitive add. **How to apply:** in new code, prefer `useSWR` directly; existing call sites can use the shim.
-- **Never call `useSWR` (or the `useQuery` shim) with a raw URL string.** Use `qk.*` from [lib/query-keys.ts](../lib/query-keys.ts). Why: keys participate in cache identity; raw strings mean repeated requests for the same logical resource land in separate cache slots, breaking dedup and invalidation.
+- **Never `import` anything from `@tanstack/react-query`.** The package was removed after an upstream security incident, and the compat shim that briefly mirrored its API (`useQuery` / `useMutation` / `useQueryClient`) has also been deleted. Use `useSWR` + `useSWRConfig` + `apiRequest` directly. Why: prevents the compromised dep tree from sneaking back in via a transitive add. **How to apply:** any new fetch call uses `useSWR`; any write uses `apiRequest` + inline `useState`.
+- **Never call `useSWR` with a raw URL string.** Use `qk.*` from [lib/query-keys.ts](../lib/query-keys.ts). Why: keys participate in cache identity; raw strings mean repeated requests for the same logical resource land in separate cache slots, breaking dedup and invalidation.
 - **Never call `fetch()` directly for write operations.** Go through `apiRequest()` from [lib/query-client.ts](../lib/query-client.ts). Why: `apiRequest` implements the 401 → refresh → retry contract; per-component `fetch` skips it and leads to unrecoverable session expiry.
 - **Never read JWT from `localStorage`.** Go through `getAuthHeaders()`. Why: the token-cache invariant lives there.
 
@@ -13,7 +13,7 @@ Non-negotiable. Violations break security, observability, or the auth contract.
 
 - **Never instantiate Supabase via `getSupabaseBrowser()` inside a component.** Use `useAuthSession()` from [hooks/use-auth-session.ts](../hooks/use-auth-session.ts). Why: the singleton Provider owns the only `onAuthStateChange` subscription — extra subscribers cause N× refetch fan-out.
 - **Never bypass `ProtectedRoute` / the `(app)` layout gate** to render a logged-in page. Why: the layout owns the redirect-on-unauthenticated flow; bypassing leaves protected data exposed during the brief window before the redirect fires.
-- **Always call `disableQueryPolling() + queryClient.clear()` BEFORE `supabase.auth.signOut()`** on hard logout. Why: order matters — pending requests with the old token will 401 mid-logout and trigger a redirect-to-login that races with the actual sign-out.
+- **Always call `disableQueryPolling()` and `mutate(() => true, undefined, { revalidate: false })` BEFORE `supabase.auth.signOut()`** on hard logout. Why: order matters — pending requests with the old token will 401 mid-logout and trigger a redirect-to-login that races with the actual sign-out. `disableQueryPolling()` from [lib/query-client.ts](../lib/query-client.ts) gates the fetcher; the global `mutate` (imported from `swr`) drops cached entries.
 
 ## Feature gating
 
@@ -46,5 +46,5 @@ Non-negotiable. Violations break security, observability, or the auth contract.
 - Adding a new top-level provider in `app/providers.tsx`.
 - Changing the order of providers — the current order is intentional (see [architecture.md](architecture.md)).
 - Replacing `swr` with another data-fetching library.
-- Removing the `useQuery` / `useMutation` / `useQueryClient` shims — they're load-bearing for the 25+ migrated files.
+- Reintroducing TanStack-shaped helper hooks. The compat shim was removed deliberately; if a similar abstraction is needed, design it from scratch rather than recreating the old shape.
 - Adding a new top-level route group (`(name)`).

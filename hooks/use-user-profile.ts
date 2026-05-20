@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { useAuthSession } from './use-auth-session';
 import { qk } from '@/lib/query-keys';
 
-export type UserType = 'free' | 'plus' | 'pro';
+export type UserType = 'free' | 'growth' | 'pro';
 
 export interface Profile {
   id: string;
@@ -13,7 +13,7 @@ export interface Profile {
   // `user_role` is the RBAC role: 'admin' | 'user'. Gates the admin panel
   // and any @RequireRole('admin') endpoints on the server.
   user_role: string | null;
-  // `user_type` is the subscription tier: 'free' | 'plus' | 'pro'. Drives
+  // `user_type` is the subscription tier: 'free' | 'growth' | 'pro'. Drives
   // feature gating in the user-facing app, NOT admin access.
   user_type: string | null;
   user_type_detail: string | null;

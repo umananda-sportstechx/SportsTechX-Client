@@ -6,7 +6,7 @@ One `.md` per top-level route. Each follows the same skeleton:
 - **File** — `app/(app)/<route>/page.tsx`.
 - **Purpose** — one line.
 - **Queries** — what `qk.*` keys it fetches.
-- **Mutations** — what `apiRequest` / `useMutation` calls it makes.
+- **Mutations** — what `apiRequest` calls it makes (and which `qk.*` keys those invalidate).
 - **Feature gates** — `useFeatureAccess(<slug>)` calls.
 - **Related components** — non-page components specific to it.
 - **Gotchas** — anything non-obvious.

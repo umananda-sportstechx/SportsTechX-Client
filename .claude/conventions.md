@@ -30,8 +30,8 @@ ESLint enforces no unused imports — keep the list clean.
 See [data-fetching.md](data-fetching.md) for the full pattern. The two-second version:
 
 - Reads: `useSWR(qk.<area>.<thing>(params))` — fetcher is global.
-- Writes: `apiRequest('POST' | 'PATCH' | 'DELETE', url, body)` directly, OR wrap with the `useMutation` shim if you want the TanStack-style state container.
-- Invalidations: `useQueryClient().invalidateQueries({ queryKey: qk.<area>.list._def })` — the shim does prefix-matching against the key.
+- Writes: `apiRequest('POST' | 'PATCH' | 'DELETE', url, body)` directly. Wrap the call site in a local `useState` for the pending flag.
+- Invalidations: `useSWRConfig().mutate(qk.<area>.<thing>(params))` for a single key, or `mutate((key) => Array.isArray(key) && key[0] === '/api/<path>')` for prefix-match.
 
 ## Forms
 
@@ -42,7 +42,7 @@ See [data-fetching.md](data-fetching.md) for the full pattern. The two-second ve
   const form = useForm<FormValues>({ resolver: zodResolver(schema) });
   ```
 - Use the shadcn `<Form>` wrappers in [components/ui/form.tsx](../components/ui/form.tsx) for accessible labels + errors.
-- On submit, call `apiRequest` (or a `useMutation`-wrapped version) directly; don't use server actions — they're not wired here.
+- On submit, call `apiRequest` inside the `onSubmit` handler. `form.formState.isSubmitting` covers the loading flag — don't add a parallel `useState`. Don't use server actions; they're not wired here.
 
 ## Styling
 

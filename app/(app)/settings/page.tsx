@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useMutation, useQueryClient } from '@/lib/query-client';
+import { useSWRConfig } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
@@ -102,12 +102,13 @@ export default function SettingsPage() {
 
 function ProfileTab() {
 	const { data: profile } = useUserProfile();
-	const queryClient = useQueryClient();
+	const { mutate } = useSWRConfig();
 	const [form, setForm] = useState({
 		display_name: '',
 		job_title: '',
 		company_name: '',
 	});
+	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (profile) {
@@ -119,14 +120,18 @@ function ProfileTab() {
 		}
 	}, [profile]);
 
-	const save = useMutation({
-		mutationFn: (body: typeof form) => apiRequest('PATCH', '/api/profiles/me', body),
-		onSuccess: () => {
+	const handleSave = async () => {
+		setSaving(true);
+		try {
+			await apiRequest('PATCH', '/api/profiles/me', form);
 			toast.success('Profile updated');
-			queryClient.invalidateQueries({ queryKey: qk.profile() });
-		},
-		onError: (e: Error) => toast.error(e.message ?? 'Could not save'),
-	});
+			void mutate(qk.profile());
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not save');
+		} finally {
+			setSaving(false);
+		}
+	};
 
 	const initials = (form.display_name || profile?.email || 'U')
 		.split(/\s+/)
@@ -192,10 +197,10 @@ function ProfileTab() {
 			<button
 				className="btn"
 				style={{ marginTop: 16 }}
-				disabled={save.isPending}
-				onClick={() => save.mutate(form)}
+				disabled={saving}
+				onClick={() => void handleSave()}
 			>
-				{save.isPending ? 'Saving…' : 'Save changes'}
+				{saving ? 'Saving…' : 'Save changes'}
 			</button>
 		</div>
 	);

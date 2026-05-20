@@ -56,7 +56,7 @@ if (access.isLocked) {
   return (
     <UpgradeCard
       title="Export to CSV"
-      tier={access.requiredTier}              // 'plus' or 'pro'
+      tier={access.requiredTier}              // 'growth' or 'pro'
       onUpgrade={() => router.push('/subscriptions')}
     />
   );

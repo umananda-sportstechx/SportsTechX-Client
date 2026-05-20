@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@/lib/query-client';
+import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,47 +41,52 @@ interface CreateResponse {
 
 export default function ApiKeysPage() {
 	const router = useRouter();
-	const qc = useQueryClient();
+	const { mutate } = useSWRConfig();
 	const { data: profile, isLoading: profileLoading } = useUserProfile();
 	const tier = getUserType(profile);
-	const tierAllowed = tier === 'plus' || tier === 'pro';
+	const tierAllowed = tier === 'growth' || tier === 'pro';
 
 	const [createOpen, setCreateOpen] = useState(false);
 	const [newName, setNewName] = useState('');
 	const [revealedKey, setRevealedKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [deleteId, setDeleteId] = useState<string | null>(null);
+	const [createPending, setCreatePending] = useState(false);
+	const [revokePending, setRevokePending] = useState(false);
 
-	const { data: keys, isLoading } = useQuery<ApiKey[]>({
-		queryKey: qk.apiKeys.list(),
-		staleTime: 60_000,
-		enabled: tierAllowed,
-	});
+	const { data: keys, isLoading } = useSWR<ApiKey[]>(
+		tierAllowed ? qk.apiKeys.list() : null,
+		{ dedupingInterval: 60_000 },
+	);
 
-	const createMutation = useMutation({
-		mutationFn: async (name: string) => {
+	const createKey = async (name: string) => {
+		setCreatePending(true);
+		try {
 			const res = await apiRequest('POST', '/api/me/api-keys', { name });
-			return (await res.json()) as CreateResponse;
-		},
-		onSuccess: (data) => {
+			const data = (await res.json()) as CreateResponse;
 			setRevealedKey(data.key);
 			setNewName('');
-			qc.invalidateQueries({ queryKey: qk.apiKeys.list() });
-		},
-		onError: (err: Error) => toast.error(err.message),
-	});
+			void mutate(qk.apiKeys.list());
+		} catch (err) {
+			toast.error((err as Error).message);
+		} finally {
+			setCreatePending(false);
+		}
+	};
 
-	const revokeMutation = useMutation({
-		mutationFn: async (id: string) => {
+	const revokeKey = async (id: string) => {
+		setRevokePending(true);
+		try {
 			await apiRequest('DELETE', `/api/me/api-keys/${id}`);
-		},
-		onSuccess: () => {
 			toast.success('API key revoked');
 			setDeleteId(null);
-			qc.invalidateQueries({ queryKey: qk.apiKeys.list() });
-		},
-		onError: (err: Error) => toast.error(err.message),
-	});
+			void mutate(qk.apiKeys.list());
+		} catch (err) {
+			toast.error((err as Error).message);
+		} finally {
+			setRevokePending(false);
+		}
+	};
 
 	const copyKey = async () => {
 		if (!revealedKey) return;
@@ -101,7 +106,7 @@ export default function ApiKeysPage() {
 		return (
 			<div className="flex flex-col items-center justify-center h-full py-32 text-center px-4">
 				<Lock className="h-16 w-16 text-muted-foreground/30 mb-4" />
-				<h2 className="text-xl font-semibold mb-2">API Keys — Plus or Pro feature</h2>
+				<h2 className="text-xl font-semibold mb-2">API Keys — Growth or Pro feature</h2>
 				<p className="text-muted-foreground mb-6">Create programmatic access tokens for the SportsTechX Developer API.</p>
 				<Button onClick={() => router.push('/subscriptions')}>Upgrade plan</Button>
 			</div>
@@ -201,14 +206,14 @@ export default function ApiKeysPage() {
 								<Label htmlFor="key-name">Name</Label>
 								<Input id="key-name" placeholder="e.g. Production server" value={newName}
 									onChange={(e) => setNewName(e.target.value)}
-									onKeyDown={(e) => { if (e.key === 'Enter' && newName.trim()) createMutation.mutate(newName.trim()); }}
+									onKeyDown={(e) => { if (e.key === 'Enter' && newName.trim()) void createKey(newName.trim()); }}
 								/>
 							</div>
 							<DialogFooter className="gap-2">
 								<Button variant="outline" onClick={closeCreateModal}>Cancel</Button>
-								<Button onClick={() => createMutation.mutate(newName.trim())}
-									disabled={!newName.trim() || createMutation.isPending}>
-									{createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+								<Button onClick={() => void createKey(newName.trim())}
+									disabled={!newName.trim() || createPending}>
+									{createPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 									Create
 								</Button>
 							</DialogFooter>
@@ -228,9 +233,9 @@ export default function ApiKeysPage() {
 					</DialogHeader>
 					<DialogFooter className="gap-2">
 						<Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-						<Button variant="destructive" disabled={revokeMutation.isPending}
-							onClick={() => deleteId && revokeMutation.mutate(deleteId)}>
-							{revokeMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+						<Button variant="destructive" disabled={revokePending}
+							onClick={() => deleteId && void revokeKey(deleteId)}>
+							{revokePending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							Revoke
 						</Button>
 					</DialogFooter>

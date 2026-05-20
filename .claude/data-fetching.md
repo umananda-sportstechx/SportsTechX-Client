@@ -1,17 +1,16 @@
 # Data Fetching
 
-Everything the client knows about reading or writing data. **Read this before adding any `useSWR` / `useQuery` / `apiRequest` call.**
+Everything the client knows about reading or writing data. **Read this before adding any `useSWR` / `apiRequest` call.**
 
-## The four pieces
+## The three pieces
 
 1. **`qk`** ([lib/query-keys.ts](../lib/query-keys.ts)) — typed factory of cache keys. Every key returns a tuple `[path, params?, …]`.
 2. **`fetcher`** ([lib/query-client.ts](../lib/query-client.ts)) — global SWR fetcher. Takes a tuple key, builds a URL via `buildUrl()`, attaches auth headers, handles 401-refresh-retry.
 3. **`apiRequest`** ([lib/query-client.ts](../lib/query-client.ts)) — for non-GET (writes). Same auth + retry semantics, manual call site.
-4. **TanStack-shaped shims** (`useQuery`, `useMutation`, `useQueryClient`) — backwards-compat layer in [lib/query-client.ts](../lib/query-client.ts). The 25 files that existed before the migration still use these. New code can pick either shim or raw SWR.
+
+(Historical note: a compat-shim layer mirroring TanStack's `useQuery`/`useMutation`/`useQueryClient` lived here during the migration off `@tanstack/react-query`. It has been removed — all call sites are now native SWR. Don't add it back.)
 
 ## Reading data
-
-### Recommended (new code): raw SWR
 
 ```ts
 import useSWR from 'swr';
@@ -23,94 +22,84 @@ const { data, error, isLoading } = useSWR<Company[]>(
 );
 ```
 
-### Backwards-compat (existing pages): TanStack-shape
-
-```ts
-import { useQuery } from '@/lib/query-client';
-import { qk } from '@/lib/query-keys';
-
-const { data, isLoading } = useQuery<Company[]>({
-  queryKey: qk.companies.list({ page, search, sector }),
-  staleTime: 3 * 60_000,
-  enabled: !!page,
-});
-```
-
-Both go through the same fetcher. Pick raw SWR for new code; leave existing call sites alone.
-
 ### Conditional fetch (skip until something is ready)
 
-```ts
-// SWR-native: pass null instead of the key
-useSWR(userId ? qk.profile() : null);
+Pass `null` as the key:
 
-// Shim: enabled: false
-useQuery({ queryKey: qk.profile(), enabled: !!userId });
+```ts
+useSWR(userId ? qk.profile() : null);
 ```
 
-### When the loading spinner flickers
+### Loading vs revalidation
 
-`isLoading` is **true on first load only**. On subsequent revalidations SWR exposes `isValidating` instead. If a page used to render a spinner on every refetch under TanStack, port the check carefully:
+`isLoading` is **true on first load only**. On subsequent revalidations SWR exposes `isValidating` instead. If a page needs a spinner during every refetch:
 
 ```ts
 const { data, isLoading, isValidating } = useSWR(...);
 const showSpinner = isLoading || (isValidating && !data); // typical safe choice
 ```
 
-## Writing data
+### Manual refetch
 
-### One-off mutation (preferred for new code)
+`mutate()` from the hook return triggers revalidation. Alias it locally if you like:
 
 ```ts
-import { apiRequest, useQueryClient } from '@/lib/query-client';
+const { data, mutate: refetch } = useSWR(...);
+// later:
+void refetch();
+```
+
+## Writing data
+
+Use `apiRequest` directly + `useSWRConfig().mutate(key)` for invalidation:
+
+```ts
+import { apiRequest } from '@/lib/query-client';
+import { useSWRConfig } from 'swr';
 import { qk } from '@/lib/query-keys';
 
+const { mutate } = useSWRConfig();
+const [saving, setSaving] = useState(false);
+
 async function handleSave() {
-  await apiRequest('PATCH', '/api/me', { display_name: name });
-  qc.invalidateQueries({ queryKey: qk.profile() }); // re-fetch profile
+  setSaving(true);
+  try {
+    await apiRequest('PATCH', '/api/profiles/me', { display_name: name });
+    toast.success('Saved');
+    void mutate(qk.profile());
+  } catch (err) {
+    toast.error((err as Error).message);
+  } finally {
+    setSaving(false);
+  }
 }
 ```
 
-### With loading state (TanStack shim — used by migrated pages)
-
-```ts
-import { useMutation, useQueryClient } from '@/lib/query-client';
-import { qk } from '@/lib/query-keys';
-
-const qc = useQueryClient();
-const m = useMutation({
-  mutationFn: async (body: { name: string }) => {
-    const res = await apiRequest('PATCH', '/api/me', body);
-    return res.json();
-  },
-  onSuccess: () => {
-    toast.success('Saved');
-    qc.invalidateQueries({ queryKey: qk.profile() });
-  },
-  onError: (err) => toast.error(err.message),
-});
-
-// somewhere in the component:
-m.mutate({ name });
-```
-
-`m.isPending` / `m.isLoading` is true during the call. After success, the returned data is on `m.data`; on error, `m.error`.
+That's the whole pattern. Don't reach for a `useMutation`-style hook — the inline `useState + try/catch/finally` is shorter and more explicit at the call site.
 
 ## Invalidation
 
-Use prefix-matching from `useQueryClient`:
+`useSWRConfig().mutate(key)` re-validates a single tuple key:
 
 ```ts
-qc.invalidateQueries({ queryKey: qk.companies.list._def });  // doesn't exist — see below
-qc.invalidateQueries({ queryKey: ['/api/companies'] });       // works: matches every key starting with this path
+const { mutate } = useSWRConfig();
+void mutate(qk.profile());                                       // single key
+void mutate(qk.companies.list({ page: 1, limit: 24, search })); // exact match
 ```
 
-The shim's `invalidateQueries` compares `queryKey[0]` to each cached key's first element. Since every `qk.*.list()` returns `['/api/<path>', params]`, passing `['/api/<path>']` invalidates all variants.
-
-For a single specific key, pass the full tuple:
+For prefix-matching (invalidate every variant under a path), pass a key-matcher function:
 
 ```ts
-qc.invalidateQueries({ queryKey: qk.profile() });  // ['/api/profiles/me'] — single entry
+void mutate((key) => Array.isArray(key) && key[0] === '/api/admin/claims');
+```
+
+From outside React (e.g. inside a `useEffect` cleanup or `auth-session-context`), use the global `mutate` re-exported from `swr`:
+
+```ts
+import { mutate as globalMutate } from 'swr';
+
+void globalMutate(qk.profile());
+void globalMutate(() => true, undefined, { revalidate: false }); // clear cache
 ```
 
 ## The 401-refresh contract

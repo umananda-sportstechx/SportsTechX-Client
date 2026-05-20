@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,11 +60,10 @@ const INTEGRATIONS: IntegrationCardData[] = [
 export default function IntegrationsPage() {
 	const [copied, setCopied] = useState(false);
 
-	const { data: intercom, isLoading: intercomLoading, error: intercomError } = useQuery<IntercomHashResponse>({
-		queryKey: qk.integrations.intercomHash(),
-		staleTime: 30 * 60_000,
-		retry: false,
-	});
+	const { data: intercom, isLoading: intercomLoading, error: intercomError } = useSWR<IntercomHashResponse>(
+		qk.integrations.intercomHash(),
+		{ dedupingInterval: 30 * 60_000, shouldRetryOnError: false },
+	);
 
 	const copyHash = async (hash: string) => {
 		await navigator.clipboard.writeText(hash);
