@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@/lib/query-client';
+import { useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import { useRouter } from 'next/navigation';
 import { Trash2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,21 +40,26 @@ const ENTITY_PATHS: Record<string, string> = {
  */
 export default function SavedSearchesPage() {
 	const router = useRouter();
-	const queryClient = useQueryClient();
+	const { mutate } = useSWRConfig();
+	const [removePending, setRemovePending] = useState(false);
 
-	const { data, isLoading } = useQuery<SavedSearchesResponse>({
-		queryKey: qk.savedSearches.list(),
-		staleTime: 30_000,
-	});
+	const { data, isLoading } = useSWR<SavedSearchesResponse>(
+		qk.savedSearches.list(),
+		{ dedupingInterval: 30_000 },
+	);
 
-	const remove = useMutation({
-		mutationFn: (id: string) => apiRequest('DELETE', `/api/saved-searches/${id}`),
-		onSuccess: () => {
+	const removeSearch = async (id: string) => {
+		setRemovePending(true);
+		try {
+			await apiRequest('DELETE', `/api/saved-searches/${id}`);
 			toast.success('Saved search removed');
-			queryClient.invalidateQueries({ queryKey: qk.savedSearches.list() });
-		},
-		onError: (e: Error) => toast.error(e.message ?? 'Could not remove'),
-	});
+			void mutate(qk.savedSearches.list());
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not remove');
+		} finally {
+			setRemovePending(false);
+		}
+	};
 
 	const searches = data?.data ?? [];
 
@@ -153,8 +158,8 @@ export default function SavedSearchesPage() {
 								</div>
 								<button
 									className="btn ghost"
-									onClick={() => remove.mutate(s.id)}
-									disabled={remove.isPending}
+									onClick={() => void removeSearch(s.id)}
+									disabled={removePending}
 									aria-label="Remove"
 								>
 									<Trash2 size={14} />

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +81,7 @@ export default function EcosystemPage() {
     return `/api/ecosystem-entities?${sp.toString()}`;
   })();
 
-  const { data, isLoading, isFetching } = useQuery<EcosystemResponse>({ queryKey: [apiUrl], staleTime: 3 * 60_000, refetchOnWindowFocus: false });
+  const { data, isLoading, isValidating: isFetching } = useSWR<EcosystemResponse>([apiUrl], { dedupingInterval: 3 * 60_000, revalidateOnFocus: false });
 
   const entities = data?.data ?? [];
   const total = data?.total ?? 0;

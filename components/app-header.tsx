@@ -29,10 +29,11 @@ export function AppHeader() {
   const handleLogout = async () => {
     const { getSupabaseBrowser } = await import('@/lib/supabase/client');
     const { logoutState } = await import('@/lib/logout-state');
-    const { disableQueryPolling, queryClient } = await import('@/lib/query-client');
+    const { disableQueryPolling } = await import('@/lib/query-client');
+    const { mutate } = await import('swr');
     logoutState.startLogout();
     disableQueryPolling();
-    queryClient.clear();
+    await mutate(() => true, undefined, { revalidate: false });
     await getSupabaseBrowser().auth.signOut();
     router.push('/login');
   };

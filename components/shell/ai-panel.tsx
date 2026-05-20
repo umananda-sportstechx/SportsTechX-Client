@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Send, X, Download } from 'lucide-react';
-import { useQuery } from '@/lib/query-client';
+import { Send, X, Download, Plus } from 'lucide-react';
+import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
+import { qk } from '@/lib/query-keys';
 
 /**
  * AI side panel — wraps the streaming chat agent with the Wave 3 RAG polish:
@@ -23,10 +24,20 @@ interface CitationSource {
 	title?: string;
 }
 
+interface ToolEntry {
+	/** Anthropic-issued tool_use id. Both `tool_call` and `tool_result` SSE
+	 *  events carry this; we match by id so two concurrent calls of the same
+	 *  tool name don't collide. */
+	id: string;
+	tool: string;
+	ok: boolean;
+	preview: string;
+}
+
 interface ChatMessage {
 	role: 'user' | 'assistant';
 	content: string;
-	tools?: Array<{ tool: string; ok: boolean; preview: string }>;
+	tools?: ToolEntry[];
 	sources?: CitationSource[];
 }
 
@@ -43,29 +54,55 @@ const FALLBACK_PROMPTS = [
 	'Map of European deals 2026',
 ];
 
+const GREETING: ChatMessage = {
+	role: 'assistant',
+	content:
+		'I can query the SportsTechX database — companies, deals, investors, programs — and pull live web results. Try a quick prompt below or ask anything.',
+};
+
 export function AiPanel({ open, onClose }: AiPanelProps) {
-	const [messages, setMessages] = useState<ChatMessage[]>([
-		{
-			role: 'assistant',
-			content:
-				'I can query the SportsTechX database — companies, deals, investors, programs — and pull live web results. Try a quick prompt below or ask anything.',
-		},
-	]);
+	const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
 	const [input, setInput] = useState('');
 	const [streaming, setStreaming] = useState(false);
 	const [conversationId, setConversationId] = useState<string | null>(null);
+	const [iteration, setIteration] = useState(0);
 	const bodyRef = useRef<HTMLDivElement>(null);
+	// Track the in-flight fetch so we can abort it on close/unmount/new-convo.
+	// Without this, closing the panel mid-stream still drains the Anthropic
+	// response on the backend — charging the user for tokens they never see.
+	const abortRef = useRef<AbortController | null>(null);
+	// Running citation counter for the current turn. Each tool_result event
+	// that includes web-search results gets indices [n .. n+results.length-1],
+	// so the second web_search of a turn doesn't overwrite the first's [1].
+	const nextSourceIndexRef = useRef(1);
 
-	const { data: suggestions } = useQuery<{ prompts: string[] }>({
-		queryKey: ['/api/chat/suggestions'],
-		staleTime: 60 * 60_000,
-		enabled: open,
-	});
+	const { data: suggestions } = useSWR<{ prompts: string[] }>(
+		open ? qk.chat.suggestions() : null,
+		{ dedupingInterval: 60 * 60_000 },
+	);
 	const prompts = suggestions?.prompts ?? FALLBACK_PROMPTS;
 
 	useEffect(() => {
 		if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
 	}, [messages, streaming]);
+
+	// Abort any in-flight stream on unmount (covers panel close, route
+	// change, hot reload). The backend's res.on('close') handler cleans up
+	// server-side once the socket closes.
+	useEffect(() => {
+		return () => {
+			abortRef.current?.abort();
+		};
+	}, []);
+
+	const resetConversation = () => {
+		abortRef.current?.abort();
+		setStreaming(false);
+		setConversationId(null);
+		setMessages([GREETING]);
+		setIteration(0);
+		nextSourceIndexRef.current = 1;
+	};
 
 	const send = async (text?: string) => {
 		const message = (text ?? input).trim();
@@ -77,6 +114,16 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			{ role: 'assistant', content: '', tools: [], sources: [] },
 		]);
 		setStreaming(true);
+		setIteration(0);
+		// Reset per-turn citation counter so [1] always refers to the first
+		// source surfaced in THIS turn, never one from a prior turn.
+		nextSourceIndexRef.current = 1;
+
+		// Fresh AbortController per turn. If the previous turn left one
+		// dangling (shouldn't happen, but defense-in-depth), abort it.
+		abortRef.current?.abort();
+		const ac = new AbortController();
+		abortRef.current = ac;
 
 		try {
 			const auth = await getAuthHeaders();
@@ -85,6 +132,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 				headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...auth },
 				body: JSON.stringify({ conversation_id: conversationId, message }),
 				credentials: 'include',
+				signal: ac.signal,
 			});
 			if (!res.ok || !res.body) {
 				const errText = await res.text().catch(() => 'request failed');
@@ -93,15 +141,30 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			}
 			await consumeSse(res.body, {
 				onConversation: (id) => setConversationId(id),
+				onThinking: (n) => setIteration(n),
 				onText: (delta) => appendToLastAssistant(delta),
-				onToolCall: (tool) => addToolToLastAssistant({ tool, ok: false, preview: '…' }),
-				onToolResult: (tool, ok, preview, sources) => updateLastTool(tool, ok, preview, sources),
+				onToolCall: (id, tool) => addToolToLastAssistant({ id, tool, ok: false, preview: '…' }),
+				onToolResult: (id, ok, preview, parsed) => {
+					updateLastTool(id, ok, preview);
+					// Allocate globally-unique citation indices for THIS turn so
+					// the second web_search's results don't collide with the
+					// first's [1], [2]…
+					const sources = extractCitations(parsed, nextSourceIndexRef.current);
+					if (sources && sources.length > 0) {
+						nextSourceIndexRef.current += sources.length;
+						appendSourcesToLastAssistant(sources);
+					}
+				},
 				onError: (msg) => patchLastAssistant(`\n\n_⚠️ ${msg}_`),
-			});
+			}, ac.signal);
 		} catch (err) {
+			// AbortError on user-initiated cancel is expected; swallow.
+			if ((err as Error).name === 'AbortError') return;
 			patchLastAssistant(`\n\n_⚠️ ${(err as Error).message}_`);
 		} finally {
 			setStreaming(false);
+			abortRef.current = null;
+			setIteration(0);
 		}
 	};
 
@@ -127,31 +190,41 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 		});
 	};
 
-	const addToolToLastAssistant = (tool: { tool: string; ok: boolean; preview: string }) => {
+	const addToolToLastAssistant = (entry: ToolEntry) => {
 		setMessages((prev) => {
 			const next = [...prev];
 			const last = next[next.length - 1];
 			if (last && last.role === 'assistant') {
-				next[next.length - 1] = { ...last, tools: [...(last.tools ?? []), tool] };
+				next[next.length - 1] = { ...last, tools: [...(last.tools ?? []), entry] };
 			}
 			return next;
 		});
 	};
 
-	const updateLastTool = (tool: string, ok: boolean, preview: string, newSources?: CitationSource[]) => {
+	const updateLastTool = (id: string, ok: boolean, preview: string) => {
 		setMessages((prev) => {
 			const next = [...prev];
 			const last = next[next.length - 1];
 			if (last && last.role === 'assistant' && last.tools) {
+				const idx = last.tools.findIndex((t) => t.id === id);
+				if (idx === -1) return prev;
 				const tools = [...last.tools];
-				for (let i = tools.length - 1; i >= 0; i -= 1) {
-					if (tools[i].tool === tool) {
-						tools[i] = { tool, ok, preview };
-						break;
-					}
-				}
-				const merged = mergeSources(last.sources ?? [], newSources ?? []);
-				next[next.length - 1] = { ...last, tools, sources: merged };
+				tools[idx] = { ...tools[idx]!, ok, preview };
+				next[next.length - 1] = { ...last, tools };
+			}
+			return next;
+		});
+	};
+
+	const appendSourcesToLastAssistant = (newSources: CitationSource[]) => {
+		setMessages((prev) => {
+			const next = [...prev];
+			const last = next[next.length - 1];
+			if (last && last.role === 'assistant') {
+				next[next.length - 1] = {
+					...last,
+					sources: mergeSources(last.sources ?? [], newSources),
+				};
 			}
 			return next;
 		});
@@ -187,9 +260,24 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 						<h3>STX Intel</h3>
 						<div className="ai-sub">
 							<span className="live-dot" style={{ marginRight: 6 }} />
-							{streaming ? 'Thinking…' : 'Online'}
+							{streaming
+								? iteration > 1
+									? `Thinking… (step ${iteration})`
+									: 'Thinking…'
+								: 'Online'}
 						</div>
 					</div>
+					{(conversationId || messages.length > 1) && (
+						<button
+							className="topbar-btn"
+							onClick={resetConversation}
+							style={{ padding: 8 }}
+							aria-label="New conversation"
+							title="New conversation"
+						>
+							<Plus size={14} />
+						</button>
+					)}
 					{conversationId && (
 						<button className="topbar-btn" onClick={exportConversation} style={{ padding: 8 }} aria-label="Export">
 							<Download size={14} />
@@ -316,17 +404,30 @@ function mergeSources(prev: CitationSource[], next: CitationSource[]): CitationS
 
 interface SseHandlers {
 	onConversation: (id: string) => void;
+	onThinking: (iteration: number) => void;
 	onText: (delta: string) => void;
-	onToolCall: (tool: string) => void;
-	onToolResult: (tool: string, ok: boolean, preview: string, sources?: CitationSource[]) => void;
+	/** `id` is the Anthropic tool_use id — pass it back on tool_result so the
+	 *  caller can update the matching entry deterministically. */
+	onToolCall: (id: string, tool: string) => void;
+	onToolResult: (id: string, ok: boolean, preview: string, parsedPayload: unknown) => void;
 	onError: (msg: string) => void;
 }
 
-async function consumeSse(stream: ReadableStream<Uint8Array>, handlers: SseHandlers): Promise<void> {
+async function consumeSse(
+	stream: ReadableStream<Uint8Array>,
+	handlers: SseHandlers,
+	signal: AbortSignal,
+): Promise<void> {
 	const reader = stream.getReader();
+	// Abort → release the reader so the awaited read() unblocks. The fetch
+	// itself was already cancelled by the AbortController signal; this just
+	// stops the consumer loop too.
+	signal.addEventListener('abort', () => { void reader.cancel().catch(() => { /* swallowed */ }); });
+
 	const decoder = new TextDecoder();
 	let buffer = '';
 	while (true) {
+		if (signal.aborted) return;
 		const { value, done } = await reader.read();
 		if (done) break;
 		buffer += decoder.decode(value, { stream: true });
@@ -347,22 +448,26 @@ async function consumeSse(stream: ReadableStream<Uint8Array>, handlers: SseHandl
 					case 'conversation':
 						if (parsed.id) handlers.onConversation(parsed.id);
 						break;
+					case 'thinking':
+						if (typeof parsed.iteration === 'number') handlers.onThinking(parsed.iteration);
+						break;
 					case 'content_delta':
 						if (typeof parsed.text === 'string') handlers.onText(parsed.text);
 						break;
 					case 'tool_call':
-						if (parsed.tool) handlers.onToolCall(parsed.tool);
+						if (parsed.tool && typeof parsed.id === 'string') {
+							handlers.onToolCall(parsed.id, parsed.tool);
+						}
 						break;
 					case 'tool_result': {
-						const sources = extractCitations(parsed);
-						if (parsed.tool) handlers.onToolResult(parsed.tool, !!parsed.ok, parsed.preview ?? '', sources);
+						if (typeof parsed.id !== 'string') break;
+						handlers.onToolResult(parsed.id, !!parsed.ok, parsed.preview ?? '', parsed);
 						break;
 					}
 					case 'error':
 						handlers.onError(parsed.message ?? 'unknown error');
 						break;
 					case 'done':
-					case 'thinking':
 						break;
 				}
 			} catch {
@@ -374,18 +479,23 @@ async function consumeSse(stream: ReadableStream<Uint8Array>, handlers: SseHandl
 
 /**
  * Pull URLs out of tool_result payloads. The server's web_search tool returns
- * an array of `{title, url, snippet}` results in `parsed.results`; older
- * preview-only payloads are skipped silently.
+ * an array of `{title, url, snippet}` results in `parsed.results`. Each call
+ * site passes the next free index so citation numbers are unique across an
+ * entire turn — otherwise two web_search calls in one turn would both produce
+ * [1], [2]… and their sources would collide via `mergeSources`'s by-index
+ * dedup.
  */
-function extractCitations(parsed: unknown): CitationSource[] | undefined {
+function extractCitations(parsed: unknown, startIndex: number): CitationSource[] | undefined {
 	if (!parsed || typeof parsed !== 'object') return undefined;
 	const obj = parsed as { results?: Array<{ url?: string; title?: string }> };
 	if (!Array.isArray(obj.results)) return undefined;
 	const out: CitationSource[] = [];
-	let i = 1;
+	let i = startIndex;
 	for (const r of obj.results) {
-		if (r.url) out.push({ index: i, url: r.url, title: r.title });
-		i += 1;
+		if (r.url) {
+			out.push({ index: i, url: r.url, title: r.title });
+			i += 1;
+		}
 	}
 	return out.length > 0 ? out : undefined;
 }

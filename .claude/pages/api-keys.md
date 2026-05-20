@@ -16,7 +16,7 @@
 
 ## Feature gates
 
-Page-level: `tier === 'plus' || tier === 'pro'`. Free tier sees an "Upgrade to use the API" lock-state.
+Page-level: `tier === 'growth' || tier === 'pro'`. Free tier sees an "Upgrade to use the API" lock-state.
 
 ## Related components
 

@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { mutate as globalMutate } from 'swr';
 import { apiRequest } from '@/lib/query-client';
-import { queryClient } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { toast } from 'sonner';
 
@@ -36,7 +36,7 @@ export default function SuccessPage() {
         const res = await apiRequest('POST', '/api/billing/sync-from-session', { session_id: sessionId });
         const result = await res.json();
         if (cancelled) return;
-        await queryClient.invalidateQueries({ queryKey: qk.profile() });
+        await globalMutate(qk.profile());
         if (cancelled) return;
         setPlanName(result.user_type ?? 'subscription');
         setSyncComplete(true);

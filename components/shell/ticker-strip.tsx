@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@/lib/query-client';
+import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 
 interface DealRow {
@@ -52,12 +52,10 @@ const MOCK_TICKER: DealRow[] = [
  * matching MOCK_TICKER entry so the marquee never reads as a string of "—"s.
  */
 export function TickerStrip() {
-	const { data } = useQuery<DealsResponse>({
-		queryKey: qk.deals.list({ limit: 16, sort: '-announced_date' }),
-		staleTime: 5 * 60_000,
-		gcTime: 30 * 60_000,
-		refetchOnWindowFocus: false,
-	});
+	const { data } = useSWR<DealsResponse>(
+		qk.deals.list({ limit: 16, sort: '-announced_date' }),
+		{ dedupingInterval: 5 * 60_000, revalidateOnFocus: false },
+	);
 
 	const apiItems: DealRow[] = (data?.data ?? []).map((d, i) => {
 		const fallback = MOCK_TICKER[i % MOCK_TICKER.length];
