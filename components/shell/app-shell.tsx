@@ -28,7 +28,14 @@ import { CommandPalette } from './command-palette';
  * convention) and `.dark` (next-themes default) so both work.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
+	// `railExpanded` is the sticky click state (toggle by logo / chevron).
+	// `railHovered` is the ephemeral pointer state — expanding the rail while
+	// the cursor is over it, collapsing back when the cursor leaves. The two
+	// are OR'd so a click-locked open stays open after the cursor leaves,
+	// while a hover-only open snaps back when the cursor moves away.
 	const [railExpanded, setRailExpanded] = useState(false);
+	const [railHovered, setRailHovered] = useState(false);
+	const railVisuallyExpanded = railExpanded || railHovered;
 	const [aiOpen, setAiOpen] = useState(false);
 	const [cmdOpen, setCmdOpen] = useState(false);
 	const [showTicker, setShowTicker] = useState(true);
@@ -60,15 +67,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 	const shellClasses = [
 		'app-shell',
-		railExpanded ? 'rail-expanded' : '',
+		railVisuallyExpanded ? 'rail-expanded' : '',
 		aiOpen ? 'ai-open' : '',
 	].filter(Boolean).join(' ');
 
 	return (
 		<div className={shellClasses}>
 			<SidebarRail
-				expanded={railExpanded}
+				expanded={railVisuallyExpanded}
 				onToggleExpand={() => setRailExpanded((v) => !v)}
+				onHoverChange={setRailHovered}
 			/>
 
 			<main className="main-col">

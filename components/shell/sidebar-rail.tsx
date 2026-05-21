@@ -37,39 +37,57 @@ interface NavGroup {
 }
 
 const NAV_GROUPS: NavGroup[] = [
-	{ label: 'Main', items: [
-		{ id: 'dashboard', name: 'Dashboard', icon: Home, path: '/dashboard' },
-	]},
-	{ label: 'Intel', items: [
-		{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
-		{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
-		{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
-	]},
-	{ label: 'Data', items: [
-		{ id: 'companies', name: 'Companies', icon: Building2, path: '/companies' },
-		{ id: 'funding', name: 'Funding Tracker', icon: DollarSign, path: '/funding' },
-		{ id: 'mna', name: 'M&A Tracker', icon: Shield, path: '/ma' },
-	]},
-	{ label: 'Eco', items: [
-		{ id: 'investors', name: 'Investors', icon: Wallet, path: '/investors' },
-		{ id: 'programs', name: 'Programs', icon: Zap, path: '/programs' },
-		{ id: 'events', name: 'Events', icon: CalendarDays, path: '/events' },
-	]},
-	{ label: 'Insight', items: [
-		{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics' },
-	]},
-	{ label: 'Account', items: [
-		{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
-		{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
-	]},
+	{
+		label: 'Core', items: [
+			{ id: 'dashboard', name: 'Dashboard', icon: Home, path: '/dashboard' },
+			{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
+			{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
+			{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
+		]
+	},
+	// { label: 'Intel', items: [
+	// 	{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
+	// 	{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
+	// 	{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
+	// ]},
+	{
+		label: 'Data', items: [
+			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics' },
+			{ id: 'companies', name: 'Companies', icon: Building2, path: '/companies' },
+			{ id: 'funding', name: 'Funding Tracker', icon: DollarSign, path: '/funding' },
+			{ id: 'mna', name: 'M&A Tracker', icon: Shield, path: '/ma' },
+		]
+	},
+	{
+		label: 'Eco', items: [
+			{ id: 'investors', name: 'Investors', icon: Wallet, path: '/investors' },
+			{ id: 'programs', name: 'Programs', icon: Zap, path: '/programs' },
+			{ id: 'events', name: 'Events', icon: CalendarDays, path: '/events' },
+		]
+	},
+	// { label: 'Insight', items: [
+	// 	{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics' },
+	// ]},
+	{
+		label: 'Account', items: [
+			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
+			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
+		]
+	},
 ];
 
 interface SidebarRailProps {
 	expanded: boolean;
 	onToggleExpand: () => void;
+	/**
+	 * Fired when the pointer enters / leaves the rail. Parent uses this to
+	 * implement hover-to-expand on top of the sticky click state; the rail
+	 * itself doesn't track hover.
+	 */
+	onHoverChange?: (hovering: boolean) => void;
 }
 
-export function SidebarRail({ expanded, onToggleExpand }: SidebarRailProps) {
+export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: SidebarRailProps) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const [signingOut, setSigningOut] = useState(false);
@@ -91,7 +109,11 @@ export function SidebarRail({ expanded, onToggleExpand }: SidebarRailProps) {
 	};
 
 	return (
-		<aside className="rail">
+		<aside
+			className="rail"
+			onMouseEnter={() => onHoverChange?.(true)}
+			onMouseLeave={() => onHoverChange?.(false)}
+		>
 			<div className="rail-logo">
 				<button
 					className="brand-mark"
