@@ -79,9 +79,20 @@ export const qk = {
   },
 
   // ── Reports ─────────────────────────────────────────────────────────────
+  // NOTE: detail/sections/sectionData/pollResults all interpolate the id into
+  // the path string. `buildUrl` in lib/query-client.ts skips non-object key
+  // parts (strings are treated as cache-identity only, not URL fragments), so
+  // ['/api/reports', id] would build the wrong URL. Other detail-style keys
+  // in this file have the same legacy bug — fix the ones you actually use as
+  // you encounter them; don't refactor buildUrl globally because some keys
+  // (e.g. credits.balance) deliberately rely on the strings-skipped behaviour.
   reports: {
     list: () => ['/api/reports'] as const,
-    detail: (idOrSlug: string) => ['/api/reports', idOrSlug] as const,
+    detail: (idOrSlug: string) => [`/api/reports/${idOrSlug}`] as const,
+    sections: (idOrSlug: string, as?: 'free' | 'growth' | 'pro') =>
+      [`/api/reports/${idOrSlug}/sections`, as ? { as } : {}] as const,
+    sectionData: (sectionId: string) => [`/api/reports/sections/${sectionId}/data`] as const,
+    pollResults: (pollId: string) => [`/api/reports/polls/${pollId}/results`] as const,
   },
   verifiedReports: {
     mine: () => ['/api/verified-reports/mine'] as const,
