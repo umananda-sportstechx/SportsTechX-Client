@@ -19,6 +19,7 @@ interface Report {
 	cover_url?: string | null;
 	is_free?: boolean;
 	drive_link?: string | null;
+	is_published?: boolean;       // false → admin-only visibility; show DRAFT chip on the card
 }
 
 interface ReportsResponse {
@@ -123,8 +124,17 @@ export default function ReportsPage() {
 					>
 						<div
 							className="report-cover"
-							style={{ background: coverColor(featuredApi, 0), height: 320 }}
+							style={{ background: coverColor(featuredApi, 0), height: 320, position: 'relative' }}
 						>
+							{featuredApi.is_published === false && (
+								<span style={{
+									position: 'absolute', top: 12, right: 12,
+									padding: '4px 10px', background: '#fbbf24', color: '#7c2d12',
+									fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+								}}>
+									DRAFT
+								</span>
+							)}
 							<span className="rc-meta">
 								{splitYear(featuredApi.published_at, featuredApi.id)}{featuredApi.pages ? ` · ${featuredApi.pages}p` : ` · 124p`}
 							</span>
@@ -184,7 +194,16 @@ export default function ReportsPage() {
 								className="card rep-card"
 								style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
 							>
-								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200 }}>
+								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200, position: 'relative' }}>
+									{r.is_published === false && (
+										<span style={{
+											position: 'absolute', top: 8, right: 8,
+											padding: '3px 7px', background: '#fbbf24', color: '#7c2d12',
+											fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+										}}>
+											DRAFT
+										</span>
+									)}
 									<span className="rc-meta">
 										{splitYear(r.published_at, r.id)}{r.pages ? ` · ${r.pages}p` : ` · ${pickFallbackPages(r.id)}p`}
 									</span>
