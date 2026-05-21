@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { use, useEffect, useRef, useState, type ReactNode } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { Lock, ArrowRight, ExternalLink, Check } from 'lucide-react';
+import { Lock, ArrowRight, ExternalLink, Check, Download, Upload } from 'lucide-react';
+import { useIsAdmin } from '@/hooks/use-user-profile';
 import {
 	BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
 	XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -71,17 +72,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ idOrSlu
 	}
 
 	if (!report.has_sections) {
-		return (
-			<Page>
-				<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, margin: '0 0 8px' }}>
-					{report.title}
-				</h1>
-				<p style={{ color: 'var(--fg-2)' }}>
-					This report is delivered as a downloadable PDF. Visit the{' '}
-					<Link href="/reports" style={{ color: 'var(--accent)' }}>library</Link> to download it.
-				</p>
-			</Page>
-		);
+		return <PdfReportView idOrSlug={idOrSlug} report={report} />;
 	}
 
 	const sections = sectionResp?.data ?? [];
@@ -126,6 +117,284 @@ export default function ReportDetailPage({ params }: { params: Promise<{ idOrSlu
 			{lockedTiers.size > 0 && <UnlockFooter tiers={[...lockedTiers]} />}
 		</Page>
 	);
+}
+
+// ============================================================================
+// PDF-flow renderer (used when has_sections=false)
+// ============================================================================
+
+interface ReportVersion {
+	id: string;
+	report_id: string;
+	language_code: string;
+	access_tier: Tier;
+	title: string | null;
+	description: string | null;
+	summary_points: string | null;
+	cover_url: string | null;
+	pdf_url: string | null;
+	drive_link: string | null;
+}
+
+function PdfReportView({ idOrSlug, report }: { idOrSlug: string; report: Report }) {
+	const { mutate } = useSWRConfig();
+	const { isAdmin } = useIsAdmin();
+	const versionsKey = `/api/reports/${idOrSlug}/versions`;
+	const { data, isLoading } = useSWR<ReportVersion[]>(
+		[versionsKey],
+		{ dedupingInterval: 5 * 60_000 },
+	);
+	const versions = data ?? [];
+	// Tier ordering used to pick the "best" version to feature when several
+	// are available. Higher index = better.
+	const TIER_RANK: Record<Tier, number> = { free: 0, growth: 1, pro: 2 };
+	const sorted = [...versions].sort((a, b) => (TIER_RANK[b.access_tier] - TIER_RANK[a.access_tier]));
+
+	const refreshVersions = () => mutate((k) => Array.isArray(k) && (k as unknown[])[0] === versionsKey);
+
+	return (
+		<Page>
+			{!report.is_published && <DraftBanner />}
+			<header style={{ marginBottom: 'var(--space-5)' }}>
+				<div style={{
+					fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)',
+					textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6,
+					display: 'flex', alignItems: 'center', gap: 10,
+				}}>
+					Report
+					{!report.is_published && (
+						<span style={{
+							padding: '2px 8px', background: '#fbbf24', color: '#7c2d12',
+							fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+						}}>
+							DRAFT
+						</span>
+					)}
+				</div>
+				<h1 style={{
+					fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 800,
+					letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 8px',
+				}}>
+					{report.title}
+				</h1>
+				{report.short_title && <p style={{ color: 'var(--fg-2)', margin: 0 }}>{report.short_title}</p>}
+			</header>
+
+			{isLoading && <Empty msg="Loading…" />}
+
+			{!isLoading && sorted.length === 0 && (
+				isAdmin
+					? <AdminPdfAttacher reportId={report.id} onSaved={refreshVersions} />
+					: (
+						<div className="card" style={{ padding: 'var(--space-4)' }}>
+							<p style={{ margin: 0, color: 'var(--fg-2)' }}>
+								No PDF version available for your tier. <Link href="/subscriptions" style={{ color: 'var(--accent)' }}>Upgrade</Link> to unlock paid editions.
+							</p>
+						</div>
+					)
+			)}
+
+			{sorted.map((v) => <PdfVersionCard key={v.id} version={v} reportIdOrSlug={idOrSlug} />)}
+		</Page>
+	);
+}
+
+/**
+ * Admin-only inline editor that appears when a non-sections report has no
+ * `report_versions` row yet. Posts to PATCH /api/admin/reports/:id which
+ * upserts the (en, free) canonical edition with the legacy PDF fields.
+ *
+ * This is the only path right now for admins to attach a PDF to an existing
+ * report — the legacy create form requires you to supply drive_link AT create
+ * time, and there's no separate edit page for PDF-flow reports.
+ */
+function AdminPdfAttacher({ reportId, onSaved }: { reportId: string; onSaved: () => void }) {
+	const [driveLink, setDriveLink] = useState('');
+	const [pdfUrl, setPdfUrl] = useState('');
+	const [description, setDescription] = useState('');
+	const [coverUrl, setCoverUrl] = useState('');
+	const [saving, setSaving] = useState(false);
+	const [err, setErr] = useState<string | null>(null);
+
+	const canSave = (driveLink.trim() || pdfUrl.trim()) && !saving;
+
+	const save = async () => {
+		if (!canSave) return;
+		setSaving(true);
+		setErr(null);
+		try {
+			const res = await apiRequest('PATCH', `/api/admin/reports/${reportId}`, {
+				drive_link: driveLink.trim() || undefined,
+				pdf_url: pdfUrl.trim() || undefined,
+				description: description.trim() || undefined,
+				cover_url: coverUrl.trim() || undefined,
+			});
+			if (!res.ok) throw new Error(`${res.status}`);
+			onSaved();
+		} catch (e) {
+			setErr((e as Error).message || 'Save failed');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<div className="card" style={{ padding: 'var(--space-4)', border: '1px dashed var(--accent)' }}>
+			<div style={{
+				fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
+				textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4,
+			}}>
+				Admin · attach PDF
+			</div>
+			<h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>This report has no PDF yet</h3>
+			<p style={{ margin: '0 0 16px', color: 'var(--fg-2)', fontSize: 13 }}>
+				Paste a Google Drive sharing link <em>or</em> a direct PDF URL. Saves the (en, free) edition; both tiers see it until you add tier-specific versions.
+			</p>
+
+			<div style={{ display: 'grid', gap: 10 }}>
+				<input
+					placeholder="Google Drive sharing link (https://drive.google.com/file/d/…/view)"
+					value={driveLink}
+					onChange={(e) => setDriveLink(e.target.value)}
+					style={inputStyle}
+				/>
+				<input
+					placeholder="Or direct PDF URL (https://…/file.pdf)"
+					value={pdfUrl}
+					onChange={(e) => setPdfUrl(e.target.value)}
+					style={inputStyle}
+				/>
+				<textarea
+					placeholder="Description (optional, shown above the preview)"
+					value={description}
+					onChange={(e) => setDescription(e.target.value)}
+					style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }}
+				/>
+				<input
+					placeholder="Cover image URL (optional, shown if no PDF preview is available)"
+					value={coverUrl}
+					onChange={(e) => setCoverUrl(e.target.value)}
+					style={inputStyle}
+				/>
+			</div>
+
+			{err && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 8 }}>{err}</div>}
+
+			<div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+				<button className="btn" disabled={!canSave} onClick={() => void save()}>
+					<Upload size={12} /> {saving ? 'Saving…' : 'Attach PDF'}
+				</button>
+			</div>
+		</div>
+	);
+}
+
+const inputStyle: React.CSSProperties = {
+	width: '100%', padding: '8px 10px',
+	background: 'var(--bg-1)', border: '1px solid var(--border)',
+	color: 'var(--fg)', fontSize: 13, fontFamily: 'inherit',
+};
+
+function PdfVersionCard({ version: v, reportIdOrSlug }: { version: ReportVersion; reportIdOrSlug: string }) {
+	const previewUrl = embedUrl(v.pdf_url ?? v.drive_link);
+	const downloadUrl = v.pdf_url ?? v.drive_link;
+	const tierTint = v.access_tier === 'pro' ? '#d97706'
+		: v.access_tier === 'growth' ? '#0284c7'
+			: 'var(--fg-muted)';
+
+	const handleDownload = (e: React.MouseEvent) => {
+		if (!downloadUrl) {
+			e.preventDefault();
+			return;
+		}
+		// Fire-and-forget download log (server expects a Bearer token; ignore failures).
+		apiRequest('POST', `/api/reports/${reportIdOrSlug}/downloads`, {}).catch(() => undefined);
+	};
+
+	return (
+		<section className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 'var(--space-4)' }}>
+			{/* meta strip + actions */}
+			<div style={{
+				display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+				padding: 'var(--space-3) var(--space-4)',
+				borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 12,
+			}}>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+					<span style={{
+						padding: '3px 8px', background: 'var(--bg-2)',
+						color: tierTint, fontFamily: 'var(--font-mono)', fontSize: 11,
+						textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600,
+					}}>
+						{v.access_tier} edition
+					</span>
+					<span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+						{v.language_code.toUpperCase()}{v.title ? ` · ${v.title}` : ''}
+					</span>
+				</div>
+				{downloadUrl ? (
+					<a
+						href={downloadUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						onClick={handleDownload}
+					>
+						<button className="btn">
+							<Download size={12} /> Download PDF
+						</button>
+					</a>
+				) : (
+					<span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>PDF link missing</span>
+				)}
+			</div>
+
+			{/* description + summary */}
+			{(v.description || v.summary_points) && (
+				<div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border)' }}>
+					{v.description && <p style={{ margin: '0 0 12px', lineHeight: 1.55 }}>{v.description}</p>}
+					{v.summary_points && (
+						<div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+							{v.summary_points}
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* embedded preview */}
+			{previewUrl ? (
+				<div style={{ position: 'relative', width: '100%', height: '78vh', minHeight: 540, background: 'var(--bg-2)' }}>
+					<iframe
+						src={previewUrl}
+						title={`${v.title ?? 'Report'} PDF preview`}
+						style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+						allow="autoplay"
+					/>
+				</div>
+			) : v.cover_url ? (
+				/* eslint-disable-next-line @next/next/no-img-element */
+				<img src={v.cover_url} alt="Cover" style={{ width: '100%', display: 'block' }} />
+			) : (
+				<div style={{ padding: 'var(--space-4)', color: 'var(--fg-muted)', textAlign: 'center' }}>
+					No preview available.
+				</div>
+			)}
+		</section>
+	);
+}
+
+/**
+ * Transform a download URL into an embeddable iframe URL.
+ *   Google Drive `file/d/{ID}/view?…`     → `file/d/{ID}/preview`
+ *   Google Drive `open?id={ID}`           → `file/d/{ID}/preview`
+ *   Anything else (direct PDF, etc.)       → returned verbatim — most browsers
+ *                                              render PDFs in iframes natively.
+ * Returns null for empty input.
+ */
+function embedUrl(url: string | null | undefined): string | null {
+	if (!url) return null;
+	const fileIdMatch = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/)
+		?? url.match(/drive\.google\.com\/open\?id=([\w-]+)/);
+	if (fileIdMatch) return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+	return url;
 }
 
 // ============================================================================
