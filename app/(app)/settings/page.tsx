@@ -9,6 +9,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Page, Tag } from '@/components/ui/atoms';
+import { ImageInput } from '@/components/ui/image-input';
 
 type Tab = 'profile' | 'appearance' | 'notifications' | 'workspace' | 'api' | 'billing';
 
@@ -107,6 +108,7 @@ function ProfileTab() {
 		display_name: '',
 		job_title: '',
 		company_name: '',
+		avatar_url: '',
 	});
 	const [saving, setSaving] = useState(false);
 
@@ -116,14 +118,30 @@ function ProfileTab() {
 				display_name: profile.display_name ?? '',
 				job_title: profile.job_title ?? '',
 				company_name: profile.company_name ?? '',
+				avatar_url: profile.avatar_url ?? '',
 			});
 		}
 	}, [profile]);
 
+	// Avatar URL persists on `onChange` rather than waiting for "Save" — uploads
+	// already round-tripped through Storage at that point, so dropping them on
+	// the floor if the user navigates away would just leak orphaned files.
+	const persistAvatar = async (url: string) => {
+		setForm((s) => ({ ...s, avatar_url: url }));
+		try {
+			await apiRequest('PATCH', '/api/profiles/me', { avatar_url: url || null });
+			void mutate(qk.profile());
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not save avatar');
+		}
+	};
+
 	const handleSave = async () => {
 		setSaving(true);
 		try {
-			await apiRequest('PATCH', '/api/profiles/me', form);
+			const { avatar_url: _avatarHandledSeparately, ...rest } = form;
+			void _avatarHandledSeparately;
+			await apiRequest('PATCH', '/api/profiles/me', rest);
 			toast.success('Profile updated');
 			void mutate(qk.profile());
 		} catch (e) {
@@ -151,30 +169,48 @@ function ProfileTab() {
 			<div
 				style={{
 					display: 'flex',
-					alignItems: 'center',
+					alignItems: 'flex-start',
 					gap: 16,
 					marginBottom: 24,
 					paddingBottom: 24,
 					borderBottom: '1px solid var(--border)',
 				}}
 			>
-				<div
-					style={{
-						width: 64,
-						height: 64,
-						background: 'var(--accent)',
-						color: 'var(--accent-fg)',
-						display: 'grid',
-						placeItems: 'center',
-						fontFamily: 'var(--font-display)',
-						fontWeight: 700,
-						fontSize: 22,
-					}}
-				>
-					{initials}
-				</div>
-				<div>
-					<button className="btn ghost" disabled>Change avatar</button>
+				{form.avatar_url ? (
+					/* eslint-disable-next-line @next/next/no-img-element */
+					<img
+						src={form.avatar_url}
+						alt=""
+						style={{
+							width: 64, height: 64, objectFit: 'cover',
+							background: 'var(--bg-2)',
+						}}
+					/>
+				) : (
+					<div
+						style={{
+							width: 64,
+							height: 64,
+							background: 'var(--accent)',
+							color: 'var(--accent-fg)',
+							display: 'grid',
+							placeItems: 'center',
+							fontFamily: 'var(--font-display)',
+							fontWeight: 700,
+							fontSize: 22,
+						}}
+					>
+						{initials}
+					</div>
+				)}
+				<div style={{ flex: 1, minWidth: 0, maxWidth: 460 }}>
+					<ImageInput
+						value={form.avatar_url}
+						onChange={(url) => void persistAvatar(url)}
+						pathPrefix={`avatars/${profile?.id ?? ''}`}
+						placeholder="https://… or upload an image"
+						disabled={!profile?.id}
+					/>
 				</div>
 			</div>
 
