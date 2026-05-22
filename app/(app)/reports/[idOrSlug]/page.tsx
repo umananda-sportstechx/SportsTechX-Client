@@ -5,6 +5,7 @@ import { use, useEffect, useRef, useState, type ReactNode } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Lock, ArrowRight, ExternalLink, Check, Download, Upload } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-user-profile';
+import { ImageInput } from '@/components/ui/image-input';
 import {
 	BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
 	XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -270,12 +271,17 @@ function AdminPdfAttacher({ reportId, onSaved }: { reportId: string; onSaved: ()
 					onChange={(e) => setDescription(e.target.value)}
 					style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }}
 				/>
-				<input
-					placeholder="Cover image URL (optional, shown if no PDF preview is available)"
-					value={coverUrl}
-					onChange={(e) => setCoverUrl(e.target.value)}
-					style={inputStyle}
-				/>
+				<div>
+					<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 4 }}>
+						Cover image (optional, shown if no PDF preview is available)
+					</div>
+					<ImageInput
+						value={coverUrl}
+						onChange={setCoverUrl}
+						pathPrefix={`reports/${reportId}`}
+						placeholder="https://… (or switch to Upload)"
+					/>
+				</div>
 			</div>
 
 			{err && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 8 }}>{err}</div>}
