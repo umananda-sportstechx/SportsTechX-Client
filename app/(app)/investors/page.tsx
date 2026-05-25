@@ -8,6 +8,8 @@ import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, Chip, Empty } from '@/components/ui/atoms';
+import { CompareBar } from '@/components/compare-bar';
+import { CompareToggle } from '@/components/compare-toggle';
 
 interface InvestorRow {
 	id: string;
@@ -32,27 +34,6 @@ interface InvestorsResponse {
 	page: number;
 	totalPages: number;
 }
-
-// PLACEHOLDER — STX_DATA.INVESTORS verbatim, displayed when API returns none.
-const MOCK_INVESTORS: Array<{
-	id: string; name: string; type: string; country: string; cc: string; aum: string;
-	deals: number; focus: string; recent: string; thesis: string; color: string;
-}> = [
-	{ id: 'mi-1',  name: 'Verance Capital',     type: 'VC',          country: 'United States',  cc: 'US', aum: '450M',  deals: 18, focus: 'Seed–Series B', recent: 'Pickleball.com',           thesis: 'Sports & fitness platforms',   color: '#0F172A' },
-	{ id: 'mi-2',  name: 'Sapphire Sport',      type: 'VC',          country: 'United States',  cc: 'US', aum: '230M',  deals: 14, focus: 'Series A–B',     recent: 'Teamworks',                thesis: 'Connected athletes & fans',    color: '#1E40AF' },
-	{ id: 'mi-3',  name: 'Connect Ventures',    type: 'VC',          country: 'United Kingdom', cc: 'GB', aum: '180M',  deals: 12, focus: 'Seed',           recent: 'Hoopers',                  thesis: 'Product-led founders',         color: '#DC2626' },
-	{ id: 'mi-4',  name: 'Atomico',             type: 'VC',          country: 'United Kingdom', cc: 'GB', aum: '4B',    deals: 9,  focus: 'Series A+',      recent: 'PlayReplay',               thesis: 'European tech leaders',        color: '#0EA5E9' },
-	{ id: 'mi-5',  name: 'Adidas',              type: 'CVC',         country: 'Germany',        cc: 'DE', aum: '—',     deals: 8,  focus: 'Strategic',      recent: '1080Motion',               thesis: 'Athlete performance',          color: '#000' },
-	{ id: 'mi-6',  name: 'L Catterton',         type: 'PE',          country: 'United States',  cc: 'US', aum: '34B',   deals: 8,  focus: 'Growth',         recent: 'Champ Fund',               thesis: 'Consumer-facing brands',       color: '#1E293B' },
-	{ id: 'mi-7',  name: 'Courtside Ventures',  type: 'VC',          country: 'United States',  cc: 'US', aum: '160M',  deals: 16, focus: 'Seed–A',         recent: 'Fastbreak AI',             thesis: 'Sports, fitness, gaming',      color: '#2563EB' },
-	{ id: 'mi-8',  name: 'KB Partners',         type: 'VC',          country: 'United States',  cc: 'US', aum: '90M',   deals: 11, focus: 'Seed',           recent: 'Gemini Analytics',         thesis: 'Sports tech early-stage',      color: '#7C3AED' },
-	{ id: 'mi-9',  name: 'InStudio Ventures',   type: 'VC',          country: 'United States',  cc: 'US', aum: '50M',   deals: 9,  focus: 'Pre-seed–Seed',  recent: 'Sports & Performance',     thesis: 'Athlete-backed founders',      color: '#22D3EE' },
-	{ id: 'mi-10', name: 'APEX Capital',        type: 'VC',          country: 'Portugal',       cc: 'PT', aum: '40M',   deals: 7,  focus: 'Seed',           recent: 'Hoopers',                  thesis: 'Athlete-backed sports tech',   color: '#10B981' },
-	{ id: 'mi-11', name: 'Centre Court Capital',type: 'VC',          country: 'India',          cc: 'IN', aum: '50M',   deals: 6,  focus: 'Seed–A',         recent: 'Spolto',                   thesis: 'Sports, fitness & wellness',   color: '#F59E0B' },
-	{ id: 'mi-12', name: 'Chrysalis Collective',type: 'VC',          country: 'United Kingdom', cc: 'GB', aum: '25M',   deals: 5,  focus: 'Pre-seed',       recent: "Women's sport founders",   thesis: "Women's sport & wellness",     color: '#EC4899' },
-	{ id: 'mi-13', name: 'Match Ventures',      type: 'VC',          country: 'Luxembourg',     cc: 'LU', aum: '60M',   deals: 5,  focus: 'Seed–A',         recent: 'European sports tech',     thesis: 'Early-stage sports tech',      color: '#06B6D4' },
-	{ id: 'mi-14', name: 'Stadia Ventures',     type: 'Accelerator', country: 'United States',  cc: 'US', aum: '15M',   deals: 14, focus: 'Pre-seed',       recent: 'Cohort 11 demo day',       thesis: 'Boost from accelerator',       color: '#84CC16' },
-];
 
 const TYPE_CHIPS: Array<{ label: string; key: string }> = [
 	{ label: 'VC', key: 'venture_capital' },
@@ -98,11 +79,9 @@ export default function InvestorsPage() {
 		dedupingInterval: 3 * 60_000,
 	});
 
-	const investorsApi = data?.data ?? [];
+	const investors = data?.data ?? [];
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
-	const useMock = !isLoading && investorsApi.length === 0;
-	const displayTotal = total || 412;
 
 	const handleChip = (key: string) => {
 		const next = category === key ? '' : key;
@@ -134,7 +113,7 @@ export default function InvestorsPage() {
 							marginBottom: 6,
 						}}
 					>
-						Capital · {displayTotal.toLocaleString()} firms
+						Capital · {total.toLocaleString()} firms
 					</div>
 					<h1
 						style={{
@@ -173,7 +152,7 @@ export default function InvestorsPage() {
 						}}
 					/>
 				</div>
-				<Chip active={!category} count={displayTotal} onClick={() => handleChip('')}>
+				<Chip active={!category} count={total} onClick={() => handleChip('')}>
 					All
 				</Chip>
 				{TYPE_CHIPS.map((c) => (
@@ -183,15 +162,17 @@ export default function InvestorsPage() {
 				))}
 			</div>
 
-			{isLoading && investorsApi.length === 0 ? (
+			{isLoading && investors.length === 0 ? (
 				<Empty msg="Loading…" />
+			) : investors.length === 0 ? (
+				<Empty msg="No investors match those filters." />
 			) : (
 				<div className="inv-grid">
-					{useMock
-						? MOCK_INVESTORS.map((i) => <MockInvestorCard key={i.id} i={i} />)
-						: investorsApi.map((i) => <InvestorCard key={i.id} i={i} />)}
+					{investors.map((i) => <InvestorCard key={i.id} i={i} />)}
 				</div>
 			)}
+
+			<CompareBar kind="investors" />
 
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
@@ -218,90 +199,11 @@ export default function InvestorsPage() {
 	);
 }
 
-function MockInvestorCard({ i }: { i: typeof MOCK_INVESTORS[number] }) {
-	const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-	return (
-		<Link
-			href={`/investors/${i.id}`}
-			className="card inv-card"
-			style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
-		>
-			<div className="inv-bar" style={{ background: i.color }} />
-			<div style={{ padding: 'var(--space-4)' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-					<div className="co-logo" style={{ width: 44, height: 44, background: i.color, color: '#fff', fontSize: 14 }}>
-						{initials}
-					</div>
-					<div style={{ flex: 1, minWidth: 0 }}>
-						<div style={{ fontWeight: 700, fontSize: 15 }}>{i.name}</div>
-						<div
-							style={{
-								fontSize: 11,
-								color: 'var(--fg-muted)',
-								display: 'flex',
-								alignItems: 'center',
-								gap: 4,
-								flexWrap: 'wrap',
-							}}
-						>
-							<Flag cc={i.cc} /> {i.country} · <Tag>{i.type}</Tag>
-						</div>
-					</div>
-				</div>
-				<p
-					style={{
-						fontSize: 13,
-						color: 'var(--fg-2)',
-						minHeight: 36,
-						marginBottom: 12,
-						lineHeight: 1.4,
-					}}
-				>
-					{i.thesis}
-				</p>
-				<div
-					style={{
-						display: 'grid',
-						gridTemplateColumns: '1fr 1fr 1fr',
-						gap: 8,
-						paddingTop: 12,
-						borderTop: '1px solid var(--border)',
-					}}
-				>
-					<div>
-						<div className="co-stat-label">AUM</div>
-						<div className="co-stat-val">${i.aum}</div>
-					</div>
-					<div>
-						<div className="co-stat-label">Deals</div>
-						<div className="co-stat-val">{i.deals}</div>
-					</div>
-					<div>
-						<div className="co-stat-label">Stage</div>
-						<div className="co-stat-val" style={{ fontSize: 12 }}>{i.focus}</div>
-					</div>
-				</div>
-				<div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-muted)' }}>
-					Recent: <b style={{ color: 'var(--fg)' }}>{i.recent}</b>
-				</div>
-			</div>
-		</Link>
-	);
-}
-
 function InvestorCard({ i }: { i: InvestorRow }) {
 	const color = TYPE_COLORS[i.category ?? 'other'] ?? 'oklch(62% 0.04 240)';
 	const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-	// Country: real value first, then a deterministic per-investor placeholder
-	// so the flag column is never blank.
-	const ccReal = i.hq_country ? countryCode(i.hq_country) : '';
-	const cc = ccReal || pickMockCountryCode(i.id);
-	const countryLabel = i.hq_country ?? pickMockCountryName(i.id);
+	const cc = i.hq_country ? countryCode(i.hq_country) : '';
 	const typeLabel = formatType(i.category ?? i.type);
-	const aumLabel = formatDollars(i.total_aum_usd) ?? pickMockAum(i.id);
-	const dealsLabel = i.deals_count ?? pickMockDeals(i.id);
-	const focusLabel = i.primary_focus ?? pickMockFocus(i.id);
-	const recentLabel = i.recent_investment ?? pickMockRecent(i.id);
 	return (
 		<Link
 			href={`/investors/${i.slug ?? i.id}`}
@@ -326,8 +228,8 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 								flexWrap: 'wrap',
 							}}
 						>
-							<Flag cc={cc} />
-							{countryLabel} · <Tag>{typeLabel}</Tag>
+							{cc && <Flag cc={cc} />}
+							{i.hq_country ?? '—'}{typeLabel !== '—' && <> · <Tag>{typeLabel}</Tag></>}
 						</div>
 					</div>
 				</div>
@@ -344,7 +246,7 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 						overflow: 'hidden',
 					}}
 				>
-					{i.thesis ?? i.description ?? pickMockThesis(i.id)}
+					{i.thesis ?? i.description ?? '—'}
 				</p>
 				<div
 					style={{
@@ -357,72 +259,28 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 				>
 					<div>
 						<div className="co-stat-label">AUM</div>
-						<div className="co-stat-val">{aumLabel}</div>
+						<div className="co-stat-val">{formatDollars(i.total_aum_usd) ?? '—'}</div>
 					</div>
 					<div>
 						<div className="co-stat-label">Deals</div>
-						<div className="co-stat-val">{dealsLabel}</div>
+						<div className="co-stat-val">{i.deals_count ?? '—'}</div>
 					</div>
 					<div>
 						<div className="co-stat-label">Stage</div>
-						<div className="co-stat-val" style={{ fontSize: 12 }}>{focusLabel}</div>
+						<div className="co-stat-val" style={{ fontSize: 12 }}>{i.primary_focus ?? '—'}</div>
 					</div>
 				</div>
-				<div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-muted)' }}>
-					Recent: <b style={{ color: 'var(--fg)' }}>{recentLabel}</b>
+				{i.recent_investment && (
+					<div style={{ marginTop: 10, fontSize: 11, color: 'var(--fg-muted)' }}>
+						Recent: <b style={{ color: 'var(--fg)' }}>{i.recent_investment}</b>
+					</div>
+				)}
+				<div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+					<CompareToggle id={i.id} kind="investors" />
 				</div>
 			</div>
 		</Link>
 	);
-}
-
-// PLACEHOLDER country pairs so the flag column is never blank.
-const MOCK_COUNTRIES: Array<{ name: string; cc: string }> = [
-	{ name: 'United States', cc: 'US' },
-	{ name: 'United Kingdom', cc: 'GB' },
-	{ name: 'Germany', cc: 'DE' },
-	{ name: 'France', cc: 'FR' },
-	{ name: 'India', cc: 'IN' },
-	{ name: 'Singapore', cc: 'SG' },
-	{ name: 'Canada', cc: 'CA' },
-	{ name: 'Australia', cc: 'AU' },
-];
-function pickMockCountryCode(id: string): string {
-	return MOCK_COUNTRIES[hash(id) % MOCK_COUNTRIES.length].cc;
-}
-function pickMockCountryName(id: string): string {
-	return MOCK_COUNTRIES[hash(id) % MOCK_COUNTRIES.length].name;
-}
-
-const MOCK_AUMS = ['$50M', '$120M', '$230M', '$450M', '$1.2B'];
-const MOCK_DEAL_COUNTS = [5, 8, 11, 14, 18];
-const MOCK_FOCUS = ['Pre-seed', 'Seed', 'Seed–A', 'Series A–B', 'Growth'];
-const MOCK_RECENTS = ['Pickleball.com', 'Teamworks', 'Fastbreak AI', 'Hoopers', 'PlayReplay'];
-const MOCK_THESES = [
-	'Athlete performance & wellness',
-	'Connected fans & engagement platforms',
-	'Sports media, content & streaming',
-	'Stadium, venue & infrastructure',
-	'Esports & fantasy',
-];
-
-function pickMockAum(id: string): string {
-	return MOCK_AUMS[hash(id) % MOCK_AUMS.length];
-}
-function pickMockDeals(id: string): number {
-	return MOCK_DEAL_COUNTS[hash(id) % MOCK_DEAL_COUNTS.length];
-}
-function pickMockFocus(id: string): string {
-	return MOCK_FOCUS[hash(id) % MOCK_FOCUS.length];
-}
-function pickMockRecent(id: string): string {
-	return MOCK_RECENTS[hash(id) % MOCK_RECENTS.length];
-}
-function pickMockThesis(id: string): string {
-	return MOCK_THESES[hash(id) % MOCK_THESES.length];
-}
-function hash(id: string): number {
-	return (id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0) + (id.length || 0);
 }
 
 function formatType(t: string | null | undefined): string {

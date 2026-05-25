@@ -29,27 +29,9 @@ interface EventsResponse {
 	totalPages: number;
 }
 
-// PLACEHOLDER — STX_DATA.EVENTS verbatim, displayed when API returns none.
-const MOCK_EVENTS: Array<{
-	id: string; name: string; day: number; month: string; year: number; cc: string;
-	city: string; country: string; attendees: string; tags: string[]; color: string;
-}> = [
-	{ id: 'me-1', name: 'IBM Sports Tech Startup Challenge',         day: 11, month: 'MAY', year: 2026, cc: 'CA', city: 'Vancouver', country: 'Canada', attendees: '350+ founders', tags: ['AI', 'Demo Day'],        color: '#1E40AF' },
-	{ id: 'me-2', name: 'Impact Players Conf.',                      day: 12, month: 'MAY', year: 2026, cc: 'GB', city: 'Belfast',   country: 'UK',     attendees: '600 leaders',   tags: ['Leadership', 'Women'],   color: '#DC2626' },
-	{ id: 'me-3', name: 'Media Production & Tech Show',              day: 13, month: 'MAY', year: 2026, cc: 'GB', city: 'London',    country: 'UK',     attendees: '12,000+',       tags: ['Broadcast'],             color: '#7C3AED' },
-	{ id: 'me-4', name: 'Football Business Awards 2026',             day: 15, month: 'MAY', year: 2026, cc: 'GB', city: 'London',    country: 'UK',     attendees: '800 execs',     tags: ['Football', 'Awards'],    color: '#15803D' },
-	{ id: 'me-5', name: 'Gondola Sports Summit',                     day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'Denver',    country: 'USA',    attendees: '500 creatives', tags: ['Social', 'Content'],     color: '#0EA5E9' },
-	{ id: 'me-6', name: 'SBJ Sports Business Awards: Tech',          day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'New York',  country: 'USA',    attendees: '1,200',         tags: ['Awards'],                color: '#0F172A' },
-	{ id: 'me-7', name: 'SBJ Tech Week',                             day: 18, month: 'MAY', year: 2026, cc: 'US', city: 'New York',  country: 'USA',    attendees: '2,500',         tags: ['Tech'],                  color: '#1E293B' },
-	{ id: 'me-8', name: 'RCB Innovation Lab Indian Sports Summit',   day: 19, month: 'MAY', year: 2026, cc: 'IN', city: 'Bangalore', country: 'India',  attendees: '600',           tags: ['Cricket', 'India'],      color: '#F59E0B' },
-	{ id: 'me-9', name: 'PEAK 2026',                                 day: 2,  month: 'JUN', year: 2026, cc: 'US', city: 'Las Vegas', country: 'USA',    attendees: '4,500',         tags: ['Flagship'],              color: '#A855F7' },
-];
-
 const FALLBACK_COLORS = [
 	'#1E40AF', '#DC2626', '#7C3AED', '#15803D', '#0EA5E9', '#0F172A', '#F59E0B', '#A855F7',
 ];
-
-const TAG_FALLBACKS = ['AI', 'Demo Day', 'Wearables', 'Tech', 'Awards', 'Conference'];
 
 export default function EventsPage() {
 	const router = useRouter();
@@ -72,11 +54,9 @@ export default function EventsPage() {
 		{ dedupingInterval: 5 * 60_000 },
 	);
 
-	const eventsApi = data?.data ?? [];
+	const events = data?.data ?? [];
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
-	const useMock = !isLoading && eventsApi.length === 0;
-	const displayTotal = useMock ? MOCK_EVENTS.length : (total || eventsApi.length);
 
 	return (
 		<Page>
@@ -91,7 +71,7 @@ export default function EventsPage() {
 						marginBottom: 6,
 					}}
 				>
-					Calendar · {displayTotal.toLocaleString()} upcoming
+					Calendar · {total.toLocaleString()} upcoming
 				</div>
 				<h1
 					style={{
@@ -110,13 +90,13 @@ export default function EventsPage() {
 				</p>
 			</div>
 
-			{isLoading && eventsApi.length === 0 ? (
+			{isLoading && events.length === 0 ? (
 				<Empty msg="Loading…" />
+			) : events.length === 0 ? (
+				<Empty msg="No upcoming events." />
 			) : (
 				<div className="grid-3">
-					{useMock
-						? MOCK_EVENTS.map((e) => <MockEventCard key={e.id} e={e} />)
-						: eventsApi.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
+					{events.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
 				</div>
 			)}
 
@@ -145,55 +125,11 @@ export default function EventsPage() {
 	);
 }
 
-function MockEventCard({ e }: { e: typeof MOCK_EVENTS[number] }) {
-	return (
-		<div className="card ev-card">
-			<div className="ev-date" style={{ background: e.color }}>
-				<div className="ev-month">{e.month}</div>
-				<div className="ev-day">{String(e.day).padStart(2, '0')}</div>
-				<div className="ev-year">{e.year}</div>
-			</div>
-			<div style={{ padding: 'var(--space-4)' }}>
-				<div
-					style={{
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.08em',
-						marginBottom: 4,
-						display: 'flex',
-						alignItems: 'center',
-						gap: 6,
-					}}
-				>
-					<Flag cc={e.cc} /> {e.city}, {e.country}
-				</div>
-				<h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, lineHeight: 1.3 }}>{e.name}</h3>
-				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{e.attendees}</div>
-				<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-					{e.tags.map((t) => <Tag key={t}>{t}</Tag>)}
-				</div>
-			</div>
-		</div>
-	);
-}
-
 function EventCard({ e, i }: { e: EventEntity; i: number }) {
-	// Per-cell fallback to a prototype event so the card always shows the full
-	// month/day/year strip, location, attendee count, and tags.
-	const fb = MOCK_EVENTS[i % MOCK_EVENTS.length];
-	const dApi = splitDate(e.start_date);
-	const dateUnknown = dApi.day === '—';
-	const day = dateUnknown ? String(fb.day).padStart(2, '0') : dApi.day;
-	const month = dateUnknown ? fb.month : dApi.month;
-	const year = dateUnknown ? String(fb.year) : dApi.year;
-	const color = e.color ?? fb.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-	const ccReal = e.hq_country ? countryCode(e.hq_country) : '';
-	const cc = ccReal || fb.cc;
-	const city = e.hq_city ?? fb.city;
-	const country = e.hq_country ?? fb.country;
-	const attendees = e.expected_attendees ?? fb.attendees;
-	const tags = (e.tags && e.tags.length > 0) ? e.tags : pickMockTags(e.id);
+	const d = splitDate(e.start_date);
+	const color = e.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+	const cc = e.hq_country ? countryCode(e.hq_country) : '';
+	const tags = e.tags ?? [];
 	return (
 		<Link
 			href={`/events/${e.slug ?? e.id}`}
@@ -201,38 +137,39 @@ function EventCard({ e, i }: { e: EventEntity; i: number }) {
 			style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
 		>
 			<div className="ev-date" style={{ background: color }}>
-				<div className="ev-month">{month}</div>
-				<div className="ev-day">{day}</div>
-				<div className="ev-year">{year}</div>
+				<div className="ev-month">{d.month}</div>
+				<div className="ev-day">{d.day}</div>
+				<div className="ev-year">{d.year}</div>
 			</div>
 			<div style={{ padding: 'var(--space-4)' }}>
-				<div
-					style={{
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.08em',
-						marginBottom: 4,
-						display: 'flex',
-						alignItems: 'center',
-						gap: 6,
-					}}
-				>
-					<Flag cc={cc} /> {city}, {country}
-				</div>
+				{(cc || e.hq_city || e.hq_country) && (
+					<div
+						style={{
+							fontSize: 11,
+							color: 'var(--fg-muted)',
+							textTransform: 'uppercase',
+							letterSpacing: '0.08em',
+							marginBottom: 4,
+							display: 'flex',
+							alignItems: 'center',
+							gap: 6,
+						}}
+					>
+						{cc && <Flag cc={cc} />} {[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}
+					</div>
+				)}
 				<h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, lineHeight: 1.3 }}>{e.name}</h3>
-				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{attendees}</div>
-				<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-					{tags.slice(0, 3).map((t) => <Tag key={t}>{t}</Tag>)}
-				</div>
+				{e.expected_attendees && (
+					<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{e.expected_attendees}</div>
+				)}
+				{tags.length > 0 && (
+					<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+						{tags.slice(0, 3).map((t) => <Tag key={t}>{t}</Tag>)}
+					</div>
+				)}
 			</div>
 		</Link>
 	);
-}
-
-function pickMockTags(id: string): string[] {
-	const h = (id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0);
-	return [TAG_FALLBACKS[h % TAG_FALLBACKS.length], TAG_FALLBACKS[(h + 1) % TAG_FALLBACKS.length]];
 }
 
 function splitDate(iso: string | null | undefined): { day: string; month: string; year: string } {

@@ -42,14 +42,18 @@ export const qk = {
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
+    detail: (id: string) => [`/api/deals/${id}`] as const,
+    investors: (id: string) => [`/api/deals/${id}/investors`] as const,
   },
   acquisitions: {
     list: (params: Record<string, unknown> = {}) => ['/api/acquisitions', params] as const,
+    detail: (id: string) => [`/api/acquisitions/${id}`] as const,
   },
   ecosystem: {
     list: (params: Record<string, unknown> = {}) => ['/api/ecosystem-entities', params] as const,
     listByType: (type: string, params: Record<string, unknown> = {}) =>
       ['/api/ecosystem-entities', { type, ...params }] as const,
+    detail: (idOrSlug: string) => [`/api/ecosystem-entities/${idOrSlug}`] as const,
   },
 
   // ── Search ──────────────────────────────────────────────────────────────
@@ -102,6 +106,32 @@ export const qk = {
   // ── Recommendations ─────────────────────────────────────────────────────
   recommendations: () => ['/api/recommendations'] as const,
 
+  // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
+  newsletter: {
+    articles: () => ['/api/newsletter/articles'] as const,
+  },
+
+  // ── Analytics aggregations (10-min cache server-side) ───────────────────
+  analytics: {
+    dashboard: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/dashboard-stats', { period }] as const,
+    fundingTotals: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/funding-totals', { period }] as const,
+    maStats: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-stats', { period }] as const,
+    quarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/quarterly-capital', params] as const,
+    sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
+    worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
+    topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
+  },
+
+  // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────
+  // Wraps existing list endpoints with a fixed `?ids=` filter. The server
+  // already supports `ids` on /api/companies; the investors/deals endpoints
+  // accept the same param.
+  compare: {
+    companies: (ids: string[]) => ['/api/companies', { ids: ids.join(',') }] as const,
+    investors: (ids: string[]) => ['/api/investors', { ids: ids.join(',') }] as const,
+    deals: (ids: string[]) => ['/api/deals', { ids: ids.join(',') }] as const,
+  },
+
   // ── Billing ─────────────────────────────────────────────────────────────
   billing: {
     plans: () => ['/api/billing/plans'] as const,
@@ -109,11 +139,14 @@ export const qk = {
     invoices: () => ['/api/billing/invoices'] as const,
   },
 
-  // ── Per-user feature overrides ─────────────────────────────────────────
+  // ── Per-user feature overrides + inbox ─────────────────────────────────
   // Merged with `qk.features()` (the catalog) by the FeatureAccessProvider
   // to compute final access. Per-user, authenticated.
   me: {
     featureGrants: () => ['/api/me/feature-grants'] as const,
+    downloads: () => ['/api/me/downloads'] as const,
+    notifications: (unread?: boolean) =>
+      unread ? ['/api/me/notifications', { unread: true }] as const : ['/api/me/notifications'] as const,
   },
 
   // ── Credits ─────────────────────────────────────────────────────────────
