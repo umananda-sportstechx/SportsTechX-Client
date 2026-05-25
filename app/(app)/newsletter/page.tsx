@@ -1,38 +1,57 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import { Page, Tag, SectionHead } from '@/components/ui/atoms';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { ArrowRight, Search } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
+import { Page, Empty, SectionHead } from '@/components/ui/atoms';
 
 /**
- * Newsletter — pixel-perfect port of ui_design/screens-3.jsx NewsletterScreen.
- *
- * No /api/newsletters endpoint exists yet, so the hero issue + past-issue list
- * render from `MOCK_NEWSLETTERS` (verbatim from STX_DATA.NEWSLETTERS). Swap
- * each constant for a real query once the endpoint ships.
+ * Newsletter — proxy of the Beehiiv RSS feed. Same data shape and behavior
+ * as legacy STX-WebApp: a hero card for the latest issue + an archive grid
+ * for the rest. Search is client-side (article titles + descriptions). No
+ * signup form, no DB; Beehiiv owns authoring.
  */
 
-// PLACEHOLDER — STX_DATA.NEWSLETTERS verbatim.
-const MOCK_NEWSLETTERS: Array<{
-	num: number; title: string; sub: string; date: string; emoji: string; latest?: boolean;
-}> = [
-	{ num: 179, title: 'KKR Closes Arctos Deal, Invests in MLS NEXT Pro',  sub: 'Plus how athlete pay structures determine power balance in sport.', date: 'May 8, 2026',  emoji: '🤝', latest: true },
-	{ num: 178, title: 'Another Week, Another Two Mega Deals',             sub: 'Funding & M&A roundup — April 2026.',                                date: 'Apr 30, 2026', emoji: '💰' },
-	{ num: 177, title: "Catterton's $500M Athlete Sports Tech Fund",       sub: 'European deal flow at multi-year highs.',                            date: 'Apr 23, 2026', emoji: '🇪🇺' },
-	{ num: 176, title: "TPG Sports' $2B Bet on the Industry",              sub: 'PEAK 2026 Las Vegas preview.',                                       date: 'Apr 16, 2026', emoji: '🎰' },
-	{ num: 175, title: 'The State of Athlete Wearables',                   sub: 'Heart rate, fatigue, and the new frontier.',                         date: 'Apr 9, 2026',  emoji: '⌚' },
-	{ num: 174, title: 'Football Clubs Going Public — Why Now',            sub: 'Why this wave of IPOs is different.',                                date: 'Apr 2, 2026',  emoji: '⚽' },
-];
-
-const HERO_FOOTER_STATS = [
-	{ label: 'Subscribers',   value: '18,432' },
-	{ label: 'Open rate',     value: '52.4%' },
-	{ label: 'Issue length',  value: '~7 min' },
-	{ label: 'Sent',          value: MOCK_NEWSLETTERS[0].date },
-];
+interface NewsletterArticle {
+	title: string;
+	link: string;
+	description: string;
+	content: string;
+	thumbnail: string;
+	pubDate: string;
+	author: string;
+	categories: string[];
+}
 
 export default function NewsletterPage() {
-	const latest = MOCK_NEWSLETTERS[0];
+	const { data, isLoading, error } = useSWR<NewsletterArticle[]>(qk.newsletter.articles(), {
+		dedupingInterval: 30 * 60_000,
+		revalidateOnFocus: false,
+	});
+	const [search, setSearch] = useState('');
+
+	const sorted = useMemo(() => {
+		const arr = [...(data ?? [])];
+		arr.sort((a, b) => {
+			const da = new Date(a.pubDate).getTime() || 0;
+			const db = new Date(b.pubDate).getTime() || 0;
+			return db - da;
+		});
+		return arr;
+	}, [data]);
+
+	const latest = sorted[0] ?? null;
+	const archive = sorted.slice(1);
+
+	const filteredArchive = useMemo(() => {
+		if (!search.trim()) return archive;
+		const q = search.toLowerCase();
+		return archive.filter((a) =>
+			a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q),
+		);
+	}, [archive, search]);
+
 	return (
 		<Page>
 			<div style={{ marginBottom: 'var(--space-5)' }}>
@@ -46,7 +65,7 @@ export default function NewsletterPage() {
 						marginBottom: 6,
 					}}
 				>
-					The Sports Tech Recap · weekly
+					Newsletter · Featured by SportsTechX
 				</div>
 				<h1
 					style={{
@@ -58,138 +77,165 @@ export default function NewsletterPage() {
 						margin: '0 0 6px',
 					}}
 				>
-					Newsletter
+					The Sports Tech Recap
 				</h1>
 				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Weekly intelligence read by 18,400+ operators, founders, and investors. Issue #424.
+					Weekly digest of the deals, M&amp;A, and ecosystem signals shaping sports technology.
 				</p>
 			</div>
 
-			{/* Latest issue hero */}
-			<div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						padding: 'var(--space-5)',
-						background: 'var(--accent)',
-						color: 'var(--accent-fg)',
-						position: 'relative',
-					}}
-				>
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
-							marginBottom: 16,
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							textTransform: 'uppercase',
-							letterSpacing: '0.12em',
-							opacity: 0.85,
-						}}
-					>
-						<span>Issue #{latest.num} · {latest.date}</span>
-						<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-							<span className="live-dot" style={{ background: 'currentColor' }} /> Live
-						</span>
-					</div>
-					<h2
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 36,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1.1,
-							marginBottom: 12,
-							maxWidth: 800,
-						}}
-					>
-						{latest.title}
-					</h2>
-					<p
-						style={{
-							fontSize: 16,
-							opacity: 0.92,
-							maxWidth: 700,
-							lineHeight: 1.5,
-							marginBottom: 18,
-						}}
-					>
-						{latest.sub}
-					</p>
-					<div style={{ display: 'flex', gap: 8 }}>
-						<button className="btn" style={{ background: '#fff', color: 'var(--accent)' }}>
-							Read full issue <ArrowRight size={12} />
-						</button>
-						<button className="btn ghost" style={{ borderColor: 'rgba(255,255,255,.4)', color: '#fff' }}>
-							Forward to a colleague
-						</button>
-					</div>
-				</div>
-				<div
-					style={{
-						padding: 'var(--space-4) var(--space-5)',
-						display: 'grid',
-						gridTemplateColumns: 'repeat(4, 1fr)',
-						gap: 24,
-						borderTop: '1px solid var(--border)',
-					}}
-				>
-					{HERO_FOOTER_STATS.map((s) => (
-						<div key={s.label}>
-							<div className="co-stat-label">{s.label}</div>
-							<div className="co-stat-val">{s.value}</div>
-						</div>
-					))}
-				</div>
-			</div>
+			{isLoading && sorted.length === 0 ? (
+				<Empty msg="Loading…" />
+			) : error || sorted.length === 0 ? (
+				<Empty msg="No issues to display yet. Check back soon." />
+			) : (
+				<>
+					{latest && <HeroIssue article={latest} />}
 
-			<SectionHead title="Past issues" meta={`${MOCK_NEWSLETTERS.length} of 424 shown`} />
-
-			<div
-				style={{
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 0,
-					border: '1px solid var(--border)',
-					background: 'var(--bg-1)',
-				}}
-			>
-				{MOCK_NEWSLETTERS.map((issue, i) => (
-					<div
-						key={issue.num}
-						className="news-row"
-						style={{
-							borderBottom: i < MOCK_NEWSLETTERS.length - 1 ? '1px solid var(--border)' : 'none',
-						}}
-					>
-						<div className="news-num">#{issue.num}</div>
-						<div style={{ flex: 1, minWidth: 0 }}>
-							<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-								<span style={{ fontSize: 18 }}>{issue.emoji}</span>
-								<span style={{ fontWeight: 600, fontSize: 15 }}>{issue.title}</span>
-								{issue.latest && <Tag variant="pos">Latest</Tag>}
+					{archive.length > 0 && (
+						<>
+							<div
+								style={{
+									display: 'flex',
+									alignItems: 'flex-end',
+									justifyContent: 'space-between',
+									gap: 16,
+									margin: 'var(--space-5) 0 var(--space-3)',
+								}}
+							>
+								<SectionHead title="Archive" meta={`${archive.length} past ${archive.length === 1 ? 'issue' : 'issues'}`} />
+								<div style={{ position: 'relative', minWidth: 280 }}>
+									<Search
+										size={14}
+										style={{ position: 'absolute', left: 10, top: 9, color: 'var(--fg-muted)', pointerEvents: 'none' }}
+									/>
+									<input
+										className="search-input"
+										style={{ paddingLeft: 32, height: 32, width: '100%' }}
+										placeholder="Search archive…"
+										value={search}
+										onChange={(e) => setSearch(e.target.value)}
+									/>
+								</div>
 							</div>
-							<div style={{ fontSize: 13, color: 'var(--fg-2)' }}>{issue.sub}</div>
-						</div>
-						<div
-							style={{
-								fontFamily: 'var(--font-mono)',
-								fontSize: 11,
-								color: 'var(--fg-muted)',
-								textTransform: 'uppercase',
-								letterSpacing: '0.08em',
-								whiteSpace: 'nowrap',
-							}}
-						>
-							{issue.date}
-						</div>
-						<Link href={`/newsletter/${issue.num}`}>
-							<button className="btn ghost"><ArrowRight size={12} /></button>
-						</Link>
-					</div>
-				))}
-			</div>
+							<div className="grid-3">
+								{filteredArchive.map((a) => <ArticleCard key={a.link} article={a} />)}
+							</div>
+							{filteredArchive.length === 0 && (
+								<Empty msg={`No archived issues match "${search}".`} />
+							)}
+						</>
+					)}
+				</>
+			)}
 		</Page>
 	);
+}
+
+function HeroIssue({ article }: { article: NewsletterArticle }) {
+	return (
+		<a
+			href={article.link}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="card"
+			style={{
+				display: 'grid',
+				gridTemplateColumns: article.thumbnail ? '420px 1fr' : '1fr',
+				gap: 0,
+				textDecoration: 'none',
+				color: 'inherit',
+				overflow: 'hidden',
+			}}
+		>
+			{article.thumbnail && (
+				/* eslint-disable-next-line @next/next/no-img-element */
+				<img
+					src={article.thumbnail}
+					alt=""
+					style={{ width: '100%', height: '100%', minHeight: 240, objectFit: 'cover' }}
+				/>
+			)}
+			<div style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+					<span style={{
+						fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)',
+						textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700,
+					}}>
+						Latest issue
+					</span>
+					<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>· {formatDate(article.pubDate)}</span>
+				</div>
+				<h2
+					style={{
+						fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800,
+						letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 12px',
+					}}
+				>
+					{article.title}
+				</h2>
+				{article.description && (
+					<p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55, margin: '0 0 16px' }}>
+						{article.description}…
+					</p>
+				)}
+				<div>
+					<button className="btn">Read issue <ArrowRight size={12} /></button>
+				</div>
+			</div>
+		</a>
+	);
+}
+
+function ArticleCard({ article }: { article: NewsletterArticle }) {
+	return (
+		<a
+			href={article.link}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="card"
+			style={{ display: 'block', textDecoration: 'none', color: 'inherit', overflow: 'hidden' }}
+		>
+			{article.thumbnail && (
+				/* eslint-disable-next-line @next/next/no-img-element */
+				<img
+					src={article.thumbnail}
+					alt=""
+					style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
+				/>
+			)}
+			<div style={{ padding: 'var(--space-3)' }}>
+				<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 6 }}>
+					{formatMonthYear(article.pubDate)}
+				</div>
+				<div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, lineHeight: 1.35 }}>
+					{article.title}
+				</div>
+				{article.description && (
+					<p
+						style={{
+							fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5, margin: 0,
+							display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+						}}
+					>
+						{article.description}…
+					</p>
+				)}
+			</div>
+		</a>
+	);
+}
+
+function formatDate(iso: string): string {
+	if (!iso) return '';
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '';
+	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatMonthYear(iso: string): string {
+	if (!iso) return '';
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '';
+	return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }

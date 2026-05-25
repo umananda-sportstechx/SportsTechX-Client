@@ -102,6 +102,11 @@ export const qk = {
   // ── Recommendations ─────────────────────────────────────────────────────
   recommendations: () => ['/api/recommendations'] as const,
 
+  // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
+  newsletter: {
+    articles: () => ['/api/newsletter/articles'] as const,
+  },
+
   // ── Analytics aggregations (10-min cache server-side) ───────────────────
   analytics: {
     dashboard: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/dashboard-stats', { period }] as const,
