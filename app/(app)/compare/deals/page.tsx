@@ -69,7 +69,7 @@ export default function CompareDealsPage() {
 						<Row label="Round type" rows={rows} render={(d) => d.round_type ? <Tag>{d.round_type}</Tag> : '—'} />
 						<Row label="Announced" rows={rows} render={(d) => d.announced_date ? formatDate(d.announced_date) : (d.announced_year ?? '—')} />
 						<Row label="Lead investor" rows={rows} render={(d) => d.lead_investor ?? '—'} />
-						<Row label="Investors" rows={rows} render={(d) => (d.investors ?? []).slice(0, 6).map((s) => <Tag key={s}>{s}</Tag>) as React.ReactNode || '—'} />
+						<Row label="Investors" rows={rows} render={(d) => (d.investors?.length ? d.investors.slice(0, 6).map((s) => <Tag key={s}>{s}</Tag>) : '—')} />
 						<Row label="Country" rows={rows} render={(d) => d.country ?? '—'} />
 						<Row label="Region" rows={rows} render={(d) => d.region ?? '—'} />
 						<Row label="Business model" rows={rows} render={(d) => d.business_model ?? '—'} />

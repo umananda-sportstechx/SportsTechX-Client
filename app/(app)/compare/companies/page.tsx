@@ -88,8 +88,8 @@ export default function CompareCompaniesPage() {
 						<Row label="Business model" rows={rows} render={(c) => c.business_model ?? '—'} />
 						<Row label="Unicorn" rows={rows} render={(c) => c.is_unicorn ? 'Yes' : '—'} />
 						<Row label="Raising" rows={rows} render={(c) => c.is_actively_raising ? 'Active' : '—'} />
-						<Row label="Sports" rows={rows} render={(c) => (c.sports ?? []).slice(0, 3).map((s) => <Tag key={s}>{s}</Tag>) as React.ReactNode || '—'} />
-						<Row label="Tech tags" rows={rows} render={(c) => (c.tech_tags ?? []).slice(0, 3).map((s) => <Tag key={s}>{s}</Tag>) as React.ReactNode || '—'} />
+						<Row label="Sports" rows={rows} render={(c) => (c.sports?.length ? c.sports.slice(0, 3).map((s) => <Tag key={s}>{s}</Tag>) : '—')} />
+						<Row label="Tech tags" rows={rows} render={(c) => (c.tech_tags?.length ? c.tech_tags.slice(0, 3).map((s) => <Tag key={s}>{s}</Tag>) : '—')} />
 						<Row label="Description" rows={rows} render={(c) => (
 							<span style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>{c.description ?? '—'}</span>
 						)} />

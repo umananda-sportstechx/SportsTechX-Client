@@ -47,10 +47,12 @@ export function useCompareSelection(kind: CompareKind) {
 				setIds(read(kind));
 			}
 		};
+		const onStorage = () => setIds(read(kind));
 		window.addEventListener('cmp:change', onChange);
-		window.addEventListener('storage', () => setIds(read(kind)));
+		window.addEventListener('storage', onStorage);
 		return () => {
 			window.removeEventListener('cmp:change', onChange);
+			window.removeEventListener('storage', onStorage);
 		};
 	}, [kind]);
 

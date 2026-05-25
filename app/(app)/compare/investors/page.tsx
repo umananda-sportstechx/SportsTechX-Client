@@ -77,8 +77,8 @@ export default function CompareInvestorsPage() {
 						<Row label="Deal count" rows={rows} render={(r) => r.deals_count ?? '—'} />
 						<Row label="Verified" rows={rows} render={(r) => r.is_verified ? 'Yes' : '—'} />
 						<Row label="Actively investing" rows={rows} render={(r) => r.actively_investing ? 'Yes' : '—'} />
-						<Row label="Stages" rows={rows} render={(r) => (r.focus_stages ?? []).slice(0, 4).map((s) => <Tag key={s}>{s}</Tag>) as React.ReactNode || '—'} />
-						<Row label="Sectors" rows={rows} render={(r) => (r.focus_sectors ?? []).slice(0, 4).map((s) => <Tag key={s}>{s}</Tag>) as React.ReactNode || '—'} />
+						<Row label="Stages" rows={rows} render={(r) => (r.focus_stages?.length ? r.focus_stages.slice(0, 4).map((s) => <Tag key={s}>{s}</Tag>) : '—')} />
+						<Row label="Sectors" rows={rows} render={(r) => (r.focus_sectors?.length ? r.focus_sectors.slice(0, 4).map((s) => <Tag key={s}>{s}</Tag>) : '—')} />
 						<Row label="Recent investment" rows={rows} render={(r) => r.recent_investment ?? '—'} />
 						<Row label="Thesis" rows={rows} render={(r) => (
 							<span style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>{r.thesis ?? r.description ?? '—'}</span>
