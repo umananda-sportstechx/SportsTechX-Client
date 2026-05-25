@@ -2,22 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { Page, Tag } from '@/components/ui/atoms';
+import { Page, Tag, Empty } from '@/components/ui/atoms';
 import { ImageInput } from '@/components/ui/image-input';
 
-type Tab = 'profile' | 'appearance' | 'notifications' | 'workspace' | 'api' | 'billing';
+// Workspace tab is intentionally omitted — multi-user / team model is out of
+// scope. Re-add when the team module ships.
+type Tab = 'profile' | 'appearance' | 'notifications' | 'api' | 'billing';
 
 const TABS: Array<{ id: Tab; label: string }> = [
 	{ id: 'profile', label: 'Profile' },
 	{ id: 'appearance', label: 'Appearance' },
 	{ id: 'notifications', label: 'Notifications' },
-	{ id: 'workspace', label: 'Workspace' },
 	{ id: 'api', label: 'API & integrations' },
 	{ id: 'billing', label: 'Billing' },
 ];
@@ -92,7 +93,6 @@ export default function SettingsPage() {
 					{tab === 'profile' && <ProfileTab />}
 					{tab === 'appearance' && <AppearanceTab />}
 					{tab === 'notifications' && <NotificationsTab />}
-					{tab === 'workspace' && <WorkspaceTab />}
 					{tab === 'api' && <ApiTab />}
 					{tab === 'billing' && <BillingTab />}
 				</div>
@@ -319,78 +319,71 @@ function AppearanceTab() {
 }
 
 function NotificationsTab() {
-	const items = [
-		{ key: 'newsletter', l: 'Weekly newsletter', desc: 'Every Friday — top deals, M&A, market signals.', on: true },
-		{ key: 'funding_alerts', l: 'Funding alerts', desc: 'When a tracked company raises capital.', on: true },
-		{ key: 'ma_alerts', l: 'M&A alerts', desc: 'Major acquisitions across sports tech.', on: false },
-		{ key: 'report_releases', l: 'Report releases', desc: 'When new research drops.', on: true },
-		{ key: 'program_deadlines', l: 'Programs deadline', desc: 'Accelerator deadlines approaching.', on: false },
+	const { data: profile } = useUserProfile();
+	const { mutate } = useSWRConfig();
+	const [pending, setPending] = useState<string | null>(null);
+
+	const items: Array<{ key: 'notification_newsletter' | 'notification_email' | 'notification_marketing' | 'notification_updates'; l: string; desc: string }> = [
+		{ key: 'notification_newsletter', l: 'Weekly newsletter', desc: 'Every Friday — top deals, M&A, market signals.' },
+		{ key: 'notification_email',      l: 'Email alerts',      desc: 'Funding, M&A, and report-release alerts as they happen.' },
+		{ key: 'notification_updates',    l: 'Product updates',   desc: 'New features, scheduled events, and changes that affect you.' },
+		{ key: 'notification_marketing',  l: 'Marketing emails',  desc: 'Occasional product news + cross-promotional partnerships.' },
 	];
+
+	const toggle = async (key: typeof items[number]['key'], next: boolean) => {
+		setPending(key);
+		// Optimistic — flip the cached profile so the toggle moves instantly.
+		void mutate(qk.profile(), (prev: Record<string, unknown> | undefined) =>
+			prev ? { ...prev, [key]: next } : prev, { revalidate: false });
+		try {
+			const res = await apiRequest('PATCH', '/api/profiles/me', { [key]: next });
+			if (!res.ok) throw new Error(`${res.status}`);
+		} catch (e) {
+			toast.error(`Couldn't save: ${(e as Error).message}`);
+			void mutate(qk.profile()); // rollback to server truth
+		} finally {
+			setPending(null);
+			void mutate(qk.profile()); // reconcile
+		}
+	};
+
 	return (
 		<div>
 			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
 				Notifications
 			</h3>
-			{items.map((n) => <Toggle key={n.key} l={n.l} desc={n.desc} on={n.on} />)}
+			{items.map((n) => (
+				<Toggle
+					key={n.key}
+					l={n.l}
+					desc={n.desc}
+					on={profile?.[n.key] ?? false}
+					disabled={pending === n.key}
+					onToggle={(next) => void toggle(n.key, next)}
+				/>
+			))}
 		</div>
 	);
 }
 
-// PLACEHOLDER — team avatar stack (mirrors ui_design prototype).
-const MOCK_TEAM = ['UA', 'LA', 'MK', 'TR', 'OS', 'PE', '+2'];
-
-// PLACEHOLDER — integrations list (mirrors ui_design prototype). Wire to a real
-// integrations API later — for now status is hardcoded.
-const MOCK_INTEGRATIONS: Array<{ name: string; connected: boolean }> = [
-	{ name: 'Slack', connected: true },
-	{ name: 'Google Sheets', connected: true },
+// Integrations list — hardcoded for now (no integrations registry endpoint yet).
+// Replace with `/api/integrations/me` if/when that ships.
+const INTEGRATIONS: Array<{ name: string; connected: boolean }> = [
+	{ name: 'Intercom', connected: true },
+	{ name: 'Slack', connected: false },
+	{ name: 'Google Sheets', connected: false },
 	{ name: 'Salesforce', connected: false },
-	{ name: 'Notion', connected: false },
 ];
 
-// PLACEHOLDER — recent invoices (mirrors ui_design prototype).
-const MOCK_INVOICES = [
-	{ id: 'mi-1', date: 'May 14, 2026', amount: '$49.00' },
-	{ id: 'mi-2', date: 'Apr 14, 2026', amount: '$49.00' },
-	{ id: 'mi-3', date: 'Mar 14, 2026', amount: '$49.00' },
-];
-
-function WorkspaceTab() {
-	return (
-		<div>
-			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
-				Workspace
-			</h3>
-			<Field label="Workspace name" value="SportsTechX Internal" readOnly />
-			<Field label="Default region" value="Global" readOnly />
-			<Field label="Default currency" value="USD" readOnly />
-			<div style={{ marginTop: 16 }}>
-				<div className="co-stat-label" style={{ marginBottom: 8 }}>Members · 7</div>
-				<div style={{ display: 'flex' }}>
-					{MOCK_TEAM.map((m, i) => (
-						<div
-							key={m + i}
-							style={{
-								width: 32,
-								height: 32,
-								background: i === MOCK_TEAM.length - 1 ? 'var(--bg-3)' : 'var(--accent)',
-								color: i === MOCK_TEAM.length - 1 ? 'var(--fg)' : 'var(--accent-fg)',
-								display: 'grid',
-								placeItems: 'center',
-								fontWeight: 700,
-								fontSize: 11,
-								fontFamily: 'var(--font-display)',
-								marginRight: -4,
-								border: '2px solid var(--bg-1)',
-							}}
-						>
-							{m}
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
+interface StripeInvoice {
+	id: string;
+	number: string | null;
+	status: string | null;
+	amount_paid: number;        // cents
+	currency: string;
+	created: number;            // unix seconds
+	hosted_invoice_url: string | null;
+	invoice_pdf: string | null;
 }
 
 function ApiTab() {
@@ -417,7 +410,7 @@ function ApiTab() {
 				<Link href="/api-keys"><button className="btn ghost">Rotate</button></Link>
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Connected integrations</div>
-			{MOCK_INTEGRATIONS.map((n) => (
+			{INTEGRATIONS.map((n) => (
 				<div
 					key={n.name}
 					style={{
@@ -461,6 +454,15 @@ function BillingTab() {
 	const { data: profile } = useUserProfile();
 	const tier = (profile?.user_type ?? 'free').toLowerCase();
 	const isFree = tier === 'free';
+
+	// Free-tier users have no Stripe customer → /invoices returns []. Suppress
+	// the fetch entirely to avoid the network round-trip + flicker.
+	const { data: invoices, isLoading: invoicesLoading } = useSWR<StripeInvoice[]>(
+		isFree ? null : qk.billing.invoices(),
+		{ dedupingInterval: 5 * 60_000 },
+	);
+	const list = invoices ?? [];
+
 	return (
 		<div>
 			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
@@ -473,44 +475,79 @@ function BillingTab() {
 				<div className="co-stat-label">Current plan</div>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
 					<div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>
-						{capitalize(tier)}{isFree ? '' : ' · $49/mo'}
+						{capitalize(tier)}
 					</div>
 					<Link href="/subscriptions">
 						<button className="btn ghost">{isFree ? 'Upgrade' : 'Manage'}</button>
 					</Link>
 				</div>
-				<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 6 }}>
-					{profile?.trial_ends_at ? (
-						<>
-							<Tag variant="warn">Trial</Tag> ends {new Date(profile.trial_ends_at).toLocaleDateString()}
-						</>
-					) : (
-						<>Renews on Jun 14, 2026</>
-					)}
-				</div>
+				{profile?.trial_ends_at && (
+					<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 6 }}>
+						<Tag variant="warn">Trial</Tag> ends {new Date(profile.trial_ends_at).toLocaleDateString()}
+					</div>
+				)}
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Recent invoices</div>
-			{MOCK_INVOICES.map((inv) => (
-				<div
-					key={inv.id}
-					style={{
-						display: 'grid',
-						gridTemplateColumns: '1fr 80px 80px 32px',
-						alignItems: 'center',
-						padding: '12px 0',
-						borderBottom: '1px solid var(--border)',
-						fontSize: 13,
-						gap: 12,
-					}}
-				>
-					<span>{inv.date}</span>
-					<span style={{ fontFamily: 'var(--font-mono)' }}>{inv.amount}</span>
-					<Tag variant="pos">Paid</Tag>
-					<button className="btn ghost" aria-label="Download invoice">↓</button>
-				</div>
-			))}
+			{isFree ? (
+				<Empty msg="No invoices — you're on the free plan." />
+			) : invoicesLoading && list.length === 0 ? (
+				<Empty msg="Loading invoices…" />
+			) : list.length === 0 ? (
+				<Empty msg="No invoices yet." />
+			) : (
+				list.map((inv) => (
+					<div
+						key={inv.id}
+						style={{
+							display: 'grid',
+							gridTemplateColumns: '1fr 100px 80px 32px',
+							alignItems: 'center',
+							padding: '12px 0',
+							borderBottom: '1px solid var(--border)',
+							fontSize: 13,
+							gap: 12,
+						}}
+					>
+						<span>{formatInvoiceDate(inv.created)}</span>
+						<span style={{ fontFamily: 'var(--font-mono)' }}>
+							{formatMoney(inv.amount_paid, inv.currency)}
+						</span>
+						<Tag variant={inv.status === 'paid' ? 'pos' : 'warn'}>
+							{inv.status ? capitalize(inv.status) : 'Open'}
+						</Tag>
+						{inv.invoice_pdf ? (
+							<a
+								href={inv.invoice_pdf}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="btn ghost"
+								aria-label="Download invoice"
+								style={{ textDecoration: 'none' }}
+							>
+								↓
+							</a>
+						) : <span />}
+					</div>
+				))
+			)}
 		</div>
 	);
+}
+
+function formatInvoiceDate(unixSeconds: number): string {
+	if (!unixSeconds) return '—';
+	return new Date(unixSeconds * 1000).toLocaleDateString('en-US', {
+		month: 'short', day: 'numeric', year: 'numeric',
+	});
+}
+
+function formatMoney(cents: number, currency: string): string {
+	const value = (cents / 100).toFixed(2);
+	const cur = (currency ?? 'USD').toUpperCase();
+	if (cur === 'USD') return `$${value}`;
+	if (cur === 'EUR') return `€${value}`;
+	if (cur === 'GBP') return `£${value}`;
+	return `${cur} ${value}`;
 }
 
 function Field({
@@ -538,8 +575,15 @@ function Field({
 	);
 }
 
-function Toggle({ l, desc, on }: { l: string; desc: string; on: boolean }) {
-	const [v, setV] = useState(on);
+function Toggle({
+	l, desc, on, disabled, onToggle,
+}: {
+	l: string;
+	desc: string;
+	on: boolean;
+	disabled?: boolean;
+	onToggle?: (next: boolean) => void;
+}) {
 	return (
 		<div
 			style={{
@@ -554,7 +598,12 @@ function Toggle({ l, desc, on }: { l: string; desc: string; on: boolean }) {
 				<div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{l}</div>
 				<div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{desc}</div>
 			</div>
-			<button onClick={() => setV(!v)} className={`tg ${v ? 'on' : ''}`}>
+			<button
+				onClick={() => !disabled && onToggle?.(!on)}
+				disabled={disabled}
+				className={`tg ${on ? 'on' : ''}`}
+				style={{ opacity: disabled ? 0.6 : 1 }}
+			>
 				<span className="tg-knob" />
 			</button>
 		</div>
