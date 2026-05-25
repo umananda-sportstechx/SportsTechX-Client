@@ -8,6 +8,8 @@ import { Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, SectorPill, Empty, Logo } from '@/components/ui/atoms';
+import { CompareBar } from '@/components/compare-bar';
+import { CompareToggle } from '@/components/compare-toggle';
 
 interface Deal {
 	id: string;
@@ -91,7 +93,7 @@ export default function DealsListPage() {
 						<thead>
 							<tr>
 								<th>Date</th><th>Company</th><th>Sector</th><th>Round</th><th>Lead investor</th>
-								<th>Geo</th><th style={{ textAlign: 'right' }}>Amount</th>
+								<th>Geo</th><th style={{ textAlign: 'right' }}>Amount</th><th />
 							</tr>
 						</thead>
 						<tbody>
@@ -111,6 +113,7 @@ export default function DealsListPage() {
 										<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
 										<td>{cc && <Flag cc={cc} />} {cc}</td>
 										<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>{formatDollars(d.amount_usd)}</td>
+										<td style={{ textAlign: 'right' }}><CompareToggle id={d.id} kind="deals" /></td>
 									</tr>
 								);
 							})}
@@ -118,6 +121,8 @@ export default function DealsListPage() {
 					</table>
 				</div>
 			)}
+
+			<CompareBar kind="deals" />
 
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>

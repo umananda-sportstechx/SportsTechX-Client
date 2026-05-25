@@ -8,6 +8,8 @@ import { Search, Filter, Plus, Grid3x3, List, FileText, ChevronLeft, ChevronRigh
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Logo, Flag, SectorPill, Chip, Tag, Empty } from '@/components/ui/atoms';
+import { CompareBar } from '@/components/compare-bar';
+import { CompareToggle } from '@/components/compare-toggle';
 
 interface CompanyRow {
 	id: string;
@@ -250,6 +252,8 @@ export default function CompaniesPage() {
 				</div>
 			)}
 
+			<CompareBar kind="companies" />
+
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
 					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
@@ -309,6 +313,9 @@ function CompanyCard({ c }: { c: CompanyRow }) {
 					<div className="co-stat-label">Founded</div>
 					<div className="co-stat-val">{c.founded_year ?? '—'}</div>
 				</div>
+			</div>
+			<div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+				<CompareToggle id={c.id} kind="companies" />
 			</div>
 		</Link>
 	);

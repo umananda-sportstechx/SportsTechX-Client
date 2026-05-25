@@ -8,6 +8,8 @@ import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, Chip, Empty } from '@/components/ui/atoms';
+import { CompareBar } from '@/components/compare-bar';
+import { CompareToggle } from '@/components/compare-toggle';
 
 interface InvestorRow {
 	id: string;
@@ -170,6 +172,8 @@ export default function InvestorsPage() {
 				</div>
 			)}
 
+			<CompareBar kind="investors" />
+
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
 					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
@@ -271,6 +275,9 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 						Recent: <b style={{ color: 'var(--fg)' }}>{i.recent_investment}</b>
 					</div>
 				)}
+				<div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+					<CompareToggle id={i.id} kind="investors" />
+				</div>
 			</div>
 		</Link>
 	);

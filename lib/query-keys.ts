@@ -122,6 +122,16 @@ export const qk = {
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
   },
 
+  // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────
+  // Wraps existing list endpoints with a fixed `?ids=` filter. The server
+  // already supports `ids` on /api/companies; the investors/deals endpoints
+  // accept the same param.
+  compare: {
+    companies: (ids: string[]) => ['/api/companies', { ids: ids.join(',') }] as const,
+    investors: (ids: string[]) => ['/api/investors', { ids: ids.join(',') }] as const,
+    deals: (ids: string[]) => ['/api/deals', { ids: ids.join(',') }] as const,
+  },
+
   // ── Billing ─────────────────────────────────────────────────────────────
   billing: {
     plans: () => ['/api/billing/plans'] as const,
