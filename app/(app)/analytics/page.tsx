@@ -1,80 +1,37 @@
 'use client';
 
-import { useMemo } from 'react';
 import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Stat, SectionHead, Donut, WorldMap, Empty } from '@/components/ui/atoms';
 
-interface DealRow {
-	id: string;
-	announced_date?: string | null;
-	amount_usd?: number | string | null;
-	primary_sector?: string | null;
-	hq_country?: string | null;
+interface QuarterlyPoint {
+	year: number;
+	quarter: number;
+	quarter_label: string;
+	total_amount: number;
+	deal_count: number;
 }
 
-interface DealsResponse {
-	data: DealRow[];
-	total: number;
+interface SectorHeatPoint {
+	sector_id: string;
+	sector_slug: string;
+	sector_name: string;
+	deal_count: number;
+	total_amount: number;
 }
 
-interface AcquisitionRow {
-	id: string;
-	amount_usd?: number | string | null;
-	acquisition_date?: string | null;
+interface WorldFlowPoint {
+	country: string;
+	deal_count: number;
+	total_amount: number;
 }
 
-interface AcquisitionsResponse {
-	data: AcquisitionRow[];
-	total: number;
+interface DashboardStats {
+	total_funding: number;
+	total_deals: number;
+	total_acquisitions: number;
 }
-
-interface QuarterPoint { label: string; amt: number; deals: number }
-
-// PLACEHOLDER — STX_DATA.spark12 + FUNDING_TOTALS verbatim. Drives the KPI strip when the API returns no aggregation.
-const MOCK_KPI_STATS = [
-	{ label: 'Capital · 12mo', value: '$8.4', unit: 'B', delta: '+22%', deltaDir: 'pos' as const, spark: [50, 52, 55, 58, 62, 65, 68, 72, 75, 78, 82, 85] },
-	{ label: 'Deals · 12mo',   value: '412',          delta: '+18%', deltaDir: 'pos' as const, spark: [40, 42, 45, 48, 52, 55, 60, 64, 68, 72, 78, 82] },
-	{ label: 'M&A · 12mo',     value: '86',           delta: '+44%', deltaDir: 'pos' as const, spark: [22, 28, 35, 41, 48, 55, 62, 69, 74, 80, 85, 88] },
-	{ label: 'Avg. round',     value: '$6.4', unit: 'M', delta: '−4%', deltaDir: 'neg' as const, spark: [60, 58, 56, 54, 53, 52, 50, 48, 47, 46, 44, 42] },
-];
-
-// PLACEHOLDER — STX_DATA.QUARTERLY verbatim.
-const MOCK_QUARTERS: QuarterPoint[] = [
-	{ label: "Q1'24", amt: 1_840_000_000, deals: 84 },
-	{ label: "Q2'24", amt: 2_120_000_000, deals: 96 },
-	{ label: "Q3'24", amt: 1_620_000_000, deals: 78 },
-	{ label: "Q4'24", amt: 2_380_000_000, deals: 102 },
-	{ label: "Q1'25", amt: 1_980_000_000, deals: 88 },
-	{ label: "Q2'25", amt: 2_240_000_000, deals: 94 },
-	{ label: "Q3'25", amt: 2_620_000_000, deals: 108 },
-	{ label: "Q4'25", amt: 2_880_000_000, deals: 116 },
-	{ label: "Q1'26", amt: 2_220_000_000, deals: 105 },
-];
-
-// PLACEHOLDER — sector mix from the prototype.
-const MOCK_SECTOR_MIX: Array<{ name: string; percent: number; color: string }> = [
-	{ name: 'Fan Engagement', percent: 38, color: 'oklch(62% 0.18 240)' },
-	{ name: 'Performance',    percent: 22, color: 'oklch(62% 0.20 290)' },
-	{ name: 'Streaming',      percent: 16, color: 'oklch(62% 0.18 30)' },
-	{ name: 'Wearables',      percent: 12, color: 'oklch(62% 0.16 160)' },
-	{ name: 'Other',          percent: 12, color: 'oklch(62% 0.18 60)' },
-];
-
-// PLACEHOLDER — same WORLD_DOTS used on the Dashboard.
-const MOCK_MAP_DOTS = [
-	{ x: 240, y: 180, r: 8 }, { x: 230, y: 165, r: 4 }, { x: 200, y: 220, r: 3 },
-	{ x: 320, y: 350, r: 5 }, { x: 290, y: 380, r: 2 },
-	{ x: 500, y: 145, r: 6 }, { x: 530, y: 155, r: 5 }, { x: 510, y: 165, r: 4 },
-	{ x: 525, y: 180, r: 3 }, { x: 540, y: 175, r: 3 }, { x: 525, y: 130, r: 3 },
-	{ x: 535, y: 120, r: 2 }, { x: 545, y: 145, r: 2 }, { x: 555, y: 165, r: 2 },
-	{ x: 600, y: 220, r: 4 }, { x: 620, y: 220, r: 3 },
-	{ x: 720, y: 245, r: 6 }, { x: 820, y: 200, r: 6 }, { x: 870, y: 195, r: 5 },
-	{ x: 850, y: 200, r: 4 }, { x: 750, y: 280, r: 3 },
-	{ x: 870, y: 380, r: 4 }, { x: 920, y: 400, r: 2 },
-	{ x: 530, y: 290, r: 3 }, { x: 540, y: 380, r: 3 },
-];
 
 const SECTOR_COLORS = [
 	'oklch(62% 0.18 240)', 'oklch(62% 0.20 290)', 'oklch(62% 0.18 30)',
@@ -84,33 +41,20 @@ const SECTOR_COLORS = [
 
 export default function AnalyticsPage() {
 	const currentYear = new Date().getFullYear();
-	const trailingParams = { limit: 500, year_min: currentYear - 1, sort: '-announced_date' };
-	const ytdParams = { limit: 500, year: currentYear, sort: '-announced_date' };
-	const maParams = { limit: 200, year: currentYear, sort: '-acquisition_date' };
 
-	const { data: trailing, isLoading: tLoading } = useSWR<DealsResponse>(qk.deals.list(trailingParams), { dedupingInterval: 10 * 60_000 });
-	const { data: ytd } = useSWR<DealsResponse>(qk.deals.list(ytdParams), { dedupingInterval: 10 * 60_000 });
-	const { data: ma } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(maParams), { dedupingInterval: 10 * 60_000 });
+	const { data: stats12m } = useSWR<DashboardStats>(qk.analytics.dashboard('12m'), { dedupingInterval: 10 * 60_000 });
+	const { data: quarters } = useSWR<QuarterlyPoint[]>(
+		qk.analytics.quarterly({ from: currentYear - 1, to: currentYear }),
+		{ dedupingInterval: 10 * 60_000 },
+	);
+	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('ytd', 5), {
+		dedupingInterval: 10 * 60_000,
+	});
+	const { data: worldFlow } = useSWR<WorldFlowPoint[]>(qk.analytics.worldFlow('ytd', 30), {
+		dedupingInterval: 10 * 60_000,
+	});
 
-	const trailingDeals = trailing?.data ?? [];
-	const ytdDeals = ytd?.data ?? [];
-	const maDeals = ma?.data ?? [];
-
-	const apiQuarters = useMemo(() => computeQuarters(trailingDeals), [trailingDeals]);
-	const apiSectorMix = useMemo(() => computeSectorMix(ytdDeals), [ytdDeals]);
-
-	const useMockKpis = trailingDeals.length === 0 && !tLoading;
-	const useMockQuarters = apiQuarters.length === 0;
-	const useMockSectorMix = apiSectorMix.legend.length === 0;
-
-	const kpis = useMockKpis ? MOCK_KPI_STATS : computeKpis(trailingDeals, ytd?.total ?? ytdDeals.length, maDeals.length);
-	const quartersToRender = useMockQuarters ? MOCK_QUARTERS : apiQuarters;
-	const sectorMixToRender = useMockSectorMix
-		? {
-			donut: MOCK_SECTOR_MIX.map((s) => ({ v: s.percent, color: s.color })),
-			legend: MOCK_SECTOR_MIX,
-		}
-		: apiSectorMix;
+	const sectorMix = composeSectorMix(sectorHeat ?? []);
 
 	return (
 		<Page>
@@ -145,7 +89,7 @@ export default function AnalyticsPage() {
 			</div>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				{kpis.map((s, i) => (
+				{kpiStrip(stats12m).map((s, i) => (
 					<div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
 						<Stat {...s} />
 					</div>
@@ -156,22 +100,28 @@ export default function AnalyticsPage() {
 				<div className="card">
 					<SectionHead title="Capital deployed" meta={`Quarterly · ${currentYear - 1} — ${currentYear}`} />
 					<div style={{ padding: 'var(--space-4)' }}>
-						{quartersToRender.length === 0 ? <Empty msg={tLoading ? 'Loading…' : 'Not enough data'} /> : <QuarterlyChart quarters={quartersToRender} />}
+						{!quarters || quarters.length === 0
+							? <Empty msg="Not enough data" />
+							: <QuarterlyChart quarters={quarters} />}
 					</div>
 				</div>
 				<div className="card">
 					<SectionHead title="Sector mix · YTD" />
 					<div style={{ padding: 'var(--space-4)', display: 'flex', gap: 24, alignItems: 'center' }}>
-						<Donut size={140} thickness={20} segments={sectorMixToRender.donut} />
-						<div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, flex: 1 }}>
-							{sectorMixToRender.legend.map((s) => (
-								<div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-									<span style={{ width: 10, height: 10, background: s.color, flexShrink: 0 }} />
-									<span style={{ flex: 1 }}>{s.name}</span>
-									<span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{s.percent}%</span>
+						{sectorMix.legend.length === 0
+							? <Empty msg="No sector data" />
+							: <>
+								<Donut size={140} thickness={20} segments={sectorMix.donut} />
+								<div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, flex: 1 }}>
+									{sectorMix.legend.map((s) => (
+										<div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+											<span style={{ width: 10, height: 10, background: s.color, flexShrink: 0 }} />
+											<span style={{ flex: 1 }}>{s.name}</span>
+											<span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{s.percent}%</span>
+										</div>
+									))}
 								</div>
-							))}
-						</div>
+							</>}
 					</div>
 				</div>
 			</div>
@@ -183,15 +133,89 @@ export default function AnalyticsPage() {
 					action={<button className="btn ghost"><Filter size={12} /> Region</button>}
 				/>
 				<div style={{ padding: 'var(--space-4)' }}>
-					<WorldMap height={360} dots={MOCK_MAP_DOTS} />
+					{!worldFlow || worldFlow.length === 0
+						? <Empty msg="No geographic data" />
+						: <WorldMap height={360} dots={worldFlowToDots(worldFlow)} />}
 				</div>
 			</div>
 		</Page>
 	);
 }
 
-function QuarterlyChart({ quarters }: { quarters: QuarterPoint[] }) {
-	const maxAmt = Math.max(1, ...quarters.map((q) => q.amt));
+function kpiStrip(s: DashboardStats | undefined) {
+	const cap = splitDollars(s?.total_funding ?? 0);
+	const deals = (s?.total_deals ?? 0).toLocaleString();
+	const ma = (s?.total_acquisitions ?? 0).toLocaleString();
+	const avg = s && s.total_deals > 0 ? splitDollars(s.total_funding / s.total_deals) : { value: '—', unit: '' };
+	return [
+		{ label: 'Capital · 12mo', value: cap.value,  unit: cap.unit,                                                        deltaDir: 'pos' as const },
+		{ label: 'Deals · 12mo',   value: deals,                                                                              deltaDir: 'pos' as const },
+		{ label: 'M&A · 12mo',     value: ma,                                                                                 deltaDir: 'pos' as const },
+		{ label: 'Avg. round',     value: avg.value,  unit: avg.unit,                                                         deltaDir: 'pos' as const },
+	];
+}
+
+function composeSectorMix(rows: SectorHeatPoint[]): {
+	donut: Array<{ v: number; color: string }>;
+	legend: Array<{ name: string; percent: number; color: string }>;
+} {
+	const total = rows.reduce((s, r) => s + r.total_amount, 0);
+	if (total === 0) return { donut: [], legend: [] };
+	const top = rows.slice(0, 4);
+	const restSum = rows.slice(4).reduce((s, r) => s + r.total_amount, 0);
+	const sections = [
+		...top.map((r) => ({ name: r.sector_name, amount: r.total_amount })),
+		...(restSum > 0 ? [{ name: 'Other', amount: restSum }] : []),
+	];
+	return {
+		donut: sections.map((s, i) => ({
+			v: Math.round((s.amount / total) * 100),
+			color: SECTOR_COLORS[i % SECTOR_COLORS.length]!,
+		})),
+		legend: sections.map((s, i) => ({
+			name: s.name,
+			percent: Math.round((s.amount / total) * 100),
+			color: SECTOR_COLORS[i % SECTOR_COLORS.length]!,
+		})),
+	};
+}
+
+/**
+ * Project country totals onto the world map's pixel grid. Coordinates are
+ * approximate (the WorldMap atom uses a 1000×500 SVG); only the top-30 by
+ * volume are rendered. Country → (x,y) map is intentionally coarse — the
+ * dashboard isn't a GIS surface, it's a "where's the activity" hint.
+ */
+const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
+	'United States': { x: 240, y: 180 }, USA: { x: 240, y: 180 },
+	Canada: { x: 230, y: 165 },
+	'United Kingdom': { x: 500, y: 145 }, UK: { x: 500, y: 145 },
+	Germany: { x: 530, y: 155 }, France: { x: 510, y: 165 }, Italy: { x: 525, y: 180 },
+	Spain: { x: 510, y: 200 }, Netherlands: { x: 525, y: 130 }, Sweden: { x: 540, y: 110 },
+	Switzerland: { x: 535, y: 170 }, Belgium: { x: 525, y: 145 }, Austria: { x: 545, y: 165 },
+	Poland: { x: 555, y: 145 }, Portugal: { x: 490, y: 210 },
+	India: { x: 720, y: 245 }, China: { x: 820, y: 200 }, Japan: { x: 870, y: 195 },
+	Singapore: { x: 820, y: 320 }, Australia: { x: 870, y: 380 },
+	Brazil: { x: 320, y: 350 }, Mexico: { x: 200, y: 240 },
+};
+
+function worldFlowToDots(rows: WorldFlowPoint[]): Array<{ x: number; y: number; r: number }> {
+	const maxDeals = Math.max(1, ...rows.map((r) => r.deal_count));
+	return rows
+		.map((r) => {
+			const coords = COUNTRY_COORDS[r.country];
+			if (!coords) return null;
+			return {
+				x: coords.x,
+				y: coords.y,
+				r: Math.max(2, Math.round((r.deal_count / maxDeals) * 10)),
+			};
+		})
+		.filter((d): d is { x: number; y: number; r: number } => d !== null);
+}
+
+function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
+	const maxAmt = Math.max(1, ...quarters.map((q) => q.total_amount));
 	const W = 900, H = 240, PAD = 36;
 	const bw = (W - PAD * 2) / quarters.length - 12;
 	return (
@@ -212,20 +236,20 @@ function QuarterlyChart({ quarters }: { quarters: QuarterPoint[] }) {
 				</g>
 			))}
 			{quarters.map((q, i) => {
-				const bh = ((H - PAD * 2) * q.amt) / maxAmt;
+				const bh = ((H - PAD * 2) * q.total_amount) / maxAmt;
 				const y = H - PAD - bh;
 				const x = PAD + (W - PAD * 2) * (i / quarters.length) + 6;
 				return (
-					<g key={q.label}>
+					<g key={q.quarter_label}>
 						<rect x={x} y={y} width={bw} height={bh} fill="var(--accent)" opacity={0.85} />
 						<text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fontWeight={700} fill="var(--fg)">
-							${(q.amt / 1_000_000_000).toFixed(1)}B
+							${(q.total_amount / 1_000_000_000).toFixed(1)}B
 						</text>
 						<text x={x + bw / 2} y={H - 14} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
-							{q.label}
+							{q.quarter_label}
 						</text>
 						<text x={x + bw / 2} y={H + 4} textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
-							{q.deals} deals
+							{q.deal_count} deals
 						</text>
 					</g>
 				);
@@ -234,7 +258,7 @@ function QuarterlyChart({ quarters }: { quarters: QuarterPoint[] }) {
 				d={quarters
 					.map((q, i) => {
 						const x = PAD + (W - PAD * 2) * ((i + 0.5) / quarters.length);
-						const y = H - PAD - ((H - PAD * 2) * q.amt) / maxAmt;
+						const y = H - PAD - ((H - PAD * 2) * q.total_amount) / maxAmt;
 						return `${i === 0 ? 'M' : 'L'}${x},${y}`;
 					})
 					.join(' ')}
@@ -246,90 +270,10 @@ function QuarterlyChart({ quarters }: { quarters: QuarterPoint[] }) {
 	);
 }
 
-function computeKpis(trailing: DealRow[], ytdTotal: number, maTotal: number) {
-	const amounts = trailing
-		.map((d) => Number(d.amount_usd ?? 0))
-		.filter((n) => Number.isFinite(n) && n > 0);
-	const total = amounts.reduce((s, n) => s + n, 0);
-	const avg = amounts.length ? total / amounts.length : 0;
-	const { value: capitalValue, unit: capitalUnit } = splitDollars(total);
-	const { value: avgRoundValue, unit: avgRoundUnit } = splitDollars(avg);
-	return [
-		{ label: 'Capital · 12mo', value: capitalValue, unit: capitalUnit, delta: '+22%', deltaDir: 'pos' as const, spark: spark(trailing.length + 1) },
-		{ label: 'Deals · 12mo',   value: ytdTotal.toLocaleString(),                       delta: '+18%', deltaDir: 'pos' as const, spark: spark(trailing.length + 2) },
-		{ label: 'M&A · 12mo',     value: maTotal.toLocaleString(),                        delta: '+44%', deltaDir: 'pos' as const, spark: spark(trailing.length + 3) },
-		{ label: 'Avg. round',     value: avgRoundValue, unit: avgRoundUnit,               delta: '−4%',  deltaDir: 'neg' as const, spark: spark(trailing.length + 4) },
-	];
-}
-
-function computeQuarters(deals: DealRow[]): QuarterPoint[] {
-	const map = new Map<string, QuarterPoint>();
-	for (const d of deals) {
-		if (!d.announced_date) continue;
-		const date = new Date(d.announced_date);
-		if (Number.isNaN(date.getTime())) continue;
-		const q = Math.floor(date.getUTCMonth() / 3) + 1;
-		const label = `Q${q} '${String(date.getUTCFullYear()).slice(-2)}`;
-		const amt = Number(d.amount_usd ?? 0);
-		const cur = map.get(label) ?? { label, amt: 0, deals: 0 };
-		cur.amt += Number.isFinite(amt) ? amt : 0;
-		cur.deals += 1;
-		map.set(label, cur);
-	}
-	return [...map.values()].sort((a, b) => quarterRank(a.label) - quarterRank(b.label));
-}
-
-function computeSectorMix(deals: DealRow[]): {
-	donut: Array<{ v: number; color: string }>;
-	legend: Array<{ name: string; percent: number; color: string }>;
-} {
-	const buckets = new Map<string, number>();
-	let total = 0;
-	for (const d of deals) {
-		const sector = d.primary_sector ?? 'Other';
-		const amt = Number(d.amount_usd ?? 0);
-		if (!Number.isFinite(amt) || amt <= 0) continue;
-		buckets.set(sector, (buckets.get(sector) ?? 0) + amt);
-		total += amt;
-	}
-	if (total === 0) return { donut: [], legend: [] };
-	const entries = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
-	const top = entries.slice(0, 4);
-	const restSum = entries.slice(4).reduce((s, [, v]) => s + v, 0);
-	const sections = [...top, ...(restSum > 0 ? [['Other', restSum] as const] : [])];
-	return {
-		donut: sections.map(([, v], i) => ({
-			v: Math.round((v / total) * 100),
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-		})),
-		legend: sections.map(([name, v], i) => ({
-			name,
-			percent: Math.round((v / total) * 100),
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-		})),
-	};
-}
-
-function quarterRank(label: string): number {
-	const m = label.match(/Q(\d)\s'(\d{2})/);
-	if (!m) return 0;
-	return Number(`20${m[2]}`) * 4 + Number(m[1]);
-}
-
 function splitDollars(n: number): { value: string; unit: string } {
 	if (!Number.isFinite(n) || n <= 0) return { value: '—', unit: '' };
 	if (n >= 1_000_000_000) return { value: `$${(n / 1_000_000_000).toFixed(1)}`, unit: 'B' };
 	if (n >= 1_000_000) return { value: `$${(n / 1_000_000).toFixed(1)}`, unit: 'M' };
 	if (n >= 1_000) return { value: `$${(n / 1_000).toFixed(0)}`, unit: 'K' };
 	return { value: `$${n.toFixed(0)}`, unit: '' };
-}
-
-function spark(seed: number): number[] {
-	const out: number[] = [];
-	let x = seed;
-	for (let i = 0; i < 12; i += 1) {
-		x = (x * 9301 + 49297) % 233280;
-		out.push(20 + (x % 60));
-	}
-	return out;
 }

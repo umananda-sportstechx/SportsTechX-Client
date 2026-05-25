@@ -102,6 +102,17 @@ export const qk = {
   // ── Recommendations ─────────────────────────────────────────────────────
   recommendations: () => ['/api/recommendations'] as const,
 
+  // ── Analytics aggregations (10-min cache server-side) ───────────────────
+  analytics: {
+    dashboard: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/dashboard-stats', { period }] as const,
+    fundingTotals: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/funding-totals', { period }] as const,
+    maStats: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-stats', { period }] as const,
+    quarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/quarterly-capital', params] as const,
+    sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
+    worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
+    topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
+  },
+
   // ── Billing ─────────────────────────────────────────────────────────────
   billing: {
     plans: () => ['/api/billing/plans'] as const,
