@@ -512,7 +512,7 @@ function DashboardHeader() {
 						margin: 0,
 					}}
 				>
-					Sports Tech Pulse.
+					Sports Tech Passenger Princess
 				</h1>
 				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: '6px 0 0' }}>
 					The state of the global sports technology ecosystem — live deal flow, M&A, ecosystem signals, and curated intelligence.
