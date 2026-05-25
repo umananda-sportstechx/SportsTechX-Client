@@ -15,35 +15,6 @@ interface SectorNode {
 	company_count?: number | null;
 }
 
-// PLACEHOLDER — STX_DATA.FRAMEWORK verbatim, displayed when the sector tree
-// doesn't have the canonical Athletes/Fans/Executives shape.
-const MOCK_FRAMEWORK: SectorNode[] = [
-	{
-		id: 'mf-athletes', name: 'Athletes', slug: 'athletes', description: 'Tech that helps athletes train, compete, and recover.',
-		children: [
-			{ id: 'mf-a-1', slug: 'for-activity-hardware',  name: 'For Activity — Hardware', description: 'Wearables, Equipment & Infrastructure',     company_count: 142 },
-			{ id: 'mf-a-2', slug: 'for-activity-software',  name: 'For Activity — Software', description: 'Tracking & Analytics, Classes & Tutorials', company_count: 218 },
-			{ id: 'mf-a-3', slug: 'before-after-activity',  name: 'Before / After Activity', description: 'Booking & Discovery, Recovery, Coaching',   company_count: 96 },
-		],
-	},
-	{
-		id: 'mf-fans', name: 'Fans', slug: 'fans', description: 'Tech that connects fans to sport — content, experiences, fantasy.',
-		children: [
-			{ id: 'mf-f-1', slug: 'content-platforms', name: 'Content Platforms', description: 'News & Content, Streaming Platforms',      company_count: 184 },
-			{ id: 'mf-f-2', slug: 'fan-experiences',   name: 'Fan Experiences',   description: 'Fan Engagement, Ticketing & Merchandise',  company_count: 226 },
-			{ id: 'mf-f-3', slug: 'fantasy-betting',   name: 'Fantasy & Betting', description: 'Fantasy Sports, Betting Enablement',       company_count: 78 },
-		],
-	},
-	{
-		id: 'mf-executives', name: 'Executives', slug: 'executives', description: 'Tech that powers leagues, clubs, venues, and rights-holders.',
-		children: [
-			{ id: 'mf-e-1', slug: 'organisations-venues', name: 'Organisations & Venues', description: 'Team & Club, League & Event, Stadium', company_count: 312 },
-			{ id: 'mf-e-2', slug: 'media-sponsors',       name: 'Media & Sponsors',       description: 'Media Production, Sponsorship',        company_count: 142 },
-			{ id: 'mf-e-3', slug: 'business-tools',       name: 'Business Tools',         description: 'Marketing, Operations, Compliance',    company_count: 84 },
-		],
-	},
-];
-
 const PILLAR_COLORS: Record<string, string> = {
 	athletes: 'oklch(62% 0.18 290)',
 	fans: 'oklch(62% 0.20 240)',
@@ -67,11 +38,7 @@ export default function FrameworkPage() {
 	const pillars = useMemo(() => {
 		const tree = data ?? [];
 		const usable = tree.filter((p) => (p.children ?? []).length > 0);
-		const matchesCanonical = usable.length >= 3 && usable.some((p) =>
-			['athletes', 'fans', 'executives'].includes(p.slug.toLowerCase()),
-		);
-		if (matchesCanonical) return normalizePillars(usable);
-		return MOCK_FRAMEWORK;
+		return normalizePillars(usable);
 	}, [data]);
 
 	return (
@@ -108,6 +75,8 @@ export default function FrameworkPage() {
 
 			{isLoading && pillars.length === 0 ? (
 				<Empty msg="Loading framework…" />
+			) : pillars.length === 0 ? (
+				<Empty msg="The framework taxonomy hasn't been populated yet." />
 			) : (
 				<div className="fw-grid">
 					{pillars.map((col) => {
