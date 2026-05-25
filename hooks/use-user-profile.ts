@@ -24,6 +24,11 @@ export interface Profile {
   trial_ends_at: string | null;
   stripe_customer_id: string | null;
   intercom_hash: string | null;
+  // Notification preference flags (PATCH /api/profiles/me writes back).
+  notification_newsletter: boolean | null;
+  notification_email: boolean | null;
+  notification_marketing: boolean | null;
+  notification_updates: boolean | null;
   created_at: string;
 }
 
