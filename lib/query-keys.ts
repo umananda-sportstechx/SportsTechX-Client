@@ -42,14 +42,18 @@ export const qk = {
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
+    detail: (id: string) => [`/api/deals/${id}`] as const,
+    investors: (id: string) => [`/api/deals/${id}/investors`] as const,
   },
   acquisitions: {
     list: (params: Record<string, unknown> = {}) => ['/api/acquisitions', params] as const,
+    detail: (id: string) => [`/api/acquisitions/${id}`] as const,
   },
   ecosystem: {
     list: (params: Record<string, unknown> = {}) => ['/api/ecosystem-entities', params] as const,
     listByType: (type: string, params: Record<string, unknown> = {}) =>
       ['/api/ecosystem-entities', { type, ...params }] as const,
+    detail: (idOrSlug: string) => [`/api/ecosystem-entities/${idOrSlug}`] as const,
   },
 
   // ── Search ──────────────────────────────────────────────────────────────
@@ -125,11 +129,14 @@ export const qk = {
     invoices: () => ['/api/billing/invoices'] as const,
   },
 
-  // ── Per-user feature overrides ─────────────────────────────────────────
+  // ── Per-user feature overrides + inbox ─────────────────────────────────
   // Merged with `qk.features()` (the catalog) by the FeatureAccessProvider
   // to compute final access. Per-user, authenticated.
   me: {
     featureGrants: () => ['/api/me/feature-grants'] as const,
+    downloads: () => ['/api/me/downloads'] as const,
+    notifications: (unread?: boolean) =>
+      unread ? ['/api/me/notifications', { unread: true }] as const : ['/api/me/notifications'] as const,
   },
 
   // ── Credits ─────────────────────────────────────────────────────────────
