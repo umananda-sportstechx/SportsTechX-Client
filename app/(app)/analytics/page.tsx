@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Stat, SectionHead, Donut, WorldMap, Empty } from '@/components/ui/atoms';
+import { Page, Stat, SectionHead, Donut, WorldMap, Empty, PageTitle } from '@/components/ui/atoms';
 
 interface QuarterlyPoint {
 	year: number;
@@ -58,35 +58,11 @@ export default function AnalyticsPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Insight · live dashboards
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					Analytics
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Aggregated views across the entire sports-tech ecosystem — capital, deal velocity, sub-sector heat.
-				</p>
-			</div>
+			<PageTitle
+				kicker="Insight · live dashboards"
+				title="Analytics"
+				sub="Aggregated views across the entire sports-tech ecosystem — capital, deal velocity, sub-sector heat."
+			/>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{kpiStrip(stats12m).map((s, i) => (

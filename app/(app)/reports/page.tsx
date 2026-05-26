@@ -4,7 +4,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowRight, Lock } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Tag, SectionHead, Empty } from '@/components/ui/atoms';
+import { Page, Tag, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 interface Report {
@@ -57,49 +57,14 @@ export default function ReportsPage() {
 
 	return (
 		<Page>
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-end',
-					justifyContent: 'space-between',
-					marginBottom: 'var(--space-5)',
-					flexWrap: 'wrap',
-					gap: 16,
-				}}
-			>
-				<div>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-						}}
-					>
-						Library · {total.toLocaleString()} reports
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: '0 0 6px',
-						}}
-					>
-						Reports
-					</h1>
-					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
-						Deep, expert-authored analyses of sports tech sub-sectors and regions — used by leagues, brands, and investors.
-					</p>
-				</div>
-				{!reportsAccess.hasAccess && (
+			<PageTitle
+				kicker={`Library · ${total.toLocaleString()} reports`}
+				title="Reports"
+				sub="Deep, expert-authored analyses of sports tech sub-sectors and regions — used by leagues, brands, and investors."
+				action={!reportsAccess.hasAccess ? (
 					<Link href="/subscriptions"><button className="btn">Subscribe to access all</button></Link>
-				)}
-			</div>
+				) : undefined}
+			/>
 
 			{isLoading && reportsApi.length === 0 ? (
 				<Empty msg="Loading…" />

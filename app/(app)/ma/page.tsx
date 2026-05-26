@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Flag, Tag, SectorPill, Stat, SectionHead, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Tag, SectorPill, Stat, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
 
 interface AcquisitionRow {
 	id: string;
@@ -66,32 +66,10 @@ export default function MnaPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					M&amp;A Tracker · all-time
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: 0,
-					}}
-				>
-					{totalAllTime.toLocaleString()} acquisitions tracked
-				</h1>
-			</div>
+			<PageTitle
+				kicker="M&A Tracker · all-time"
+				title={`${totalAllTime.toLocaleString()} acquisitions tracked`}
+			/>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{statStrip(stats, currentYear).map((s, i) => (

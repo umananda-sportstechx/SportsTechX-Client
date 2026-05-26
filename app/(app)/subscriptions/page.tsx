@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { Page, SectionHead } from '@/components/ui/atoms';
+import { Page, SectionHead, PageTitle } from '@/components/ui/atoms';
 
 interface SubscriptionResponse {
 	plan?: string | null;
@@ -77,7 +77,15 @@ export default function SubscriptionsPage() {
 		if (plan.tier === currentTier) return;
 		setBusySlug(plan.slug);
 		try {
-			const res = await apiRequest('POST', '/api/billing/checkout', { plan: plan.slug });
+			// Anchor the post-checkout redirect to wherever the user actually is —
+			// works at localhost, prod, preview deploys, anywhere — instead of
+			// relying on the backend's APP_BASE_URL env var.
+			const origin = window.location.origin;
+			const res = await apiRequest('POST', '/api/billing/checkout', {
+				plan: plan.slug,
+				success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+				cancel_url: `${origin}/billing/cancel`,
+			});
 			const { url } = (await res.json()) as { url?: string };
 			if (url) window.location.href = url;
 		} catch (e) {
@@ -93,35 +101,11 @@ export default function SubscriptionsPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Plans
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					Subscriptions
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
-					Pick the plan that matches the depth of intelligence you need.
-				</p>
-			</div>
+			<PageTitle
+				kicker="Plans"
+				title="Subscriptions"
+				sub="Pick the plan that matches the depth of intelligence you need."
+			/>
 
 			{plansLoading && plans.length === 0 ? (
 				<div style={{ padding: 'var(--space-5)', textAlign: 'center', color: 'var(--fg-muted)' }}>

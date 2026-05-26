@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Flag, Tag, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 
 interface EventEntity {
 	id: string;
@@ -60,35 +60,11 @@ export default function EventsPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Calendar · {total.toLocaleString()} upcoming
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					Events
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Conferences, summits, and demo days across the sports-tech calendar.
-				</p>
-			</div>
+			<PageTitle
+				kicker={`Calendar · ${total.toLocaleString()} upcoming`}
+				title="Events"
+				sub="Conferences, summits, and demo days across the sports-tech calendar."
+			/>
 
 			{isLoading && events.length === 0 ? (
 				<Empty msg="Loading…" />

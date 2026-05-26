@@ -1,6 +1,8 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { Zap, Users, Briefcase } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 /**
  * Atomic primitives ported from ui_design/app/atoms.jsx.
@@ -616,4 +618,119 @@ export function PipelineFunnel({ stages }: { stages: FunnelStage[] }) {
 
 export function Page({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
 	return <div className="page-pad" style={style}>{children}</div>;
+}
+
+// ============================================================================
+// AUDIENCE — the three FOR groups (Athletes / Fans / Executives) that anchor
+// the framework taxonomy. Used on framework column heads + sector cells in
+// dashboard/companies/funding/ma tables.
+// ============================================================================
+
+export type Audience = 'athletes' | 'fans' | 'executives' | 'business';
+
+const AUDIENCE_META: Record<Audience, { Icon: LucideIcon; color: string; label: string }> = {
+	athletes:   { Icon: Zap,       color: 'oklch(62% 0.18 290)', label: 'Athletes' },
+	fans:       { Icon: Users,     color: 'oklch(62% 0.20 240)', label: 'Fans' },
+	executives: { Icon: Briefcase, color: 'oklch(62% 0.16 160)', label: 'Executives' },
+	business:   { Icon: Briefcase, color: 'oklch(62% 0.16 160)', label: 'Executives' },
+};
+
+export function audienceColor(a: Audience): string {
+	return AUDIENCE_META[a]?.color ?? 'var(--fg-muted)';
+}
+
+export function AudienceIcon({ audience, size = 14, style }: { audience: Audience; size?: number; style?: CSSProperties }) {
+	const meta = AUDIENCE_META[audience];
+	if (!meta) return null;
+	const { Icon } = meta;
+	return <Icon size={size} style={style} />;
+}
+
+export function AudiencePill({ audience, label, compact = false }: { audience: Audience | string; label?: string; compact?: boolean }) {
+	const a = (audience as Audience) in AUDIENCE_META ? (audience as Audience) : null;
+	const meta = a ? AUDIENCE_META[a] : null;
+	const color = meta?.color ?? 'var(--fg-muted)';
+	const Icon = meta?.Icon;
+	const text = label ?? meta?.label ?? audience;
+	return (
+		<span
+			style={{
+				display: 'inline-flex',
+				alignItems: 'center',
+				gap: 6,
+				padding: compact ? '2px 6px' : '4px 8px',
+				fontSize: compact ? 11 : 12,
+				fontWeight: 600,
+				color,
+				border: `1px solid ${color}`,
+				lineHeight: 1,
+				whiteSpace: 'nowrap',
+			}}
+		>
+			{Icon && <Icon size={compact ? 10 : 12} />}
+			{text}
+		</span>
+	);
+}
+
+// ============================================================================
+// PAGE TITLE — kicker + h1 + subtitle stack used at the top of every page.
+// Extracted from the inline JSX repeated across all ui_design_2 screens.
+// ============================================================================
+
+interface PageTitleProps {
+	kicker?: React.ReactNode;
+	title: React.ReactNode;
+	sub?: React.ReactNode;
+	action?: React.ReactNode;
+}
+
+export function PageTitle({ kicker, title, sub, action }: PageTitleProps) {
+	return (
+		<div
+			style={{
+				display: 'flex',
+				alignItems: 'flex-end',
+				justifyContent: 'space-between',
+				marginBottom: 'var(--space-5)',
+				gap: 24,
+				flexWrap: 'wrap',
+			}}
+		>
+			<div style={{ minWidth: 0, flex: '1 1 auto' }}>
+				{kicker && (
+					<div
+						style={{
+							fontFamily: 'var(--font-mono)',
+							fontSize: 11,
+							color: 'var(--fg-muted)',
+							textTransform: 'uppercase',
+							letterSpacing: '0.1em',
+							marginBottom: 6,
+						}}
+					>
+						{kicker}
+					</div>
+				)}
+				<h1
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 38,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1,
+						margin: 0,
+					}}
+				>
+					{title}
+				</h1>
+				{sub && (
+					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: '6px 0 0', lineHeight: 1.5 }}>
+						{sub}
+					</p>
+				)}
+			</div>
+			{action && <div style={{ display: 'flex', gap: 8 }}>{action}</div>}
+		</div>
+	);
 }

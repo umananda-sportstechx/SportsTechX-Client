@@ -7,7 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Filter, Plus, Grid3x3, List, FileText, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Logo, Flag, SectorPill, Chip, Tag, Empty } from '@/components/ui/atoms';
+import { Page, Logo, Flag, SectorPill, Chip, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -81,64 +81,33 @@ export default function CompaniesPage() {
 
 	return (
 		<Page>
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-end',
-					justifyContent: 'space-between',
-					marginBottom: 'var(--space-4)',
-					flexWrap: 'wrap',
-					gap: 16,
-				}}
-			>
-				<div>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-						}}
-					>
-						Database · {total.toLocaleString()} entries
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: 0,
-						}}
-					>
-						Companies
-					</h1>
-				</div>
-				<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-					<div style={{ display: 'flex', border: '1px solid var(--border)' }}>
-						<button
-							className={`btn ghost ${view === 'grid' ? 'primary' : ''}`}
-							onClick={() => { setView('grid'); updateUrl({ view: 'grid' }); }}
-							style={{ borderRadius: 0 }}
-							aria-label="Grid view"
-						>
-							<Grid3x3 size={14} />
-						</button>
-						<button
-							className={`btn ghost ${view === 'table' ? 'primary' : ''}`}
-							onClick={() => { setView('table'); updateUrl({ view: 'table' }); }}
-							style={{ borderRadius: 0 }}
-							aria-label="Table view"
-						>
-							<List size={14} />
-						</button>
-					</div>
-					<button className="btn"><Plus size={12} /> Add to watchlist</button>
-				</div>
-			</div>
+			<PageTitle
+				kicker={`Database · ${total.toLocaleString()} entries`}
+				title="Companies"
+				action={
+					<>
+						<div style={{ display: 'flex', border: '1px solid var(--border)' }}>
+							<button
+								className={`btn ghost ${view === 'grid' ? 'primary' : ''}`}
+								onClick={() => { setView('grid'); updateUrl({ view: 'grid' }); }}
+								style={{ borderRadius: 0 }}
+								aria-label="Grid view"
+							>
+								<Grid3x3 size={14} />
+							</button>
+							<button
+								className={`btn ghost ${view === 'table' ? 'primary' : ''}`}
+								onClick={() => { setView('table'); updateUrl({ view: 'table' }); }}
+								style={{ borderRadius: 0 }}
+								aria-label="Table view"
+							>
+								<List size={14} />
+							</button>
+						</div>
+						<button className="btn"><Plus size={12} /> Add to watchlist</button>
+					</>
+				}
+			/>
 
 			<div className="filter-bar">
 				<div style={{ position: 'relative', flex: '0 0 280px' }}>

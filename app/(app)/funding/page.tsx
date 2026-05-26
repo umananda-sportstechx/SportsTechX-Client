@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Filter, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Logo, Flag, Stat, Tag, SectorPill, SectionHead, Empty } from '@/components/ui/atoms';
+import { Page, Logo, Flag, Stat, Tag, SectorPill, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
 
 interface DealRow {
 	id: string;
@@ -79,32 +79,10 @@ export default function FundingPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Funding Tracker · {currentYear} YTD
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: 0,
-					}}
-				>
-					{headlineDeployed} deployed across {headlineRounds} rounds
-				</h1>
-			</div>
+			<PageTitle
+				kicker={`Funding Tracker · ${currentYear} YTD`}
+				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
+			/>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{statStrip(totals).map((s, i) => (

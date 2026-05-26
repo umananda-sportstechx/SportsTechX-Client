@@ -5,8 +5,7 @@ import useSWR from 'swr';
 import { Filter, Plus, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import {
-	Page, Stat, Logo, Flag, SectionHead, WorldMap, Tag, SectorPill,
-	Heatmap, Empty,
+	Page, Stat, Logo, Flag, SectionHead, Tag, SectorPill, Empty, PageTitle,
 } from '@/components/ui/atoms';
 
 /**
@@ -15,8 +14,6 @@ import {
  *
  * Wires up to:
  *   /api/analytics/dashboard-stats   — hero KPIs (capital, deals, M&A, companies)
- *   /api/analytics/sector-heat       — sector funding distribution
- *   /api/analytics/world-flow        — country deal counts → world map dots
  *   /api/deals                       — recent funding table
  *   /api/reports                     — featured reports rail
  *   /api/companies                   — featured companies rail
@@ -30,20 +27,6 @@ interface DashboardStats {
 	total_companies: number;
 	total_investors: number;
 	total_ecosystem_entities: number;
-}
-
-interface SectorHeatPoint {
-	sector_id: string;
-	sector_slug: string;
-	sector_name: string;
-	deal_count: number;
-	total_amount: number;
-}
-
-interface WorldFlowPoint {
-	country: string;
-	deal_count: number;
-	total_amount: number;
 }
 
 interface DealResp { data: Array<DealRow>; total?: number }
@@ -96,8 +79,6 @@ interface EventRow {
 
 export default function DashboardPage() {
 	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('ytd'), { dedupingInterval: 10 * 60_000 });
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('ytd', 8), { dedupingInterval: 10 * 60_000 });
-	const { data: worldFlow } = useSWR<WorldFlowPoint[]>(qk.analytics.worldFlow('ytd', 40), { dedupingInterval: 10 * 60_000 });
 	const { data: companies } = useSWR<CompanyResp>(qk.companies.list({ limit: 6 }), { dedupingInterval: 5 * 60_000 });
 	const { data: dealsResp } = useSWR<DealResp>(qk.deals.list({ limit: 8, sort: '-announced_date' }), { dedupingInterval: 5 * 60_000 });
 	const { data: reports } = useSWR<ReportResp>(qk.reports.list(), { dedupingInterval: 30 * 60_000 });
@@ -118,29 +99,6 @@ export default function DashboardPage() {
 						<Stat {...s} />
 					</div>
 				))}
-			</div>
-
-			<div className="grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', marginBottom: 'var(--space-5)' }}>
-				<div className="card">
-					<SectionHead
-						title="Global Activity"
-						meta={stats ? `YTD · ${stats.total_deals.toLocaleString()} rounds` : 'YTD'}
-					/>
-					<div style={{ padding: 'var(--space-3)' }}>
-						{!worldFlow || worldFlow.length === 0
-							? <Empty msg="No geographic data" />
-							: <WorldMap height={320} dots={worldFlowToDots(worldFlow)} />}
-					</div>
-				</div>
-
-				<div className="card">
-					<SectionHead title="Sector Heat" meta="Funding by sector · YTD" />
-					<div style={{ padding: 'var(--space-4)' }}>
-						{!sectorHeat || sectorHeat.length === 0
-							? <Empty msg="No sector data" />
-							: <Heatmap data={sectorHeatToHeatmap(sectorHeat)} />}
-					</div>
-				</div>
 			</div>
 
 			<div className="grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', marginBottom: 'var(--space-5)' }}>
@@ -327,92 +285,19 @@ function heroStrip(s: DashboardStats | undefined) {
 	];
 }
 
-/** Map top-N sector totals onto the Heatmap atom's expected shape. We don't
- *  have per-quarter sector buckets server-side yet; render a single-column
- *  bar by emitting one value per sector. The Heatmap atom degrades gracefully. */
-function sectorHeatToHeatmap(rows: SectorHeatPoint[]): Array<{ label: string; values: number[] }> {
-	const max = Math.max(1, ...rows.map((r) => r.total_amount));
-	return rows.map((r) => ({
-		label: r.sector_name,
-		values: [Math.round((r.total_amount / max) * 100)],
-	}));
-}
-
-/** Same coarse country→pixel map used on the Analytics page. */
-const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
-	'United States': { x: 240, y: 180 }, USA: { x: 240, y: 180 },
-	Canada: { x: 230, y: 165 },
-	'United Kingdom': { x: 500, y: 145 }, UK: { x: 500, y: 145 },
-	Germany: { x: 530, y: 155 }, France: { x: 510, y: 165 }, Italy: { x: 525, y: 180 },
-	Spain: { x: 510, y: 200 }, Netherlands: { x: 525, y: 130 }, Sweden: { x: 540, y: 110 },
-	Switzerland: { x: 535, y: 170 }, Belgium: { x: 525, y: 145 }, Austria: { x: 545, y: 165 },
-	Poland: { x: 555, y: 145 }, Portugal: { x: 490, y: 210 },
-	India: { x: 720, y: 245 }, China: { x: 820, y: 200 }, Japan: { x: 870, y: 195 },
-	Singapore: { x: 820, y: 320 }, Australia: { x: 870, y: 380 },
-	Brazil: { x: 320, y: 350 }, Mexico: { x: 200, y: 240 },
-};
-
-function worldFlowToDots(rows: WorldFlowPoint[]): Array<{ x: number; y: number; r: number }> {
-	const maxDeals = Math.max(1, ...rows.map((r) => r.deal_count));
-	return rows
-		.map((r) => {
-			const coords = COUNTRY_COORDS[r.country];
-			if (!coords) return null;
-			return {
-				x: coords.x,
-				y: coords.y,
-				r: Math.max(2, Math.round((r.deal_count / maxDeals) * 10)),
-			};
-		})
-		.filter((d): d is { x: number; y: number; r: number } => d !== null);
-}
-
 function DashboardHeader() {
 	return (
-		<div
-			style={{
-				display: 'flex',
-				alignItems: 'flex-end',
-				justifyContent: 'space-between',
-				marginBottom: 'var(--space-5)',
-				gap: 24,
-				flexWrap: 'wrap',
-			}}
-		>
-			<div>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Mission Control · {new Date().toDateString()}
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 44,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: 0,
-					}}
-				>
-					Sports Tech Pulse.
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: '6px 0 0' }}>
-					The state of the global sports technology ecosystem — live deal flow, M&A, ecosystem signals, and curated intelligence.
-				</p>
-			</div>
-			<div style={{ display: 'flex', gap: 8 }}>
-				<button className="btn ghost"><Filter size={12} /> Filters</button>
-				<button className="btn"><Plus size={12} /> New Watchlist</button>
-			</div>
-		</div>
+		<PageTitle
+			kicker={`Mission Control · ${new Date().toDateString()}`}
+			title="Sports Tech Pulse."
+			sub="The state of the global sports technology ecosystem — live deal flow, M&A, ecosystem signals, and curated intelligence."
+			action={
+				<>
+					<button className="btn ghost"><Filter size={12} /> Filters</button>
+					<button className="btn"><Plus size={12} /> New Watchlist</button>
+				</>
+			}
+		/>
 	);
 }
 

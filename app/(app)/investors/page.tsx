@@ -7,7 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Flag, Tag, Chip, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Chip, Empty, PageTitle } from '@/components/ui/atoms';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -92,47 +92,12 @@ export default function InvestorsPage() {
 
 	return (
 		<Page>
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-end',
-					justifyContent: 'space-between',
-					marginBottom: 'var(--space-5)',
-					flexWrap: 'wrap',
-					gap: 16,
-				}}
-			>
-				<div>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-						}}
-					>
-						Capital · {total.toLocaleString()} firms
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: '0 0 6px',
-						}}
-					>
-						Investors
-					</h1>
-					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
-						The capital markets behind sports tech — VCs, corporate venture, PE and family offices.
-					</p>
-				</div>
-				<button className="btn"><Plus size={12} /> Add to watchlist</button>
-			</div>
+			<PageTitle
+				kicker={`Capital · ${total.toLocaleString()} firms`}
+				title="Investors"
+				sub="The capital markets behind sports tech — VCs, corporate venture, PE and accelerators."
+				action={<button className="btn"><Plus size={12} /> Add to watchlist</button>}
+			/>
 
 			<div className="filter-bar">
 				<div style={{ position: 'relative', flex: '0 0 280px' }}>

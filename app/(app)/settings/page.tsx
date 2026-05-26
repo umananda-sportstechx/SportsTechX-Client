@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { Page, Tag, Empty } from '@/components/ui/atoms';
+import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import { ImageInput } from '@/components/ui/image-input';
 
 // Workspace tab is intentionally omitted — multi-user / team model is out of
@@ -49,32 +49,7 @@ export default function SettingsPage() {
 	const [tab, setTab] = useState<Tab>('profile');
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Account
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: 0,
-					}}
-				>
-					Settings
-				</h1>
-			</div>
+			<PageTitle kicker="Account" title="Settings" />
 
 			<div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 32 }}>
 				<nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

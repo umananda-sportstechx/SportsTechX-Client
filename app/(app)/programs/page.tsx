@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Flag, Chip, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Chip, Empty, PageTitle } from '@/components/ui/atoms';
 
 interface EcosystemEntity {
 	id: string;
@@ -81,35 +81,11 @@ export default function ProgramsPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Ecosystem · accelerators
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					Programs
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Sports-tech accelerators, incubators and innovation programs — application status, terms, and partners.
-				</p>
-			</div>
+			<PageTitle
+				kicker="Ecosystem · accelerators"
+				title="Programs"
+				sub="Sports-tech accelerators, incubators and innovation programs — application status, terms, and partners."
+			/>
 
 			<div className="filter-bar" style={{ marginBottom: 'var(--space-4)' }}>
 				<Chip active={!status} count={total} onClick={() => handleStatusChip('')}>

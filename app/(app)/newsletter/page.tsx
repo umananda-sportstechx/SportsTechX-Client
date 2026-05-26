@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowRight, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Empty, SectionHead } from '@/components/ui/atoms';
+import { Page, Empty, SectionHead, PageTitle } from '@/components/ui/atoms';
 
 /**
  * Newsletter — proxy of the Beehiiv RSS feed. Same data shape and behavior
@@ -54,35 +54,11 @@ export default function NewsletterPage() {
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Newsletter · Featured by SportsTechX
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					The Sports Tech Recap
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Weekly digest of the deals, M&amp;A, and ecosystem signals shaping sports technology.
-				</p>
-			</div>
+			<PageTitle
+				kicker="Newsletter · Featured by SportsTechX"
+				title="The Sports Tech Recap"
+				sub="Weekly digest of the deals, M&A, and ecosystem signals shaping sports technology."
+			/>
 
 			{isLoading && sorted.length === 0 ? (
 				<Empty msg="Loading…" />
