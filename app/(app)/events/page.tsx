@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
 
 interface EventEntity {
 	id: string;
@@ -40,17 +44,26 @@ export default function EventsPage() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 
-	const updateUrl = (updates: Record<string, string | number | null>) => {
-		const sp = new URLSearchParams(params.toString());
-		Object.entries(updates).forEach(([k, v]) => {
-			if (v == null || v === '') sp.delete(k);
-			else sp.set(k, String(v));
-		});
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-	};
+	const facets = useMemo<Facet[]>(() => [], []);
+
+	const [filterState, setFilterState] = useState<FilterState>(() =>
+		emptyFilterState(facets, { search: params.get('q') ?? '' }),
+	);
+
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		if (page > 1) sp.set('page', String(page));
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page]);
+
+	const queryParams: Record<string, unknown> = { page, limit: 24, sort: 'start_date' };
+	if (filterState.search) queryParams.search = filterState.search;
 
 	const { data, isLoading } = useSWR<EventsResponse>(
-		qk.ecosystem.listByType('event', { page, limit: 24, sort: 'start_date' }),
+		qk.ecosystem.listByType('event', queryParams),
 		{ dedupingInterval: 5 * 60_000 },
 	);
 
@@ -66,37 +79,51 @@ export default function EventsPage() {
 				sub="Conferences, summits, and demo days across the sports-tech calendar."
 			/>
 
-			{isLoading && events.length === 0 ? (
-				<Empty msg="Loading…" />
-			) : events.length === 0 ? (
-				<Empty msg="No upcoming events." />
-			) : (
-				<div className="grid-3">
-					{events.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
-				</div>
-			)}
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+				/>
 
-			{totalPages > 1 && (
-				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
-					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
-						Page {page} of {totalPages}
-					</span>
-					<button
-						className="btn ghost"
-						disabled={page <= 1}
-						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronLeft size={14} />
-					</button>
-					<button
-						className="btn ghost"
-						disabled={page >= totalPages}
-						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronRight size={14} />
-					</button>
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search events, cities…"
+						total={total}
+						shown={events.length}
+					/>
+
+					{isLoading && events.length === 0 ? (
+						<Empty msg="Loading…" />
+					) : events.length === 0 ? (
+						<div className="card flt-empty-state">
+							<h3>No events match</h3>
+							<p>Try clearing some filters.</p>
+						</div>
+					) : (
+						<div className="grid-3">
+							{events.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
+						</div>
+					)}
+
+					{totalPages > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+								Page {page} of {totalPages}
+							</span>
+							<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+								<ChevronLeft size={14} />
+							</button>
+							<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+								<ChevronRight size={14} />
+							</button>
+						</div>
+					)}
 				</div>
-			)}
+			</div>
 		</Page>
 	);
 }

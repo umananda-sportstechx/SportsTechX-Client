@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, Filter, Plus, Grid3x3, List, FileText, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { Plus, Grid3x3, List, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Logo, Flag, SectorPill, Chip, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { Page, Logo, Flag, SectorPill, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar, ViewToggle,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -23,6 +27,8 @@ interface CompanyRow {
 	total_funding_usd?: number | string | null;
 	stage?: string | null;
 	last_round?: string | null;
+	is_verified?: boolean | null;
+	is_actively_raising?: boolean | null;
 }
 
 interface CompaniesResponse {
@@ -41,209 +47,185 @@ export default function CompaniesPage() {
 	const params = useSearchParams();
 
 	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'grid');
-	const [search, setSearch] = useState(params.get('q') ?? '');
-	const [sectorSlug, setSectorSlug] = useState(params.get('sector') ?? '');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
-	const debouncedSearch = useDebouncedValue(search, 300);
 
-	const updateUrl = (updates: Record<string, string | number | null>) => {
-		const sp = new URLSearchParams(params.toString());
-		Object.entries(updates).forEach(([k, v]) => {
-			if (v == null || v === '') sp.delete(k);
-			else sp.set(k, String(v));
-		});
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-	};
+	// Facets — server-driven where possible. Options come from /api/sectors etc.
+	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+
+	const facets = useMemo<Facet[]>(() => [
+		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
+		{ key: 'is_actively_raising', label: 'Actively raising', kind: 'bool' },
+		{
+			key: 'sector_slug',
+			label: 'Sector',
+			kind: 'multi',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+	], [sectorList]);
+
+	// Hydrate filter state from URL on first render.
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const v = params.get('is_verified'); if (v) init.is_verified = v === 'true';
+		const r = params.get('is_actively_raising'); if (r) init.is_actively_raising = r === 'true';
+		const s = params.get('sector_slug') ?? params.get('sector');
+		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		const c = params.get('country');
+		if (c) init.country = c.split(',').filter(Boolean);
+		return init;
+	});
+
+	// Mirror filter state → URL so deep-links work + the page survives refresh.
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		if (filterState.is_verified === true) sp.set('is_verified', 'true');
+		if (filterState.is_actively_raising === true) sp.set('is_actively_raising', 'true');
+		const sec = filterState.sector_slug as string[] | undefined;
+		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const ctry = filterState.country as string[] | undefined;
+		if (ctry?.length) sp.set('country', ctry.join(','));
+		if (page > 1) sp.set('page', String(page));
+		if (view !== 'grid') sp.set('view', view);
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// We intentionally omit pathname/router from deps — Next gives stable refs.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page, view]);
+
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
-	if (sectorSlug) queryParams.sector = sectorSlug;
+	const sec = filterState.sector_slug as string[] | undefined;
+	if (sec?.length === 1) queryParams.sector = sec[0];
+	else if (sec?.length) queryParams.sector_slug = sec.join(',');
+	const ctry = filterState.country as string[] | undefined;
+	if (ctry?.length === 1) queryParams.country = ctry[0];
+	const isVer = filterState.is_verified === true;
+	if (isVer) queryParams.is_verified = true;
+	const isRaising = filterState.is_actively_raising === true;
+	if (isRaising) queryParams.is_actively_raising = true;
 
 	const { data, isLoading } = useSWR<CompaniesResponse>(qk.companies.list(queryParams), {
 		dedupingInterval: 3 * 60_000,
 	});
 
-	const { data: sectors } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
-		dedupingInterval: 60 * 60_000,
-	});
-
 	const companies = data?.data ?? [];
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
-	const sectorList = Array.isArray(sectors) ? sectors : (sectors?.data ?? []);
-
-	const handleSectorChip = (slug: string) => {
-		const next = sectorSlug === slug ? '' : slug;
-		setSectorSlug(next);
-		setPage(1);
-		updateUrl({ sector: next || null, page: null });
-	};
 
 	return (
 		<Page>
 			<PageTitle
 				kicker={`Database · ${total.toLocaleString()} entries`}
 				title="Companies"
-				action={
-					<>
-						<div style={{ display: 'flex', border: '1px solid var(--border)' }}>
-							<button
-								className={`btn ghost ${view === 'grid' ? 'primary' : ''}`}
-								onClick={() => { setView('grid'); updateUrl({ view: 'grid' }); }}
-								style={{ borderRadius: 0 }}
-								aria-label="Grid view"
-							>
-								<Grid3x3 size={14} />
-							</button>
-							<button
-								className={`btn ghost ${view === 'table' ? 'primary' : ''}`}
-								onClick={() => { setView('table'); updateUrl({ view: 'table' }); }}
-								style={{ borderRadius: 0 }}
-								aria-label="Table view"
-							>
-								<List size={14} />
-							</button>
-						</div>
-						<button className="btn"><Plus size={12} /> Add to watchlist</button>
-					</>
-				}
+				action={<button className="btn"><Plus size={12} /> Add to watchlist</button>}
 			/>
 
-			<div className="filter-bar">
-				<div style={{ position: 'relative', flex: '0 0 280px' }}>
-					<Search
-						size={14}
-						style={{ position: 'absolute', left: 10, top: 9, color: 'var(--fg-muted)', pointerEvents: 'none' }}
-					/>
-					<input
-						className="search-input"
-						style={{ paddingLeft: 32, height: 32, width: '100%' }}
-						placeholder="Search…"
-						value={search}
-						onChange={(e) => {
-							setSearch(e.target.value);
-							setPage(1);
-							updateUrl({ q: e.target.value || null, page: null });
-						}}
-					/>
-				</div>
-				<Chip active={!sectorSlug} count={total} onClick={() => handleSectorChip('')}>
-					All
-				</Chip>
-				{sectorList.slice(0, 10).map((s) => (
-					<Chip key={s.id} active={sectorSlug === s.slug} onClick={() => handleSectorChip(s.slug)}>
-						{s.name}
-					</Chip>
-				))}
-				<div style={{ flex: 1 }} />
-				<button className="btn ghost"><Filter size={12} /> More filters</button>
-				<button className="btn ghost"><FileText size={12} /> Export</button>
-			</div>
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+					defaultOpen={{ sector_slug: true }}
+				/>
 
-			<div
-				style={{
-					fontFamily: 'var(--font-mono)',
-					fontSize: 11,
-					color: 'var(--fg-muted)',
-					textTransform: 'uppercase',
-					letterSpacing: '0.08em',
-					marginBottom: 12,
-				}}
-			>
-				Showing <b style={{ color: 'var(--fg)' }}>{companies.length.toLocaleString()}</b> of {total.toLocaleString()} · Sorted by activity
-			</div>
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search companies, sectors, countries…"
+						total={total}
+						shown={companies.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
+					/>
 
-			{isLoading && companies.length === 0 ? (
-				<Empty msg="Loading…" />
-			) : companies.length === 0 ? (
-				<Empty msg="No companies match those filters." />
-			) : view === 'grid' ? (
-				<div className="co-grid">
-					{companies.map((c) => <CompanyCard key={c.id} c={c} />)}
-				</div>
-			) : (
-				<div className="card">
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>Company</th>
-								<th>Sector</th>
-								<th>Stage</th>
-								<th>HQ</th>
-								<th style={{ textAlign: 'right' }}>Raised</th>
-								<th>Last Round</th>
-								<th>Founded</th>
-							</tr>
-						</thead>
-						<tbody>
-							{companies.map((c) => (
-								<tr key={c.id}>
-									<td>
-										<Link
-											href={`/companies/${c.slug ?? c.id}`}
-											style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-										>
-											<Logo co={{ name: c.name }} size={28} />
-											<div>
-												<div style={{ fontWeight: 600 }}>{c.name}</div>
-												{c.description && (
-													<div
-														style={{
-															fontSize: 11,
-															color: 'var(--fg-muted)',
-															maxWidth: 280,
-															overflow: 'hidden',
-															textOverflow: 'ellipsis',
-															whiteSpace: 'nowrap',
-														}}
-													>
-														{c.description}
+					{isLoading && companies.length === 0 ? (
+						<Empty msg="Loading…" />
+					) : companies.length === 0 ? (
+						<div className="card flt-empty-state">
+							<h3>No companies match</h3>
+							<p>Try clearing some filters.</p>
+						</div>
+					) : view === 'grid' ? (
+						<div className="co-grid">
+							{companies.map((c) => <CompanyCard key={c.id} c={c} />)}
+						</div>
+					) : (
+						<div className="card">
+							<table className="data-table">
+								<thead>
+									<tr>
+										<th>Company</th>
+										<th>Sector</th>
+										<th>Stage</th>
+										<th>HQ</th>
+										<th style={{ textAlign: 'right' }}>Raised</th>
+										<th>Last Round</th>
+										<th>Founded</th>
+									</tr>
+								</thead>
+								<tbody>
+									{companies.map((c) => (
+										<tr key={c.id}>
+											<td>
+												<Link href={`/companies/${c.slug ?? c.id}`} className="tbl-name-cell">
+													<Logo co={{ name: c.name }} size={28} />
+													<div className="tbl-name-text">
+														<div className="tbl-name-line"><span className="tbl-name">{c.name}</span></div>
+														{c.description && <div className="tbl-sub">{c.description}</div>}
 													</div>
-												)}
-											</div>
-										</Link>
-									</td>
-									<td>{c.primary_sector ? <SectorPill name={c.primary_sector} /> : '—'}</td>
-									<td>{c.stage ? <Tag>{c.stage}</Tag> : '—'}</td>
-									<td style={{ fontSize: 12, color: 'var(--fg-2)' }}>
-										{c.hq_country && <Flag cc={countryCode(c.hq_country)} />}{' '}
-										{c.hq_city ? `${c.hq_city}, ` : ''}{c.hq_country ?? ''}
-									</td>
-									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
-										{formatRaised(c.total_funding_usd)}
-									</td>
-									<td className="num">{c.last_round ?? '—'}</td>
-									<td className="num">{c.founded_year ?? '—'}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-			)}
+												</Link>
+											</td>
+											<td>{c.primary_sector ? <SectorPill name={c.primary_sector} /> : '—'}</td>
+											<td>{c.stage ? <Tag>{c.stage}</Tag> : '—'}</td>
+											<td>
+												<span className="tbl-ellipsis">
+													{c.hq_country && <Flag cc={countryCode(c.hq_country)} />}{' '}
+													{c.hq_city ? `${c.hq_city}, ` : ''}{c.hq_country ?? ''}
+												</span>
+											</td>
+											<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+												{formatRaised(c.total_funding_usd)}
+											</td>
+											<td className="num">{c.last_round ?? '—'}</td>
+											<td className="num">{c.founded_year ?? '—'}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
 
-			<CompareBar kind="companies" />
+					<CompareBar kind="companies" />
 
-			{totalPages > 1 && (
-				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
-					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
-						Page {page} of {totalPages}
-					</span>
-					<button
-						className="btn ghost"
-						disabled={page <= 1}
-						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronLeft size={14} />
-					</button>
-					<button
-						className="btn ghost"
-						disabled={page >= totalPages}
-						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronRight size={14} />
-					</button>
+					{totalPages > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+								Page {page} of {totalPages}
+							</span>
+							<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+								<ChevronLeft size={14} />
+							</button>
+							<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+								<ChevronRight size={14} />
+							</button>
+						</div>
+					)}
 				</div>
-			)}
+			</div>
 		</Page>
 	);
 }
@@ -310,3 +292,11 @@ function countryCode(countryName: string): string {
 	};
 	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }
+
+// Until the backend exposes a /api/companies/facets endpoint with real counts,
+// surface the most common HQ countries from the design's flag palette.
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];

@@ -621,6 +621,59 @@ export function Page({ children, style }: { children: React.ReactNode; style?: C
 }
 
 // ============================================================================
+// VERIFIED BADGE — diamond/star with check. Ported from
+// `ui_design_2/app/company-detail.jsx`. Used on company name lockups + lists.
+// ============================================================================
+
+export function VerifiedBadge({ size = 14, title = 'Verified — claimed and maintained by the company' }: { size?: number; title?: string }) {
+	return (
+		<span className="vb" title={title} aria-label="Verified" style={{ width: size, height: size }}>
+			<svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+				<path d="M8 1.2l1.6 1.4 2.1-.2.5 2 1.8 1.1-.9 1.9.5 2.1-1.9.9-.8 2-2.1-.4L8 13.5l-1.6-1.4-2.1.4-.8-2-1.9-.9.5-2.1L1.2 5.5l1.8-1.1.5-2 2.1.2L7.2 1.2z" fill="currentColor" />
+				<path d="M5 8l2 2 4-4" stroke="var(--bg)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+			</svg>
+		</span>
+	);
+}
+
+// ============================================================================
+// RAISING PILL — pulsing green dot + "Actively raising" label
+// ============================================================================
+
+export function RaisingPill({ compact = false }: { compact?: boolean }) {
+	return (
+		<span className={`rp ${compact ? 'compact' : ''}`} title="Actively raising — self-reported by the company">
+			<span className="rp-dot" />
+			{compact ? 'Raising' : 'Actively raising'}
+		</span>
+	);
+}
+
+export function RaisingDot({ size = 8 }: { size?: number }) {
+	return (
+		<span
+			className="rp-dot rp-dot-solo"
+			style={{ width: size, height: size }}
+			title="Actively raising — self-reported by the company"
+			aria-label="Actively raising"
+		/>
+	);
+}
+
+// ============================================================================
+// KV — label/value row used in company detail right rail + drawer
+// ============================================================================
+
+export function KV({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
+	return (
+		<div className="co-kv">
+			<span className="co-kv-k">{label}</span>
+			<span className="co-kv-v">{value}</span>
+		</div>
+	);
+}
+
+// ============================================================================
 // AUDIENCE — the three FOR groups (Athletes / Fans / Executives) that anchor
 // the framework taxonomy. Used on framework column heads + sector cells in
 // dashboard/companies/funding/ma tables.

@@ -1,24 +1,54 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import useSWR from 'swr';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Heart, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Logo, Flag, SectorPill, Tag, SectionHead, Sparkline, Empty } from '@/components/ui/atoms';
+import {
+	Page, Logo, Flag, SectorPill, Tag, Empty,
+	VerifiedBadge, RaisingPill, KV,
+} from '@/components/ui/atoms';
+
+/**
+ * Company detail — ported from ui_design_2/app/company-detail.jsx CompanyDetailScreen.
+ *
+ * Layout:
+ *   - Back link
+ *   - Hero (logo + name + verified/raising badges + meta + actions)
+ *   - Tabs: Overview / Funding / M&A / News / Similar
+ *   - Overview = main content + right rail (Key facts, Primary contact when present)
+ *   - Other tabs render full-width
+ *   - Footer: Verified strip OR claim-this-company CTA
+ *
+ * Data source: `/api/companies/:idOrSlug` + `/api/deals?company_id=`. Tabs hide
+ * themselves when their data array is empty. Acquisitions / News / Similar
+ * default to API fields when present; we never fabricate.
+ */
 
 interface Company {
 	id: string;
 	name: string;
 	slug?: string;
 	description?: string | null;
+	long_description?: string | null;
 	website?: string | null;
 	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
+	sub_sector?: string | null;
 	hq_city?: string | null;
 	hq_country?: string | null;
+	country_code?: string | null;
 	founded_year?: number | null;
+	employees?: number | string | null;
 	total_funding_usd?: number | string | null;
 	stage?: string | null;
+	last_round?: string | null;
+	is_verified?: boolean | null;
+	is_actively_raising?: boolean | null;
+	verified_at?: string | null;
+	tags?: string[] | null;
 }
 
 interface Deal {
@@ -26,19 +56,18 @@ interface Deal {
 	announced_date?: string | null;
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
+	round_type?: string | null;
 	lead_investor?: string | null;
 }
 
 interface DealsResponse { data: Deal[]; total: number }
 
-/**
- * Company detail page. Fetches the company by slug or id from /api/companies
- * plus its deal history. Linked from every company table/grid row across the
- * app (companies list, dashboard latest funding, etc.).
- */
+type Tab = 'overview' | 'funding' | 'mna' | 'news' | 'similar';
+
 export default function CompanyDetailPage() {
 	const params = useParams<{ slug: string }>();
 	const slug = params?.slug ?? '';
+	const [tab, setTab] = useState<Tab>('overview');
 
 	const { data: company, isLoading, error } = useSWR<Company>(
 		slug ? qk.companies.detail(slug) : null,
@@ -50,7 +79,7 @@ export default function CompanyDetailPage() {
 		{ dedupingInterval: 5 * 60_000 },
 	);
 
-	const deals = dealsResp?.data ?? [];
+	const deals = useMemo(() => dealsResp?.data ?? [], [dealsResp]);
 
 	if (isLoading) {
 		return <Page><Empty msg="Loading company…" /></Page>;
@@ -58,157 +87,293 @@ export default function CompanyDetailPage() {
 	if (error || !company || !company.id) {
 		return (
 			<Page>
-				<div style={{ marginBottom: 'var(--space-4)' }}>
-					<Link href="/companies" className="btn ghost"><ArrowLeft size={12} /> Back to companies</Link>
-				</div>
+				<Link href="/companies" className="co-back">
+					<ArrowLeft size={12} /> Back to companies
+				</Link>
 				<Empty msg="Company not found" />
 			</Page>
 		);
 	}
 
-	const cc = company.hq_country ? countryCode(company.hq_country) : '';
+	const cc = company.country_code ?? (company.hq_country ? countryCode(company.hq_country) : '');
+	const hq = [company.hq_city, company.hq_country].filter(Boolean).join(', ');
+	const isVerified = company.is_verified === true;
+	const isRaising = company.is_actively_raising === true;
+	const hasFunding = deals.length > 0;
+
+	const visibleTabs: Array<{ key: Tab; label: string; count?: number; show: boolean }> = [
+		{ key: 'overview', label: 'Overview', show: true },
+		{ key: 'funding', label: 'Funding', count: deals.length, show: hasFunding },
+		{ key: 'mna', label: 'M&A', show: false },         // wire when /api/acquisitions?acquirer_id= lands
+		{ key: 'news', label: 'News', show: false },        // wire when /api/news?company_id= lands
+		{ key: 'similar', label: 'Similar companies', show: false }, // wire when /api/companies/:id/similar lands
+	];
 
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-4)' }}>
-				<Link href="/companies" className="btn ghost"><ArrowLeft size={12} /> Back to companies</Link>
-			</div>
+			<Link href="/companies" className="co-back">
+				<ArrowLeft size={12} /> Back to companies
+			</Link>
 
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-start',
-					gap: 'var(--space-4)',
-					marginBottom: 'var(--space-5)',
-				}}
-			>
+			{/* Hero */}
+			<header className="co-hero">
 				<Logo co={{ name: company.name }} size={72} />
 				<div style={{ flex: 1, minWidth: 0 }}>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-							display: 'flex',
-							alignItems: 'center',
-							gap: 8,
-						}}
-					>
-						{cc && <Flag cc={cc} />}
-						{company.hq_city ? `${company.hq_city}, ` : ''}{company.hq_country ?? '—'}
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: '0 0 8px',
-						}}
-					>
-						{company.name}
-					</h1>
-					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-						{company.primary_sector && <SectorPill name={company.primary_sector} />}
-						{company.stage && <Tag>{company.stage}</Tag>}
+					<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+						<h1
+							style={{
+								fontFamily: 'var(--font-display)',
+								fontSize: 38,
+								fontWeight: 800,
+								letterSpacing: '-0.02em',
+								lineHeight: 1,
+								margin: 0,
+							}}
+						>
+							{company.name}
+						</h1>
+						{isVerified && <VerifiedBadge size={22} />}
+						{isRaising && <RaisingPill />}
 					</div>
 					{company.description && (
-						<p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55, maxWidth: 720, margin: 0 }}>
+						<p style={{ margin: '8px 0 10px', fontSize: 15, color: 'var(--fg-2)', maxWidth: 720 }}>
 							{company.description}
 						</p>
 					)}
-					{company.website && (
-						<a href={company.website} target="_blank" rel="noopener noreferrer" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 13 }}>
-							{company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-							<ExternalLink size={12} />
-						</a>
-					)}
+					<div className="co-hero-meta">
+						{(cc || hq) && (
+							<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+								{cc && <Flag cc={cc} />}
+								{hq || '—'}
+							</span>
+						)}
+						{company.founded_year && (
+							<>
+								<span className="dot-sep">·</span>
+								<span>Founded {company.founded_year}</span>
+							</>
+						)}
+						{company.employees && (
+							<>
+								<span className="dot-sep">·</span>
+								<span>{company.employees} employees</span>
+							</>
+						)}
+						{company.website && (
+							<>
+								<span className="dot-sep">·</span>
+								<a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+									{company.website.replace(/^https?:\/\//, '')} ↗
+								</a>
+							</>
+						)}
+					</div>
 				</div>
-			</div>
+				<div className="co-hero-actions">
+					<button className="btn ghost"><Heart size={12} /> Save</button>
+					<button className="btn ghost"><Send size={12} /> Share</button>
+					<button className="btn"><Plus size={12} /> Add to watchlist</button>
+				</div>
+			</header>
 
-			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
-					<div className="co-stat-label">Total raised</div>
-					<div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, marginTop: 4 }}>
-						{formatDollars(company.total_funding_usd)}
-					</div>
-				</div>
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
-					<div className="co-stat-label">Founded</div>
-					<div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, marginTop: 4 }}>
-						{company.founded_year ?? '—'}
-					</div>
-				</div>
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
-					<div className="co-stat-label">Rounds</div>
-					<div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, marginTop: 4 }}>
-						{deals.length}
-					</div>
-				</div>
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
-					<div className="co-stat-label">Last round</div>
-					<div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, marginTop: 4 }}>
-						{formatShortDate(deals[0]?.announced_date) || '—'}
-					</div>
-				</div>
-			</div>
+			{/* Tabs */}
+			<nav className="co-page-tabs" role="tablist">
+				{visibleTabs.filter((t) => t.show).map((t) => (
+					<button
+						key={t.key}
+						role="tab"
+						aria-selected={tab === t.key}
+						className={`co-page-tab ${tab === t.key ? 'on' : ''}`}
+						onClick={() => setTab(t.key)}
+					>
+						{t.label}
+						{t.count != null && t.count > 0 && <span className="co-page-tab-count">{t.count}</span>}
+					</button>
+				))}
+			</nav>
 
-			<div className="card">
-				<SectionHead title="Funding history" meta={`${deals.length} rounds`} />
-				{deals.length === 0 ? (
-					<Empty msg="No disclosed rounds yet" />
-				) : (
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>Date</th>
-								<th>Round</th>
-								<th>Lead investor</th>
-								<th style={{ textAlign: 'right' }}>Amount</th>
-							</tr>
-						</thead>
-						<tbody>
-							{deals.map((d) => (
-								<tr key={d.id}>
-									<td className="num">{formatShortDate(d.announced_date)}</td>
-									<td><Tag variant="pos">{d.round_type_name ?? '—'}</Tag></td>
-									<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
-									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
-										{formatDollars(d.amount_usd)}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				)}
-			</div>
-
-			<div className="card" style={{ marginTop: 'var(--space-5)', padding: 'var(--space-4)' }}>
-				<SectionHead title="Activity" meta="Synthetic — replace with /api/companies/:id/activity" />
-				<div style={{ padding: 'var(--space-3)' }}>
-					<Sparkline values={generateSpark(company.id)} w={680} h={64} fill />
+			{/* Tab body */}
+			{tab === 'overview' ? (
+				<div className="co-page-grid">
+					<main className="co-page-main">
+						<Overview company={company} deals={deals} />
+					</main>
+					<aside className="co-page-rail">
+						<div className="card co-rail-card">
+							<div className="co-rail-h">Key facts</div>
+							<KV label="Total raised" value={<b>{formatDollars(company.total_funding_usd)}</b>} />
+							<KV label="Last round" value={company.last_round ?? '—'} />
+							<KV label="Stage" value={company.stage ? <Tag>{company.stage}</Tag> : '—'} />
+							<KV
+								label="Sector"
+								value={company.primary_sector ? <SectorPill name={company.primary_sector} /> : '—'}
+							/>
+							{company.sub_sector && <KV label="Sub-sector" value={company.sub_sector} />}
+							<KV label="Founded" value={company.founded_year ?? '—'} />
+							{company.employees && <KV label="Employees" value={company.employees} />}
+							<KV label="Tags" value={(company.tags ?? []).join(', ') || '—'} />
+						</div>
+					</aside>
 				</div>
-			</div>
+			) : (
+				<div className="co-page-main">
+					{tab === 'funding' && <Funding company={company} deals={deals} />}
+				</div>
+			)}
+
+			{/* Verify footer */}
+			<VerifyFooter company={company} />
 		</Page>
 	);
 }
 
-function generateSpark(seed: string | null | undefined): number[] {
-	const s = seed ?? 'stx';
-	let x = (s.charCodeAt(0) || 0) + (s.charCodeAt(1) || 0) + s.length;
-	const out: number[] = [];
-	let v = 50;
-	for (let i = 0; i < 12; i += 1) {
-		x = (x * 9301 + 49297) % 233280;
-		const r = (x / 233280 - 0.5) * 20 + 1.5;
-		v = Math.max(10, Math.min(90, v + r));
-		out.push(v);
+function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
+	return (
+		<>
+			<section className="co-sec">
+				<h3 className="co-sec-h">About</h3>
+				<p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--fg-2)' }}>
+					{company.long_description ?? company.description ?? 'No description on file yet.'}
+				</p>
+			</section>
+
+			{deals.length > 0 && (
+				<section className="co-sec">
+					<h3 className="co-sec-h">Funding timeline</h3>
+					<FundingTimeline deals={deals} />
+				</section>
+			)}
+		</>
+	);
+}
+
+function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
+	if (deals.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">Funding rounds</h3>
+				<div className="co-empty">No funding rounds on record yet.</div>
+			</section>
+		);
 	}
-	return out;
+	return (
+		<section className="co-sec">
+			<h3 className="co-sec-h">Funding rounds</h3>
+
+			<div className="co-stat-strip">
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Total raised</div>
+					<div className="co-mini-stat-v">{formatDollars(company.total_funding_usd)}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Latest round</div>
+					<div className="co-mini-stat-v">{company.stage ?? '—'}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Rounds</div>
+					<div className="co-mini-stat-v">{deals.length}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Last close</div>
+					<div className="co-mini-stat-v" style={{ fontSize: 14, fontFamily: 'var(--font-mono)' }}>
+						{deals[0]?.announced_date ? formatShortDate(deals[0].announced_date) : '—'}
+					</div>
+				</div>
+			</div>
+
+			<h4 className="co-sec-sub">Round detail</h4>
+			<div className="card" style={{ padding: 0 }}>
+				<table className="data-table">
+					<thead>
+						<tr>
+							<th>Date</th>
+							<th>Stage</th>
+							<th>Lead investor</th>
+							<th style={{ textAlign: 'right' }}>Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+						{deals.map((r) => {
+							const round = r.round_type_name ?? r.round_type ?? '—';
+							return (
+								<tr key={r.id}>
+									<td className="num">{r.announced_date ? formatShortDate(r.announced_date) : '—'}</td>
+									<td><Tag variant={round.toLowerCase().includes('series') ? 'pos' : ''}>{round}</Tag></td>
+									<td>{r.lead_investor ?? '—'}</td>
+									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+										{formatDollars(r.amount_usd)}
+									</td>
+								</tr>
+							);
+						})}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	);
+}
+
+function FundingTimeline({ deals }: { deals: Deal[] }) {
+	// Oldest → newest, max 4 for the strip
+	const rounds = [...deals].reverse().slice(-4);
+	return (
+		<div className="co-timeline">
+			{rounds.map((r) => (
+				<div key={r.id} className="co-timeline-step">
+					<div className="co-timeline-dot" />
+					<div className="co-timeline-stage">{r.round_type_name ?? r.round_type ?? '—'}</div>
+					<div className="co-timeline-amt">{formatDollars(r.amount_usd)}</div>
+					<div className="co-timeline-date">
+						{r.announced_date ? formatShortDate(r.announced_date) : '—'}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function VerifyFooter({ company }: { company: Company }) {
+	if (company.is_verified) {
+		return (
+			<footer className="co-verify-foot verified" aria-label="Verified profile">
+				<VerifiedBadge size={22} />
+				<div className="co-verify-text">
+					<div className="co-verify-h">Verified profile</div>
+					<div className="co-verify-sub">
+						Claimed and maintained by {company.name}
+						{company.verified_at ? ` · last reviewed ${formatShortDate(company.verified_at)}` : ''}
+					</div>
+				</div>
+				<div className="co-verify-actions">
+					<button className="btn ghost">Report an issue</button>
+				</div>
+			</footer>
+		);
+	}
+	return (
+		<footer className="co-verify-foot unverified" aria-label="Get verified">
+			<div className="co-verify-icon">
+				<svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true">
+					<path
+						d="M8 1.2l1.6 1.4 2.1-.2.5 2 1.8 1.1-.9 1.9.5 2.1-1.9.9-.8 2-2.1-.4L8 13.5l-1.6-1.4-2.1.4-.8-2-1.9-.9.5-2.1L1.2 5.5l1.8-1.1.5-2 2.1.2L7.2 1.2z"
+						stroke="currentColor"
+						strokeWidth="1.3"
+						fill="none"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</div>
+			<div className="co-verify-text">
+				<div className="co-verify-h">Is this your company?</div>
+				<div className="co-verify-sub">
+					Claim {company.name} to keep your funding, stage and contact details accurate — and earn a verified badge on your profile.
+				</div>
+			</div>
+			<div className="co-verify-actions">
+				<button className="btn">Claim &amp; verify</button>
+			</div>
+		</footer>
+	);
 }
 
 function formatDollars(value: number | string | null | undefined): string {
@@ -221,10 +386,9 @@ function formatDollars(value: number | string | null | undefined): string {
 	return `$${n.toFixed(0)}`;
 }
 
-function formatShortDate(iso: string | null | undefined): string {
-	if (!iso) return '—';
+function formatShortDate(iso: string): string {
 	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
+	if (Number.isNaN(d.getTime())) return iso;
 	return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
 

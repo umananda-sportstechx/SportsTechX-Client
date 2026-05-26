@@ -3,6 +3,11 @@
  * ticker, ai-panel, command-palette, cards, tags, tables, etc.) Loaded
  * here so component classes are available across the entire app. */
 @import "./design-system.css";
+/* Faceted left-rail filter system (shared across all list pages). Ported
+ * verbatim from ui_design_2/app/filter-rail.css. */
+@import "./filter-rail.css";
+/* Company detail page (hero, tabs, right rail, timeline, verify footer). */
+@import "./company-detail.css";
 
 /* ============================================================================
  * SportsTechX design system — ported from ui_design/app/styles.css
