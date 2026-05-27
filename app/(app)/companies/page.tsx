@@ -50,6 +50,8 @@ interface CompanyRow {
 	is_actively_raising?: boolean | null;
 	last_round_type?: string | null;
 	business_model?: string | null;
+	website?: string | null;
+	custom_logo_url?: string | null;
 }
 
 interface CompaniesResponse {
@@ -360,7 +362,7 @@ export default function CompaniesPage() {
 												</td>
 												<td>
 													<div className="tbl-name-cell">
-														<Logo co={{ name: c.name }} size={28} />
+														<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} />
 														<div className="tbl-name-text">
 															<div className="tbl-name-line">
 																<button
@@ -482,7 +484,7 @@ function CompanyCard({
 		>
 			<div className="co-card-head">
 				<RowHeartBtn id={c.id} size={14} />
-				<Logo co={{ name: c.name }} size={44} />
+				<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={44} />
 				<div style={{ flex: 1, minWidth: 0 }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
 						<span style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</span>
