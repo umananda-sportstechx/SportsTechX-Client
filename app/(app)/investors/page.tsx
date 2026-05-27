@@ -190,19 +190,30 @@ function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOr
 	const cc = i.hq_country ? countryCode(i.hq_country) : '';
 	const typeLabel = formatType(i.category ?? i.type);
 	const target = i.slug ?? i.id;
+	const open = () => onOpenDrawer(target);
 	const handleClick = (e: React.MouseEvent) => {
+		if ((e.target as HTMLElement).closest('button, a')) return;
 		if (e.metaKey || e.ctrlKey || e.button === 1) {
 			window.open(`/investors/${target}`, '_blank');
 			return;
 		}
-		onOpenDrawer(target);
+		open();
 	};
 	return (
-		<button
-			type="button"
+		// `<div role="button">` — CompareToggle button inside forbids nesting.
+		<div
+			role="button"
+			tabIndex={0}
 			className="card inv-card"
 			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
 			onClick={handleClick}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					if ((e.target as HTMLElement).closest('button, a')) return;
+					e.preventDefault();
+					open();
+				}
+			}}
 		>
 			<div className="inv-bar" style={{ background: color }} />
 			<div style={{ padding: 'var(--space-4)' }}>
@@ -273,7 +284,7 @@ function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOr
 					<CompareToggle id={i.id} kind="investors" />
 				</div>
 			</div>
-		</button>
+		</div>
 	);
 }
 

@@ -253,20 +253,33 @@ function CompanyCard({ c, onOpenDrawer }: { c: CompanyRow; onOpenDrawer: (idOrSl
 	const cc = c.hq_country ? countryCode(c.hq_country) : '';
 	const fav = (c.id.charCodeAt(c.id.length - 1) % 3) === 0;
 	const target = c.slug ?? c.id;
+	const open = () => onOpenDrawer(target);
 	const handleClick = (e: React.MouseEvent) => {
+		// Ignore clicks on inner interactive controls (Compare toggle, etc.).
+		if ((e.target as HTMLElement).closest('button, a')) return;
 		// Cmd/Ctrl/middle-click → open full page in new tab. Plain click → drawer.
 		if (e.metaKey || e.ctrlKey || e.button === 1) {
 			window.open(`/companies/${target}`, '_blank');
 			return;
 		}
-		onOpenDrawer(target);
+		open();
 	};
 	return (
-		<button
-			type="button"
+		// `<div role="button">` instead of `<button>` so we can nest the
+		// CompareToggle button inside (HTML forbids nested interactives).
+		<div
+			role="button"
+			tabIndex={0}
 			className="card co-card"
 			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
 			onClick={handleClick}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					if ((e.target as HTMLElement).closest('button, a')) return;
+					e.preventDefault();
+					open();
+				}
+			}}
 		>
 			<div className="co-card-head">
 				<Logo co={{ name: c.name }} size={44} />
@@ -301,7 +314,7 @@ function CompanyCard({ c, onOpenDrawer }: { c: CompanyRow; onOpenDrawer: (idOrSl
 			<div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
 				<CompareToggle id={c.id} kind="companies" />
 			</div>
-		</button>
+		</div>
 	);
 }
 
