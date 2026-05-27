@@ -1,0 +1,65 @@
+/* === ANALYTICS — sub-tab nav + chart helpers ===
+   Ported from `ui_design_2/app/styles.css:1794-1865`. */
+
+.an-tabs {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 var(--space-5);
+  overflow-x: auto;
+}
+.an-tab {
+  position: relative;
+  background: transparent; border: 0;
+  padding: 12px 16px;
+  font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--fg-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color .12s;
+}
+.an-tab:hover { color: var(--fg-2); }
+.an-tab.on { color: var(--fg); }
+.an-tab.on::after {
+  content: ''; position: absolute;
+  left: 12px; right: 12px; bottom: -1px; height: 2px;
+  background: var(--fg);
+}
+
+/* Ranking index — used in funding/M&A deep-dives + investor leaderboard. */
+.rank-idx {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--fg-muted);
+  display: inline-block;
+  width: 22px; text-align: right;
+  margin-right: 8px;
+}
+.rank-row {
+  display: flex; align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.rank-row:last-child { border-bottom: 0; }
+.rank-name { flex: 1; font-weight: 600; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rank-bar {
+  flex: 0 0 120px;
+  height: 6px;
+  background: var(--bg-3);
+  position: relative;
+  overflow: hidden;
+}
+.rank-bar > span {
+  position: absolute; inset: 0;
+  background: var(--accent);
+  transform-origin: left;
+}
+.rank-val {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}

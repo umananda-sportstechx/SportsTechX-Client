@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
 	FilterRail, ActiveFiltersBar,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -64,6 +64,7 @@ export default function InvestorsPage() {
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 
 	const facets = useMemo<Facet[]>(() => [
 		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
@@ -151,9 +152,16 @@ export default function InvestorsPage() {
 						</div>
 					) : (
 						<div className="inv-grid">
-							{investors.map((i) => <InvestorCard key={i.id} i={i} />)}
+							{investors.map((i) => (
+								<InvestorCard key={i.id} i={i} onOpenDrawer={setDrawerTarget} />
+							))}
 						</div>
 					)}
+
+					<InvestorDrawer
+						idOrSlug={drawerTarget}
+						onClose={() => setDrawerTarget(null)}
+					/>
 
 					<CompareBar kind="investors" />
 
@@ -176,16 +184,25 @@ export default function InvestorsPage() {
 	);
 }
 
-function InvestorCard({ i }: { i: InvestorRow }) {
+function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOrSlug: string) => void }) {
 	const color = TYPE_COLORS[i.category ?? 'other'] ?? 'oklch(62% 0.04 240)';
 	const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 	const cc = i.hq_country ? countryCode(i.hq_country) : '';
 	const typeLabel = formatType(i.category ?? i.type);
+	const target = i.slug ?? i.id;
+	const handleClick = (e: React.MouseEvent) => {
+		if (e.metaKey || e.ctrlKey || e.button === 1) {
+			window.open(`/investors/${target}`, '_blank');
+			return;
+		}
+		onOpenDrawer(target);
+	};
 	return (
-		<Link
-			href={`/investors/${i.slug ?? i.id}`}
+		<button
+			type="button"
 			className="card inv-card"
-			style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+			onClick={handleClick}
 		>
 			<div className="inv-bar" style={{ background: color }} />
 			<div style={{ padding: 'var(--space-4)' }}>
@@ -256,7 +273,7 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 					<CompareToggle id={i.id} kind="investors" />
 				</div>
 			</div>
-		</Link>
+		</button>
 	);
 }
 

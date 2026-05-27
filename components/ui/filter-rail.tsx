@@ -234,9 +234,24 @@ function FRGroup({
 		onChange(clearFacetValue(facet));
 	};
 
+	const toggle = () => setOpen((o) => !o);
 	return (
 		<div className={`flt-group ${open ? 'open' : ''}`}>
-			<button className="flt-group-h" onClick={() => setOpen((o) => !o)}>
+			{/* Header is a div, not a button — it contains a nested <button> for
+			    "clear N", and HTML forbids nesting interactive elements. */}
+			<div
+				className="flt-group-h"
+				role="button"
+				tabIndex={0}
+				aria-expanded={open}
+				onClick={toggle}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						toggle();
+					}
+				}}
+			>
 				<span className="flt-group-title">{facet.label}</span>
 				<span className="flt-group-meta">
 					{count > 0 && (
@@ -247,7 +262,7 @@ function FRGroup({
 					)}
 					<ChevronRight size={10} className="flt-group-chev" />
 				</span>
-			</button>
+			</div>
 			{open && (
 				<div className="flt-group-body">
 					{facet.kind === 'bool' && (

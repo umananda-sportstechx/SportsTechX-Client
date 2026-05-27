@@ -7,6 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Filter, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Logo, Flag, Stat, Tag, SectorPill, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
+import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 
 interface DealRow {
 	id: string;
@@ -48,6 +49,9 @@ export default function FundingPage() {
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [sort, setSort] = useState<SortState | null>(
+		paramToSort(params.get('sort')) ?? { key: 'announced_date', dir: 'desc' },
+	);
 	const currentYear = new Date().getFullYear();
 
 	const updateUrl = (updates: Record<string, string | number | null>) => {
@@ -67,7 +71,7 @@ export default function FundingPage() {
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
-	const tableParams = { page, limit: 30, year: currentYear, sort: '-announced_date' };
+	const tableParams = { page, limit: 30, year: currentYear, sort: sortToParam(sort) ?? '-announced_date' };
 	const { data: tableData, isLoading } = useSWR<DealsResponse>(qk.deals.list(tableParams), { dedupingInterval: 3 * 60_000 });
 
 	const tableDeals = tableData?.data ?? [];
@@ -120,13 +124,13 @@ export default function FundingPage() {
 					<table className="data-table">
 						<thead>
 							<tr>
-								<th>Date</th>
+								<SortHeader label="Date" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 								<th>Company</th>
 								<th>Sector</th>
 								<th>Round</th>
 								<th>Geo</th>
 								<th>Lead Investor</th>
-								<th style={{ textAlign: 'right' }}>Amount</th>
+								<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 								<th style={{ textAlign: 'right' }}>Total raised</th>
 							</tr>
 						</thead>

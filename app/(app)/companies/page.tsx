@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Plus, Grid3x3, List, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Logo, Flag, SectorPill, Tag, Empty, PageTitle } from '@/components/ui/atoms';
@@ -12,6 +11,7 @@ import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import { CompanyDrawer } from '@/components/ui/company-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -48,6 +48,7 @@ export default function CompaniesPage() {
 
 	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'grid');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 
 	// Facets — server-driven where possible. Options come from /api/sectors etc.
 	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
@@ -161,7 +162,9 @@ export default function CompaniesPage() {
 						</div>
 					) : view === 'grid' ? (
 						<div className="co-grid">
-							{companies.map((c) => <CompanyCard key={c.id} c={c} />)}
+							{companies.map((c) => (
+								<CompanyCard key={c.id} c={c} onOpenDrawer={setDrawerTarget} />
+							))}
 						</div>
 					) : (
 						<div className="card">
@@ -179,15 +182,26 @@ export default function CompaniesPage() {
 								</thead>
 								<tbody>
 									{companies.map((c) => (
-										<tr key={c.id}>
+										<tr
+											key={c.id}
+											style={{ cursor: 'pointer' }}
+											onClick={(e) => {
+												const target = c.slug ?? c.id;
+												if (e.metaKey || e.ctrlKey) {
+													window.open(`/companies/${target}`, '_blank');
+													return;
+												}
+												setDrawerTarget(target);
+											}}
+										>
 											<td>
-												<Link href={`/companies/${c.slug ?? c.id}`} className="tbl-name-cell">
+												<div className="tbl-name-cell">
 													<Logo co={{ name: c.name }} size={28} />
 													<div className="tbl-name-text">
 														<div className="tbl-name-line"><span className="tbl-name">{c.name}</span></div>
 														{c.description && <div className="tbl-sub">{c.description}</div>}
 													</div>
-												</Link>
+												</div>
 											</td>
 											<td>{c.primary_sector ? <SectorPill name={c.primary_sector} /> : '—'}</td>
 											<td>{c.stage ? <Tag>{c.stage}</Tag> : '—'}</td>
@@ -208,6 +222,11 @@ export default function CompaniesPage() {
 							</table>
 						</div>
 					)}
+
+					<CompanyDrawer
+						idOrSlug={drawerTarget}
+						onClose={() => setDrawerTarget(null)}
+					/>
 
 					<CompareBar kind="companies" />
 
@@ -230,11 +249,25 @@ export default function CompaniesPage() {
 	);
 }
 
-function CompanyCard({ c }: { c: CompanyRow }) {
+function CompanyCard({ c, onOpenDrawer }: { c: CompanyRow; onOpenDrawer: (idOrSlug: string) => void }) {
 	const cc = c.hq_country ? countryCode(c.hq_country) : '';
 	const fav = (c.id.charCodeAt(c.id.length - 1) % 3) === 0;
+	const target = c.slug ?? c.id;
+	const handleClick = (e: React.MouseEvent) => {
+		// Cmd/Ctrl/middle-click → open full page in new tab. Plain click → drawer.
+		if (e.metaKey || e.ctrlKey || e.button === 1) {
+			window.open(`/companies/${target}`, '_blank');
+			return;
+		}
+		onOpenDrawer(target);
+	};
 	return (
-		<Link href={`/companies/${c.slug ?? c.id}`} className="card co-card" style={{ display: 'block' }}>
+		<button
+			type="button"
+			className="card co-card"
+			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+			onClick={handleClick}
+		>
 			<div className="co-card-head">
 				<Logo co={{ name: c.name }} size={44} />
 				<div style={{ flex: 1, minWidth: 0 }}>
@@ -268,7 +301,7 @@ function CompanyCard({ c }: { c: CompanyRow }) {
 			<div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
 				<CompareToggle id={c.id} kind="companies" />
 			</div>
-		</Link>
+		</button>
 	);
 }
 

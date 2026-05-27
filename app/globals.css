@@ -8,6 +8,10 @@
 @import "./filter-rail.css";
 /* Company detail page (hero, tabs, right rail, timeline, verify footer). */
 @import "./company-detail.css";
+/* My Lists — Liked / Watchlists / Saved Searches. */
+@import "./lists.css";
+/* Analytics — sub-tab nav + ranking helpers. */
+@import "./analytics.css";
 
 /* ============================================================================
  * SportsTechX design system — ported from ui_design/app/styles.css
