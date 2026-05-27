@@ -41,6 +41,20 @@ interface StaticCell { title: string; desc: string }
 const PILLAR_ORDER: Audience[] = ['athletes', 'fans', 'executives'];
 
 /**
+ * Map the actual top-level sector slugs in the DB to the design's audience
+ * taxonomy. The seed data uses `activity_performance` / `fans_content` /
+ * `management_organisation` for the three pillars — those are the rows with
+ * real subtree counts. Older `for_*` rows are near-empty duplicates that we
+ * deliberately ignore.
+ */
+const PILLAR_SLUG_ALIASES: Record<Audience, string[]> = {
+	athletes: ['activity_performance', 'for_athletes', 'athletes'],
+	fans: ['fans_content', 'for_fans', 'fans'],
+	executives: ['management_organisation', 'for_executives', 'executives'],
+	business: ['management_organisation', 'for_executives', 'executives'],
+};
+
+/**
  * Static fallback labels mirrored from ui_design_2/app/data.jsx lines 220-236.
  * Used only when the API doesn't return per-audience sector hierarchy yet.
  * Counts come from `/api/sectors?tree=true` when present; '—' otherwise.
@@ -81,39 +95,47 @@ export default function FrameworkPage() {
 	);
 
 	const columns = useMemo<PillarColumn[]>(() => {
-		const apiByAudience: Partial<Record<Audience, SectorNode>> = {};
+		// Build slug → node lookup once.
+		const bySlug = new Map<string, SectorNode>();
 		for (const node of data ?? []) {
-			const key = node.slug.toLowerCase() as Audience;
-			if (key in PILLAR_NAMES) apiByAudience[key] = node;
+			bySlug.set(node.slug.toLowerCase(), node);
 		}
 
 		return PILLAR_ORDER.map((audience) => {
-			const apiNode = apiByAudience[audience] ?? null;
+			// Resolve the actual pillar node via the alias map — picks the first
+			// alias that exists in the API response.
+			let apiNode: SectorNode | null = null;
+			for (const slug of PILLAR_SLUG_ALIASES[audience]) {
+				const hit = bySlug.get(slug);
+				if (hit) { apiNode = hit; break; }
+			}
+
 			const apiChildren = apiNode?.children ?? [];
 			const staticCells = STATIC_CELLS[audience];
 
-			// Prefer API children when present (3+ rows means the backend is the
-			// source of truth). Otherwise render static labels with API-derived
-			// counts where the API has a matching leaf by slug.
-			const cells = apiChildren.length >= 3
-				? apiChildren.slice(0, 3).map((c) => ({
-					key: c.id,
-					title: c.name,
-					desc: c.description ?? '',
-					count: c.company_count ?? null,
-					slug: c.slug,
-				}))
-				: staticCells.map((cell, i) => {
-					const fallbackSlug = cell.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-					const apiMatch = apiChildren.find((c) => c.name.toLowerCase() === cell.title.toLowerCase());
-					return {
-						key: `${audience}-${i}`,
-						title: cell.title,
-						desc: cell.desc,
-						count: apiMatch?.company_count ?? null,
-						slug: apiMatch?.slug ?? fallbackSlug,
-					};
+			// Prefer API children when present (any number). For missing rows,
+			// pad from static labels so the column always has 3 cells.
+			const cells: PillarColumn['cells'] = [];
+			for (const child of apiChildren.slice(0, 3)) {
+				cells.push({
+					key: child.id,
+					title: child.name,
+					desc: child.description ?? '',
+					count: child.company_count ?? 0,
+					slug: child.slug,
 				});
+			}
+			while (cells.length < 3 && cells.length < staticCells.length) {
+				const cell = staticCells[cells.length];
+				const fallbackSlug = cell.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+				cells.push({
+					key: `${audience}-${cells.length}`,
+					title: cell.title,
+					desc: cell.desc,
+					count: null,
+					slug: fallbackSlug,
+				});
+			}
 
 			return { audience, apiNode, cells };
 		});
@@ -196,16 +218,18 @@ export default function FrameworkPage() {
 													}}
 												>
 													<div style={{ fontWeight: 700, fontSize: 14 }}>{cell.title}</div>
-													<div
-														style={{
-															fontFamily: 'var(--font-mono)',
-															fontSize: 12,
-															fontWeight: 700,
-															color,
-														}}
-													>
-														{cell.count ?? '—'}
-													</div>
+													{cell.count != null && (
+														<div
+															style={{
+																fontFamily: 'var(--font-mono)',
+																fontSize: 12,
+																fontWeight: 700,
+																color,
+															}}
+														>
+															{cell.count.toLocaleString()}
+														</div>
+													)}
 												</div>
 												<div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>
 													{cell.desc || '—'}
