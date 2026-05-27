@@ -3,6 +3,15 @@
  * ticker, ai-panel, command-palette, cards, tags, tables, etc.) Loaded
  * here so component classes are available across the entire app. */
 @import "./design-system.css";
+/* Faceted left-rail filter system (shared across all list pages). Ported
+ * verbatim from ui_design_2/app/filter-rail.css. */
+@import "./filter-rail.css";
+/* Company detail page (hero, tabs, right rail, timeline, verify footer). */
+@import "./company-detail.css";
+/* My Lists — Liked / Watchlists / Saved Searches. */
+@import "./lists.css";
+/* Analytics — sub-tab nav + ranking helpers. */
+@import "./analytics.css";
 
 /* ============================================================================
  * SportsTechX design system — ported from ui_design/app/styles.css
@@ -27,9 +36,9 @@
   --accent-soft: oklch(58% 0.22 var(--accent-hue) / 0.12);
   --accent-fg: #FFFFFF;
 
-  /* Semantic status colors */
-  --pos: oklch(72% 0.18 145);
-  --neg: oklch(65% 0.22 25);
+  /* Semantic status colors — matched to ui_design_2/styles.css */
+  --pos: oklch(72% 0.10 165);   /* mint */
+  --neg: oklch(62% 0.21 5);     /* pink-red */
   --info: oklch(70% 0.16 235);
   --warn: oklch(78% 0.16 75);
 
@@ -45,6 +54,9 @@
   --border: rgba(10, 10, 10, 0.10);
   --border-strong: rgba(10, 10, 10, 0.20);
   --grid-line: rgba(10, 10, 10, 0.06);
+
+  /* Used by .card.feature stat cards. Unused in light mode (cards stay plain). */
+  --slate-deep: #2C3A4A;
 
   /* Typography stacks — populated by next/font in layout.tsx */
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
@@ -82,6 +94,8 @@
   --border: rgba(250, 250, 247, 0.10);
   --border-strong: rgba(250, 250, 247, 0.22);
   --grid-line: rgba(250, 250, 247, 0.06);
+  /* Used by .card.feature stat cards + analytics snapshot tiles */
+  --slate-deep: #2C3A4A;
 }
 
 /* Tailwind v4 token mapping — so utilities resolve to design tokens. */
