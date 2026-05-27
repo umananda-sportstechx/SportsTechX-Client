@@ -145,7 +145,7 @@ export default function MnaPage() {
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{statStrip(stats, currentYear).map((s, i) => (
-					<div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
+					<div key={i} className="card feature" style={{ padding: 'var(--space-4)' }}>
 						<Stat {...s} />
 					</div>
 				))}

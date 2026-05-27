@@ -1,13 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Filter, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Logo, Flag, Stat, Tag, SectorPill, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar, ViewToggle,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
+import { DealDrawer } from '@/components/ui/deal-drawer';
+
+/**
+ * Funding tracker — pixel-aligned to `ui_design_2/app/screens-2.jsx`
+ * `FundingScreen`.
+ *
+ * Layout:
+ *  1. PageTitle (with capital deployed + round count in the title).
+ *  2. 4 hero `.card.feature` stat tiles from /api/analytics/funding-totals.
+ *  3. Full-width Quarterly capital flow chart card.
+ *  4. flt-layout: FilterRail (sector, stage, country, deal size) + ActiveFiltersBar
+ *     with view toggle + deal table or grid.
+ *
+ * Filter / sort state is mirrored to URL so deep-links survive a refresh.
+ */
 
 interface DealRow {
 	id: string;
@@ -20,11 +40,15 @@ interface DealRow {
 	round_type_name?: string | null;
 	round_type_slug?: string | null;
 	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
 	sector_slug?: string | null;
 	lead_investor?: string | null;
 	hq_country?: string | null;
 	hq_city?: string | null;
 	total_funding_usd?: number | string | null;
+	company_sub?: string | null;
+	co_sub?: string | null;
+	description?: string | null;
 }
 
 interface DealsResponse { data: DealRow[]; total: number; page: number; totalPages: number }
@@ -43,25 +67,103 @@ interface QuarterlyPoint {
 	deal_count: number;
 }
 
+interface SectorRef { id: string; name: string; slug: string }
+interface RoundRef { id: string; name: string; slug: string }
+interface RefResponse<T> { data: T[] }
+
 export default function FundingPage() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
+	const currentYear = new Date().getFullYear();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 	const [sort, setSort] = useState<SortState | null>(
 		paramToSort(params.get('sort')) ?? { key: 'announced_date', dir: 'desc' },
 	);
-	const currentYear = new Date().getFullYear();
+	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 
-	const updateUrl = (updates: Record<string, string | number | null>) => {
-		const sp = new URLSearchParams(params.toString());
-		Object.entries(updates).forEach(([k, v]) => {
-			if (v == null || v === '') sp.delete(k);
-			else sp.set(k, String(v));
-		});
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-	};
+	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+
+	const { data: roundsResp } = useSWR<RefResponse<RoundRef> | RoundRef[]>(qk.reference.roundTypes(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
+
+	const facets = useMemo<Facet[]>(() => [
+		{
+			key: 'round_type_slug',
+			label: 'Round type',
+			kind: 'multi',
+			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
+		},
+		{
+			key: 'sector_slug',
+			label: 'Sub-sector',
+			kind: 'multi',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		{
+			key: 'amount',
+			label: 'Deal size',
+			kind: 'range',
+			min: 0,
+			max: 250,
+			step: 5,
+			prefix: '$',
+			suffix: 'M',
+		},
+	], [sectorList, roundList]);
+
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const s = params.get('sector_slug');
+		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		const r = params.get('round_type_slug');
+		if (r) init.round_type_slug = r.split(',').filter(Boolean);
+		const c = params.get('country');
+		if (c) init.country = c.split(',').filter(Boolean);
+		const aMin = params.get('amount_usd_min');
+		const aMax = params.get('amount_usd_max');
+		if (aMin && aMax) init.amount = [Number(aMin) / 1_000_000, Number(aMax) / 1_000_000] as [number, number];
+		return init;
+	});
+
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		const sec = filterState.sector_slug as string[] | undefined;
+		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const rnd = filterState.round_type_slug as string[] | undefined;
+		if (rnd?.length) sp.set('round_type_slug', rnd.join(','));
+		const ctry = filterState.country as string[] | undefined;
+		if (ctry?.length) sp.set('country', ctry.join(','));
+		const amt = filterState.amount as [number, number] | undefined;
+		if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
+			sp.set('amount_usd_min', String(amt[0] * 1_000_000));
+			sp.set('amount_usd_max', String(amt[1] * 1_000_000));
+		}
+		if (page > 1) sp.set('page', String(page));
+		if (view !== 'table') sp.set('view', view);
+		const sortParam = sortToParam(sort);
+		if (sortParam && sortParam !== '-announced_date') sp.set('sort', sortParam);
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page, view, sort]);
+
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
 	const { data: totals } = useSWR<FundingTotalsResponse>(qk.analytics.fundingTotals('ytd'), {
 		dedupingInterval: 10 * 60_000,
@@ -71,14 +173,36 @@ export default function FundingPage() {
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
-	const tableParams = { page, limit: 30, year: currentYear, sort: sortToParam(sort) ?? '-announced_date' };
+	const tableParams: Record<string, unknown> = {
+		page,
+		limit: view === 'grid' ? 36 : 30,
+		year: currentYear,
+		sort: sortToParam(sort) ?? '-announced_date',
+	};
+	if (debouncedSearch) tableParams.search = debouncedSearch;
+	const sec = filterState.sector_slug as string[] | undefined;
+	if (sec?.length === 1) tableParams.sector_slug = sec[0];
+	else if (sec?.length) tableParams.sector_slug = sec.join(',');
+	const rnd = filterState.round_type_slug as string[] | undefined;
+	if (rnd?.length === 1) tableParams.round_type_slug = rnd[0];
+	else if (rnd?.length) tableParams.round_type_slug = rnd.join(',');
+	const ctry = filterState.country as string[] | undefined;
+	if (ctry?.length === 1) tableParams.country = ctry[0];
+	const amt = filterState.amount as [number, number] | undefined;
+	if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
+		tableParams.amount_usd_min = amt[0] * 1_000_000;
+		tableParams.amount_usd_max = amt[1] * 1_000_000;
+	}
+
 	const { data: tableData, isLoading } = useSWR<DealsResponse>(qk.deals.list(tableParams), { dedupingInterval: 3 * 60_000 });
 
 	const tableDeals = tableData?.data ?? [];
 	const totalRows = tableData?.total ?? 0;
 	const totalPages = tableData?.totalPages ?? 1;
 
-	const headlineDeployed = totals ? splitDollars(totals.total_amount).value + splitDollars(totals.total_amount).unit : '—';
+	const headlineDeployed = totals
+		? splitDollars(totals.total_amount).value + splitDollars(totals.total_amount).unit
+		: '—';
 	const headlineRounds = totals ? totals.round_count.toLocaleString() : '—';
 
 	return (
@@ -88,14 +212,16 @@ export default function FundingPage() {
 				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
 			/>
 
+			{/* All four stat cards use .card.feature per design */}
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{statStrip(totals).map((s, i) => (
-					<div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
+					<div key={i} className="card feature" style={{ padding: 'var(--space-4)' }}>
 						<Stat {...s} />
 					</div>
 				))}
 			</div>
 
+			{/* Quarterly chart — full-width above the rail layout */}
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
 				<SectionHead title="Quarterly capital flow" meta={`${currentYear - 2} — ${currentYear}`} />
 				<div style={{ padding: 'var(--space-4)' }}>
@@ -105,86 +231,170 @@ export default function FundingPage() {
 				</div>
 			</div>
 
-			<div className="card">
-				<SectionHead
-					title={`All Rounds · ${currentYear}`}
-					meta={`${totalRows.toLocaleString()} disclosed`}
-					action={
-						<div style={{ display: 'flex', gap: 8 }}>
-							<button className="btn ghost"><Filter size={12} /> Filters</button>
-							<button className="btn ghost"><FileText size={12} /> CSV</button>
-						</div>
-					}
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+					defaultOpen={{ round_type_slug: true, sector_slug: true }}
 				/>
-				{isLoading && tableDeals.length === 0 ? (
-					<Empty msg="Loading…" />
-				) : tableDeals.length === 0 ? (
-					<Empty msg={`No disclosed rounds in ${currentYear}.`} />
-				) : (
-					<table className="data-table">
-						<thead>
-							<tr>
-								<SortHeader label="Date" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
-								<th>Company</th>
-								<th>Sector</th>
-								<th>Round</th>
-								<th>Geo</th>
-								<th>Lead Investor</th>
-								<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
-								<th style={{ textAlign: 'right' }}>Total raised</th>
-							</tr>
-						</thead>
-						<tbody>
+
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search deals, companies, investors…"
+						total={totalRows}
+						shown={tableDeals.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
+					/>
+
+					{isLoading && tableDeals.length === 0 ? (
+						<Empty msg="Loading…" />
+					) : tableDeals.length === 0 ? (
+						<div className="card flt-empty-state">
+							<h3>No rounds match</h3>
+							<p>Adjust the filters in the rail to widen results.</p>
+						</div>
+					) : view === 'grid' ? (
+						<div className="deal-grid">
 							{tableDeals.map((d) => {
 								const cc = d.hq_country ? countryCode(d.hq_country) : '';
-								const round = d.round_type_name ?? '—';
-								const isSeries = round.toLowerCase().includes('series');
 								return (
-									<tr key={d.id}>
-										<td className="num">{formatShortDate(d.announced_date)}</td>
-										<td>
-											<Link
-												href={d.company_slug || d.company_id ? `/companies/${d.company_slug ?? d.company_id}` : '#'}
-												style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-											>
-												<Logo co={{ name: d.company_name ?? '—' }} size={24} />
-												<span style={{ fontWeight: 600 }}>{d.company_name ?? '—'}</span>
-											</Link>
-										</td>
-										<td>{d.primary_sector ? <SectorPill name={d.primary_sector} /> : '—'}</td>
-										<td>{round !== '—' ? <Tag variant={isSeries ? 'pos' : ''}>{round}</Tag> : '—'}</td>
-										<td>{cc && <Flag cc={cc} />} {cc}</td>
-										<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
-										<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>{formatDollars(d.amount_usd)}</td>
-										<td className="num" style={{ textAlign: 'right', color: 'var(--fg-2)' }}>{formatDollars(d.total_funding_usd ?? d.amount_usd)}</td>
-									</tr>
+									<button
+										key={d.id}
+										type="button"
+										className="card deal-card linkable"
+										onClick={(e) => {
+											if ((e.target as HTMLElement).closest('button, a')) return;
+											if (e.metaKey || e.ctrlKey) {
+												window.open(`/deals/${d.id}`, '_blank');
+												return;
+											}
+											setDrawerTarget(d.id);
+										}}
+									>
+										<div className="deal-card-head">
+											<Logo co={{ name: d.company_name ?? '—' }} size={40} />
+											<div style={{ minWidth: 0, flex: 1 }}>
+												<div className="deal-card-name">{d.company_name ?? '—'}</div>
+												{(d.company_sub ?? d.co_sub ?? d.description) && (
+													<div className="deal-card-sub">{d.company_sub ?? d.co_sub ?? d.description}</div>
+												)}
+											</div>
+											<div className="deal-card-amount">
+												<div className="deal-card-amount-v">{formatDealAmount(d.amount_usd)}</div>
+												{d.round_type_name && <Tag variant="pos">{d.round_type_name}</Tag>}
+											</div>
+										</div>
+										<div className="deal-card-meta">
+											<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+												{cc && <Flag cc={cc} />} {d.hq_city ?? d.hq_country ?? '—'}
+											</span>
+											<span className="deal-card-date">{formatShortDate(d.announced_date)}</span>
+										</div>
+										{d.lead_investor && (
+											<div className="deal-card-investors">
+												<span className="deal-card-investors-label">Lead investor</span>
+												<span className="deal-card-investors-list">{d.lead_investor}</span>
+											</div>
+										)}
+									</button>
 								);
 							})}
-						</tbody>
-					</table>
-				)}
+						</div>
+					) : (
+						<div className="card">
+							<table className="data-table funding-table">
+								<thead>
+									<tr>
+										<SortHeader label="Date" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
+										<SortHeader label="Company" sortKey="company_name" sort={sort} setSort={setSort} />
+										<th>Sector</th>
+										<th>HQ</th>
+										<th>Round</th>
+										<th>Lead investor</th>
+										<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
+									</tr>
+								</thead>
+								<tbody>
+									{tableDeals.map((d) => {
+										const cc = d.hq_country ? countryCode(d.hq_country) : '';
+										const round = d.round_type_name ?? '—';
+										const sectorName = d.primary_sector ?? '';
+										const sectorSlug = d.sector_slug ?? d.primary_sector_slug ?? sectorName;
+										return (
+											<tr
+												key={d.id}
+												style={{ cursor: 'pointer' }}
+												onClick={(e) => {
+													if ((e.target as HTMLElement).closest('button, a')) return;
+													if (e.metaKey || e.ctrlKey) {
+														window.open(`/deals/${d.id}`, '_blank');
+														return;
+													}
+													setDrawerTarget(d.id);
+												}}
+											>
+												<td className="num">{formatShortDate(d.announced_date)}</td>
+												<td>
+													<div className="tbl-name-cell">
+														<Logo co={{ name: d.company_name ?? '—' }} size={28} />
+														<div className="tbl-name-text">
+															<div className="tbl-name-line">
+																<Link
+																	href={d.company_slug ? `/companies/${d.company_slug}` : '/funding'}
+																	className="tbl-name co-row-name"
+																	onClick={(e) => e.stopPropagation()}
+																>
+																	{d.company_name ?? '—'}
+																</Link>
+															</div>
+															{(d.company_sub ?? d.co_sub ?? d.description) && (
+																<div className="tbl-sub">{d.company_sub ?? d.co_sub ?? d.description}</div>
+															)}
+														</div>
+													</div>
+												</td>
+												<td>
+													{sectorName
+														? <AudiencePill sectorSlug={sectorSlug} label={sectorName} size="sm" />
+														: <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+												</td>
+												<td title={d.hq_country ?? ''}>{cc && <Flag cc={cc} />}</td>
+												<td>{round !== '—' ? <Tag variant="pos">{round}</Tag> : '—'}</td>
+												<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
+												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+													{formatDealAmount(d.amount_usd)}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
+					)}
 
-				{totalPages > 1 && (
-					<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '12px var(--space-4)' }}>
-						<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
-							Page {page} of {totalPages}
-						</span>
-						<button
-							className="btn ghost"
-							disabled={page <= 1}
-							onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
-						>
-							<ChevronLeft size={14} />
-						</button>
-						<button
-							className="btn ghost"
-							disabled={page >= totalPages}
-							onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
-						>
-							<ChevronRight size={14} />
-						</button>
-					</div>
-				)}
+					<DealDrawer
+						id={drawerTarget}
+						onClose={() => setDrawerTarget(null)}
+					/>
+
+					{totalPages > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+								Page {page} of {totalPages}
+							</span>
+							<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+								<ChevronLeft size={14} />
+							</button>
+							<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+								<ChevronRight size={14} />
+							</button>
+						</div>
+					)}
+				</div>
 			</div>
 		</Page>
 	);
@@ -195,10 +405,10 @@ function statStrip(t: FundingTotalsResponse | undefined) {
 	const m = splitDollars(t?.median_amount ?? 0);
 	const l = splitDollars(t?.largest_amount ?? 0);
 	return [
-		{ label: 'Capital · YTD', value: d.value, unit: d.unit, delta: '', deltaDir: 'pos' as const },
-		{ label: 'Rounds · YTD',  value: (t?.round_count ?? 0).toLocaleString(), delta: 'live', deltaDir: 'pos' as const },
-		{ label: 'Median ticket', value: m.value, unit: m.unit, delta: '', deltaDir: 'pos' as const },
-		{ label: 'Largest round', value: l.value, unit: l.unit, delta: '', deltaDir: 'pos' as const },
+		{ label: 'Capital · YTD', value: d.value, unit: d.unit, deltaDir: 'pos' as const },
+		{ label: 'Rounds · YTD',  value: (t?.round_count ?? 0).toLocaleString(), deltaDir: 'pos' as const },
+		{ label: 'Median ticket', value: m.value, unit: m.unit, deltaDir: 'pos' as const },
+		{ label: 'Largest round', value: l.value, unit: l.unit, deltaDir: 'pos' as const },
 	];
 }
 
@@ -268,14 +478,14 @@ function splitDollars(n: number): { value: string; unit: string } {
 	return { value: `$${n.toFixed(0)}`, unit: '' };
 }
 
-function formatDollars(value: number | string | null | undefined): string {
-	if (value == null) return '—';
+function formatDealAmount(value: number | string | null | undefined): React.ReactNode {
+	if (value == null) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
 	const n = typeof value === 'string' ? Number(value) : value;
-	if (!Number.isFinite(n) || n <= 0) return '—';
-	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-	return `$${n.toFixed(0)}`;
+	if (!Number.isFinite(n) || n <= 0) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
+	const m = n / 1_000_000;
+	if (m >= 1000) return <>${(m / 1000).toFixed(1)}<span style={{ fontSize: 10, color: 'var(--fg-muted)', marginLeft: 2 }}>B</span></>;
+	if (m >= 1) return <>${m.toFixed(1)}<span style={{ fontSize: 10, color: 'var(--fg-muted)', marginLeft: 2 }}>M</span></>;
+	return <>${(n / 1000).toFixed(0)}<span style={{ fontSize: 10, color: 'var(--fg-muted)', marginLeft: 2 }}>K</span></>;
 }
 
 function formatShortDate(iso: string | null | undefined): string {
@@ -295,3 +505,9 @@ function countryCode(countryName: string): string {
 	};
 	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }
+
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
