@@ -97,9 +97,22 @@ interface NewsletterArticle {
 	author: string;
 }
 
+interface QuarterlyPoint {
+	year: number;
+	quarter: number;
+	quarter_label: string;
+	total_amount: number;
+	deal_count: number;
+}
+
 export default function DashboardPage() {
+	const currentYear = new Date().getFullYear();
 	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('ytd'), { dedupingInterval: 10 * 60_000 });
 	const { data: fundingTotals } = useSWR<FundingTotals>(qk.analytics.fundingTotals('ytd'), { dedupingInterval: 10 * 60_000 });
+	const { data: quarters } = useSWR<QuarterlyPoint[]>(
+		qk.analytics.quarterly({ from: currentYear - 2, to: currentYear }),
+		{ dedupingInterval: 10 * 60_000 },
+	);
 	const { data: dealsResp } = useSWR<DealResp>(qk.deals.list({ limit: 8, sort: '-announced_date' }), { dedupingInterval: 5 * 60_000 });
 	const { data: reports } = useSWR<ReportResp>(qk.reports.list(), { dedupingInterval: 30 * 60_000 });
 	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3, sort: 'start_date' }), { dedupingInterval: 30 * 60_000 });
@@ -119,9 +132,9 @@ export default function DashboardPage() {
 		<Page>
 			<PageHeader />
 
-			{/* Hero stat strip — all four use .card.feature per design */}
+			{/* Hero stat strip — all four use .card.feature (slate gradient in dark mode) */}
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				{heroStrip(stats, fundingTotals).map((s) => (
+				{heroStrip(stats, fundingTotals, quarters).map((s) => (
 					<div key={s.label} className="card feature" style={{ padding: 'var(--space-4)' }}>
 						<Stat {...s} />
 					</div>
@@ -202,11 +215,29 @@ export default function DashboardPage() {
 							</Link>
 						}
 					/>
-					<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
-						{!latestIssue ? (
+					{!latestIssue ? (
+						<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
 							<Empty msg="No newsletter issues yet" />
-						) : (
-							<>
+						</div>
+					) : (
+						<>
+							{/* Cover image from Beehiiv RSS thumbnail — clickable, opens issue */}
+							{latestIssue.thumbnail && (
+								<a
+									href={latestIssue.link}
+									target="_blank"
+									rel="noopener noreferrer"
+									style={{ display: 'block', position: 'relative', height: 160, overflow: 'hidden', borderBottom: '1px solid var(--border)' }}
+								>
+									{/* eslint-disable-next-line @next/next/no-img-element */}
+									<img
+										src={latestIssue.thumbnail}
+										alt=""
+										style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+									/>
+								</a>
+							)}
+							<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 								<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
 									The Sports Tech Recap · {formatIssueDate(latestIssue.pubDate)}
 								</div>
@@ -230,7 +261,7 @@ export default function DashboardPage() {
 										marginBottom: 16,
 										flex: 1,
 										display: '-webkit-box',
-										WebkitLineClamp: 4,
+										WebkitLineClamp: 3,
 										WebkitBoxOrient: 'vertical',
 										overflow: 'hidden',
 									}}
@@ -245,9 +276,9 @@ export default function DashboardPage() {
 										Read issue <ArrowRight size={12} />
 									</a>
 								</div>
-							</>
-						)}
-					</div>
+							</div>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -410,15 +441,74 @@ function PageHeader() {
 	);
 }
 
-function heroStrip(s: DashboardStats | undefined, f: FundingTotals | undefined) {
+/**
+ * Build the 4 hero stat cards. Sparklines + QoQ deltas are derived from the
+ * quarterly capital flow series — falls back to no spark + no delta if the
+ * series isn't loaded yet.
+ */
+function heroStrip(
+	s: DashboardStats | undefined,
+	f: FundingTotals | undefined,
+	q: QuarterlyPoint[] | undefined,
+) {
 	const cap = splitDollars(s?.total_funding ?? 0);
 	const median = splitDollars(f?.median_amount ?? 0);
+	const year = new Date().getFullYear();
+
+	// Sparkline series — last 12 data points if available.
+	const capSpark = q ? q.slice(-12).map((p) => p.total_amount) : undefined;
+	const roundsSpark = q ? q.slice(-12).map((p) => p.deal_count) : undefined;
+
+	// QoQ delta — compare last quarter to the one before.
+	const capDelta = pctDelta(q, (p) => p.total_amount);
+	const roundsDelta = pctDelta(q, (p) => p.deal_count);
+
 	return [
-		{ label: 'Capital · YTD', value: cap.value, unit: cap.unit, deltaDir: 'pos' as const },
-		{ label: 'Disclosed rounds', value: (s?.total_deals ?? 0).toLocaleString(), deltaDir: 'pos' as const },
-		{ label: 'M&A · YTD', value: (s?.total_acquisitions ?? 0).toLocaleString(), deltaDir: 'pos' as const },
-		{ label: 'Median round', value: median.value, unit: median.unit, deltaDir: 'pos' as const },
+		{
+			label: `Capital · YTD ${year}`,
+			value: cap.value,
+			unit: cap.unit,
+			delta: capDelta?.label,
+			deltaDir: (capDelta?.dir ?? 'pos') as 'pos' | 'neg',
+			spark: capSpark,
+			sparkColor: 'var(--pos)',
+		},
+		{
+			label: 'Disclosed rounds',
+			value: (s?.total_deals ?? 0).toLocaleString(),
+			delta: roundsDelta?.label,
+			deltaDir: (roundsDelta?.dir ?? 'pos') as 'pos' | 'neg',
+			spark: roundsSpark,
+			sparkColor: 'var(--pos)',
+		},
+		{
+			label: 'M&A · YTD',
+			value: (s?.total_acquisitions ?? 0).toLocaleString(),
+			deltaDir: 'pos' as const,
+		},
+		{
+			label: 'Median round',
+			value: median.value,
+			unit: median.unit,
+			deltaDir: 'pos' as const,
+		},
 	];
+}
+
+function pctDelta(
+	series: QuarterlyPoint[] | undefined,
+	pick: (p: QuarterlyPoint) => number,
+): { label: string; dir: 'pos' | 'neg' } | null {
+	if (!series || series.length < 2) return null;
+	const last = pick(series[series.length - 1]);
+	const prev = pick(series[series.length - 2]);
+	if (prev === 0) return null;
+	const pct = Math.round(((last - prev) / prev) * 100);
+	if (!Number.isFinite(pct) || pct === 0) return null;
+	return {
+		label: `${pct > 0 ? '+' : ''}${pct}% QoQ`,
+		dir: pct >= 0 ? 'pos' : 'neg',
+	};
 }
 
 function countryCode(countryName: string): string {

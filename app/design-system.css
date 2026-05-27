@@ -432,16 +432,19 @@
   border: 1px solid var(--border);
   position: relative;
 }
-.card.feature {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in oklch, var(--accent), #000 18%) 100%);
-  color: var(--accent-fg);
-  border-color: var(--accent);
+/* Feature cards = same as regular .card in light mode, dark slate gradient
+ * in dark mode. Matches `ui_design_2/app/styles.css:493-503` verbatim. */
+[data-theme="dark"] .card.feature {
+  background: linear-gradient(135deg, var(--slate-deep) 0%, #1A2129 100%);
+  color: #fff;
+  border-color: transparent;
 }
-.card.feature .stat-label,
-.card.feature .co-stat-label { color: rgba(255,255,255,0.78); }
-.card.feature .stat-value,
-.card.feature .co-stat-val { color: #fff; }
-.card.feature .stat-delta.pos { color: #fff; }
+[data-theme="dark"] .card.feature .stat-label,
+[data-theme="dark"] .card.feature .co-stat-label { color: rgba(255,255,255,0.62); }
+[data-theme="dark"] .card.feature .stat-value,
+[data-theme="dark"] .card.feature .co-stat-val { color: #fff; }
+[data-theme="dark"] .card.feature .stat-delta.pos { color: var(--pos); }
+[data-theme="dark"] .card.feature .stat-delta.neg { color: var(--neg); }
 
 /* === AUDIENCE PILL ===
    For Athletes / For Fans / For Execs — used in all table sector columns.
