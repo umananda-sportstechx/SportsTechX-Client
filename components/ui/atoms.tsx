@@ -83,19 +83,19 @@ export function Flag({
 }) {
 	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
 	const label = name ?? CC_TO_COUNTRY[cc] ?? cc;
+	// Custom CSS tooltip via `data-tip`; the browser default `title` is
+	// intentionally NOT set so users never see the plain yellow OS popup.
+	// Styling lives in app/design-system.css under `.flag[data-tip]`.
 	return (
 		<span
 			className="flag"
-			title={label}
+			data-tip={label}
 			aria-label={label}
 			role="img"
-			tabIndex={0}
 			style={{
 				width: size,
 				height: size * 0.7,
 				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
-				outline: 'none',
-				cursor: 'help',
 				display: 'inline-block',
 				verticalAlign: 'middle',
 			}}
