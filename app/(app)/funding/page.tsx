@@ -293,7 +293,7 @@ export default function FundingPage() {
 										}}
 									>
 										<div className="deal-card-head">
-											<Logo co={{ name: d.company_name ?? '—' }} size={40} />
+											<Logo co={{ name: d.company_name ?? '—', website: d.company_website }} size={40} />
 											<div style={{ minWidth: 0, flex: 1 }}>
 												<div className="deal-card-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 													{d.company_name ?? '—'}
@@ -370,7 +370,7 @@ export default function FundingPage() {
 												<td className="num">{formatShortDate(d.announced_date)}</td>
 												<td>
 													<div className="tbl-name-cell">
-														<Logo co={{ name: d.company_name ?? '—' }} size={28} />
+														<Logo co={{ name: d.company_name ?? '—', website: d.company_website }} size={28} />
 														<div className="tbl-name-text">
 															<div className="tbl-name-line">
 																<Link
