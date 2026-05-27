@@ -931,7 +931,10 @@
 
 /* ─── Newsletter detail page ─── */
 .news-detail {
-  max-width: 820px;
+  /* Was 820px — too cramped on wide monitors. 1200px gives the hero room
+   * to breathe and still keeps the body card from spanning the whole
+   * 16:9 viewport. The page's outer padding still caps the very edge. */
+  max-width: 1200px;
   margin: 0 auto;
 }
 
