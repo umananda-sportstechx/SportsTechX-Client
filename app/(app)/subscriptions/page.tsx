@@ -105,7 +105,6 @@ export default function SubscriptionsPage() {
 		}
 	};
 
-	const trustedBy = useMemo(() => ['adidas', 'NBA', 'PUMA', 'Sky', 'Sportradar', 'WHOOP'], []);
 	const plans = plansResp?.data ?? [];
 	const currentRank = TIER_RANK[currentTier] ?? 0;
 
@@ -185,15 +184,6 @@ export default function SubscriptionsPage() {
 							</summary>
 							<p>{f.a}</p>
 						</details>
-					))}
-				</div>
-			</div>
-
-			<div className="card" style={{ padding: 'var(--space-5)' }}>
-				<SectionHead title="Trusted by" />
-				<div className="sub-trusted">
-					{trustedBy.map((n) => (
-						<div key={n} className="sub-trusted-logo">{n}</div>
 					))}
 				</div>
 			</div>
