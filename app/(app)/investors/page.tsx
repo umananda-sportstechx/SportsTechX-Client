@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Flag, Tag, Chip, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
+import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -35,11 +39,13 @@ interface InvestorsResponse {
 	totalPages: number;
 }
 
-const TYPE_CHIPS: Array<{ label: string; key: string }> = [
-	{ label: 'VC', key: 'venture_capital' },
-	{ label: 'CVC', key: 'financial_services' },
-	{ label: 'PE', key: 'private_equity' },
-	{ label: 'Family Office', key: 'family_investment_office' },
+const CATEGORY_OPTIONS = [
+	{ value: 'venture_capital', label: 'VC' },
+	{ value: 'financial_services', label: 'CVC' },
+	{ value: 'private_equity', label: 'PE' },
+	{ value: 'family_investment_office', label: 'Family Office' },
+	{ value: 'sovereign_wealth_fund', label: 'SWF' },
+	{ value: 'angel', label: 'Angel' },
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -57,23 +63,50 @@ export default function InvestorsPage() {
 	const pathname = usePathname();
 	const params = useSearchParams();
 
-	const [search, setSearch] = useState(params.get('q') ?? '');
-	const [category, setCategory] = useState(params.get('category') ?? '');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
-	const debouncedSearch = useDebouncedValue(search, 300);
+	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 
-	const updateUrl = (updates: Record<string, string | number | null>) => {
-		const sp = new URLSearchParams(params.toString());
-		Object.entries(updates).forEach(([k, v]) => {
-			if (v == null || v === '') sp.delete(k);
-			else sp.set(k, String(v));
-		});
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-	};
+	const facets = useMemo<Facet[]>(() => [
+		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
+		{ key: 'actively_investing', label: 'Actively investing', kind: 'bool' },
+		{
+			key: 'category',
+			label: 'Firm type',
+			kind: 'multi',
+			options: () => CATEGORY_OPTIONS,
+		},
+	], []);
+
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const v = params.get('is_verified'); if (v) init.is_verified = v === 'true';
+		const a = params.get('actively_investing'); if (a) init.actively_investing = a === 'true';
+		const c = params.get('category');
+		if (c) init.category = c.split(',').filter(Boolean);
+		return init;
+	});
+
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		if (filterState.is_verified === true) sp.set('is_verified', 'true');
+		if (filterState.actively_investing === true) sp.set('actively_investing', 'true');
+		const cat = filterState.category as string[] | undefined;
+		if (cat?.length) sp.set('category', cat.join(','));
+		if (page > 1) sp.set('page', String(page));
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page]);
+
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
-	if (category) queryParams.category = category;
+	const cat = filterState.category as string[] | undefined;
+	if (cat?.length === 1) queryParams.category = cat[0];
+	if (filterState.is_verified === true) queryParams.is_verified = true;
+	if (filterState.actively_investing === true) queryParams.actively_investing = true;
 
 	const { data, isLoading } = useSWR<InvestorsResponse>(qk.investors.list(queryParams), {
 		dedupingInterval: 3 * 60_000,
@@ -83,132 +116,104 @@ export default function InvestorsPage() {
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
 
-	const handleChip = (key: string) => {
-		const next = category === key ? '' : key;
-		setCategory(next);
-		setPage(1);
-		updateUrl({ category: next || null, page: null });
-	};
-
 	return (
 		<Page>
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-end',
-					justifyContent: 'space-between',
-					marginBottom: 'var(--space-5)',
-					flexWrap: 'wrap',
-					gap: 16,
-				}}
-			>
-				<div>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-						}}
-					>
-						Capital · {total.toLocaleString()} firms
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: '0 0 6px',
-						}}
-					>
-						Investors
-					</h1>
-					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
-						The capital markets behind sports tech — VCs, corporate venture, PE and family offices.
-					</p>
-				</div>
-				<button className="btn"><Plus size={12} /> Add to watchlist</button>
-			</div>
+			<PageTitle
+				kicker={`Capital · ${total.toLocaleString()} firms`}
+				title="Investors"
+				sub="The capital markets behind sports tech — VCs, corporate venture, PE and accelerators."
+				action={<button className="btn"><Plus size={12} /> Add to watchlist</button>}
+			/>
 
-			<div className="filter-bar">
-				<div style={{ position: 'relative', flex: '0 0 280px' }}>
-					<Search
-						size={14}
-						style={{ position: 'absolute', left: 10, top: 9, color: 'var(--fg-muted)', pointerEvents: 'none' }}
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+					defaultOpen={{ category: true }}
+				/>
+
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search firms, thesis, portfolio…"
+						total={total}
+						shown={investors.length}
 					/>
-					<input
-						className="search-input"
-						style={{ paddingLeft: 32, height: 32, width: '100%' }}
-						placeholder="Search…"
-						value={search}
-						onChange={(e) => {
-							setSearch(e.target.value);
-							setPage(1);
-							updateUrl({ q: e.target.value || null, page: null });
-						}}
+
+					{isLoading && investors.length === 0 ? (
+						<Empty msg="Loading…" />
+					) : investors.length === 0 ? (
+						<div className="card flt-empty-state">
+							<h3>No investors match</h3>
+							<p>Try clearing some filters.</p>
+						</div>
+					) : (
+						<div className="inv-grid">
+							{investors.map((i) => (
+								<InvestorCard key={i.id} i={i} onOpenDrawer={setDrawerTarget} />
+							))}
+						</div>
+					)}
+
+					<InvestorDrawer
+						idOrSlug={drawerTarget}
+						onClose={() => setDrawerTarget(null)}
 					/>
+
+					<CompareBar kind="investors" />
+
+					{totalPages > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+								Page {page} of {totalPages}
+							</span>
+							<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+								<ChevronLeft size={14} />
+							</button>
+							<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+								<ChevronRight size={14} />
+							</button>
+						</div>
+					)}
 				</div>
-				<Chip active={!category} count={total} onClick={() => handleChip('')}>
-					All
-				</Chip>
-				{TYPE_CHIPS.map((c) => (
-					<Chip key={c.key} active={category === c.key} onClick={() => handleChip(c.key)}>
-						{c.label}
-					</Chip>
-				))}
 			</div>
-
-			{isLoading && investors.length === 0 ? (
-				<Empty msg="Loading…" />
-			) : investors.length === 0 ? (
-				<Empty msg="No investors match those filters." />
-			) : (
-				<div className="inv-grid">
-					{investors.map((i) => <InvestorCard key={i.id} i={i} />)}
-				</div>
-			)}
-
-			<CompareBar kind="investors" />
-
-			{totalPages > 1 && (
-				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
-					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
-						Page {page} of {totalPages}
-					</span>
-					<button
-						className="btn ghost"
-						disabled={page <= 1}
-						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronLeft size={14} />
-					</button>
-					<button
-						className="btn ghost"
-						disabled={page >= totalPages}
-						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronRight size={14} />
-					</button>
-				</div>
-			)}
 		</Page>
 	);
 }
 
-function InvestorCard({ i }: { i: InvestorRow }) {
+function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOrSlug: string) => void }) {
 	const color = TYPE_COLORS[i.category ?? 'other'] ?? 'oklch(62% 0.04 240)';
 	const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 	const cc = i.hq_country ? countryCode(i.hq_country) : '';
 	const typeLabel = formatType(i.category ?? i.type);
+	const target = i.slug ?? i.id;
+	const open = () => onOpenDrawer(target);
+	const handleClick = (e: React.MouseEvent) => {
+		if ((e.target as HTMLElement).closest('button, a')) return;
+		if (e.metaKey || e.ctrlKey || e.button === 1) {
+			window.open(`/investors/${target}`, '_blank');
+			return;
+		}
+		open();
+	};
 	return (
-		<Link
-			href={`/investors/${i.slug ?? i.id}`}
+		// `<div role="button">` — CompareToggle button inside forbids nesting.
+		<div
+			role="button"
+			tabIndex={0}
 			className="card inv-card"
-			style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+			onClick={handleClick}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					if ((e.target as HTMLElement).closest('button, a')) return;
+					e.preventDefault();
+					open();
+				}
+			}}
 		>
 			<div className="inv-bar" style={{ background: color }} />
 			<div style={{ padding: 'var(--space-4)' }}>
@@ -279,7 +284,7 @@ function InvestorCard({ i }: { i: InvestorRow }) {
 					<CompareToggle id={i.id} kind="investors" />
 				</div>
 			</div>
-		</Link>
+		</div>
 	);
 }
 
