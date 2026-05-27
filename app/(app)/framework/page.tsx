@@ -117,10 +117,18 @@ export default function FrameworkPage() {
 			// pad from static labels so the column always has 3 cells.
 			const cells: PillarColumn['cells'] = [];
 			for (const child of apiChildren.slice(0, 3)) {
+				// Auto-generated description = comma-joined leaf names. Falls
+				// back to the API's own description field, then to the static
+				// label by name match, then to empty.
+				const leafNames = (child.children ?? []).map((g) => g.name).filter(Boolean);
+				const staticMatch = staticCells.find((c) => c.title.toLowerCase() === child.name.toLowerCase());
+				const desc = leafNames.length > 0
+					? leafNames.join(', ')
+					: (child.description?.trim() || staticMatch?.desc || '');
 				cells.push({
 					key: child.id,
-					title: child.name,
-					desc: child.description ?? '',
+					title: prettyTitle(child.name),
+					desc,
 					count: child.company_count ?? 0,
 					slug: child.slug,
 				});
@@ -285,4 +293,17 @@ export default function FrameworkPage() {
 			</div>
 		</Page>
 	);
+}
+
+/**
+ * The DB seed has compact names like "For Activity Hardware"; the design
+ * mockup formats them with an em-dash ("For Activity — Hardware") so the
+ * "For Activity" prefix reads as a category. Targeted rewrite — anything
+ * starting with "For Activity " (Hardware / Software) gets the em-dash,
+ * everything else passes through unchanged.
+ */
+function prettyTitle(name: string): string {
+	const m = name.match(/^For Activity\s+(.+)$/i);
+	if (m) return `For Activity — ${m[1]}`;
+	return name;
 }
