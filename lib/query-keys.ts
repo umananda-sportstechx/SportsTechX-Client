@@ -122,6 +122,7 @@ export const qk = {
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {
     articles: () => ['/api/newsletter/articles'] as const,
+    detail: (slug: string) => [`/api/newsletter/articles/${slug}`] as const,
   },
 
   // ── Analytics aggregations (10-min cache server-side) ───────────────────

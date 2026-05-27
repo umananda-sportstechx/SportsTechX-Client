@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Empty, SectionHead, PageTitle, Tag } from '@/components/ui/atoms';
 
@@ -21,6 +22,7 @@ import { Page, Empty, SectionHead, PageTitle, Tag } from '@/components/ui/atoms'
  */
 
 interface NewsletterArticle {
+	slug: string;
 	title: string;
 	link: string;
 	description: string;
@@ -90,11 +92,9 @@ export default function NewsletterPage() {
 						}}
 					>
 						{sorted.map((article, i) => (
-							<a
-								key={article.link}
-								href={article.link}
-								target="_blank"
-								rel="noopener noreferrer"
+							<Link
+								key={article.slug}
+								href={`/newsletter/${article.slug}`}
 								className="news-row"
 								style={{
 									borderBottom: i < sorted.length - 1 ? '1px solid var(--border)' : 'none',
@@ -140,18 +140,14 @@ export default function NewsletterPage() {
 								>
 									{formatShortDate(article.pubDate)}
 								</div>
-								<button
+								<span
 									className="btn ghost"
-									onClick={(e) => {
-										// Container is already an <a>; the arrow is decorative.
-										e.preventDefault();
-										window.open(article.link, '_blank', 'noopener,noreferrer');
-									}}
 									aria-label="Open issue"
+									role="presentation"
 								>
 									<ArrowRight size={12} />
-								</button>
-							</a>
+								</span>
+							</Link>
 						))}
 					</div>
 				</>
@@ -224,8 +220,16 @@ function LatestHero({ article, issueNum }: { article: NewsletterArticle; issueNu
 					</p>
 				)}
 				<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-					<a href={article.link} target="_blank" rel="noopener noreferrer">
+					<Link href={`/newsletter/${article.slug}`}>
 						<button className="btn">Read full issue <ArrowRight size={12} /></button>
+					</Link>
+					<a href={article.link} target="_blank" rel="noopener noreferrer">
+						<button
+							className="btn ghost"
+							style={{ borderColor: 'rgba(255,255,255,.4)', color: '#fff' }}
+						>
+							Open on Beehiiv <ExternalLink size={12} />
+						</button>
 					</a>
 					<a
 						href={`mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.link)}`}
@@ -234,7 +238,7 @@ function LatestHero({ article, issueNum }: { article: NewsletterArticle; issueNu
 							className="btn ghost"
 							style={{ borderColor: 'rgba(255,255,255,.4)', color: '#fff' }}
 						>
-							Forward to a colleague
+							Forward
 						</button>
 					</a>
 				</div>
