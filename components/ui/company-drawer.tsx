@@ -17,29 +17,30 @@ import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
 import {
-	Logo, Flag, Tag, SectorPill, VerifiedBadge, RaisingPill, KV, Empty,
+	Logo, Flag, Tag, AudiencePill, VerifiedBadge, RaisingPill, KV, Empty,
 } from './atoms';
 
 interface Company {
 	id: string;
 	name: string;
-	slug?: string;
+	slug?: string | null;
 	description?: string | null;
-	long_description?: string | null;
 	website?: string | null;
 	primary_sector?: string | null;
-	sub_sector?: string | null;
+	primary_sector_slug?: string | null;
+	primary_sport?: string | null;
 	hq_city?: string | null;
 	hq_country?: string | null;
-	country_code?: string | null;
+	hq_region?: string | null;
 	founded_year?: number | null;
-	employees?: number | string | null;
 	total_funding_usd?: number | string | null;
-	stage?: string | null;
-	last_round?: string | null;
+	last_round_type?: string | null;
+	last_deal_date?: string | null;
+	deal_count?: number | null;
+	business_model?: string | null;
 	is_verified?: boolean | null;
 	is_actively_raising?: boolean | null;
-	tags?: string[] | null;
+	is_unicorn?: boolean | null;
 }
 
 interface Deal {
@@ -176,7 +177,7 @@ export function CompanyDrawer({
 }
 
 function General({ company }: { company: Company }) {
-	const cc = company.country_code ?? (company.hq_country ? countryCode(company.hq_country) : '');
+	const cc = company.hq_country ? countryCode(company.hq_country) : '';
 	const hq = [company.hq_city, company.hq_country].filter(Boolean).join(', ');
 	return (
 		<div>
@@ -193,15 +194,35 @@ function General({ company }: { company: Company }) {
 					/>
 				)}
 				{company.primary_sector && (
-					<KV label="Sector" value={<SectorPill name={company.primary_sector} />} />
+					<KV
+						label="Sector"
+						value={
+							<AudiencePill
+								sectorSlug={company.primary_sector_slug ?? company.primary_sector}
+								label={company.primary_sector}
+								size="sm"
+							/>
+						}
+					/>
 				)}
-				{company.stage && <KV label="Stage" value={<Tag>{company.stage}</Tag>} />}
+				{company.primary_sport && (
+					<KV label="Sport" value={<Tag>{company.primary_sport}</Tag>} />
+				)}
+				{company.last_round_type && (
+					<KV label="Last round" value={<Tag variant="pos">{company.last_round_type}</Tag>} />
+				)}
 				{company.founded_year && <KV label="Founded" value={company.founded_year} />}
-				{company.employees && <KV label="Employees" value={company.employees} />}
-				<KV label="Total raised" value={<b>{formatDollars(company.total_funding_usd)}</b>} />
-				{company.tags && company.tags.length > 0 && (
-					<KV label="Tags" value={company.tags.slice(0, 4).join(' · ')} />
+				{company.business_model && (
+					<KV label="Business model" value={company.business_model.toUpperCase()} />
 				)}
+				<KV
+					label="Total raised"
+					value={<b>{formatDollars(company.total_funding_usd)}</b>}
+				/>
+				{(company.deal_count ?? 0) > 0 && (
+					<KV label="Rounds tracked" value={company.deal_count} />
+				)}
+				{company.is_unicorn && <KV label="Unicorn" value="Yes 🦄" />}
 			</div>
 		</div>
 	);
@@ -215,7 +236,7 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 		<div>
 			<div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
 				<MiniStat label="Total raised" value={formatDollars(company.total_funding_usd)} />
-				<MiniStat label="Last round" value={company.last_round ?? '—'} />
+				<MiniStat label="Last round" value={company.last_round_type ?? '—'} />
 				<MiniStat label="Rounds" value={deals.length} />
 			</div>
 			<h4 className="co-drawer-h4">Round history</h4>

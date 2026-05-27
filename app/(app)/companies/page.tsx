@@ -6,29 +6,42 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Logo, Flag, SectorPill, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	Page, Logo, Flag, SectorPill, AudiencePill, Tag, Empty, PageTitle,
+	VerifiedBadge, RaisingDot,
+} from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { CompanyDrawer } from '@/components/ui/company-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
+/**
+ * Companies list — pixel-aligned to `ui_design_2/app/screens-2.jsx`
+ * CompaniesScreen.
+ *
+ * Layout: PageTitle + FilterRail (9 facets) + ActiveFiltersBar with view
+ * toggle + card grid OR sortable table. Row/card click opens the
+ * `<CompanyDrawer>`; Cmd-click opens the full profile in a new tab.
+ */
+
 interface CompanyRow {
 	id: string;
 	name: string;
-	slug?: string;
+	slug?: string | null;
 	description?: string | null;
 	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
 	hq_city?: string | null;
 	hq_country?: string | null;
 	founded_year?: number | null;
 	total_funding_usd?: number | string | null;
-	stage?: string | null;
-	last_round?: string | null;
 	is_verified?: boolean | null;
 	is_actively_raising?: boolean | null;
+	last_round_type?: string | null;
 }
 
 interface CompaniesResponse {
@@ -41,6 +54,20 @@ interface CompaniesResponse {
 interface SectorRef { id: string; name: string; slug: string }
 interface RefResponse<T> { data: T[] }
 
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
+
+/** Safe id-or-slug resolver — never falls back to the literal string "undefined". */
+function resolveTarget(c: { id?: string; slug?: string | null }): string | null {
+	const s = c.slug && c.slug !== 'null' ? c.slug : null;
+	if (s) return s;
+	if (c.id) return c.id;
+	return null;
+}
+
 export default function CompaniesPage() {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -49,22 +76,26 @@ export default function CompaniesPage() {
 	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'grid');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
+	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
 
-	// Facets — server-driven where possible. Options come from /api/sectors etc.
 	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
 		dedupingInterval: 60 * 60_000,
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
 
+	// 9 facets matching `ui_design_2/app/screens-2.jsx:31-45` (favorites bool
+	// is replaced by a "Verified only" bool here — favorites belong to the
+	// per-user `/api/favorites` endpoint and would need merging client-side).
 	const facets = useMemo<Facet[]>(() => [
-		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
+		{ key: 'is_verified', label: 'Verified only', kind: 'bool' },
 		{ key: 'is_actively_raising', label: 'Actively raising', kind: 'bool' },
+		{ key: 'is_unicorn', label: 'Unicorn', kind: 'bool' },
 		{
 			key: 'sector_slug',
 			label: 'Sector',
 			kind: 'multi',
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
-			maxHeight: 240,
+			maxHeight: 260,
 		},
 		{
 			key: 'country',
@@ -72,37 +103,70 @@ export default function CompaniesPage() {
 			kind: 'multi',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
+		{
+			key: 'business_model',
+			label: 'Business model',
+			kind: 'multi',
+			options: () => [
+				{ value: 'b2b', label: 'B2B' },
+				{ value: 'b2c', label: 'B2C' },
+				{ value: 'b2b2c', label: 'B2B2C' },
+				{ value: 'd2c', label: 'D2C' },
+				{ value: 'b2g', label: 'B2G' },
+			],
+		},
+		{
+			key: 'founded',
+			label: 'Founded',
+			kind: 'range',
+			min: 1990,
+			max: new Date().getFullYear(),
+			step: 1,
+		},
 	], [sectorList]);
 
-	// Hydrate filter state from URL on first render.
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
 		const v = params.get('is_verified'); if (v) init.is_verified = v === 'true';
 		const r = params.get('is_actively_raising'); if (r) init.is_actively_raising = r === 'true';
+		const u = params.get('is_unicorn'); if (u) init.is_unicorn = u === 'true';
 		const s = params.get('sector_slug') ?? params.get('sector');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
+		const bm = params.get('business_model');
+		if (bm) init.business_model = bm.split(',').filter(Boolean);
+		const fMin = params.get('founded_year_min');
+		const fMax = params.get('founded_year_max');
+		if (fMin && fMax) init.founded = [Number(fMin), Number(fMax)] as [number, number];
 		return init;
 	});
 
-	// Mirror filter state → URL so deep-links work + the page survives refresh.
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
 		if (filterState.is_verified === true) sp.set('is_verified', 'true');
 		if (filterState.is_actively_raising === true) sp.set('is_actively_raising', 'true');
+		if (filterState.is_unicorn === true) sp.set('is_unicorn', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
+		const bm = filterState.business_model as string[] | undefined;
+		if (bm?.length) sp.set('business_model', bm.join(','));
+		const f = filterState.founded as [number, number] | undefined;
+		if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
+			sp.set('founded_year_min', String(f[0]));
+			sp.set('founded_year_max', String(f[1]));
+		}
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'grid') sp.set('view', view);
+		const sortParam = sortToParam(sort);
+		if (sortParam) sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-		// We intentionally omit pathname/router from deps — Next gives stable refs.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view]);
+	}, [filterState, page, view, sort]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
@@ -113,10 +177,18 @@ export default function CompaniesPage() {
 	else if (sec?.length) queryParams.sector_slug = sec.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length === 1) queryParams.country = ctry[0];
-	const isVer = filterState.is_verified === true;
-	if (isVer) queryParams.is_verified = true;
-	const isRaising = filterState.is_actively_raising === true;
-	if (isRaising) queryParams.is_actively_raising = true;
+	const bm = filterState.business_model as string[] | undefined;
+	if (bm?.length === 1) queryParams.business_model = bm[0];
+	if (filterState.is_verified === true) queryParams.is_verified = true;
+	if (filterState.is_actively_raising === true) queryParams.is_actively_raising = true;
+	if (filterState.is_unicorn === true) queryParams.is_unicorn = true;
+	const f = filterState.founded as [number, number] | undefined;
+	if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
+		queryParams.founded_year_min = f[0];
+		queryParams.founded_year_max = f[1];
+	}
+	const sortParam = sortToParam(sort);
+	if (sortParam) queryParams.sort = sortParam;
 
 	const { data, isLoading } = useSWR<CompaniesResponse>(qk.companies.list(queryParams), {
 		dedupingInterval: 3 * 60_000,
@@ -125,6 +197,18 @@ export default function CompaniesPage() {
 	const companies = data?.data ?? [];
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
+
+	const handleRowClick = (c: CompanyRow, e: React.MouseEvent) => {
+		// Skip if the click landed on an inner button (fav, compare, etc.)
+		if ((e.target as HTMLElement).closest('button, a')) return;
+		const target = resolveTarget(c);
+		if (!target) return;
+		if (e.metaKey || e.ctrlKey) {
+			window.open(`/companies/${target}`, '_blank');
+			return;
+		}
+		setDrawerTarget(target);
+	};
 
 	return (
 		<Page>
@@ -147,7 +231,7 @@ export default function CompaniesPage() {
 						facets={facets}
 						state={filterState}
 						setState={setFilterState}
-						placeholder="Search companies, sectors, countries…"
+						placeholder="Search companies, descriptions…"
 						total={total}
 						shown={companies.length}
 						viewToggle={<ViewToggle view={view} setView={setView} />}
@@ -158,66 +242,70 @@ export default function CompaniesPage() {
 					) : companies.length === 0 ? (
 						<div className="card flt-empty-state">
 							<h3>No companies match</h3>
-							<p>Try clearing some filters.</p>
+							<p>Try clearing some filters or widening your ranges.</p>
 						</div>
 					) : view === 'grid' ? (
 						<div className="co-grid">
 							{companies.map((c) => (
-								<CompanyCard key={c.id} c={c} onOpenDrawer={setDrawerTarget} />
+								<CompanyCard key={c.id} c={c} onClick={handleRowClick} />
 							))}
 						</div>
 					) : (
 						<div className="card">
-							<table className="data-table">
+							<table className="data-table co-table">
 								<thead>
 									<tr>
-										<th>Company</th>
+										<th style={{ width: 36 }} />
+										<SortHeader label="Company" sortKey="name" sort={sort} setSort={setSort} />
 										<th>Sector</th>
-										<th>Stage</th>
 										<th>HQ</th>
-										<th style={{ textAlign: 'right' }}>Raised</th>
-										<th>Last Round</th>
-										<th>Founded</th>
+										<SortHeader label="Raised" sortKey="-created_at" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
+										<SortHeader label="Founded" sortKey="founded_year" sort={sort} setSort={setSort} defaultDir="desc" />
 									</tr>
 								</thead>
 								<tbody>
-									{companies.map((c) => (
-										<tr
-											key={c.id}
-											style={{ cursor: 'pointer' }}
-											onClick={(e) => {
-												const target = c.slug ?? c.id;
-												if (e.metaKey || e.ctrlKey) {
-													window.open(`/companies/${target}`, '_blank');
-													return;
-												}
-												setDrawerTarget(target);
-											}}
-										>
-											<td>
-												<div className="tbl-name-cell">
-													<Logo co={{ name: c.name }} size={28} />
-													<div className="tbl-name-text">
-														<div className="tbl-name-line"><span className="tbl-name">{c.name}</span></div>
-														{c.description && <div className="tbl-sub">{c.description}</div>}
+									{companies.map((c) => {
+										const cc = c.hq_country ? countryCode(c.hq_country) : '';
+										return (
+											<tr
+												key={c.id}
+												style={{ cursor: 'pointer' }}
+												onClick={(e) => handleRowClick(c, e)}
+											>
+												<td>
+													<CompareToggle id={c.id} kind="companies" />
+												</td>
+												<td>
+													<div className="tbl-name-cell">
+														<Logo co={{ name: c.name }} size={28} />
+														<div className="tbl-name-text">
+															<div className="tbl-name-line">
+																<span className="tbl-name">{c.name}</span>
+																{c.is_verified && <VerifiedBadge size={12} />}
+																{c.is_actively_raising && <RaisingDot size={7} />}
+															</div>
+															{c.description && <div className="tbl-sub">{c.description}</div>}
+														</div>
 													</div>
-												</div>
-											</td>
-											<td>{c.primary_sector ? <SectorPill name={c.primary_sector} /> : '—'}</td>
-											<td>{c.stage ? <Tag>{c.stage}</Tag> : '—'}</td>
-											<td>
-												<span className="tbl-ellipsis">
-													{c.hq_country && <Flag cc={countryCode(c.hq_country)} />}{' '}
-													{c.hq_city ? `${c.hq_city}, ` : ''}{c.hq_country ?? ''}
-												</span>
-											</td>
-											<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
-												{formatRaised(c.total_funding_usd)}
-											</td>
-											<td className="num">{c.last_round ?? '—'}</td>
-											<td className="num">{c.founded_year ?? '—'}</td>
-										</tr>
-									))}
+												</td>
+												<td>
+													{c.primary_sector ? (
+														<AudiencePill sectorSlug={c.primary_sector_slug ?? c.primary_sector} label={c.primary_sector} size="sm" />
+													) : '—'}
+												</td>
+												<td>
+													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+														{cc && <Flag cc={cc} />}
+														{[c.hq_city, c.hq_country].filter(Boolean).join(', ') || '—'}
+													</span>
+												</td>
+												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+													{formatRaised(c.total_funding_usd)}
+												</td>
+												<td className="num">{c.founded_year ?? '—'}</td>
+											</tr>
+										);
+									})}
 								</tbody>
 							</table>
 						</div>
@@ -249,53 +337,58 @@ export default function CompaniesPage() {
 	);
 }
 
-function CompanyCard({ c, onOpenDrawer }: { c: CompanyRow; onOpenDrawer: (idOrSlug: string) => void }) {
+function CompanyCard({
+	c, onClick,
+}: {
+	c: CompanyRow;
+	onClick: (c: CompanyRow, e: React.MouseEvent) => void;
+}) {
 	const cc = c.hq_country ? countryCode(c.hq_country) : '';
-	const fav = (c.id.charCodeAt(c.id.length - 1) % 3) === 0;
-	const target = c.slug ?? c.id;
-	const open = () => onOpenDrawer(target);
-	const handleClick = (e: React.MouseEvent) => {
-		// Ignore clicks on inner interactive controls (Compare toggle, etc.).
-		if ((e.target as HTMLElement).closest('button, a')) return;
-		// Cmd/Ctrl/middle-click → open full page in new tab. Plain click → drawer.
-		if (e.metaKey || e.ctrlKey || e.button === 1) {
-			window.open(`/companies/${target}`, '_blank');
-			return;
-		}
-		open();
-	};
+	const [fav, setFav] = useState(false);
 	return (
-		// `<div role="button">` instead of `<button>` so we can nest the
-		// CompareToggle button inside (HTML forbids nested interactives).
 		<div
 			role="button"
 			tabIndex={0}
 			className="card co-card"
 			style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer' }}
-			onClick={handleClick}
+			onClick={(e) => onClick(c, e)}
 			onKeyDown={(e) => {
 				if (e.key === 'Enter' || e.key === ' ') {
 					if ((e.target as HTMLElement).closest('button, a')) return;
 					e.preventDefault();
-					open();
+					onClick(c, e as unknown as React.MouseEvent);
 				}
 			}}
 		>
 			<div className="co-card-head">
+				<button
+					className="co-fav-btn"
+					onClick={(e) => { e.stopPropagation(); setFav((f) => !f); }}
+					title={fav ? 'Saved' : 'Save'}
+					aria-label={fav ? 'Saved' : 'Save'}
+				>
+					<Heart size={14} style={fav ? { color: 'var(--accent)', fill: 'currentColor' } : undefined} />
+				</button>
 				<Logo co={{ name: c.name }} size={44} />
 				<div style={{ flex: 1, minWidth: 0 }}>
-					<div style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</div>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+						<span style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</span>
+						{c.is_verified && <VerifiedBadge size={13} />}
+						{c.is_actively_raising && <RaisingDot size={8} />}
+					</div>
 					<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
 						{cc && <Flag cc={cc} />}
-						{c.hq_city ?? c.hq_country ?? '—'}
+						{[c.hq_city, c.hq_country].filter(Boolean).join(', ') || '—'}
+						{c.founded_year && <> · Founded {c.founded_year}</>}
 					</div>
 				</div>
-				{fav && <Heart size={14} fill="var(--accent)" stroke="var(--accent)" />}
 			</div>
-			<p className="co-sub">{c.description ?? '—'}</p>
-			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '10px 0' }}>
-				{c.primary_sector && <SectorPill name={c.primary_sector} />}
-				{c.stage && <Tag>{c.stage}</Tag>}
+			{c.description && <p className="co-sub">{c.description}</p>}
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
+				{c.primary_sector && (
+					<AudiencePill sectorSlug={c.primary_sector_slug ?? c.primary_sector} label={c.primary_sector} size="sm" />
+				)}
+				{c.last_round_type && <Tag>{c.last_round_type}</Tag>}
 			</div>
 			<div className="co-card-foot">
 				<div>
@@ -304,7 +397,7 @@ function CompanyCard({ c, onOpenDrawer }: { c: CompanyRow; onOpenDrawer: (idOrSl
 				</div>
 				<div>
 					<div className="co-stat-label">Last round</div>
-					<div className="co-stat-val">{c.last_round ?? '—'}</div>
+					<div className="co-stat-val">{c.last_round_type ?? '—'}</div>
 				</div>
 				<div>
 					<div className="co-stat-label">Founded</div>
@@ -335,14 +428,9 @@ function countryCode(countryName: string): string {
 		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
 		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
 		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+		Ireland: 'IE', Finland: 'FI', Norway: 'NO', Denmark: 'DK', Israel: 'IL',
+		'Saudi Arabia': 'SA', UAE: 'AE', 'United Arab Emirates': 'AE',
+		Mexico: 'MX', 'South Korea': 'KR', Korea: 'KR',
 	};
 	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }
-
-// Until the backend exposes a /api/companies/facets endpoint with real counts,
-// surface the most common HQ countries from the design's flag palette.
-const COMMON_COUNTRIES = [
-	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
-	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
-	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
-];

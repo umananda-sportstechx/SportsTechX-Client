@@ -7,48 +7,48 @@ import useSWR from 'swr';
 import { ArrowLeft, Heart, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import {
-	Page, Logo, Flag, SectorPill, Tag, Empty,
+	Page, Logo, Flag, Tag, Empty, AudiencePill,
 	VerifiedBadge, RaisingPill, KV,
 } from '@/components/ui/atoms';
 
 /**
- * Company detail — ported from ui_design_2/app/company-detail.jsx CompanyDetailScreen.
+ * Company detail — pixel-aligned to `ui_design_2/app/company-detail.jsx`
+ * CompanyDetailScreen.
  *
  * Layout:
- *   - Back link
- *   - Hero (logo + name + verified/raising badges + meta + actions)
- *   - Tabs: Overview / Funding / M&A / News / Similar
- *   - Overview = main content + right rail (Key facts, Primary contact when present)
- *   - Other tabs render full-width
- *   - Footer: Verified strip OR claim-this-company CTA
+ *   1. Back link
+ *   2. Hero (logo + name + verified/raising badges + meta + actions)
+ *   3. Tabs: Overview / Funding / M&A / Similar — hide tabs with no data
+ *   4. Overview = main content + right rail (Key facts)
+ *   5. Verify footer (verified strip OR claim-this-company CTA)
  *
- * Data source: `/api/companies/:idOrSlug` + `/api/deals?company_id=`. Tabs hide
- * themselves when their data array is empty. Acquisitions / News / Similar
- * default to API fields when present; we never fabricate.
+ * Data: `/api/companies/:idOrSlug` (enriched with sector, location, primary
+ * sport, last-round and deal counts via joins) + `/api/deals?company_id=` +
+ * `/api/acquisitions?acquiree_company_id=` + similar-sector companies.
  */
 
 interface Company {
 	id: string;
 	name: string;
-	slug?: string;
+	slug?: string | null;
 	description?: string | null;
-	long_description?: string | null;
 	website?: string | null;
 	primary_sector?: string | null;
 	primary_sector_slug?: string | null;
-	sub_sector?: string | null;
+	primary_sport?: string | null;
 	hq_city?: string | null;
 	hq_country?: string | null;
-	country_code?: string | null;
+	hq_region?: string | null;
 	founded_year?: number | null;
-	employees?: number | string | null;
 	total_funding_usd?: number | string | null;
-	stage?: string | null;
-	last_round?: string | null;
+	business_model?: string | null;
+	last_round_type?: string | null;
+	last_deal_date?: string | null;
+	deal_count?: number | null;
 	is_verified?: boolean | null;
 	is_actively_raising?: boolean | null;
-	verified_at?: string | null;
-	tags?: string[] | null;
+	is_unicorn?: boolean | null;
+	updated_at?: string | null;
 }
 
 interface Deal {
@@ -60,9 +60,29 @@ interface Deal {
 	lead_investor?: string | null;
 }
 
-interface DealsResponse { data: Deal[]; total: number }
+interface Acquisition {
+	id: string;
+	acquisition_date?: string | null;
+	amount_usd?: number | string | null;
+	acquirer_name?: string | null;
+	acquiree_name?: string | null;
+	acquisition_type?: string | null;
+}
 
-type Tab = 'overview' | 'funding' | 'mna' | 'news' | 'similar';
+interface DealsResponse { data: Deal[]; total: number }
+interface AcqResponse { data: Acquisition[]; total: number }
+interface SimilarCompany {
+	id: string;
+	name: string;
+	slug?: string | null;
+	description?: string | null;
+	primary_sector?: string | null;
+	hq_country?: string | null;
+	total_funding_usd?: number | string | null;
+}
+interface CompaniesResponse { data: SimilarCompany[]; total: number }
+
+type Tab = 'overview' | 'funding' | 'mna' | 'similar';
 
 export default function CompanyDetailPage() {
 	const params = useParams<{ slug: string }>();
@@ -70,7 +90,7 @@ export default function CompanyDetailPage() {
 	const [tab, setTab] = useState<Tab>('overview');
 
 	const { data: company, isLoading, error } = useSWR<Company>(
-		slug ? qk.companies.detail(slug) : null,
+		slug && slug !== 'undefined' ? qk.companies.detail(slug) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
 
@@ -78,13 +98,30 @@ export default function CompanyDetailPage() {
 		company?.id ? qk.deals.list({ company_id: company.id, limit: 30, sort: '-announced_date' }) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
-
 	const deals = useMemo(() => dealsResp?.data ?? [], [dealsResp]);
+
+	const { data: acqResp } = useSWR<AcqResponse>(
+		company?.id ? ['/api/acquisitions', { acquiree_company_id: company.id, limit: 20 }] as const : null,
+		{ dedupingInterval: 5 * 60_000 },
+	);
+	const acquisitions = useMemo(() => acqResp?.data ?? [], [acqResp]);
+
+	const sectorSlug = company?.primary_sector_slug;
+	const { data: similarResp } = useSWR<CompaniesResponse>(
+		company?.id && sectorSlug
+			? qk.companies.list({ sector_slug: sectorSlug, limit: 7, sort: '-created_at' })
+			: null,
+		{ dedupingInterval: 10 * 60_000 },
+	);
+	const similar = useMemo(
+		() => (similarResp?.data ?? []).filter((c) => c.id !== company?.id).slice(0, 6),
+		[similarResp, company?.id],
+	);
 
 	if (isLoading) {
 		return <Page><Empty msg="Loading company…" /></Page>;
 	}
-	if (error || !company || !company.id) {
+	if (error || !company || !company.id || slug === 'undefined') {
 		return (
 			<Page>
 				<Link href="/companies" className="co-back">
@@ -95,18 +132,16 @@ export default function CompanyDetailPage() {
 		);
 	}
 
-	const cc = company.country_code ?? (company.hq_country ? countryCode(company.hq_country) : '');
+	const cc = company.hq_country ? countryCode(company.hq_country) : '';
 	const hq = [company.hq_city, company.hq_country].filter(Boolean).join(', ');
 	const isVerified = company.is_verified === true;
 	const isRaising = company.is_actively_raising === true;
-	const hasFunding = deals.length > 0;
 
 	const visibleTabs: Array<{ key: Tab; label: string; count?: number; show: boolean }> = [
 		{ key: 'overview', label: 'Overview', show: true },
-		{ key: 'funding', label: 'Funding', count: deals.length, show: hasFunding },
-		{ key: 'mna', label: 'M&A', show: false },         // wire when /api/acquisitions?acquirer_id= lands
-		{ key: 'news', label: 'News', show: false },        // wire when /api/news?company_id= lands
-		{ key: 'similar', label: 'Similar companies', show: false }, // wire when /api/companies/:id/similar lands
+		{ key: 'funding', label: 'Funding', count: deals.length, show: deals.length > 0 },
+		{ key: 'mna', label: 'M&A', count: acquisitions.length, show: acquisitions.length > 0 },
+		{ key: 'similar', label: 'Similar companies', count: similar.length, show: similar.length > 0 },
 	];
 
 	return (
@@ -134,6 +169,9 @@ export default function CompanyDetailPage() {
 						</h1>
 						{isVerified && <VerifiedBadge size={22} />}
 						{isRaising && <RaisingPill />}
+						{company.is_unicorn && (
+							<Tag variant="pos">🦄 Unicorn</Tag>
+						)}
 					</div>
 					{company.description && (
 						<p style={{ margin: '8px 0 10px', fontSize: 15, color: 'var(--fg-2)', maxWidth: 720 }}>
@@ -153,10 +191,10 @@ export default function CompanyDetailPage() {
 								<span>Founded {company.founded_year}</span>
 							</>
 						)}
-						{company.employees && (
+						{company.primary_sport && (
 							<>
 								<span className="dot-sep">·</span>
-								<span>{company.employees} employees</span>
+								<span>{company.primary_sport}</span>
 							</>
 						)}
 						{company.website && (
@@ -193,39 +231,72 @@ export default function CompanyDetailPage() {
 			</nav>
 
 			{/* Tab body */}
-			{tab === 'overview' ? (
+			{tab === 'overview' && (
 				<div className="co-page-grid">
 					<main className="co-page-main">
 						<Overview company={company} deals={deals} />
 					</main>
 					<aside className="co-page-rail">
-						<div className="card co-rail-card">
-							<div className="co-rail-h">Key facts</div>
-							<KV label="Total raised" value={<b>{formatDollars(company.total_funding_usd)}</b>} />
-							<KV label="Last round" value={company.last_round ?? '—'} />
-							<KV label="Stage" value={company.stage ? <Tag>{company.stage}</Tag> : '—'} />
-							<KV
-								label="Sector"
-								value={company.primary_sector ? <SectorPill name={company.primary_sector} /> : '—'}
-							/>
-							{company.sub_sector && <KV label="Sub-sector" value={company.sub_sector} />}
-							<KV label="Founded" value={company.founded_year ?? '—'} />
-							{company.employees && <KV label="Employees" value={company.employees} />}
-							<KV label="Tags" value={(company.tags ?? []).join(', ') || '—'} />
-						</div>
+						<KeyFactsCard company={company} />
 					</aside>
 				</div>
-			) : (
+			)}
+			{tab === 'funding' && (
 				<div className="co-page-main">
-					{tab === 'funding' && <Funding company={company} deals={deals} />}
+					<Funding company={company} deals={deals} />
+				</div>
+			)}
+			{tab === 'mna' && (
+				<div className="co-page-main">
+					<Mna acquisitions={acquisitions} companyName={company.name} />
+				</div>
+			)}
+			{tab === 'similar' && (
+				<div className="co-page-main">
+					<Similar companies={similar} />
 				</div>
 			)}
 
-			{/* Verify footer */}
 			<VerifyFooter company={company} />
 		</Page>
 	);
 }
+
+// ─── Right rail ───────────────────────────────────────────────────────────
+
+function KeyFactsCard({ company }: { company: Company }) {
+	return (
+		<div className="card co-rail-card">
+			<div className="co-rail-h">Key facts</div>
+			<KV label="Total raised" value={<b>{formatDollars(company.total_funding_usd)}</b>} />
+			{company.last_round_type && (
+				<KV label="Last round" value={<Tag variant="pos">{company.last_round_type}</Tag>} />
+			)}
+			{company.primary_sector && (
+				<KV
+					label="Sector"
+					value={
+						<AudiencePill
+							sectorSlug={company.primary_sector_slug ?? company.primary_sector}
+							label={company.primary_sector}
+							size="sm"
+						/>
+					}
+				/>
+			)}
+			{company.primary_sport && <KV label="Sport" value={company.primary_sport} />}
+			{company.founded_year && <KV label="Founded" value={company.founded_year} />}
+			{company.business_model && (
+				<KV label="Business model" value={company.business_model.toUpperCase()} />
+			)}
+			{(company.deal_count ?? 0) > 0 && (
+				<KV label="Rounds tracked" value={company.deal_count} />
+			)}
+		</div>
+	);
+}
+
+// ─── Overview tab ─────────────────────────────────────────────────────────
 
 function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
 	return (
@@ -233,7 +304,7 @@ function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
 			<section className="co-sec">
 				<h3 className="co-sec-h">About</h3>
 				<p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--fg-2)' }}>
-					{company.long_description ?? company.description ?? 'No description on file yet.'}
+					{company.description ?? 'No description on file yet.'}
 				</p>
 			</section>
 
@@ -246,6 +317,27 @@ function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
 		</>
 	);
 }
+
+function FundingTimeline({ deals }: { deals: Deal[] }) {
+	// Oldest → newest, max 4 for the strip
+	const rounds = [...deals].reverse().slice(-4);
+	return (
+		<div className="co-timeline">
+			{rounds.map((r) => (
+				<div key={r.id} className="co-timeline-step">
+					<div className="co-timeline-dot" />
+					<div className="co-timeline-stage">{r.round_type_name ?? r.round_type ?? '—'}</div>
+					<div className="co-timeline-amt">{formatDollars(r.amount_usd)}</div>
+					<div className="co-timeline-date">
+						{r.announced_date ? formatShortDate(r.announced_date) : '—'}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+// ─── Funding tab ──────────────────────────────────────────────────────────
 
 function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 	if (deals.length === 0) {
@@ -267,7 +359,7 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 				</div>
 				<div className="co-mini-stat">
 					<div className="co-mini-stat-l">Latest round</div>
-					<div className="co-mini-stat-v">{company.stage ?? '—'}</div>
+					<div className="co-mini-stat-v">{company.last_round_type ?? '—'}</div>
 				</div>
 				<div className="co-mini-stat">
 					<div className="co-mini-stat-l">Rounds</div>
@@ -313,24 +405,124 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 	);
 }
 
-function FundingTimeline({ deals }: { deals: Deal[] }) {
-	// Oldest → newest, max 4 for the strip
-	const rounds = [...deals].reverse().slice(-4);
+// ─── M&A tab ──────────────────────────────────────────────────────────────
+
+function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; companyName: string }) {
+	if (acquisitions.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">M&amp;A activity</h3>
+				<div className="co-empty">{companyName} has not been involved in any tracked acquisitions.</div>
+			</section>
+		);
+	}
+	const disclosedValue = acquisitions.reduce((s, a) => s + (Number(a.amount_usd) || 0), 0);
+	const latest = acquisitions[0];
 	return (
-		<div className="co-timeline">
-			{rounds.map((r) => (
-				<div key={r.id} className="co-timeline-step">
-					<div className="co-timeline-dot" />
-					<div className="co-timeline-stage">{r.round_type_name ?? r.round_type ?? '—'}</div>
-					<div className="co-timeline-amt">{formatDollars(r.amount_usd)}</div>
-					<div className="co-timeline-date">
-						{r.announced_date ? formatShortDate(r.announced_date) : '—'}
+		<section className="co-sec">
+			<h3 className="co-sec-h">M&amp;A activity</h3>
+
+			<div className="co-stat-strip">
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Acquisitions</div>
+					<div className="co-mini-stat-v">{acquisitions.length}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Disclosed value</div>
+					<div className="co-mini-stat-v">{formatDollars(disclosedValue)}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Latest</div>
+					<div className="co-mini-stat-v" style={{ fontSize: 14, fontFamily: 'var(--font-mono)' }}>
+						{latest?.acquisition_date ? formatShortDate(latest.acquisition_date) : '—'}
 					</div>
 				</div>
-			))}
-		</div>
+			</div>
+
+			<h4 className="co-sec-sub">Acquisition detail</h4>
+			<div className="card" style={{ padding: 0 }}>
+				<table className="data-table">
+					<thead>
+						<tr>
+							<th>Date</th>
+							<th>Acquirer</th>
+							<th>Type</th>
+							<th style={{ textAlign: 'right' }}>Value</th>
+						</tr>
+					</thead>
+					<tbody>
+						{acquisitions.map((m) => (
+							<tr key={m.id}>
+								<td className="num">{m.acquisition_date ? formatShortDate(m.acquisition_date) : '—'}</td>
+								<td style={{ fontWeight: 600 }}>{m.acquirer_name ?? '—'}</td>
+								<td>{m.acquisition_type ? <Tag>{formatType(m.acquisition_type)}</Tag> : '—'}</td>
+								<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+									{formatDollars(m.amount_usd)}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
 	);
 }
+
+// ─── Similar companies tab ────────────────────────────────────────────────
+
+function Similar({ companies }: { companies: SimilarCompany[] }) {
+	if (companies.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">Similar companies</h3>
+				<div className="co-empty">No similar companies found.</div>
+			</section>
+		);
+	}
+	return (
+		<section className="co-sec">
+			<h3 className="co-sec-h">Similar companies</h3>
+			<div className="co-similar">
+				{companies.map((c) => {
+					const cc = c.hq_country ? countryCode(c.hq_country) : '';
+					return (
+						<Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="co-similar-card">
+							<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+								<Logo co={{ name: c.name }} size={32} />
+								<div style={{ minWidth: 0 }}>
+									<div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+									<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+										{cc && <Flag cc={cc} />} {c.hq_country ?? '—'}
+									</div>
+								</div>
+							</div>
+							{c.description && (
+								<p
+									style={{
+										fontSize: 12,
+										color: 'var(--fg-2)',
+										margin: 0,
+										display: '-webkit-box',
+										WebkitLineClamp: 2,
+										WebkitBoxOrient: 'vertical',
+										overflow: 'hidden',
+									}}
+								>
+									{c.description}
+								</p>
+							)}
+							<div style={{ marginTop: 10, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)' }}>
+								Raised <b style={{ color: 'var(--fg)' }}>{formatDollars(c.total_funding_usd)}</b>
+							</div>
+						</Link>
+					);
+				})}
+			</div>
+		</section>
+	);
+}
+
+// ─── Verify footer ────────────────────────────────────────────────────────
 
 function VerifyFooter({ company }: { company: Company }) {
 	if (company.is_verified) {
@@ -341,7 +533,7 @@ function VerifyFooter({ company }: { company: Company }) {
 					<div className="co-verify-h">Verified profile</div>
 					<div className="co-verify-sub">
 						Claimed and maintained by {company.name}
-						{company.verified_at ? ` · last reviewed ${formatShortDate(company.verified_at)}` : ''}
+						{company.updated_at ? ` · last updated ${formatShortDate(company.updated_at)}` : ''}
 					</div>
 				</div>
 				<div className="co-verify-actions">
@@ -376,6 +568,17 @@ function VerifyFooter({ company }: { company: Company }) {
 	);
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function formatType(t: string): string {
+	switch (t) {
+		case 'acquisition': return 'Strategic';
+		case 'merger': return 'Merger';
+		case 'asset_purchase': return 'Asset';
+		default: return t;
+	}
+}
+
 function formatDollars(value: number | string | null | undefined): string {
 	if (value == null) return '—';
 	const n = typeof value === 'string' ? Number(value) : value;
@@ -399,6 +602,9 @@ function countryCode(countryName: string): string {
 		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
 		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
 		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+		Ireland: 'IE', Finland: 'FI', Norway: 'NO', Denmark: 'DK', Israel: 'IL',
+		'Saudi Arabia': 'SA', UAE: 'AE', 'United Arab Emirates': 'AE',
+		Mexico: 'MX', 'South Korea': 'KR', Korea: 'KR',
 	};
 	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }
