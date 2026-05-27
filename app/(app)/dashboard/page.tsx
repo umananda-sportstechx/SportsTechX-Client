@@ -264,7 +264,7 @@ export default function DashboardPage() {
 										fontSize: 13,
 										color: 'var(--fg-2)',
 										lineHeight: 1.55,
-										marginBottom: 16,
+										// marginBottom: 16,
 										flex: 1,
 										display: '-webkit-box',
 										WebkitLineClamp: 3,
