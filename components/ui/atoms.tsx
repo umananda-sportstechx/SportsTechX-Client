@@ -40,16 +40,64 @@ const FLAG_COLORS: Record<string, [string, string, string]> = {
 	AD: ['#10069F', '#FFCD00', '#D50032'], KW: ['#007A3D', '#FFF', '#CE1126'],
 };
 
-export function Flag({ cc, size = 14 }: { cc: string; size?: number }) {
+/**
+ * 2-letter ISO country code → display name. Used as the hover tooltip on
+ * every `<Flag />` so users see "United States" instead of the bare "US"
+ * code. Mirrors the keys in `FLAG_COLORS` above so every rendered flag has
+ * a friendly label.
+ */
+const CC_TO_COUNTRY: Record<string, string> = {
+	US: 'United States', CA: 'Canada', GB: 'United Kingdom', DE: 'Germany',
+	FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands', SE: 'Sweden',
+	PT: 'Portugal', CH: 'Switzerland', BE: 'Belgium', AT: 'Austria',
+	PL: 'Poland', IN: 'India', CN: 'China', JP: 'Japan', KR: 'South Korea',
+	SG: 'Singapore', AU: 'Australia', NZ: 'New Zealand', BR: 'Brazil',
+	AR: 'Argentina', MX: 'Mexico', SA: 'Saudi Arabia', AE: 'United Arab Emirates',
+	EG: 'Egypt', ZA: 'South Africa', KE: 'Kenya', BA: 'Bosnia and Herzegovina',
+	HK: 'Hong Kong', LU: 'Luxembourg', AD: 'Andorra', KW: 'Kuwait',
+	IL: 'Israel', IE: 'Ireland', FI: 'Finland', NO: 'Norway', DK: 'Denmark',
+	ID: 'Indonesia', VN: 'Vietnam', TH: 'Thailand', MY: 'Malaysia',
+	PH: 'Philippines', TR: 'Turkey', GR: 'Greece', CZ: 'Czechia',
+	HU: 'Hungary', RO: 'Romania', UA: 'Ukraine', RU: 'Russia',
+	CL: 'Chile', CO: 'Colombia', PE: 'Peru', NG: 'Nigeria', GH: 'Ghana',
+	MA: 'Morocco', QA: 'Qatar', BH: 'Bahrain', OM: 'Oman', JO: 'Jordan',
+	PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
+};
+
+/**
+ * Flag — pseudo country flag rendered as a 3-stripe linear gradient.
+ *
+ * Tooltips: every flag carries a `title` (and matching `aria-label`) with
+ * the full country name so users hovering/focusing see "United States"
+ * rather than the bare "US" code. Callers can override with the `name`
+ * prop when they have richer context (e.g. the row already shows the
+ * full name elsewhere).
+ */
+export function Flag({
+	cc, size = 14, name,
+}: {
+	cc: string;
+	size?: number;
+	/** Override the hover tooltip — falls back to the CC_TO_COUNTRY map. */
+	name?: string;
+}) {
 	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+	const label = name ?? CC_TO_COUNTRY[cc] ?? cc;
 	return (
 		<span
 			className="flag"
-			title={cc}
+			title={label}
+			aria-label={label}
+			role="img"
+			tabIndex={0}
 			style={{
 				width: size,
 				height: size * 0.7,
 				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
+				outline: 'none',
+				cursor: 'help',
+				display: 'inline-block',
+				verticalAlign: 'middle',
 			}}
 		/>
 	);
