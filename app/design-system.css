@@ -930,26 +930,241 @@
 }
 
 /* === SUBSCRIPTIONS === */
+
+/* Status banner above the plan cards. Three variants:
+ *   .sub-banner-active   normal active subscription
+ *   .sub-banner-trial    on a free trial
+ *   .sub-banner-warn     scheduled to cancel (amber callout)
+ * Each card pulls its tier accent from `--sub-accent` (set inline). */
+.sub-banner {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: var(--space-5);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--sub-accent, var(--accent));
+}
+.sub-banner-warn { border-left-color: var(--warn, oklch(70% 0.18 60)); }
+.sub-banner-icon {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  background: color-mix(in oklch, var(--sub-accent, var(--accent)), transparent 88%);
+  color: var(--sub-accent, var(--accent));
+  flex-shrink: 0;
+}
+.sub-banner-warn .sub-banner-icon {
+  background: color-mix(in oklch, var(--warn, oklch(70% 0.18 60)), transparent 88%);
+  color: var(--warn, oklch(70% 0.18 60));
+}
+.sub-banner-text { flex: 1; min-width: 0; }
+.sub-banner-h {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.sub-banner-sub {
+  font-size: 12px; color: var(--fg-2);
+  margin-top: 4px;
+}
+
+/* Plan card — used to be a barebones .card; now has a top accent strip,
+ * a more legible price block, trial pill, current-plan ribbon, and a
+ * dedicated divider between meta and features. */
 .sub-card {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+.sub-card-accent {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: var(--sub-accent, var(--accent));
 }
 .sub-card.popular {
-  border-color: var(--accent);
-  border-width: 2px;
+  border-color: var(--sub-accent, var(--accent));
+  border-width: 1px;
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--sub-accent, var(--accent)), transparent 88%);
+}
+.sub-card-current {
+  border-color: var(--sub-accent, var(--accent));
 }
 .sub-badge {
   position: absolute;
-  top: -10px;
-  left: 24px;
-  background: var(--accent);
-  color: var(--accent-fg);
+  top: 10px;
+  right: 16px;
+  background: var(--sub-accent, var(--accent));
+  color: white;
   padding: 4px 10px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  border-radius: 999px;
+}
+.sub-badge-current {
+  background: transparent;
+  color: var(--sub-accent, var(--accent));
+  border: 1px solid var(--sub-accent, var(--accent));
+}
+.sub-card-tier {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sub-accent, var(--accent));
+  margin-top: 8px;
+  margin-bottom: 10px;
+}
+.sub-card-price {
+  display: flex; align-items: baseline; gap: 6px;
+  margin-bottom: 4px;
+}
+.sub-card-price-v {
+  font-family: var(--font-display);
+  font-size: 44px; font-weight: 800;
+  letter-spacing: -0.02em; line-height: 1;
+}
+.sub-card-price-suffix {
+  font-size: 14px; color: var(--fg-muted); font-weight: 600;
+}
+.sub-card-price-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+.sub-card-tagline {
+  font-size: 13px; line-height: 1.5;
+  color: var(--fg-2);
+  margin: 6px 0 16px;
+  min-height: 40px;
+}
+.sub-trial-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: color-mix(in oklch, var(--sub-accent, var(--accent)), transparent 90%);
+  color: var(--sub-accent, var(--accent));
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+  align-self: flex-start;
+}
+.sub-card-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+.sub-card-features {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.sub-feature {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px;
+}
+
+/* Skeleton shimmer while plans are loading. */
+.sub-skeleton .sub-skel-bar {
+  display: block;
+  background: linear-gradient(90deg,
+    var(--bg-2) 0%,
+    var(--bg-3) 50%,
+    var(--bg-2) 100%);
+  background-size: 200% 100%;
+  animation: sub-skel-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sub-skel-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Comparison table at the bottom. Highlights the current tier's column. */
+.sub-compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sub-compare thead th {
+  padding: 12px 16px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.sub-compare thead th:first-child {
+  text-align: left;
+  background: transparent;
+}
+.sub-compare-tier {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.sub-compare tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.sub-compare-label {
+  text-align: left !important;
+  color: var(--fg);
+}
+.sub-compare-current { background: color-mix(in oklch, var(--accent), transparent 95%); }
+.sub-compare tbody tr:last-child td { border-bottom: 0; }
+
+/* FAQ accordion. Each <details> opens to reveal an answer; chevron rotates. */
+.sub-faq {
+  display: flex; flex-direction: column;
+  margin-top: var(--space-3);
+}
+.sub-faq-item {
+  border-top: 1px solid var(--border);
+  padding: 0;
+}
+.sub-faq-item:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.sub-faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sub-faq-item summary::-webkit-details-marker { display: none; }
+.sub-faq-chev { color: var(--fg-muted); transition: transform .15s; }
+.sub-faq-item[open] .sub-faq-chev { transform: rotate(90deg); }
+.sub-faq-item p {
+  font-size: 13px; line-height: 1.6;
+  color: var(--fg-2);
+  margin: 0 0 16px;
+  max-width: 720px;
+}
+
+/* Trusted-by strip. */
+.sub-trusted {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: var(--space-4) 0;
+}
+.sub-trusted-logo {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+  color: var(--fg-muted);
+  letter-spacing: -0.01em;
+  text-align: center;
+  transition: color .15s;
+}
+.sub-trusted-logo:hover { color: var(--fg-2); }
+
+@media (max-width: 720px) {
+  .sub-banner { flex-direction: column; align-items: flex-start; }
+  .sub-trusted { grid-template-columns: repeat(3, 1fr); gap: 16px; }
 }
 
 /* === SETTINGS === */
