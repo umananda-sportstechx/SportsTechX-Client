@@ -130,6 +130,7 @@ export const qk = {
     fundingTotals: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/funding-totals', { period }] as const,
     maStats: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-stats', { period }] as const,
     quarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/quarterly-capital', params] as const,
+    maQuarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/ma-quarterly', params] as const,
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
