@@ -93,8 +93,13 @@ export default function NewsletterPage() {
 					>
 						{sorted.map((article, i) => (
 							<Link
-								key={article.slug}
-								href={`/newsletter/${article.slug}`}
+								// Slug is the primary key, but if the server has a stale cache
+								// from before the slug field shipped we fall back to the
+								// Beehiiv link (always unique) so React keys stay valid.
+								key={article.slug || article.link || i}
+								href={article.slug ? `/newsletter/${article.slug}` : article.link}
+								target={article.slug ? undefined : '_blank'}
+								rel={article.slug ? undefined : 'noopener noreferrer'}
 								className="news-row"
 								style={{
 									borderBottom: i < sorted.length - 1 ? '1px solid var(--border)' : 'none',
@@ -220,9 +225,15 @@ function LatestHero({ article, issueNum }: { article: NewsletterArticle; issueNu
 					</p>
 				)}
 				<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-					<Link href={`/newsletter/${article.slug}`}>
-						<button className="btn">Read full issue <ArrowRight size={12} /></button>
-					</Link>
+					{article.slug ? (
+						<Link href={`/newsletter/${article.slug}`}>
+							<button className="btn">Read full issue <ArrowRight size={12} /></button>
+						</Link>
+					) : (
+						<a href={article.link} target="_blank" rel="noopener noreferrer">
+							<button className="btn">Read full issue <ArrowRight size={12} /></button>
+						</a>
+					)}
 					<a href={article.link} target="_blank" rel="noopener noreferrer">
 						<button
 							className="btn ghost"
