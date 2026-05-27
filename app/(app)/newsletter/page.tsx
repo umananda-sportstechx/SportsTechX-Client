@@ -161,13 +161,20 @@ export default function NewsletterPage() {
 }
 
 function LatestHero({ article, issueNum }: { article: NewsletterArticle; issueNum: number }) {
+	// Layer a slightly transparent slate gradient over the article thumbnail
+	// so the cover shows through as a darker, grayed-out backdrop while keeping
+	// the white headline + body legible.
+	const heroBackground = article.thumbnail
+		? `linear-gradient(135deg, rgba(44, 58, 74, 0.86) 0%, rgba(26, 33, 41, 0.92) 100%), url(${article.thumbnail}) center / cover`
+		: 'linear-gradient(135deg, var(--slate-deep) 0%, #1A2129 100%)';
+
 	return (
 		<div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 'var(--space-5)' }}>
-			{/* Slate-gradient panel */}
+			{/* Slate-gradient panel — falls through to the article cover when present. */}
 			<div
 				style={{
 					padding: 'var(--space-5)',
-					background: 'linear-gradient(135deg, var(--slate-deep) 0%, #1A2129 100%)',
+					background: heroBackground,
 					color: '#fff',
 					position: 'relative',
 				}}
