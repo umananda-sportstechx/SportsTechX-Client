@@ -63,20 +63,20 @@ const STATIC_CELLS: Record<Audience, StaticCell[]> = {
 	athletes: [
 		{ title: 'For Activity — Hardware', desc: 'Wearables, Equipment & Infrastructure' },
 		{ title: 'For Activity — Software', desc: 'Tracking & Analytics, Classes & Tutorials' },
-		{ title: 'Before / After Activity', desc: 'Booking & Discovery, Recovery, Coaching' },
+		{ title: 'Before / After Activity', desc: 'Booking & Discovery, Recovery & Injury Prevention, Coaching & Recruitment' },
 	],
 	fans: [
 		{ title: 'Content Platforms', desc: 'News & Content, Streaming Platforms' },
 		{ title: 'Fan Experiences', desc: 'Fan Engagement, Ticketing & Merchandise' },
-		{ title: 'Fantasy & Betting', desc: 'Fantasy Sports, Betting Enablement' },
+		{ title: 'Fantasy Sports & Betting', desc: 'Fantasy Sports, Betting Enablement' },
 	],
 	executives: [
-		{ title: 'Organisations & Venues', desc: 'Team & Club, League & Event, Stadium' },
+		{ title: 'Organisations & Venues', desc: 'Team & Club Management, League & Event Management, Stadium & Facility Management' },
 		{ title: 'Media & Sponsors', desc: 'Media Production, Sponsorship' },
 		{ title: 'Business Tools', desc: 'Marketing, Operations, Compliance' },
 	],
 	business: [
-		{ title: 'Organisations & Venues', desc: 'Team & Club, League & Event, Stadium' },
+		{ title: 'Organisations & Venues', desc: 'Team & Club Management, League & Event Management, Stadium & Facility Management' },
 		{ title: 'Media & Sponsors', desc: 'Media Production, Sponsorship' },
 		{ title: 'Business Tools', desc: 'Marketing, Operations, Compliance' },
 	],
@@ -119,9 +119,12 @@ export default function FrameworkPage() {
 			for (const child of apiChildren.slice(0, 3)) {
 				// Auto-generated description = comma-joined leaf names. Falls
 				// back to the API's own description field, then to the static
-				// label by name match, then to empty.
+				// label by normalised name match (strips em-dashes/punctuation
+				// so "For Activity Hardware" matches "For Activity — Hardware"),
+				// then to empty.
 				const leafNames = (child.children ?? []).map((g) => g.name).filter(Boolean);
-				const staticMatch = staticCells.find((c) => c.title.toLowerCase() === child.name.toLowerCase());
+				const childKey = normaliseTitle(child.name);
+				const staticMatch = staticCells.find((c) => normaliseTitle(c.title) === childKey);
 				const desc = leafNames.length > 0
 					? leafNames.join(', ')
 					: (child.description?.trim() || staticMatch?.desc || '');
@@ -239,9 +242,11 @@ export default function FrameworkPage() {
 														</div>
 													)}
 												</div>
-												<div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>
-													{cell.desc || '—'}
-												</div>
+												{cell.desc && (
+													<div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.45 }}>
+														{cell.desc}
+													</div>
+												)}
 											</>
 										);
 										return cell.slug ? (
@@ -306,4 +311,12 @@ function prettyTitle(name: string): string {
 	const m = name.match(/^For Activity\s+(.+)$/i);
 	if (m) return `For Activity — ${m[1]}`;
 	return name;
+}
+
+/**
+ * Strip em-dashes, punctuation, and case so titles match regardless of
+ * formatting variant ("For Activity — Hardware" === "For Activity Hardware").
+ */
+function normaliseTitle(s: string): string {
+	return s.toLowerCase().replace(/[—–-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
