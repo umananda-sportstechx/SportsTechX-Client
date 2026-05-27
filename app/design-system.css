@@ -611,6 +611,16 @@
   flex-shrink: 0;
   color: #fff;
 }
+.co-logo-img {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.co-logo-img img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+}
 
 /* === TAGS / CHIPS === */
 .tag {

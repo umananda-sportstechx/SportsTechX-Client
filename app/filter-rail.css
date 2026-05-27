@@ -26,14 +26,22 @@
 
 .flt-rail {
   position: sticky;
+  /* Sticks within `.content-scroll` (the real scroll container — see
+     app-shell.tsx). Its visible height is the viewport minus the topbar and
+     ticker, so the rail's height/offset must be measured against THAT, not
+     100vh — otherwise the rail runs past the fold, its bottom (Reset, last
+     facets) becomes unreachable, and the internal scrollbar never engages
+     at the right point. */
   top: 12px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   font-size: 12.5px;
-  max-height: calc(100vh - 120px);
+  /* topbar + ticker + 12px top sticky offset + 12px bottom breathing room. */
+  max-height: calc(100vh - var(--topbar-h) - var(--ticker-h) - 24px);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .flt-rail-head {
@@ -482,6 +490,11 @@ button.deal-card:hover { border-color: var(--border-strong); }
 }
 .flt-main .data-table .tbl-name-cell > .tbl-name-text {
   min-width: 0; flex: 1;
+  /* Cap the name + description block so a long, nowrap sub-text can't push
+     the column to its content width (which auto table-layout would honour,
+     blowing the whole table past its container). The ellipsis on .tbl-name /
+     .tbl-sub then actually engages. Scales with the viewport but never huge. */
+  max-width: clamp(160px, 24vw, 380px);
 }
 .flt-main .data-table .tbl-name-cell .tbl-name-line {
   display: flex; align-items: center; gap: 6px;
@@ -507,8 +520,16 @@ button.deal-card:hover { border-color: var(--border-strong); }
 .flt-main .data-table .tbl-ellipsis {
   display: block;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%;
+  /* Bounded so acquirer / investor / HQ cells with long values truncate
+     instead of widening their column. */
+  max-width: clamp(120px, 16vw, 260px);
 }
+
+/* Safety net: the card wrapping a data table in the rail layout keeps the
+   table from spilling past the main column — worst case it scrolls
+   horizontally inside the card rather than breaking the page grid. */
+.flt-main .card { overflow-x: auto; }
+.flt-main .data-table { max-width: 100%; }
 
 /* ─── Sortable headers ─── */
 
