@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Flag, Chip, Empty } from '@/components/ui/atoms';
+import { Page, Flag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
 
 interface EcosystemEntity {
 	id: string;
@@ -33,10 +37,10 @@ interface EcosystemResponse {
 	totalPages: number;
 }
 
-const STATUS_CHIPS: Array<{ label: string; key: string }> = [
-	{ label: 'Open',          key: 'open' },
-	{ label: 'Closing soon',  key: 'closing_soon' },
-	{ label: 'Closed',        key: 'closed' },
+const STATUS_OPTIONS = [
+	{ value: 'open', label: 'Open' },
+	{ value: 'closing_soon', label: 'Closing soon' },
+	{ value: 'closed', label: 'Closed' },
 ];
 
 const FALLBACK_COLORS = [
@@ -48,20 +52,39 @@ export default function ProgramsPage() {
 	const pathname = usePathname();
 	const params = useSearchParams();
 
-	const [status, setStatus] = useState(params.get('status') ?? '');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 
-	const updateUrl = (updates: Record<string, string | number | null>) => {
-		const sp = new URLSearchParams(params.toString());
-		Object.entries(updates).forEach(([k, v]) => {
-			if (v == null || v === '') sp.delete(k);
-			else sp.set(k, String(v));
-		});
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-	};
+	const facets = useMemo<Facet[]>(() => [
+		{
+			key: 'status',
+			label: 'Application status',
+			kind: 'multi',
+			options: () => STATUS_OPTIONS,
+		},
+	], []);
+
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const s = params.get('status');
+		if (s) init.status = s.split(',').filter(Boolean);
+		return init;
+	});
+
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		const st = filterState.status as string[] | undefined;
+		if (st?.length) sp.set('status', st.join(','));
+		if (page > 1) sp.set('page', String(page));
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page]);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
-	if (status) queryParams.status = status;
+	if (filterState.search) queryParams.search = filterState.search;
+	const st = filterState.status as string[] | undefined;
+	if (st?.length === 1) queryParams.status = st[0];
 
 	const { data, isLoading } = useSWR<EcosystemResponse>(
 		qk.ecosystem.listByType('program', queryParams),
@@ -72,87 +95,60 @@ export default function ProgramsPage() {
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
 
-	const handleStatusChip = (key: string) => {
-		const next = status === key ? '' : key;
-		setStatus(next);
-		setPage(1);
-		updateUrl({ status: next || null, page: null });
-	};
-
 	return (
 		<Page>
-			<div style={{ marginBottom: 'var(--space-5)' }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Ecosystem · accelerators
+			<PageTitle
+				kicker="Ecosystem · accelerators"
+				title="Programs"
+				sub="Sports-tech accelerators, incubators and innovation programs — application status, terms, and partners."
+			/>
+
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+					defaultOpen={{ status: true }}
+				/>
+
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search programs, locations…"
+						total={total}
+						shown={programs.length}
+					/>
+
+					{isLoading && programs.length === 0 ? (
+						<Empty msg="Loading…" />
+					) : programs.length === 0 ? (
+						<div className="card flt-empty-state">
+							<h3>No programs match</h3>
+							<p>Try clearing some filters.</p>
+						</div>
+					) : (
+						<div className="prog-grid">
+							{programs.map((p, i) => <ProgramCard key={p.id} p={p} i={i} />)}
+						</div>
+					)}
+
+					{totalPages > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+								Page {page} of {totalPages}
+							</span>
+							<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+								<ChevronLeft size={14} />
+							</button>
+							<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+								<ChevronRight size={14} />
+							</button>
+						</div>
+					)}
 				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 38,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: '0 0 6px',
-					}}
-				>
-					Programs
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: 0 }}>
-					Sports-tech accelerators, incubators and innovation programs — application status, terms, and partners.
-				</p>
 			</div>
-
-			<div className="filter-bar" style={{ marginBottom: 'var(--space-4)' }}>
-				<Chip active={!status} count={total} onClick={() => handleStatusChip('')}>
-					All
-				</Chip>
-				{STATUS_CHIPS.map((c) => (
-					<Chip key={c.key} active={status === c.key} onClick={() => handleStatusChip(c.key)}>
-						{c.label}
-					</Chip>
-				))}
-			</div>
-
-			{isLoading && programs.length === 0 ? (
-				<Empty msg="Loading…" />
-			) : programs.length === 0 ? (
-				<Empty msg="No programs in this state." />
-			) : (
-				<div className="prog-grid">
-					{programs.map((p, i) => <ProgramCard key={p.id} p={p} i={i} />)}
-				</div>
-			)}
-
-			{totalPages > 1 && (
-				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
-					<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
-						Page {page} of {totalPages}
-					</span>
-					<button
-						className="btn ghost"
-						disabled={page <= 1}
-						onClick={() => { const next = page - 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronLeft size={14} />
-					</button>
-					<button
-						className="btn ghost"
-						disabled={page >= totalPages}
-						onClick={() => { const next = page + 1; setPage(next); updateUrl({ page: next }); }}
-					>
-						<ChevronRight size={14} />
-					</button>
-				</div>
-			)}
 		</Page>
 	);
 }

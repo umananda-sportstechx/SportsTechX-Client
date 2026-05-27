@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowRight, Lock } from 'lucide-react';
+import { ArrowRight, Lock, Sparkles } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Tag, SectionHead, Empty } from '@/components/ui/atoms';
+import { Page, Tag, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { useUserProfile, getUserType, type UserType } from '@/hooks/use-user-profile';
 
 interface Report {
 	id: string;
@@ -43,8 +44,61 @@ const COVER_COLORS = [
 	'#0F172A', '#1E40AF', '#15803D', '#0C4A6E', '#7C2D12', '#BE185D', '#1E293B', '#0F766E',
 ];
 
+/**
+ * Bordered nudge that sits in the PageTitle action slot, prompting
+ * free/growth users to upgrade. Hidden for `pro` (caller's check).
+ * Ported verbatim from `ui_design_2/app/screens-3.jsx:437-445`.
+ *
+ * Declared BEFORE the default export — Turbopack/SWC fast-refresh sometimes
+ * doesn't hoist function declarations placed after the default export of a
+ * client component, which surfaces as `ReferenceError: X is not defined` at
+ * runtime even though TS sees the symbol fine. Putting helpers above the
+ * default export removes the ambiguity.
+ */
+function UpgradeToProBadge({ userType, total }: { userType: UserType; total: number }) {
+	const tierLabel = userType === 'growth' ? 'Growth' : 'Free';
+	return (
+		<div
+			style={{
+				alignSelf: 'center',
+				display: 'flex',
+				alignItems: 'center',
+				gap: 12,
+				padding: '10px 12px 10px 14px',
+				border: '1px solid var(--border)',
+				borderRadius: 10,
+				background: 'var(--bg-2)',
+			}}
+		>
+			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+				<div
+					style={{
+						fontFamily: 'var(--font-mono)',
+						fontSize: 10,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+					}}
+				>
+					You&apos;re on {tierLabel}
+				</div>
+				<div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 2 }}>
+					Unlock all {total.toLocaleString()} reports with Pro
+				</div>
+			</div>
+			<Link href="/subscriptions">
+				<button className="btn">
+					<Sparkles size={12} /> Upgrade to Pro
+				</button>
+			</Link>
+		</div>
+	);
+}
+
 export default function ReportsPage() {
 	const reportsAccess = useFeatureAccess('reports_access');
+	const { data: profile } = useUserProfile();
+	const userType = getUserType(profile);
 	const { data, isLoading } = useSWR<ReportsResponse>(qk.reports.list(), {
 		dedupingInterval: 10 * 60_000,
 	});
@@ -57,49 +111,12 @@ export default function ReportsPage() {
 
 	return (
 		<Page>
-			<div
-				style={{
-					display: 'flex',
-					alignItems: 'flex-end',
-					justifyContent: 'space-between',
-					marginBottom: 'var(--space-5)',
-					flexWrap: 'wrap',
-					gap: 16,
-				}}
-			>
-				<div>
-					<div
-						style={{
-							fontFamily: 'var(--font-mono)',
-							fontSize: 11,
-							color: 'var(--fg-muted)',
-							textTransform: 'uppercase',
-							letterSpacing: '0.1em',
-							marginBottom: 6,
-						}}
-					>
-						Library · {total.toLocaleString()} reports
-					</div>
-					<h1
-						style={{
-							fontFamily: 'var(--font-display)',
-							fontSize: 38,
-							fontWeight: 800,
-							letterSpacing: '-0.02em',
-							lineHeight: 1,
-							margin: '0 0 6px',
-						}}
-					>
-						Reports
-					</h1>
-					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
-						Deep, expert-authored analyses of sports tech sub-sectors and regions — used by leagues, brands, and investors.
-					</p>
-				</div>
-				{!reportsAccess.hasAccess && (
-					<Link href="/subscriptions"><button className="btn">Subscribe to access all</button></Link>
-				)}
-			</div>
+			<PageTitle
+				kicker={`Library · ${total.toLocaleString()} reports`}
+				title="Reports"
+				sub="Deep, expert-authored analyses of sports tech sub-sectors and regions — used by leagues, brands, and investors."
+				action={userType !== 'pro' ? <UpgradeToProBadge userType={userType} total={total} /> : undefined}
+			/>
 
 			{isLoading && reportsApi.length === 0 ? (
 				<Empty msg="Loading…" />
@@ -192,7 +209,12 @@ export default function ReportsPage() {
 								key={r.id}
 								href={`/reports/${r.slug ?? r.id}`}
 								className="card rep-card"
-								style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+								style={{
+									display: 'flex',
+									flexDirection: 'column',
+									textDecoration: 'none',
+									color: 'inherit',
+								}}
 							>
 								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200, position: 'relative' }}>
 									{r.is_published === false && (
@@ -209,7 +231,18 @@ export default function ReportsPage() {
 									</span>
 									<span className="rc-title" style={{ fontSize: 16 }}>{r.short_title ?? r.title}</span>
 								</div>
-								<div style={{ padding: 'var(--space-3)' }}>
+								{/* Flex column so the button always sits at the bottom of the
+								    card regardless of how short/long the title or description
+								    runs — uniform alignment across the grid. */}
+								<div
+									style={{
+										padding: 'var(--space-3)',
+										display: 'flex',
+										flexDirection: 'column',
+										flex: 1,
+										minHeight: 0,
+									}}
+								>
 									<div
 										style={{
 											fontSize: 11,
@@ -235,7 +268,10 @@ export default function ReportsPage() {
 									>
 										{r.description ?? pickFallbackDesc(r.id)}
 									</div>
-									<button className="btn ghost" style={{ width: '100%', justifyContent: 'center' }}>
+									<button
+										className="btn ghost"
+										style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
+									>
 										View report
 									</button>
 								</div>
@@ -307,12 +343,20 @@ function MockFeaturedHero({
 
 function MockReportCard({ r }: { r: typeof MOCK_REPORTS[number] }) {
 	return (
-		<div className="card rep-card">
+		<div className="card rep-card" style={{ display: 'flex', flexDirection: 'column' }}>
 			<div className="report-cover" style={{ background: r.color, height: 200 }}>
 				<span className="rc-meta">{r.year} · {r.pages}p</span>
 				<span className="rc-title" style={{ fontSize: 16 }}>{r.title}</span>
 			</div>
-			<div style={{ padding: 'var(--space-3)' }}>
+			<div
+				style={{
+					padding: 'var(--space-3)',
+					display: 'flex',
+					flexDirection: 'column',
+					flex: 1,
+					minHeight: 0,
+				}}
+			>
 				<div
 					style={{
 						fontSize: 11,
@@ -326,7 +370,10 @@ function MockReportCard({ r }: { r: typeof MOCK_REPORTS[number] }) {
 				</div>
 				<div style={{ fontWeight: 600, marginBottom: 4 }}>{r.title}</div>
 				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{r.desc}</div>
-				<button className="btn ghost" style={{ width: '100%', justifyContent: 'center' }}>
+				<button
+					className="btn ghost"
+					style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
+				>
 					View report
 				</button>
 			</div>

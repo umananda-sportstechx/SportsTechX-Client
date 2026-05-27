@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight,
+	ChevronRight, Heart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -70,6 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
 	// ]},
 	{
 		label: 'Account', items: [
+			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
 			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
 			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
 		]

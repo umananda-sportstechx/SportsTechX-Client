@@ -2,25 +2,24 @@
 
 import Link from 'next/link';
 import useSWR from 'swr';
-import { Filter, Plus, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import {
-	Page, Stat, Logo, Flag, SectionHead, WorldMap, Tag, SectorPill,
-	Heatmap, Empty,
+	Page, Stat, Logo, Flag, SectionHead, Tag, Empty, AudiencePill,
 } from '@/components/ui/atoms';
 
 /**
- * Dashboard — mission control. Live data only; no MOCK_* fallbacks. Cells
- * with no backing data render an <Empty> hint so empty states are explicit.
+ * Dashboard — pixel-aligned to `ui_design_2/app/screens-1.jsx`.
  *
- * Wires up to:
- *   /api/analytics/dashboard-stats   — hero KPIs (capital, deals, M&A, companies)
- *   /api/analytics/sector-heat       — sector funding distribution
- *   /api/analytics/world-flow        — country deal counts → world map dots
- *   /api/deals                       — recent funding table
- *   /api/reports                     — featured reports rail
- *   /api/companies                   — featured companies rail
- *   /api/ecosystem-entities?type=event — upcoming events
+ * Layout (top → bottom):
+ *  1. PageHeader: full date kicker + "Pulse by SportsTechX." + sub.
+ *  2. Hero stat strip: 4 `.card.feature` KPI tiles (Capital · YTD, Disclosed
+ *     rounds, M&A · YTD, Median round) from `/api/analytics/*`.
+ *  3. Two-column row (1.6fr / 1fr): Latest Funding Rounds + Latest Newsletter.
+ *  4. Featured Reports — full-width card with 3-column report grid.
+ *  5. Three-column footer: Actively Raising + Upcoming Events + Programs.
+ *
+ * Every data slot binds to a real API; no MOCK_* fallbacks.
  */
 
 interface DashboardStats {
@@ -32,21 +31,14 @@ interface DashboardStats {
 	total_ecosystem_entities: number;
 }
 
-interface SectorHeatPoint {
-	sector_id: string;
-	sector_slug: string;
-	sector_name: string;
-	deal_count: number;
+interface FundingTotals {
 	total_amount: number;
+	round_count: number;
+	median_amount: number;
+	largest_amount: number;
 }
 
-interface WorldFlowPoint {
-	country: string;
-	deal_count: number;
-	total_amount: number;
-}
-
-interface DealResp { data: Array<DealRow>; total?: number }
+interface DealResp { data: DealRow[]; total?: number }
 interface DealRow {
 	id: string;
 	company_name?: string;
@@ -58,33 +50,29 @@ interface DealRow {
 	country_code?: string | null;
 	hq_country?: string | null;
 	sector_name?: string | null;
+	sector_slug?: string | null;
 	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
 	company_slug?: string | null;
 }
 
-interface CompanyResp { data: Array<CompanyRow>; total?: number }
-interface CompanyRow {
-	id: string;
-	name: string;
-	slug?: string;
-	primary_sector?: string | null;
-	hq_city?: string | null;
-	hq_country?: string | null;
-}
+interface CompanyResp { data: unknown[]; total?: number }
 
-interface ReportResp { data: Array<ReportRow> }
+interface ReportResp { data: ReportRow[] }
 interface ReportRow {
 	id: string;
 	short_title?: string;
 	slug?: string;
 	title: string;
 	cover_url?: string | null;
+	cover_color?: string | null;
 	report_type?: string | null;
 	pages?: number | null;
 	report_year?: number | null;
+	description?: string | null;
 }
 
-interface EventResp { data: Array<EventRow> }
+interface EventResp { data: EventRow[] }
 interface EventRow {
 	id: string;
 	name: string;
@@ -94,55 +82,66 @@ interface EventRow {
 	start_date?: string | null;
 }
 
+interface ProgramResp { data: ProgramRow[]; total?: number }
+interface ProgramRow {
+	id: string;
+	name: string;
+}
+
+interface NewsletterArticle {
+	title: string;
+	link: string;
+	description: string;
+	thumbnail: string;
+	pubDate: string;
+	author: string;
+}
+
+interface QuarterlyPoint {
+	year: number;
+	quarter: number;
+	quarter_label: string;
+	total_amount: number;
+	deal_count: number;
+}
+
 export default function DashboardPage() {
+	const currentYear = new Date().getFullYear();
 	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('ytd'), { dedupingInterval: 10 * 60_000 });
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('ytd', 8), { dedupingInterval: 10 * 60_000 });
-	const { data: worldFlow } = useSWR<WorldFlowPoint[]>(qk.analytics.worldFlow('ytd', 40), { dedupingInterval: 10 * 60_000 });
-	const { data: companies } = useSWR<CompanyResp>(qk.companies.list({ limit: 6 }), { dedupingInterval: 5 * 60_000 });
+	const { data: fundingTotals } = useSWR<FundingTotals>(qk.analytics.fundingTotals('ytd'), { dedupingInterval: 10 * 60_000 });
+	const { data: quarters } = useSWR<QuarterlyPoint[]>(
+		qk.analytics.quarterly({ from: currentYear - 2, to: currentYear }),
+		{ dedupingInterval: 10 * 60_000 },
+	);
 	const { data: dealsResp } = useSWR<DealResp>(qk.deals.list({ limit: 8, sort: '-announced_date' }), { dedupingInterval: 5 * 60_000 });
 	const { data: reports } = useSWR<ReportResp>(qk.reports.list(), { dedupingInterval: 30 * 60_000 });
-	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3 }), { dedupingInterval: 30 * 60_000 });
+	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3, sort: 'start_date' }), { dedupingInterval: 30 * 60_000 });
+	const { data: programs } = useSWR<ProgramResp>(qk.ecosystem.listByType('program', { limit: 4, status: 'open' }), { dedupingInterval: 30 * 60_000 });
+	const { data: raisingResp } = useSWR<CompanyResp>(qk.companies.list({ is_actively_raising: true, limit: 1 }), { dedupingInterval: 10 * 60_000 });
+	const { data: newsletter } = useSWR<NewsletterArticle[]>(qk.newsletter.articles(), { dedupingInterval: 30 * 60_000, revalidateOnFocus: false });
 
 	const recentDeals = (dealsResp?.data ?? []).slice(0, 8);
-	const featured = (companies?.data ?? []).slice(0, 6);
 	const featuredReports = (reports?.data ?? []).slice(0, 3);
 	const upcomingEvents = (events?.data ?? []).slice(0, 3);
+	const openPrograms = programs?.data ?? [];
+	const programsCount = programs?.total ?? openPrograms.length;
+	const actuallyRaising = raisingResp?.total ?? 0;
+	const latestIssue = newsletter?.[0];
 
 	return (
 		<Page>
-			<DashboardHeader />
+			<PageHeader />
 
+			{/* Hero stat strip — all four use .card.feature (slate gradient in dark mode) */}
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				{heroStrip(stats).map((s, i) => (
-					<div key={s.label} className={`card ${i === 0 ? 'feature' : ''}`} style={{ padding: 'var(--space-4)' }}>
+				{heroStrip(stats, fundingTotals, quarters).map((s) => (
+					<div key={s.label} className="card feature" style={{ padding: 'var(--space-4)' }}>
 						<Stat {...s} />
 					</div>
 				))}
 			</div>
 
-			<div className="grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', marginBottom: 'var(--space-5)' }}>
-				<div className="card">
-					<SectionHead
-						title="Global Activity"
-						meta={stats ? `YTD · ${stats.total_deals.toLocaleString()} rounds` : 'YTD'}
-					/>
-					<div style={{ padding: 'var(--space-3)' }}>
-						{!worldFlow || worldFlow.length === 0
-							? <Empty msg="No geographic data" />
-							: <WorldMap height={320} dots={worldFlowToDots(worldFlow)} />}
-					</div>
-				</div>
-
-				<div className="card">
-					<SectionHead title="Sector Heat" meta="Funding by sector · YTD" />
-					<div style={{ padding: 'var(--space-4)' }}>
-						{!sectorHeat || sectorHeat.length === 0
-							? <Empty msg="No sector data" />
-							: <Heatmap data={sectorHeatToHeatmap(sectorHeat)} />}
-					</div>
-				</div>
-			</div>
-
+			{/* Funding rounds (1.6fr) + Newsletter (1fr) */}
 			<div className="grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', marginBottom: 'var(--space-5)' }}>
 				<div className="card">
 					<SectionHead
@@ -169,7 +168,8 @@ export default function DashboardPage() {
 									const coSlug = d.company?.slug ?? d.company_slug;
 									const cc = d.country_code ?? (d.hq_country ? countryCode(d.hq_country) : '');
 									const round = d.round_type_name ?? d.round_type ?? '—';
-									const sector = d.sector_name ?? d.primary_sector;
+									const sectorName = d.sector_name ?? d.primary_sector ?? '';
+									const sectorSlug = d.sector_slug ?? d.primary_sector_slug ?? sectorName;
 									return (
 										<tr key={d.id}>
 											<td className="num">{formatShortDate(d.announced_date ?? null)}</td>
@@ -182,7 +182,11 @@ export default function DashboardPage() {
 													<span style={{ fontWeight: 600 }}>{coName}</span>
 												</Link>
 											</td>
-											<td>{sector ? <SectorPill name={sector} /> : '—'}</td>
+											<td>
+												{sectorName
+													? <AudiencePill sectorSlug={sectorSlug} label={sectorName} size="sm" />
+													: <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+											</td>
 											<td>
 												{round !== '—'
 													? <Tag variant={round.toLowerCase().includes('acquired') ? 'pill' : 'pos'}>{round}</Tag>
@@ -200,80 +204,178 @@ export default function DashboardPage() {
 					)}
 				</div>
 
+				{/* Latest Newsletter — exact design parity */}
 				<div className="card">
 					<SectionHead
-						title="Featured Reports"
+						title="Latest Newsletter"
+						meta={latestIssue ? formatIssueDate(latestIssue.pubDate) : undefined}
 						action={
-							<Link className="btn ghost" href="/reports">
-								All <ArrowRight size={12} />
+							<Link className="btn ghost" href="/newsletter">
+								All issues <ArrowRight size={12} />
 							</Link>
 						}
 					/>
-					<div style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-						{featuredReports.length === 0 ? (
-							<Empty msg="No reports published yet" />
+					<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
+						{!latestIssue ? (
+							<Empty msg="No newsletter issues yet" />
 						) : (
-							featuredReports.map((r) => {
-								const slug = r.slug ?? r.short_title ?? r.id;
-								return (
-									<Link key={r.id} href={`/reports/${slug}`} className="report-card">
-										<div className="report-cover" style={{
-											background: r.cover_url ? `url(${r.cover_url}) center/cover` : 'oklch(58% 0.22 240)',
-										}}>
-											<span className="rc-meta">{r.report_year ?? ''}{r.pages ? ` · ${r.pages}p` : ''}</span>
-											<span className="rc-title">{r.title}</span>
-										</div>
-										<div style={{ padding: 'var(--space-3)' }}>
-											<div style={{ fontSize: 12, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-												{r.report_type ?? 'Report'}
-											</div>
-											<div style={{ fontWeight: 600 }}>{r.title}</div>
-										</div>
-									</Link>
-								);
-							})
+							<>
+								<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+									The Sports Tech Recap · {formatIssueDate(latestIssue.pubDate)}
+								</div>
+								<h3
+									style={{
+										fontFamily: 'var(--font-display)',
+										fontSize: 22,
+										fontWeight: 700,
+										lineHeight: 1.2,
+										marginBottom: 12,
+										letterSpacing: '-0.01em',
+									}}
+								>
+									{latestIssue.title}
+								</h3>
+								{/* Cover from Beehiiv RSS thumbnail — sits between title and description,
+								    clickable, opens issue in new tab. */}
+								{latestIssue.thumbnail && (
+									<a
+										href={latestIssue.link}
+										target="_blank"
+										rel="noopener noreferrer"
+										style={{
+											display: 'block',
+											position: 'relative',
+											aspectRatio: '16 / 9',
+											overflow: 'hidden',
+											marginBottom: 12,
+											border: '1px solid var(--border)',
+										}}
+									>
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={latestIssue.thumbnail}
+											alt=""
+											style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+										/>
+									</a>
+								)}
+								<p
+									style={{
+										fontSize: 13,
+										color: 'var(--fg-2)',
+										lineHeight: 1.55,
+										// marginBottom: 16,
+										flex: 1,
+										display: '-webkit-box',
+										WebkitLineClamp: 3,
+										WebkitBoxOrient: 'vertical',
+										overflow: 'hidden',
+									}}
+								>
+									{stripHtml(latestIssue.description)}
+								</p>
+								<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+									<div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)' }}>
+										5 min read
+									</div>
+									<a href={latestIssue.link} target="_blank" rel="noopener noreferrer" className="btn">
+										Read issue <ArrowRight size={12} />
+									</a>
+								</div>
+							</>
 						)}
 					</div>
 				</div>
 			</div>
 
-			<div className="grid-3">
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
-					<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-						Featured companies
-					</div>
-					{featured.length === 0 ? (
-						<Empty msg="No companies" />
+			{/* Featured Reports — full-width row */}
+			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+				<SectionHead
+					title="Featured Reports"
+					meta="latest research"
+					action={
+						<Link className="btn ghost" href="/reports">
+							All {(reports?.data?.length ?? 0) > 0 ? (reports!.data!.length) : ''} <ArrowRight size={12} />
+						</Link>
+					}
+				/>
+				<div style={{ padding: 'var(--space-3)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
+					{featuredReports.length === 0 ? (
+						<div style={{ gridColumn: '1 / -1' }}>
+							<Empty msg="No reports published yet" />
+						</div>
 					) : (
-						<div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-							{featured.map((c) => (
-								<Link
-									key={c.id}
-									href={`/companies/${c.slug ?? c.id}`}
-									style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}
-								>
-									<Logo co={{ name: c.name }} size={28} />
-									<div style={{ flex: 1, minWidth: 0 }}>
-										<div style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</div>
-										<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
-											{c.hq_country && <Flag cc={countryCode(c.hq_country)} />}{' '}
-											{c.hq_city ?? c.hq_country ?? '—'}{c.primary_sector ? ` · ${c.primary_sector}` : ''}
+						featuredReports.map((r) => {
+							const slug = r.slug ?? r.short_title ?? r.id;
+							const coverBg = r.cover_url
+								? `url(${r.cover_url}) center/cover`
+								: (r.cover_color ?? 'oklch(58% 0.22 240)');
+							return (
+								<Link key={r.id} href={`/reports/${slug}`} className="report-card">
+									<div className="report-cover" style={{ background: coverBg }}>
+										<span className="rc-meta">
+											{r.report_year ?? ''}{r.pages ? ` · ${r.pages}p` : ''}
+										</span>
+										<span className="rc-title">{r.title}</span>
+									</div>
+									<div style={{ padding: 'var(--space-3)' }}>
+										<div style={{ fontSize: 12, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+											{r.report_type ?? 'Report'}
 										</div>
+										<div style={{ fontWeight: 600, marginBottom: 4 }}>{r.title}</div>
+										{r.description && (
+											<div
+												style={{
+													fontSize: 12,
+													color: 'var(--fg-2)',
+													display: '-webkit-box',
+													WebkitLineClamp: 2,
+													WebkitBoxOrient: 'vertical',
+													overflow: 'hidden',
+												}}
+											>
+												{r.description}
+											</div>
+										)}
 									</div>
 								</Link>
-							))}
-						</div>
+							);
+						})
 					)}
 				</div>
+			</div>
 
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
+			{/* Footer feeds — Actively Raising / Upcoming Events / Programs */}
+			<div className="grid-3">
+				<div className="card" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column' }}>
+					<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+						Actively Raising
+					</div>
+					<div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+						<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, margin: 0 }}>
+							{actuallyRaising.toLocaleString()}
+						</h3>
+					</div>
+					<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 12 }}>
+						Companies confirmed to be on the market or in active conversations with investors — filterable by stage, sector and geography.
+					</p>
+					<div style={{ marginTop: 'auto' }}>
+						<Link className="btn" href="/companies?is_actively_raising=true">
+							View companies <ArrowRight size={12} />
+						</Link>
+					</div>
+				</div>
+
+				<div className="card" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column' }}>
 					<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
 						Upcoming Events
 					</div>
 					{upcomingEvents.length === 0 ? (
-						<Empty msg="No upcoming events" />
+						<div style={{ flex: 1, display: 'grid', placeItems: 'center', minHeight: 80 }}>
+							<Empty msg="No upcoming events" />
+						</div>
 					) : (
-						<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
 							{upcomingEvents.map((e) => {
 								const d = splitDate(e.start_date ?? null);
 								const cc = e.hq_country ? countryCode(e.hq_country) : '';
@@ -287,7 +389,7 @@ export default function DashboardPage() {
 										</div>
 										<div style={{ flex: 1, minWidth: 0 }}>
 											<div style={{ fontWeight: 600, fontSize: 13 }}>{e.name}</div>
-											<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+											<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
 												{cc && <Flag cc={cc} />} {e.hq_city ?? e.hq_country ?? '—'}
 											</div>
 										</div>
@@ -296,124 +398,121 @@ export default function DashboardPage() {
 							})}
 						</div>
 					)}
+					<div style={{ marginTop: 'auto' }}>
+						<Link className="btn" href="/events">
+							Browse events <ArrowRight size={12} />
+						</Link>
+					</div>
 				</div>
 
-				<div className="card" style={{ padding: 'var(--space-4)' }}>
+				<div className="card" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column' }}>
 					<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-						Newsletter
+						Programs
 					</div>
 					<h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6, fontFamily: 'var(--font-display)' }}>
-						Featured by SportsTechX
+						{programsCount} active accelerator{programsCount === 1 ? '' : 's'}
 					</h3>
 					<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 12 }}>
-						Weekly recap of capital, M&amp;A and ecosystem signals. Read the latest issues.
+						{openPrograms.length > 0
+							? `${openPrograms.slice(0, 4).map((p) => p.name).join(', ')} — applications open.`
+							: 'Sports-tech accelerators with applications currently open.'}
 					</p>
-					<Link className="btn" href="/newsletter">
-						Browse issues <ArrowRight size={12} />
-					</Link>
+					<div style={{ marginTop: 'auto' }}>
+						<Link className="btn" href="/programs">
+							Browse programs <ArrowRight size={12} />
+						</Link>
+					</div>
 				</div>
 			</div>
 		</Page>
 	);
 }
 
-function heroStrip(s: DashboardStats | undefined) {
+function PageHeader() {
+	const dateStr = new Date().toLocaleDateString('en-US', {
+		weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+	});
+	return (
+		<div style={{ marginBottom: 'var(--space-5)' }}>
+			<div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+				{dateStr}
+			</div>
+			<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 8 }}>
+				Pulse by SportsTechX.
+			</h1>
+			<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: 0 }}>
+				The state of the global sports technology ecosystem — live deal flow, M&amp;A, ecosystem signals, and curated intelligence.
+			</p>
+		</div>
+	);
+}
+
+/**
+ * Build the 4 hero stat cards. Sparklines + QoQ deltas are derived from the
+ * quarterly capital flow series — falls back to no spark + no delta if the
+ * series isn't loaded yet.
+ */
+function heroStrip(
+	s: DashboardStats | undefined,
+	f: FundingTotals | undefined,
+	q: QuarterlyPoint[] | undefined,
+) {
 	const cap = splitDollars(s?.total_funding ?? 0);
+	const median = splitDollars(f?.median_amount ?? 0);
+	const year = new Date().getFullYear();
+
+	// Sparkline series — last 12 data points if available.
+	const capSpark = q ? q.slice(-12).map((p) => p.total_amount) : undefined;
+	const roundsSpark = q ? q.slice(-12).map((p) => p.deal_count) : undefined;
+
+	// QoQ delta — compare last quarter to the one before.
+	const capDelta = pctDelta(q, (p) => p.total_amount);
+	const roundsDelta = pctDelta(q, (p) => p.deal_count);
+
 	return [
-		{ label: 'Capital · YTD', value: cap.value, unit: cap.unit, deltaDir: 'pos' as const },
-		{ label: 'Disclosed rounds', value: (s?.total_deals ?? 0).toLocaleString(), deltaDir: 'pos' as const },
-		{ label: 'M&A · YTD', value: (s?.total_acquisitions ?? 0).toLocaleString(), deltaDir: 'pos' as const },
-		{ label: 'Companies tracked', value: (s?.total_companies ?? 0).toLocaleString(), deltaDir: 'pos' as const },
+		{
+			label: `Capital · YTD ${year}`,
+			value: cap.value,
+			unit: cap.unit,
+			delta: capDelta?.label,
+			deltaDir: (capDelta?.dir ?? 'pos') as 'pos' | 'neg',
+			spark: capSpark,
+		},
+		{
+			label: 'Disclosed rounds',
+			value: (s?.total_deals ?? 0).toLocaleString(),
+			delta: roundsDelta?.label,
+			deltaDir: (roundsDelta?.dir ?? 'pos') as 'pos' | 'neg',
+			spark: roundsSpark,
+		},
+		{
+			label: 'M&A · YTD',
+			value: (s?.total_acquisitions ?? 0).toLocaleString(),
+			deltaDir: 'pos' as const,
+		},
+		{
+			label: 'Median round',
+			value: median.value,
+			unit: median.unit,
+			deltaDir: 'pos' as const,
+		},
 	];
 }
 
-/** Map top-N sector totals onto the Heatmap atom's expected shape. We don't
- *  have per-quarter sector buckets server-side yet; render a single-column
- *  bar by emitting one value per sector. The Heatmap atom degrades gracefully. */
-function sectorHeatToHeatmap(rows: SectorHeatPoint[]): Array<{ label: string; values: number[] }> {
-	const max = Math.max(1, ...rows.map((r) => r.total_amount));
-	return rows.map((r) => ({
-		label: r.sector_name,
-		values: [Math.round((r.total_amount / max) * 100)],
-	}));
-}
-
-/** Same coarse country→pixel map used on the Analytics page. */
-const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
-	'United States': { x: 240, y: 180 }, USA: { x: 240, y: 180 },
-	Canada: { x: 230, y: 165 },
-	'United Kingdom': { x: 500, y: 145 }, UK: { x: 500, y: 145 },
-	Germany: { x: 530, y: 155 }, France: { x: 510, y: 165 }, Italy: { x: 525, y: 180 },
-	Spain: { x: 510, y: 200 }, Netherlands: { x: 525, y: 130 }, Sweden: { x: 540, y: 110 },
-	Switzerland: { x: 535, y: 170 }, Belgium: { x: 525, y: 145 }, Austria: { x: 545, y: 165 },
-	Poland: { x: 555, y: 145 }, Portugal: { x: 490, y: 210 },
-	India: { x: 720, y: 245 }, China: { x: 820, y: 200 }, Japan: { x: 870, y: 195 },
-	Singapore: { x: 820, y: 320 }, Australia: { x: 870, y: 380 },
-	Brazil: { x: 320, y: 350 }, Mexico: { x: 200, y: 240 },
-};
-
-function worldFlowToDots(rows: WorldFlowPoint[]): Array<{ x: number; y: number; r: number }> {
-	const maxDeals = Math.max(1, ...rows.map((r) => r.deal_count));
-	return rows
-		.map((r) => {
-			const coords = COUNTRY_COORDS[r.country];
-			if (!coords) return null;
-			return {
-				x: coords.x,
-				y: coords.y,
-				r: Math.max(2, Math.round((r.deal_count / maxDeals) * 10)),
-			};
-		})
-		.filter((d): d is { x: number; y: number; r: number } => d !== null);
-}
-
-function DashboardHeader() {
-	return (
-		<div
-			style={{
-				display: 'flex',
-				alignItems: 'flex-end',
-				justifyContent: 'space-between',
-				marginBottom: 'var(--space-5)',
-				gap: 24,
-				flexWrap: 'wrap',
-			}}
-		>
-			<div>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 11,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-						marginBottom: 6,
-					}}
-				>
-					Mission Control · {new Date().toDateString()}
-				</div>
-				<h1
-					style={{
-						fontFamily: 'var(--font-display)',
-						fontSize: 44,
-						fontWeight: 800,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
-						margin: 0,
-					}}
-				>
-					Sports Tech Pulse.
-				</h1>
-				<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 640, margin: '6px 0 0' }}>
-					The state of the global sports technology ecosystem — live deal flow, M&A, ecosystem signals, and curated intelligence.
-				</p>
-			</div>
-			<div style={{ display: 'flex', gap: 8 }}>
-				<button className="btn ghost"><Filter size={12} /> Filters</button>
-				<button className="btn"><Plus size={12} /> New Watchlist</button>
-			</div>
-		</div>
-	);
+function pctDelta(
+	series: QuarterlyPoint[] | undefined,
+	pick: (p: QuarterlyPoint) => number,
+): { label: string; dir: 'pos' | 'neg' } | null {
+	if (!series || series.length < 2) return null;
+	const last = pick(series[series.length - 1]);
+	const prev = pick(series[series.length - 2]);
+	if (prev === 0) return null;
+	const pct = Math.round(((last - prev) / prev) * 100);
+	if (!Number.isFinite(pct) || pct === 0) return null;
+	return {
+		label: `${pct > 0 ? '+' : ''}${pct}% QoQ`,
+		dir: pct >= 0 ? 'pos' : 'neg',
+	};
 }
 
 function countryCode(countryName: string): string {
@@ -442,6 +541,12 @@ function formatShortDate(iso: string | null): string {
 	return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
 }
 
+function formatIssueDate(iso: string): string {
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return iso;
+	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
 function splitDate(iso: string | null): { day: string; month: string } {
 	if (!iso) return { day: '—', month: '—' };
 	const d = new Date(iso);
@@ -457,7 +562,12 @@ function formatDealAmount(value: number | string | null | undefined): React.Reac
 	const n = typeof value === 'string' ? Number(value) : value;
 	if (!Number.isFinite(n) || n === 0) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
 	const m = n / 1_000_000;
-	const display = m >= 1000 ? `${(m / 1000).toFixed(1)}B` : m >= 1 ? m.toFixed(1) : (n / 1_000).toFixed(0) + 'K';
-	const unit = m >= 1 ? 'M' : '';
+	const display = m >= 1000 ? `${(m / 1000).toFixed(1)}` : m >= 1 ? m.toFixed(1) : (n / 1_000).toFixed(0);
+	const unit = m >= 1000 ? 'B' : m >= 1 ? 'M' : 'K';
 	return <>${display}<span style={{ fontSize: 10, color: 'var(--fg-muted)', marginLeft: 2 }}>{unit}</span></>;
+}
+
+function stripHtml(html: string | null | undefined): string {
+	if (!html) return '';
+	return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }

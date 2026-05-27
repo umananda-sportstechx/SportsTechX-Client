@@ -34,11 +34,18 @@ export const qk = {
   // ── Browsable collections ───────────────────────────────────────────────
   companies: {
     list: (params: Record<string, unknown> = {}) => ['/api/companies', params] as const,
-    detail: (idOrSlug: string) => ['/api/companies', idOrSlug] as const,
+    // Path-interpolated form so `buildUrl` actually hits /api/companies/:idOrSlug.
+    // The previous `['/api/companies', idOrSlug]` shape made `buildUrl` treat the
+    // string as cache identity and dropped it from the URL, so the detail fetch
+    // resolved to the list endpoint and the drawer/detail page were empty.
+    detail: (idOrSlug: string) => [`/api/companies/${idOrSlug}`] as const,
+    news: (idOrSlug: string) => [`/api/companies/${idOrSlug}/news`] as const,
+    team: (idOrSlug: string) => [`/api/companies/${idOrSlug}/team`] as const,
+    similar: (idOrSlug: string) => [`/api/companies/${idOrSlug}/similar`] as const,
   },
   investors: {
     list: (params: Record<string, unknown> = {}) => ['/api/investors', params] as const,
-    detail: (idOrSlug: string) => ['/api/investors', idOrSlug] as const,
+    detail: (idOrSlug: string) => [`/api/investors/${idOrSlug}`] as const,
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
@@ -67,15 +74,21 @@ export const qk = {
   },
   savedSearches: {
     list: () => ['/api/saved-searches'] as const,
-    detail: (id: string) => ['/api/saved-searches', id] as const,
+    detail: (id: string) => [`/api/saved-searches/${id}`] as const,
   },
   pinnedLists: {
     list: () => ['/api/pinned-lists'] as const,
-    detail: (id: string) => ['/api/pinned-lists', id] as const,
+    detail: (id: string) => [`/api/pinned-lists/${id}`] as const,
+  },
+  userWatchlists: {
+    list: () => ['/api/user-watchlists'] as const,
+    detail: (id: string) => [`/api/user-watchlists/${id}`] as const,
+    companies: (id: string) => [`/api/user-watchlists/${id}/companies`] as const,
+    containing: (companyId: string) => [`/api/user-watchlists/containing/${companyId}`] as const,
   },
   claims: {
     mine: () => ['/api/claims/mine'] as const,
-    detail: (id: string) => ['/api/claims', id] as const,
+    detail: (id: string) => [`/api/claims/${id}`] as const,
   },
   dataRequests: {
     changeMine: () => ['/api/data-change-requests/mine'] as const,
@@ -100,7 +113,7 @@ export const qk = {
   },
   verifiedReports: {
     mine: () => ['/api/verified-reports/mine'] as const,
-    detail: (id: string) => ['/api/verified-reports', id] as const,
+    detail: (id: string) => [`/api/verified-reports/${id}`] as const,
   },
 
   // ── Recommendations ─────────────────────────────────────────────────────
@@ -109,6 +122,7 @@ export const qk = {
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {
     articles: () => ['/api/newsletter/articles'] as const,
+    detail: (slug: string) => [`/api/newsletter/articles/${slug}`] as const,
   },
 
   // ── Analytics aggregations (10-min cache server-side) ───────────────────
@@ -117,9 +131,15 @@ export const qk = {
     fundingTotals: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/funding-totals', { period }] as const,
     maStats: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-stats', { period }] as const,
     quarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/quarterly-capital', params] as const,
+    maQuarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/ma-quarterly', params] as const,
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
+    annualFunding: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-funding', params] as const,
+    annualMa: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-ma', params] as const,
+    investorsByType: () => ['/api/analytics/investors-by-type'] as const,
+    topAcquirers: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-acquirers', { period, limit }] as const,
+    bizModel: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/business-model-breakdown', { period }] as const,
   },
 
   // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────

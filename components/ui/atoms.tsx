@@ -1,6 +1,8 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { Zap, Users, Briefcase } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 /**
  * Atomic primitives ported from ui_design/app/atoms.jsx.
@@ -38,16 +40,64 @@ const FLAG_COLORS: Record<string, [string, string, string]> = {
 	AD: ['#10069F', '#FFCD00', '#D50032'], KW: ['#007A3D', '#FFF', '#CE1126'],
 };
 
-export function Flag({ cc, size = 14 }: { cc: string; size?: number }) {
+/**
+ * 2-letter ISO country code → display name. Used as the hover tooltip on
+ * every `<Flag />` so users see "United States" instead of the bare "US"
+ * code. Mirrors the keys in `FLAG_COLORS` above so every rendered flag has
+ * a friendly label.
+ */
+const CC_TO_COUNTRY: Record<string, string> = {
+	US: 'United States', CA: 'Canada', GB: 'United Kingdom', DE: 'Germany',
+	FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands', SE: 'Sweden',
+	PT: 'Portugal', CH: 'Switzerland', BE: 'Belgium', AT: 'Austria',
+	PL: 'Poland', IN: 'India', CN: 'China', JP: 'Japan', KR: 'South Korea',
+	SG: 'Singapore', AU: 'Australia', NZ: 'New Zealand', BR: 'Brazil',
+	AR: 'Argentina', MX: 'Mexico', SA: 'Saudi Arabia', AE: 'United Arab Emirates',
+	EG: 'Egypt', ZA: 'South Africa', KE: 'Kenya', BA: 'Bosnia and Herzegovina',
+	HK: 'Hong Kong', LU: 'Luxembourg', AD: 'Andorra', KW: 'Kuwait',
+	IL: 'Israel', IE: 'Ireland', FI: 'Finland', NO: 'Norway', DK: 'Denmark',
+	ID: 'Indonesia', VN: 'Vietnam', TH: 'Thailand', MY: 'Malaysia',
+	PH: 'Philippines', TR: 'Turkey', GR: 'Greece', CZ: 'Czechia',
+	HU: 'Hungary', RO: 'Romania', UA: 'Ukraine', RU: 'Russia',
+	CL: 'Chile', CO: 'Colombia', PE: 'Peru', NG: 'Nigeria', GH: 'Ghana',
+	MA: 'Morocco', QA: 'Qatar', BH: 'Bahrain', OM: 'Oman', JO: 'Jordan',
+	PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
+};
+
+/**
+ * Flag — pseudo country flag rendered as a 3-stripe linear gradient.
+ *
+ * Tooltips: every flag carries a `title` (and matching `aria-label`) with
+ * the full country name so users hovering/focusing see "United States"
+ * rather than the bare "US" code. Callers can override with the `name`
+ * prop when they have richer context (e.g. the row already shows the
+ * full name elsewhere).
+ */
+export function Flag({
+	cc, size = 14, name,
+}: {
+	cc: string;
+	size?: number;
+	/** Override the hover tooltip — falls back to the CC_TO_COUNTRY map. */
+	name?: string;
+}) {
 	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+	const label = name ?? CC_TO_COUNTRY[cc] ?? cc;
+	// Custom CSS tooltip via `data-tip`; the browser default `title` is
+	// intentionally NOT set so users never see the plain yellow OS popup.
+	// Styling lives in app/design-system.css under `.flag[data-tip]`.
 	return (
 		<span
 			className="flag"
-			title={cc}
+			data-tip={label}
+			aria-label={label}
+			role="img"
 			style={{
 				width: size,
 				height: size * 0.7,
 				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
+				display: 'inline-block',
+				verticalAlign: 'middle',
 			}}
 		/>
 	);
@@ -85,21 +135,40 @@ export function Logo({ co, size = 32 }: LogoProps) {
 
 /**
  * Build an SVG path for a sparkline scaled to (w, h). Min/max normalised.
- * Replaces ui_design's `STX_DATA.sparkPath` helper so this atom is self-contained.
+ * Uses a Catmull-Rom → cubic-Bezier conversion (tension 0.5) so the line
+ * passes smoothly through every data point — looks far better than straight
+ * `L` segments on the dashboard's KPI cards where real quarterly series can
+ * be jagged.
  */
 function sparkPath(values: number[], w: number, h: number): string {
 	if (values.length === 0) return '';
+	if (values.length === 1) {
+		const y = h / 2;
+		return `M0,${y.toFixed(1)} L${w},${y.toFixed(1)}`;
+	}
 	const min = Math.min(...values);
 	const max = Math.max(...values);
 	const range = max - min || 1;
-	const step = w / Math.max(values.length - 1, 1);
-	return values
-		.map((v, i) => {
-			const x = i * step;
-			const y = h - ((v - min) / range) * h;
-			return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-		})
-		.join(' ');
+	const step = w / (values.length - 1);
+	const pts = values.map((v, i) => ({
+		x: i * step,
+		y: h - ((v - min) / range) * h,
+	}));
+
+	// Catmull-Rom to cubic Bezier — smooth curve through every point.
+	let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+	for (let i = 0; i < pts.length - 1; i++) {
+		const p0 = pts[i - 1] ?? pts[i];
+		const p1 = pts[i];
+		const p2 = pts[i + 1];
+		const p3 = pts[i + 2] ?? pts[i + 1];
+		const cp1x = p1.x + (p2.x - p0.x) / 6;
+		const cp1y = p1.y + (p2.y - p0.y) / 6;
+		const cp2x = p2.x - (p3.x - p1.x) / 6;
+		const cp2y = p2.y - (p3.y - p1.y) / 6;
+		d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+	}
+	return d;
 }
 
 interface SparklineProps {
@@ -112,12 +181,14 @@ interface SparklineProps {
 
 export function Sparkline({ values, w = 70, h = 28, color, fill = true }: SparklineProps) {
 	const path = sparkPath(values, w, h);
-	const c = color ?? 'var(--accent)';
-	const fillPath = fill ? `${path} L${w},${h} L0,${h} Z` : null;
+	if (!path) return null;
+	const c = color ?? 'var(--pos)';
+	// Close to the baseline + back to start to make a fill region.
+	const fillPath = fill ? `${path} L${w.toFixed(1)},${h.toFixed(1)} L0,${h.toFixed(1)} Z` : null;
 	return (
 		<svg className="stat-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
 			{fill && fillPath && <path d={fillPath} fill={c} opacity="0.12" />}
-			<path d={path} stroke={c} strokeWidth="1.5" fill="none" />
+			<path d={path} stroke={c} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
 		</svg>
 	);
 }
@@ -137,6 +208,9 @@ interface StatProps {
 }
 
 export function Stat({ label, value, unit, delta, deltaDir = 'pos', spark, sparkColor }: StatProps) {
+	// Auto-pick sparkline color from delta direction unless caller overrides.
+	// Matches `ui_design_2/app/atoms.jsx:146` behaviour.
+	const sc = sparkColor ?? (deltaDir === 'neg' ? 'var(--neg)' : 'var(--pos)');
 	return (
 		<div className="stat">
 			<div className="stat-label">{label}</div>
@@ -150,7 +224,7 @@ export function Stat({ label, value, unit, delta, deltaDir = 'pos', spark, spark
 						{deltaDir === 'pos' ? '▲' : '▼'} {delta}
 					</span>
 				)}
-				{spark && <Sparkline values={spark} color={sparkColor} />}
+				{spark && spark.length > 0 && <Sparkline values={spark} color={sc} />}
 			</div>
 		</div>
 	);
@@ -256,9 +330,57 @@ interface SectorPillProps {
 	color?: string;
 	icon?: string;
 	name: string;
+	slug?: string | null;
 }
 
-export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps) {
+/**
+ * Heuristic sector slug → color/icon mapping. Mirrors the palette used in
+ * `ui_design_2/app/data.jsx:SECTORS`. Sectors not in this map fall back to a
+ * derived color (hash of slug) so every chip still has a stable distinct hue.
+ */
+const SECTOR_META: Record<string, { color: string; icon: string }> = {
+	'fan-engagement':         { color: 'oklch(62% 0.18 240)', icon: 'F' },
+	'media-streaming':        { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'media-and-streaming':    { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'media-production':       { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'streaming-platform':     { color: 'oklch(62% 0.18 320)', icon: 'S' },
+	'stadium-facilities':     { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'stadium-and-facilities': { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'venue':                  { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'performance':            { color: 'oklch(62% 0.18 30)',  icon: 'P' },
+	'activity-performance':   { color: 'oklch(62% 0.18 30)',  icon: 'P' },
+	'wearables-gear':         { color: 'oklch(62% 0.18 60)',  icon: 'G' },
+	'wearables-and-gear':     { color: 'oklch(62% 0.18 60)',  icon: 'G' },
+	'recovery-wellness':      { color: 'oklch(62% 0.16 130)', icon: 'W' },
+	'recovery-and-wellness':  { color: 'oklch(62% 0.16 130)', icon: 'W' },
+	'esports':                { color: 'oklch(62% 0.20 280)', icon: 'E' },
+	'gaming':                 { color: 'oklch(62% 0.20 280)', icon: 'G' },
+	'fantasy-sports':         { color: 'oklch(62% 0.20 260)', icon: 'F' },
+	'ticketing-merchandise':  { color: 'oklch(62% 0.18 90)',  icon: 'T' },
+	'ticketing-and-merchandise':{ color: 'oklch(62% 0.18 90)', icon: 'T' },
+	'tracking-analytics':     { color: 'oklch(62% 0.16 170)', icon: 'T' },
+	'analytics':              { color: 'oklch(62% 0.16 170)', icon: 'A' },
+	'equipment-infrastructure':{ color: 'oklch(62% 0.16 220)', icon: 'I' },
+	'enablement':             { color: 'oklch(62% 0.14 250)', icon: 'E' },
+	'management-organisation':{ color: 'oklch(62% 0.16 0)',   icon: 'M' },
+};
+
+function sectorMetaFor(slug: string | null | undefined, name: string): { color: string; icon: string } {
+	if (slug) {
+		const hit = SECTOR_META[slug.toLowerCase()];
+		if (hit) return hit;
+	}
+	const key = (slug ?? name ?? '').toLowerCase();
+	let h = 0;
+	for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+	const hue = h % 360;
+	return { color: `oklch(60% 0.16 ${hue})`, icon: (name?.[0] ?? '?').toUpperCase() };
+}
+
+export function SectorPill({ color, icon, name, slug }: SectorPillProps) {
+	const meta = (color && icon)
+		? { color, icon }
+		: sectorMetaFor(slug, name);
 	return (
 		<span
 			style={{
@@ -274,7 +396,7 @@ export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps
 				style={{
 					width: 14,
 					height: 14,
-					background: color,
+					background: meta.color,
 					color: '#fff',
 					display: 'grid',
 					placeItems: 'center',
@@ -283,7 +405,7 @@ export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps
 					fontFamily: 'var(--font-display)',
 				}}
 			>
-				{icon}
+				{meta.icon}
 			</span>
 			{name}
 		</span>
@@ -616,4 +738,203 @@ export function PipelineFunnel({ stages }: { stages: FunnelStage[] }) {
 
 export function Page({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
 	return <div className="page-pad" style={style}>{children}</div>;
+}
+
+// ============================================================================
+// VERIFIED BADGE — diamond/star with check. Ported from
+// `ui_design_2/app/company-detail.jsx`. Used on company name lockups + lists.
+// ============================================================================
+
+export function VerifiedBadge({ size = 14, title = 'Verified — claimed and maintained by the company' }: { size?: number; title?: string }) {
+	return (
+		<span className="vb" title={title} aria-label="Verified" style={{ width: size, height: size }}>
+			<svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+				<path d="M8 1.2l1.6 1.4 2.1-.2.5 2 1.8 1.1-.9 1.9.5 2.1-1.9.9-.8 2-2.1-.4L8 13.5l-1.6-1.4-2.1.4-.8-2-1.9-.9.5-2.1L1.2 5.5l1.8-1.1.5-2 2.1.2L7.2 1.2z" fill="currentColor" />
+				<path d="M5 8l2 2 4-4" stroke="var(--bg)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+			</svg>
+		</span>
+	);
+}
+
+// ============================================================================
+// RAISING PILL — pulsing green dot + "Actively raising" label
+// ============================================================================
+
+export function RaisingPill({ compact = false }: { compact?: boolean }) {
+	return (
+		<span className={`rp ${compact ? 'compact' : ''}`} title="Actively raising — self-reported by the company">
+			<span className="rp-dot" />
+			{compact ? 'Raising' : 'Actively raising'}
+		</span>
+	);
+}
+
+export function RaisingDot({ size = 8 }: { size?: number }) {
+	return (
+		<span
+			className="rp-dot rp-dot-solo"
+			style={{ width: size, height: size }}
+			title="Actively raising — self-reported by the company"
+			aria-label="Actively raising"
+		/>
+	);
+}
+
+// ============================================================================
+// KV — label/value row used in company detail right rail + drawer
+// ============================================================================
+
+export function KV({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
+	return (
+		<div className="co-kv">
+			<span className="co-kv-k">{label}</span>
+			<span className="co-kv-v">{value}</span>
+		</div>
+	);
+}
+
+// ============================================================================
+// AUDIENCE — the three FOR groups (Athletes / Fans / Executives) that anchor
+// the framework taxonomy. Used on framework column heads + sector cells in
+// dashboard/companies/funding/ma tables.
+// ============================================================================
+
+export type Audience = 'athletes' | 'fans' | 'executives' | 'business';
+
+const AUDIENCE_META: Record<Audience, { Icon: LucideIcon; color: string; label: string }> = {
+	athletes:   { Icon: Zap,       color: 'oklch(62% 0.18 290)', label: 'Athletes' },
+	fans:       { Icon: Users,     color: 'oklch(62% 0.20 240)', label: 'Fans' },
+	executives: { Icon: Briefcase, color: 'oklch(62% 0.16 160)', label: 'Executives' },
+	business:   { Icon: Briefcase, color: 'oklch(62% 0.16 160)', label: 'Executives' },
+};
+
+export function audienceColor(a: Audience): string {
+	return AUDIENCE_META[a]?.color ?? 'var(--fg-muted)';
+}
+
+export function AudienceIcon({ audience, size = 14, style }: { audience: Audience; size?: number; style?: CSSProperties }) {
+	const meta = AUDIENCE_META[audience];
+	if (!meta) return null;
+	const { Icon } = meta;
+	return <Icon size={size} style={style} />;
+}
+
+/**
+ * Sector slug → audience map. The backend stores `primary_sector_slug` as
+ * the sub-sector (e.g. "performance", "fan_engagement") — this maps those
+ * to the FOR-audience taxonomy from ui_design_2/data.jsx SECTORS.
+ *
+ * Keys are slug fragments matched case-insensitively against the start of
+ * the slug, so "performance-analytics" → athletes via the "performance"
+ * key. Unknown slugs return null and the caller can fall back to a plain
+ * SectorPill or the sector name.
+ */
+const SECTOR_AUDIENCE: Array<{ match: RegExp; audience: Audience }> = [
+	{ match: /^(performance|wearable|recovery|wellness|training|gear|nutrition|biomechanic)/i, audience: 'athletes' },
+	{ match: /^(fan|media|streaming|content|esports|gaming|engagement|broadcast|community)/i, audience: 'fans' },
+	{ match: /^(business|operations|management|venue|stadium|facility|ticketing|merchandise|sponsorship|league|club)/i, audience: 'executives' },
+];
+
+export function sectorToAudience(sectorSlugOrName: string | null | undefined): Audience | null {
+	if (!sectorSlugOrName) return null;
+	const key = sectorSlugOrName.toLowerCase().replace(/[\s&]+/g, '_');
+	for (const { match, audience } of SECTOR_AUDIENCE) {
+		if (match.test(key)) return audience;
+	}
+	return null;
+}
+
+/**
+ * AudiencePill — sector icon (in the audience's brand color) next to the
+ * sector name. Ported from `ui_design_2/app/atoms.jsx:218-234`.
+ *
+ * Two usage modes:
+ *   1. `<AudiencePill audience="athletes" label="Performance" />` — explicit
+ *   2. `<AudiencePill sectorSlug={c.primary_sector_slug} label={c.primary_sector} />`
+ *      — derives audience from the slug; falls back to muted icon if unknown.
+ */
+export function AudiencePill({
+	audience, sectorSlug, label, size = 'md',
+}: {
+	audience?: Audience;
+	sectorSlug?: string | null;
+	label?: string;
+	size?: 'sm' | 'md';
+}) {
+	const a: Audience | null = audience ?? sectorToAudience(sectorSlug);
+	const meta = a ? AUDIENCE_META[a] : null;
+	const color = meta?.color ?? 'var(--fg-muted)';
+	const Icon = meta?.Icon ?? Briefcase;
+	const text = label ?? meta?.label ?? '—';
+	const iconSize = size === 'sm' ? 14 : 16;
+	return (
+		<span className="audience-pill" title={text}>
+			<span className="audience-pill-icon" style={{ color }}>
+				<Icon size={iconSize} />
+			</span>
+			<span className="audience-pill-name">{text}</span>
+		</span>
+	);
+}
+
+// ============================================================================
+// PAGE TITLE — kicker + h1 + subtitle stack used at the top of every page.
+// Extracted from the inline JSX repeated across all ui_design_2 screens.
+// ============================================================================
+
+interface PageTitleProps {
+	kicker?: React.ReactNode;
+	title: React.ReactNode;
+	sub?: React.ReactNode;
+	action?: React.ReactNode;
+}
+
+export function PageTitle({ kicker, title, sub, action }: PageTitleProps) {
+	return (
+		<div
+			style={{
+				display: 'flex',
+				alignItems: 'flex-end',
+				justifyContent: 'space-between',
+				marginBottom: 'var(--space-5)',
+				gap: 24,
+				flexWrap: 'wrap',
+			}}
+		>
+			<div style={{ minWidth: 0, flex: '1 1 auto' }}>
+				{kicker && (
+					<div
+						style={{
+							fontFamily: 'var(--font-mono)',
+							fontSize: 11,
+							color: 'var(--fg-muted)',
+							textTransform: 'uppercase',
+							letterSpacing: '0.1em',
+							marginBottom: 6,
+						}}
+					>
+						{kicker}
+					</div>
+				)}
+				<h1
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 38,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1,
+						margin: 0,
+					}}
+				>
+					{title}
+				</h1>
+				{sub && (
+					<p style={{ fontSize: 14, color: 'var(--fg-2)', maxWidth: 720, margin: '6px 0 0', lineHeight: 1.5 }}>
+						{sub}
+					</p>
+				)}
+			</div>
+			{action && <div style={{ display: 'flex', gap: 8 }}>{action}</div>}
+		</div>
+	);
 }
