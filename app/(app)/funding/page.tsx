@@ -62,6 +62,10 @@ interface FundingTotalsResponse {
 	round_count: number;
 	median_amount: number;
 	largest_amount: number;
+	total_amount_delta_pct: number | null;
+	round_count_delta_pct: number | null;
+	median_amount_delta_pct: number | null;
+	largest_round_company: string | null;
 }
 interface QuarterlyPoint {
 	year: number;
@@ -220,7 +224,7 @@ export default function FundingPage() {
 	return (
 		<Page>
 			<PageTitle
-				kicker={`Funding Tracker · ${currentYear} YTD`}
+				kicker="Funding Tracker · YTD"
 				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
 				action={<MyListsBtn />}
 			/>
@@ -464,12 +468,48 @@ function statStrip(t: FundingTotalsResponse | undefined) {
 	const d = splitDollars(t?.total_amount ?? 0);
 	const m = splitDollars(t?.median_amount ?? 0);
 	const l = splitDollars(t?.largest_amount ?? 0);
+	const totalDelta = fmtPct(t?.total_amount_delta_pct);
+	const roundsDelta = fmtPct(t?.round_count_delta_pct);
+	const medianDelta = fmtPct(t?.median_amount_delta_pct);
 	return [
-		{ label: 'Capital · YTD', value: d.value, unit: d.unit, deltaDir: 'pos' as const },
-		{ label: 'Rounds · YTD',  value: (t?.round_count ?? 0).toLocaleString(), deltaDir: 'pos' as const },
-		{ label: 'Median ticket', value: m.value, unit: m.unit, deltaDir: 'pos' as const },
-		{ label: 'Largest round', value: l.value, unit: l.unit, deltaDir: 'pos' as const },
+		{
+			label: 'Capital · YTD',
+			value: d.value,
+			unit: d.unit,
+			delta: totalDelta?.text,
+			deltaDir: totalDelta?.dir ?? ('pos' as const),
+		},
+		{
+			label: 'Rounds · YTD',
+			value: (t?.round_count ?? 0).toLocaleString(),
+			delta: roundsDelta?.text,
+			deltaDir: roundsDelta?.dir ?? ('pos' as const),
+		},
+		{
+			label: 'Median ticket',
+			value: m.value,
+			unit: m.unit,
+			delta: medianDelta?.text,
+			deltaDir: medianDelta?.dir ?? ('pos' as const),
+		},
+		{
+			label: 'Largest round',
+			value: l.value,
+			unit: l.unit,
+			// Design uses this slot to surface the company that received the
+			// largest round in the period — not a percent delta.
+			delta: t?.largest_round_company ?? undefined,
+			deltaDir: 'pos' as const,
+		},
 	];
+}
+
+/** Format a percent change into the design's "▲ 12%" / "▼ 8%" shape. */
+function fmtPct(p: number | null | undefined): { text: string; dir: 'pos' | 'neg' } | null {
+	if (p == null || !Number.isFinite(p)) return null;
+	const abs = Math.abs(p);
+	const rounded = abs >= 100 ? abs.toFixed(0) : abs.toFixed(abs < 10 ? 1 : 0);
+	return { text: `${rounded}%`, dir: p >= 0 ? 'pos' : 'neg' };
 }
 
 function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
@@ -478,6 +518,9 @@ function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 	const W = 900, H = 240, PAD = 36;
 	const xFor = (i: number) => PAD + (W - PAD * 2) * (i / quarters.length) + 6;
 	const bw = (W - PAD * 2) / quarters.length - 12;
+	// Mint palette from ui_design_2/screens-2.jsx:428 — alternating shades.
+	const BAR_PRIMARY = '#79CABD';
+	const BAR_SOFT = '#C0F4DE';
 	return (
 		<svg width="100%" viewBox={`0 0 ${W} ${H + 40}`} style={{ display: 'block' }}>
 			{[0, 0.25, 0.5, 0.75, 1].map((t) => (
@@ -487,7 +530,7 @@ function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 						x2={W - PAD}
 						y1={PAD + (H - PAD * 2) * (1 - t)}
 						y2={PAD + (H - PAD * 2) * (1 - t)}
-						stroke="var(--border)"
+						stroke="var(--grid-line)"
 						strokeDasharray="2 4"
 					/>
 					<text x={6} y={PAD + (H - PAD * 2) * (1 - t) + 3} fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
@@ -501,7 +544,7 @@ function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 				const x = xFor(i);
 				return (
 					<g key={q.quarter_label}>
-						<rect x={x} y={y} width={bw} height={bh} fill="var(--accent)" opacity={0.85} />
+						<rect x={x} y={y} width={bw} height={bh} fill={i % 2 === 0 ? BAR_PRIMARY : BAR_SOFT} />
 						<text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fontWeight={700} fill="var(--fg)">
 							${(q.total_amount / 1_000_000_000).toFixed(1)}B
 						</text>
@@ -522,7 +565,7 @@ function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 						return `${i === 0 ? 'M' : 'L'}${x},${y}`;
 					})
 					.join(' ')}
-				stroke="var(--accent-2)"
+				stroke="var(--accent)"
 				strokeWidth={2}
 				fill="none"
 			/>
