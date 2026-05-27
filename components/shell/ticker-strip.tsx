@@ -2,13 +2,16 @@
 
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
+import { Flag } from '@/components/ui/atoms';
 
 interface DealRow {
 	id: string;
 	company_name?: string;
 	amount_usd?: number | string | null;
 	round_type?: string | null;
+	round_type_name?: string | null;
 	country_code?: string | null;
+	hq_country?: string | null;
 }
 
 interface DealsResponse {
@@ -16,40 +19,25 @@ interface DealsResponse {
 		id: string;
 		amount_usd: number | string | null;
 		round_type: string | null;
-		// company name may come as nested join — handle both shapes.
+		round_type_name?: string | null;
+		// Company name may come as nested join — handle both shapes.
 		company?: { name: string };
 		company_name?: string;
 		country_code?: string | null;
+		hq_country?: string | null;
 	}>;
 }
 
-// PLACEHOLDER — mirrors the prototype's mock ticker feed so the marquee never
-// renders an array of dashes when the API is empty or missing fields.
-const MOCK_TICKER: DealRow[] = [
-	{ id: 'mt-1',  company_name: 'Pickleball.com',          amount_usd: 225_000_000, round_type: 'Growth',   country_code: 'BA' },
-	{ id: 'mt-2',  company_name: 'Teamworks',               amount_usd: 100_000_000, round_type: 'Series C', country_code: 'US' },
-	{ id: 'mt-3',  company_name: 'Fastbreak AI',            amount_usd: 80_000_000,  round_type: 'Series B', country_code: 'US' },
-	{ id: 'mt-4',  company_name: 'ASB GlassFloor',          amount_usd: 30_000_000,  round_type: 'Series A', country_code: 'DE' },
-	{ id: 'mt-5',  company_name: 'Metasports Interactive',  amount_usd: 20_000_000,  round_type: 'Series B', country_code: 'IN' },
-	{ id: 'mt-6',  company_name: 'Hoopers',                 amount_usd: 15_900_000,  round_type: 'Series A', country_code: 'PT' },
-	{ id: 'mt-7',  company_name: 'Gemini Sports Analytics', amount_usd: 15_100_000,  round_type: 'Series A', country_code: 'US' },
-	{ id: 'mt-8',  company_name: 'PlayReplay',              amount_usd: 12_000_000,  round_type: 'Series A', country_code: 'SE' },
-	{ id: 'mt-9',  company_name: 'VisioLab',                amount_usd: 11_000_000,  round_type: 'Series A', country_code: 'DE' },
-	{ id: 'mt-10', company_name: 'SportsVisio',             amount_usd: 8_000_000,   round_type: 'Seed',     country_code: 'US' },
-	{ id: 'mt-11', company_name: 'Myocene',                 amount_usd: 6_200_000,   round_type: 'Seed',     country_code: 'BE' },
-	{ id: 'mt-12', company_name: '1080Motion',              amount_usd: 3_600_000,   round_type: 'Series A', country_code: 'SE' },
-	{ id: 'mt-13', company_name: 'Sportvot',                amount_usd: 3_600_000,   round_type: 'Series A', country_code: 'IN' },
-	{ id: 'mt-14', company_name: 'Riterz AG',               amount_usd: 3_000_000,   round_type: 'Seed',     country_code: 'CH' },
-	{ id: 'mt-15', company_name: 'Pressbox Studio',         amount_usd: 2_000_000,   round_type: 'Seed',     country_code: 'US' },
-	{ id: 'mt-16', company_name: 'Metafare',                amount_usd: 1_000_000,   round_type: 'Pre-seed', country_code: 'SA' },
-];
-
 /**
- * Live ticker strip showing latest dealflow.
+ * Live ticker strip — most recent 16 disclosed deals, scrolling.
  *
- * Wired to GET /api/deals (most recent 16 deals). When the API returns nothing
- * OR returns rows without amounts/rounds, the row falls through to the
- * matching MOCK_TICKER entry so the marquee never reads as a string of "—"s.
+ * Ported visually from `ui_design_2/app/nav.jsx:163-183`: shows
+ * `{company} ${amount} {flag} {round} |` per item.
+ *
+ * Wired to GET /api/deals (limit 16, sort=-announced_date). Real data only;
+ * the strip is hidden when the API returns nothing rather than falling back
+ * to fake rows — the placeholder mock feed used to live here but contradicted
+ * the "no mock data" guidance.
  */
 export function TickerStrip() {
 	const { data } = useSWR<DealsResponse>(
@@ -57,19 +45,33 @@ export function TickerStrip() {
 		{ dedupingInterval: 5 * 60_000, revalidateOnFocus: false },
 	);
 
-	const apiItems: DealRow[] = (data?.data ?? []).map((d, i) => {
-		const fallback = MOCK_TICKER[i % MOCK_TICKER.length];
-		const amount = toNumber(d.amount_usd);
-		return {
+	const items: DealRow[] = (data?.data ?? [])
+		.map((d) => ({
 			id: d.id,
-			company_name: d.company?.name ?? d.company_name ?? fallback.company_name,
-			amount_usd: amount && amount > 0 ? amount : fallback.amount_usd,
-			round_type: d.round_type ?? fallback.round_type,
-			country_code: d.country_code ?? fallback.country_code,
-		};
-	});
+			company_name: d.company?.name ?? d.company_name ?? '—',
+			amount_usd: d.amount_usd,
+			round_type: d.round_type_name ?? d.round_type ?? null,
+			country_code: d.country_code ?? (d.hq_country ? countryCode(d.hq_country) : null),
+		}))
+		// Only show rows that have meaningful content — name + something to read.
+		.filter((d) => d.company_name && d.company_name !== '—');
 
-	const items = apiItems.length > 0 ? apiItems : MOCK_TICKER;
+	if (items.length === 0) {
+		return (
+			<div className="ticker">
+				<div className="ticker-label">
+					<span className="live-dot" style={{ marginRight: 8 }} />
+					Live · Latest dealflow
+				</div>
+				<div className="ticker-mask">
+					<div className="ticker-track" style={{ color: 'var(--fg-muted)', fontStyle: 'italic' }}>
+						No recent deals on the wire.
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	// Duplicate the items so the marquee animation has a seamless wrap-around.
 	const trackItems = items.concat(items);
 
@@ -85,6 +87,7 @@ export function TickerStrip() {
 						<span key={`${d.id}-${i}`} className="ticker-item">
 							<span className="tk-co">{d.company_name}</span>
 							<span className="tk-amt">{formatTickerAmount(d.amount_usd)}</span>
+							{d.country_code && <Flag cc={d.country_code} />}
 							<span style={{ color: 'var(--fg-muted)' }}>{d.round_type ?? 'Round'}</span>
 							<span className="tk-sep">|</span>
 						</span>
@@ -108,4 +111,18 @@ function formatTickerAmount(value: number | string | null | undefined): string {
 	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
 	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
 	return `$${n.toFixed(0)}`;
+}
+
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
+		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
+		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+		'Saudi Arabia': 'SA', Israel: 'IL', Ireland: 'IE', Finland: 'FI',
+		Norway: 'NO', Denmark: 'DK', Mexico: 'MX', Argentina: 'AR',
+		'South Korea': 'KR', Korea: 'KR', Indonesia: 'ID', Vietnam: 'VN',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }
