@@ -17,12 +17,11 @@ interface FundingTotals {
 }
 
 interface TopCompany {
-	id: string;
+	company_id: string;
 	name: string;
-	slug?: string;
-	total_funding_usd: number;
-	primary_sector?: string | null;
-	hq_country?: string | null;
+	slug?: string | null;
+	total_raised: number;
+	deal_count?: number;
 }
 
 export function FundingDeepDiveTab() {
@@ -31,7 +30,7 @@ export function FundingDeepDiveTab() {
 	const { data: topFunded } = useSWR<TopCompany[]>(qk.analytics.topFunded('12m', 15), { dedupingInterval: 10 * 60_000 });
 
 	const top = topFunded ?? [];
-	const max = Math.max(1, ...top.map((c) => c.total_funding_usd));
+	const max = Math.max(1, ...top.map((c) => Number(c.total_raised) || 0));
 
 	return (
 		<>
@@ -51,14 +50,17 @@ export function FundingDeepDiveTab() {
 					<Empty msg="No companies in this window." />
 				) : (
 					<div>
-						{top.map((c, i) => (
-							<div key={c.id} className="rank-row">
-								<span className="rank-idx">{(i + 1).toString().padStart(2, '0')}</span>
-								<span className="rank-name">{c.name}</span>
-								<span className="rank-bar"><span style={{ transform: `scaleX(${c.total_funding_usd / max})` }} /></span>
-								<span className="rank-val">{formatDollars(c.total_funding_usd)}</span>
-							</div>
-						))}
+						{top.map((c, i) => {
+							const raised = Number(c.total_raised) || 0;
+							return (
+								<div key={c.company_id} className="rank-row">
+									<span className="rank-idx">{(i + 1).toString().padStart(2, '0')}</span>
+									<span className="rank-name">{c.name}</span>
+									<span className="rank-bar"><span style={{ transform: `scaleX(${raised / max})` }} /></span>
+									<span className="rank-val">{formatDollars(raised)}</span>
+								</div>
+							);
+						})}
 					</div>
 				)}
 			</div>

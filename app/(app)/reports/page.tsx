@@ -44,6 +44,57 @@ const COVER_COLORS = [
 	'#0F172A', '#1E40AF', '#15803D', '#0C4A6E', '#7C2D12', '#BE185D', '#1E293B', '#0F766E',
 ];
 
+/**
+ * Bordered nudge that sits in the PageTitle action slot, prompting
+ * free/growth users to upgrade. Hidden for `pro` (caller's check).
+ * Ported verbatim from `ui_design_2/app/screens-3.jsx:437-445`.
+ *
+ * Declared BEFORE the default export — Turbopack/SWC fast-refresh sometimes
+ * doesn't hoist function declarations placed after the default export of a
+ * client component, which surfaces as `ReferenceError: X is not defined` at
+ * runtime even though TS sees the symbol fine. Putting helpers above the
+ * default export removes the ambiguity.
+ */
+function UpgradeToProBadge({ userType, total }: { userType: UserType; total: number }) {
+	const tierLabel = userType === 'growth' ? 'Growth' : 'Free';
+	return (
+		<div
+			style={{
+				alignSelf: 'center',
+				display: 'flex',
+				alignItems: 'center',
+				gap: 12,
+				padding: '10px 12px 10px 14px',
+				border: '1px solid var(--border)',
+				borderRadius: 10,
+				background: 'var(--bg-2)',
+			}}
+		>
+			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+				<div
+					style={{
+						fontFamily: 'var(--font-mono)',
+						fontSize: 10,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+					}}
+				>
+					You&apos;re on {tierLabel}
+				</div>
+				<div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 2 }}>
+					Unlock all {total.toLocaleString()} reports with Pro
+				</div>
+			</div>
+			<Link href="/subscriptions">
+				<button className="btn">
+					<Sparkles size={12} /> Upgrade to Pro
+				</button>
+			</Link>
+		</div>
+	);
+}
+
 export default function ReportsPage() {
 	const reportsAccess = useFeatureAccess('reports_access');
 	const { data: profile } = useUserProfile();
@@ -232,51 +283,6 @@ export default function ReportsPage() {
 				<Empty msg="No reports published yet" />
 			)}
 		</Page>
-	);
-}
-
-/**
- * Bordered nudge that sits in the PageTitle action slot, prompting
- * free/growth users to upgrade. Hidden for `pro` (caller's check).
- * Ported verbatim from `ui_design_2/app/screens-3.jsx:437-445`.
- */
-function UpgradeToProBadge({ userType, total }: { userType: UserType; total: number }) {
-	const tierLabel = userType === 'growth' ? 'Growth' : 'Free';
-	return (
-		<div
-			style={{
-				alignSelf: 'center',
-				display: 'flex',
-				alignItems: 'center',
-				gap: 12,
-				padding: '10px 12px 10px 14px',
-				border: '1px solid var(--border)',
-				borderRadius: 10,
-				background: 'var(--bg-2)',
-			}}
-		>
-			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
-				<div
-					style={{
-						fontFamily: 'var(--font-mono)',
-						fontSize: 10,
-						color: 'var(--fg-muted)',
-						textTransform: 'uppercase',
-						letterSpacing: '0.1em',
-					}}
-				>
-					You're on {tierLabel}
-				</div>
-				<div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 2 }}>
-					Unlock all {total.toLocaleString()} reports with Pro
-				</div>
-			</div>
-			<Link href="/subscriptions">
-				<button className="btn">
-					<Sparkles size={12} /> Upgrade to Pro
-				</button>
-			</Link>
-		</div>
 	);
 }
 
