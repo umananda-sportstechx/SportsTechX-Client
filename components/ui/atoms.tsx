@@ -699,29 +699,60 @@ export function AudienceIcon({ audience, size = 14, style }: { audience: Audienc
 	return <Icon size={size} style={style} />;
 }
 
-export function AudiencePill({ audience, label, compact = false }: { audience: Audience | string; label?: string; compact?: boolean }) {
-	const a = (audience as Audience) in AUDIENCE_META ? (audience as Audience) : null;
+/**
+ * Sector slug → audience map. The backend stores `primary_sector_slug` as
+ * the sub-sector (e.g. "performance", "fan_engagement") — this maps those
+ * to the FOR-audience taxonomy from ui_design_2/data.jsx SECTORS.
+ *
+ * Keys are slug fragments matched case-insensitively against the start of
+ * the slug, so "performance-analytics" → athletes via the "performance"
+ * key. Unknown slugs return null and the caller can fall back to a plain
+ * SectorPill or the sector name.
+ */
+const SECTOR_AUDIENCE: Array<{ match: RegExp; audience: Audience }> = [
+	{ match: /^(performance|wearable|recovery|wellness|training|gear|nutrition|biomechanic)/i, audience: 'athletes' },
+	{ match: /^(fan|media|streaming|content|esports|gaming|engagement|broadcast|community)/i, audience: 'fans' },
+	{ match: /^(business|operations|management|venue|stadium|facility|ticketing|merchandise|sponsorship|league|club)/i, audience: 'executives' },
+];
+
+export function sectorToAudience(sectorSlugOrName: string | null | undefined): Audience | null {
+	if (!sectorSlugOrName) return null;
+	const key = sectorSlugOrName.toLowerCase().replace(/[\s&]+/g, '_');
+	for (const { match, audience } of SECTOR_AUDIENCE) {
+		if (match.test(key)) return audience;
+	}
+	return null;
+}
+
+/**
+ * AudiencePill — sector icon (in the audience's brand color) next to the
+ * sector name. Ported from `ui_design_2/app/atoms.jsx:218-234`.
+ *
+ * Two usage modes:
+ *   1. `<AudiencePill audience="athletes" label="Performance" />` — explicit
+ *   2. `<AudiencePill sectorSlug={c.primary_sector_slug} label={c.primary_sector} />`
+ *      — derives audience from the slug; falls back to muted icon if unknown.
+ */
+export function AudiencePill({
+	audience, sectorSlug, label, size = 'md',
+}: {
+	audience?: Audience;
+	sectorSlug?: string | null;
+	label?: string;
+	size?: 'sm' | 'md';
+}) {
+	const a: Audience | null = audience ?? sectorToAudience(sectorSlug);
 	const meta = a ? AUDIENCE_META[a] : null;
 	const color = meta?.color ?? 'var(--fg-muted)';
-	const Icon = meta?.Icon;
-	const text = label ?? meta?.label ?? audience;
+	const Icon = meta?.Icon ?? Briefcase;
+	const text = label ?? meta?.label ?? '—';
+	const iconSize = size === 'sm' ? 14 : 16;
 	return (
-		<span
-			style={{
-				display: 'inline-flex',
-				alignItems: 'center',
-				gap: 6,
-				padding: compact ? '2px 6px' : '4px 8px',
-				fontSize: compact ? 11 : 12,
-				fontWeight: 600,
-				color,
-				border: `1px solid ${color}`,
-				lineHeight: 1,
-				whiteSpace: 'nowrap',
-			}}
-		>
-			{Icon && <Icon size={compact ? 10 : 12} />}
-			{text}
+		<span className="audience-pill" title={text}>
+			<span className="audience-pill-icon" style={{ color }}>
+				<Icon size={iconSize} />
+			</span>
+			<span className="audience-pill-name">{text}</span>
 		</span>
 	);
 }

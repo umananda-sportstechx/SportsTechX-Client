@@ -443,6 +443,23 @@
 .card.feature .co-stat-val { color: #fff; }
 .card.feature .stat-delta.pos { color: #fff; }
 
+/* === AUDIENCE PILL ===
+   For Athletes / For Fans / For Execs — used in all table sector columns.
+   Just a brand-colored icon next to the label, no box. Ported verbatim from
+   `ui_design_2/app/styles.css:1199-1213`. */
+.audience-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500; color: var(--fg);
+  white-space: nowrap;
+}
+.audience-pill-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+}
+.audience-pill-name {
+  font-weight: 500;
+}
+
 /* === BUTTON === */
 .btn {
   height: 34px;
