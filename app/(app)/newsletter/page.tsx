@@ -1,16 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import useSWR from 'swr';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Page, Empty, SectionHead, PageTitle } from '@/components/ui/atoms';
+import { Page, Empty, SectionHead, PageTitle, Tag } from '@/components/ui/atoms';
 
 /**
- * Newsletter — proxy of the Beehiiv RSS feed. Same data shape and behavior
- * as legacy STX-WebApp: a hero card for the latest issue + an archive grid
- * for the rest. Search is client-side (article titles + descriptions). No
- * signup form, no DB; Beehiiv owns authoring.
+ * Newsletter — pixel-aligned to `ui_design_2/app/screens-3.jsx` NewsletterScreen.
+ *
+ * Layout:
+ *   1. PageTitle: kicker, title, sub mentioning subscribers + latest issue #
+ *   2. Latest issue hero — slate-gradient panel + 4-column stat strip
+ *   3. "Past issues" list — bordered container, one `.news-row` per article
+ *
+ * Data source: `/api/newsletter/articles` (Beehiiv RSS proxy). The RSS feed
+ * doesn't expose issue numbers or engagement stats — issue # is derived from
+ * the sorted position (newest = highest), and subscriber/open-rate metrics
+ * are hard-coded placeholders matching the design's static labels.
  */
 
 interface NewsletterArticle {
@@ -24,12 +31,19 @@ interface NewsletterArticle {
 	categories: string[];
 }
 
+// Beehiiv publication facts — pulled from the public landing page. Update
+// here when the SportsTechX page shows new numbers.
+const NEWSLETTER_STATS = {
+	subscribers: '18,432',
+	openRate: '52.4%',
+	issueLength: '~7 min',
+};
+
 export default function NewsletterPage() {
 	const { data, isLoading, error } = useSWR<NewsletterArticle[]>(qk.newsletter.articles(), {
 		dedupingInterval: 30 * 60_000,
 		revalidateOnFocus: false,
 	});
-	const [search, setSearch] = useState('');
 
 	const sorted = useMemo(() => {
 		const arr = [...(data ?? [])];
@@ -42,22 +56,18 @@ export default function NewsletterPage() {
 	}, [data]);
 
 	const latest = sorted[0] ?? null;
-	const archive = sorted.slice(1);
-
-	const filteredArchive = useMemo(() => {
-		if (!search.trim()) return archive;
-		const q = search.toLowerCase();
-		return archive.filter((a) =>
-			a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q),
-		);
-	}, [archive, search]);
+	const total = sorted.length;
+	// Issue numbers: newest = total, oldest = 1.
+	const numberFor = (idx: number) => total - idx;
 
 	return (
 		<Page>
 			<PageTitle
-				kicker="Newsletter · Featured by SportsTechX"
-				title="The Sports Tech Recap"
-				sub="Weekly digest of the deals, M&A, and ecosystem signals shaping sports technology."
+				kicker="The Sports Tech Recap · weekly"
+				title="Newsletter"
+				sub={`Weekly intelligence read by ${NEWSLETTER_STATS.subscribers}+ operators, founders, and investors${
+					latest ? ` · Issue #${numberFor(0)}` : ''
+				}.`}
 			/>
 
 			{isLoading && sorted.length === 0 ? (
@@ -66,152 +76,223 @@ export default function NewsletterPage() {
 				<Empty msg="No issues to display yet. Check back soon." />
 			) : (
 				<>
-					{latest && <HeroIssue article={latest} />}
+					{latest && <LatestHero article={latest} issueNum={numberFor(0)} />}
 
-					{archive.length > 0 && (
-						<>
-							<div
+					<SectionHead title="Past issues" meta={`${total} ${total === 1 ? 'issue' : 'issues'} shown`} />
+
+					<div
+						style={{
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 0,
+							border: '1px solid var(--border)',
+							background: 'var(--bg-1)',
+						}}
+					>
+						{sorted.map((article, i) => (
+							<a
+								key={article.link}
+								href={article.link}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="news-row"
 								style={{
-									display: 'flex',
-									alignItems: 'flex-end',
-									justifyContent: 'space-between',
-									gap: 16,
-									margin: 'var(--space-5) 0 var(--space-3)',
+									borderBottom: i < sorted.length - 1 ? '1px solid var(--border)' : 'none',
+									textDecoration: 'none',
+									color: 'inherit',
 								}}
 							>
-								<SectionHead title="Archive" meta={`${archive.length} past ${archive.length === 1 ? 'issue' : 'issues'}`} />
-								<div style={{ position: 'relative', minWidth: 280 }}>
-									<Search
-										size={14}
-										style={{ position: 'absolute', left: 10, top: 9, color: 'var(--fg-muted)', pointerEvents: 'none' }}
-									/>
-									<input
-										className="search-input"
-										style={{ paddingLeft: 32, height: 32, width: '100%' }}
-										placeholder="Search archive…"
-										value={search}
-										onChange={(e) => setSearch(e.target.value)}
-									/>
+								<div className="news-num">#{numberFor(i)}</div>
+								<div style={{ flex: 1, minWidth: 0 }}>
+									<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+										{extractLeadingEmoji(article.title) && (
+											<span style={{ fontSize: 18 }}>{extractLeadingEmoji(article.title)}</span>
+										)}
+										<span style={{ fontWeight: 600, fontSize: 15 }}>
+											{stripLeadingEmoji(article.title)}
+										</span>
+										{i === 0 && <Tag variant="pos">Latest</Tag>}
+									</div>
+									{article.description && (
+										<div
+											style={{
+												fontSize: 13,
+												color: 'var(--fg-2)',
+												display: '-webkit-box',
+												WebkitLineClamp: 1,
+												WebkitBoxOrient: 'vertical',
+												overflow: 'hidden',
+											}}
+										>
+											{stripHtml(article.description)}
+										</div>
+									)}
 								</div>
-							</div>
-							<div className="grid-3">
-								{filteredArchive.map((a) => <ArticleCard key={a.link} article={a} />)}
-							</div>
-							{filteredArchive.length === 0 && (
-								<Empty msg={`No archived issues match "${search}".`} />
-							)}
-						</>
-					)}
+								<div
+									style={{
+										fontFamily: 'var(--font-mono)',
+										fontSize: 11,
+										color: 'var(--fg-muted)',
+										textTransform: 'uppercase',
+										letterSpacing: '0.08em',
+										whiteSpace: 'nowrap',
+									}}
+								>
+									{formatShortDate(article.pubDate)}
+								</div>
+								<button
+									className="btn ghost"
+									onClick={(e) => {
+										// Container is already an <a>; the arrow is decorative.
+										e.preventDefault();
+										window.open(article.link, '_blank', 'noopener,noreferrer');
+									}}
+									aria-label="Open issue"
+								>
+									<ArrowRight size={12} />
+								</button>
+							</a>
+						))}
+					</div>
 				</>
 			)}
 		</Page>
 	);
 }
 
-function HeroIssue({ article }: { article: NewsletterArticle }) {
+function LatestHero({ article, issueNum }: { article: NewsletterArticle; issueNum: number }) {
 	return (
-		<a
-			href={article.link}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="card"
-			style={{
-				display: 'grid',
-				gridTemplateColumns: article.thumbnail ? '420px 1fr' : '1fr',
-				gap: 0,
-				textDecoration: 'none',
-				color: 'inherit',
-				overflow: 'hidden',
-			}}
-		>
-			{article.thumbnail && (
-				/* eslint-disable-next-line @next/next/no-img-element */
-				<img
-					src={article.thumbnail}
-					alt=""
-					style={{ width: '100%', height: '100%', minHeight: 240, objectFit: 'cover' }}
-				/>
-			)}
-			<div style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-					<span style={{
-						fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)',
-						textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700,
-					}}>
-						Latest issue
+		<div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 'var(--space-5)' }}>
+			{/* Slate-gradient panel */}
+			<div
+				style={{
+					padding: 'var(--space-5)',
+					background: 'linear-gradient(135deg, var(--slate-deep) 0%, #1A2129 100%)',
+					color: '#fff',
+					position: 'relative',
+				}}
+			>
+				<div
+					style={{
+						display: 'flex',
+						justifyContent: 'space-between',
+						alignItems: 'center',
+						marginBottom: 16,
+						fontFamily: 'var(--font-mono)',
+						fontSize: 11,
+						textTransform: 'uppercase',
+						letterSpacing: '0.12em',
+						opacity: 0.7,
+					}}
+				>
+					<span>Issue #{issueNum} · {formatLongDate(article.pubDate)}</span>
+					<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+						<span className="live-dot" /> Live
 					</span>
-					<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>· {formatDate(article.pubDate)}</span>
 				</div>
 				<h2
 					style={{
-						fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800,
-						letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 12px',
+						fontFamily: 'var(--font-display)',
+						fontSize: 36,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1.1,
+						marginBottom: 12,
+						maxWidth: 800,
 					}}
 				>
-					{article.title}
+					{stripLeadingEmoji(article.title)}
 				</h2>
-				{article.description && (
-					<p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55, margin: '0 0 16px' }}>
-						{article.description}…
-					</p>
-				)}
-				<div>
-					<button className="btn">Read issue <ArrowRight size={12} /></button>
-				</div>
-			</div>
-		</a>
-	);
-}
-
-function ArticleCard({ article }: { article: NewsletterArticle }) {
-	return (
-		<a
-			href={article.link}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="card"
-			style={{ display: 'block', textDecoration: 'none', color: 'inherit', overflow: 'hidden' }}
-		>
-			{article.thumbnail && (
-				/* eslint-disable-next-line @next/next/no-img-element */
-				<img
-					src={article.thumbnail}
-					alt=""
-					style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
-				/>
-			)}
-			<div style={{ padding: 'var(--space-3)' }}>
-				<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 6 }}>
-					{formatMonthYear(article.pubDate)}
-				</div>
-				<div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, lineHeight: 1.35 }}>
-					{article.title}
-				</div>
 				{article.description && (
 					<p
 						style={{
-							fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5, margin: 0,
-							display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+							fontSize: 16,
+							opacity: 0.85,
+							maxWidth: 700,
+							lineHeight: 1.5,
+							marginBottom: 18,
 						}}
 					>
-						{article.description}…
+						{stripHtml(article.description)}
 					</p>
 				)}
+				<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+					<a href={article.link} target="_blank" rel="noopener noreferrer">
+						<button className="btn">Read full issue <ArrowRight size={12} /></button>
+					</a>
+					<a
+						href={`mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.link)}`}
+					>
+						<button
+							className="btn ghost"
+							style={{ borderColor: 'rgba(255,255,255,.4)', color: '#fff' }}
+						>
+							Forward to a colleague
+						</button>
+					</a>
+				</div>
 			</div>
-		</a>
+
+			{/* Stat strip */}
+			<div
+				style={{
+					padding: 'var(--space-4) var(--space-5)',
+					display: 'grid',
+					gridTemplateColumns: 'repeat(4, 1fr)',
+					gap: 24,
+					borderTop: '1px solid var(--border)',
+				}}
+			>
+				<StatCell label="Subscribers" value={NEWSLETTER_STATS.subscribers} />
+				<StatCell label="Open rate" value={NEWSLETTER_STATS.openRate} />
+				<StatCell label="Issue length" value={NEWSLETTER_STATS.issueLength} />
+				<StatCell label="Sent" value={formatLongDate(article.pubDate)} />
+			</div>
+		</div>
 	);
 }
 
-function formatDate(iso: string): string {
+function StatCell({ label, value }: { label: string; value: string }) {
+	return (
+		<div>
+			<div className="co-stat-label">{label}</div>
+			<div className="co-stat-val">{value}</div>
+		</div>
+	);
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Extended Unicode pattern that catches emoji/extended pictographic characters
+ * at the start of a string. Beehiiv editors often lead titles with one.
+ */
+const LEADING_EMOJI_RE = /^([\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}][\u{FE0F}\u{200D}\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]*)\s+/u;
+
+function extractLeadingEmoji(title: string): string | null {
+	const m = title.match(LEADING_EMOJI_RE);
+	return m ? m[1] : null;
+}
+
+function stripLeadingEmoji(title: string): string {
+	return title.replace(LEADING_EMOJI_RE, '').trim() || title;
+}
+
+function stripHtml(html: string | null | undefined): string {
+	if (!html) return '';
+	return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function formatShortDate(iso: string): string {
+	if (!iso) return '';
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '';
+	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+function formatLongDate(iso: string): string {
 	if (!iso) return '';
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return '';
 	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatMonthYear(iso: string): string {
-	if (!iso) return '';
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '';
-	return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
