@@ -34,11 +34,15 @@ export const qk = {
   // ── Browsable collections ───────────────────────────────────────────────
   companies: {
     list: (params: Record<string, unknown> = {}) => ['/api/companies', params] as const,
-    detail: (idOrSlug: string) => ['/api/companies', idOrSlug] as const,
+    // Path-interpolated form so `buildUrl` actually hits /api/companies/:idOrSlug.
+    // The previous `['/api/companies', idOrSlug]` shape made `buildUrl` treat the
+    // string as cache identity and dropped it from the URL, so the detail fetch
+    // resolved to the list endpoint and the drawer/detail page were empty.
+    detail: (idOrSlug: string) => [`/api/companies/${idOrSlug}`] as const,
   },
   investors: {
     list: (params: Record<string, unknown> = {}) => ['/api/investors', params] as const,
-    detail: (idOrSlug: string) => ['/api/investors', idOrSlug] as const,
+    detail: (idOrSlug: string) => [`/api/investors/${idOrSlug}`] as const,
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
@@ -67,15 +71,15 @@ export const qk = {
   },
   savedSearches: {
     list: () => ['/api/saved-searches'] as const,
-    detail: (id: string) => ['/api/saved-searches', id] as const,
+    detail: (id: string) => [`/api/saved-searches/${id}`] as const,
   },
   pinnedLists: {
     list: () => ['/api/pinned-lists'] as const,
-    detail: (id: string) => ['/api/pinned-lists', id] as const,
+    detail: (id: string) => [`/api/pinned-lists/${id}`] as const,
   },
   claims: {
     mine: () => ['/api/claims/mine'] as const,
-    detail: (id: string) => ['/api/claims', id] as const,
+    detail: (id: string) => [`/api/claims/${id}`] as const,
   },
   dataRequests: {
     changeMine: () => ['/api/data-change-requests/mine'] as const,
@@ -100,7 +104,7 @@ export const qk = {
   },
   verifiedReports: {
     mine: () => ['/api/verified-reports/mine'] as const,
-    detail: (id: string) => ['/api/verified-reports', id] as const,
+    detail: (id: string) => [`/api/verified-reports/${id}`] as const,
   },
 
   // ── Recommendations ─────────────────────────────────────────────────────
