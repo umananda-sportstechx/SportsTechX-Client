@@ -20,6 +20,7 @@ import {
 import {
 	Logo, Flag, Tag, AudiencePill, VerifiedBadge, RaisingPill, KV, Empty,
 } from './atoms';
+import { WatchlistPicker } from './watchlist-picker';
 
 interface Company {
 	id: string;
@@ -77,6 +78,7 @@ export function CompanyDrawer({
 	const router = useRouter();
 	const [tab, setTab] = useState<Tab>('general');
 	const [shareToast, setShareToast] = useState<string | null>(null);
+	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const { data: company, isLoading } = useSWR<Company>(
 		idOrSlug ? qk.companies.detail(idOrSlug) : null,
@@ -170,7 +172,7 @@ export function CompanyDrawer({
 									style={fav.isFavorite ? { color: 'var(--accent)', fill: 'currentColor' } : undefined}
 								/>
 							</button>
-							<button className="icon-btn" title="My lists" onClick={() => router.push('/lists')}>
+							<button className="icon-btn" title="Add to watchlist" onClick={() => setPickerOpen(true)}>
 								<Plus size={14} />
 							</button>
 						</div>
@@ -237,6 +239,14 @@ export function CompanyDrawer({
 						</button>
 					</DrawerFoot>
 				</>
+			)}
+			{company && (
+				<WatchlistPicker
+					open={pickerOpen}
+					onClose={() => setPickerOpen(false)}
+					companyId={company.id}
+					companyName={company.name}
+				/>
 			)}
 		</Drawer>
 	);

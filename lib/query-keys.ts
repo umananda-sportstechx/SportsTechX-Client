@@ -80,6 +80,12 @@ export const qk = {
     list: () => ['/api/pinned-lists'] as const,
     detail: (id: string) => [`/api/pinned-lists/${id}`] as const,
   },
+  userWatchlists: {
+    list: () => ['/api/user-watchlists'] as const,
+    detail: (id: string) => [`/api/user-watchlists/${id}`] as const,
+    companies: (id: string) => [`/api/user-watchlists/${id}/companies`] as const,
+    containing: (companyId: string) => [`/api/user-watchlists/containing/${companyId}`] as const,
+  },
   claims: {
     mine: () => ['/api/claims/mine'] as const,
     detail: (id: string) => [`/api/claims/${id}`] as const,

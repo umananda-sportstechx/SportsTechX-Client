@@ -40,6 +40,7 @@ export interface BoolFacet {
 	key: string;
 	label: string;
 	kind: 'bool';
+	section?: string;
 }
 
 export interface MultiFacet {
@@ -48,6 +49,7 @@ export interface MultiFacet {
 	kind: 'multi';
 	options: () => FacetOption[];
 	maxHeight?: number;
+	section?: string;
 }
 
 export interface RangeFacet {
@@ -59,6 +61,7 @@ export interface RangeFacet {
 	step?: number;
 	prefix?: string;
 	suffix?: string;
+	section?: string;
 }
 
 export type Facet = BoolFacet | MultiFacet | RangeFacet;
@@ -344,25 +347,38 @@ export function FilterRail({
 			</div>
 
 			{boolFacets.length > 0 && (
-				<div className="flt-group open">
-					<div className="flt-group-h flt-group-h-static">
-						<span className="flt-group-title">Status</span>
-					</div>
-					<div className="flt-group-body">
-						<FRStatusBlock facets={boolFacets} state={state} setState={setState} />
-					</div>
+				<div className="flt-status flt-status-flat">
+					<FRStatusBlock facets={boolFacets} state={state} setState={setState} />
 				</div>
 			)}
 
-			{otherFacets.map((f) => (
-				<FRGroup
-					key={f.key}
-					facet={f}
-					state={state}
-					setState={setState}
-					defaultOpen={defaultOpen[f.key] ?? isFacetActive(f, facetVal(state, f.key))}
-				/>
-			))}
+			{/* Group remaining facets by `section`. Facets without one render flat. */}
+			{(() => {
+				const out: ReactNode[] = [];
+				let currentSection: string | undefined;
+				for (const f of otherFacets) {
+					if (f.section !== currentSection) {
+						currentSection = f.section;
+						if (currentSection) {
+							out.push(
+								<div key={`sec-${currentSection}`} className="flt-section-h">
+									{currentSection}
+								</div>,
+							);
+						}
+					}
+					out.push(
+						<FRGroup
+							key={f.key}
+							facet={f}
+							state={state}
+							setState={setState}
+							defaultOpen={defaultOpen[f.key] ?? isFacetActive(f, facetVal(state, f.key))}
+						/>,
+					);
+				}
+				return out;
+			})()}
 		</aside>
 	);
 }

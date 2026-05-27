@@ -330,9 +330,57 @@ interface SectorPillProps {
 	color?: string;
 	icon?: string;
 	name: string;
+	slug?: string | null;
 }
 
-export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps) {
+/**
+ * Heuristic sector slug → color/icon mapping. Mirrors the palette used in
+ * `ui_design_2/app/data.jsx:SECTORS`. Sectors not in this map fall back to a
+ * derived color (hash of slug) so every chip still has a stable distinct hue.
+ */
+const SECTOR_META: Record<string, { color: string; icon: string }> = {
+	'fan-engagement':         { color: 'oklch(62% 0.18 240)', icon: 'F' },
+	'media-streaming':        { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'media-and-streaming':    { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'media-production':       { color: 'oklch(62% 0.18 320)', icon: 'M' },
+	'streaming-platform':     { color: 'oklch(62% 0.18 320)', icon: 'S' },
+	'stadium-facilities':     { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'stadium-and-facilities': { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'venue':                  { color: 'oklch(62% 0.16 200)', icon: 'V' },
+	'performance':            { color: 'oklch(62% 0.18 30)',  icon: 'P' },
+	'activity-performance':   { color: 'oklch(62% 0.18 30)',  icon: 'P' },
+	'wearables-gear':         { color: 'oklch(62% 0.18 60)',  icon: 'G' },
+	'wearables-and-gear':     { color: 'oklch(62% 0.18 60)',  icon: 'G' },
+	'recovery-wellness':      { color: 'oklch(62% 0.16 130)', icon: 'W' },
+	'recovery-and-wellness':  { color: 'oklch(62% 0.16 130)', icon: 'W' },
+	'esports':                { color: 'oklch(62% 0.20 280)', icon: 'E' },
+	'gaming':                 { color: 'oklch(62% 0.20 280)', icon: 'G' },
+	'fantasy-sports':         { color: 'oklch(62% 0.20 260)', icon: 'F' },
+	'ticketing-merchandise':  { color: 'oklch(62% 0.18 90)',  icon: 'T' },
+	'ticketing-and-merchandise':{ color: 'oklch(62% 0.18 90)', icon: 'T' },
+	'tracking-analytics':     { color: 'oklch(62% 0.16 170)', icon: 'T' },
+	'analytics':              { color: 'oklch(62% 0.16 170)', icon: 'A' },
+	'equipment-infrastructure':{ color: 'oklch(62% 0.16 220)', icon: 'I' },
+	'enablement':             { color: 'oklch(62% 0.14 250)', icon: 'E' },
+	'management-organisation':{ color: 'oklch(62% 0.16 0)',   icon: 'M' },
+};
+
+function sectorMetaFor(slug: string | null | undefined, name: string): { color: string; icon: string } {
+	if (slug) {
+		const hit = SECTOR_META[slug.toLowerCase()];
+		if (hit) return hit;
+	}
+	const key = (slug ?? name ?? '').toLowerCase();
+	let h = 0;
+	for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+	const hue = h % 360;
+	return { color: `oklch(60% 0.16 ${hue})`, icon: (name?.[0] ?? '?').toUpperCase() };
+}
+
+export function SectorPill({ color, icon, name, slug }: SectorPillProps) {
+	const meta = (color && icon)
+		? { color, icon }
+		: sectorMetaFor(slug, name);
 	return (
 		<span
 			style={{
@@ -348,7 +396,7 @@ export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps
 				style={{
 					width: 14,
 					height: 14,
-					background: color,
+					background: meta.color,
 					color: '#fff',
 					display: 'grid',
 					placeItems: 'center',
@@ -357,7 +405,7 @@ export function SectorPill({ color = '#888', icon = '?', name }: SectorPillProps
 					fontFamily: 'var(--font-display)',
 				}}
 			>
-				{icon}
+				{meta.icon}
 			</span>
 			{name}
 		</span>

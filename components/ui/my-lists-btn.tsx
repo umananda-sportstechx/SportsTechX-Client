@@ -6,27 +6,25 @@ import { Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 
 interface FavList { data: unknown[] }
-interface PinnedList { data?: unknown[] } // pinned-lists endpoint returns array directly
+interface WatchlistsResp { data: unknown[] }
 interface SavedSearches { data: unknown[] }
 
 /**
  * Small ghost button shown next to PageTitle on database pages.
- * Click → /lists. Count badge sums the three list types so the user
- * gets a quick read on how many saved items they have.
+ * Click → /lists. Count badge sums favorites + user watchlists + saved
+ * searches so the user gets a quick read on how many saved items they have.
  *
  * Ported from `ui_design_2/app/lists.jsx:310` (the `MyListsBtn` factory).
  */
 export function MyListsBtn(): React.ReactElement {
 	const { data: liked } = useSWR<FavList>(qk.favorites.list('companies'));
-	const { data: pinned } = useSWR<unknown[] | PinnedList>(qk.pinnedLists.list());
+	const { data: watchlists } = useSWR<WatchlistsResp>(qk.userWatchlists.list());
 	const { data: saved } = useSWR<SavedSearches>(qk.savedSearches.list());
 
 	const likedCount = liked?.data?.length ?? 0;
-	const pinnedCount = Array.isArray(pinned)
-		? pinned.length
-		: pinned?.data?.length ?? 0;
+	const watchlistCount = watchlists?.data?.length ?? 0;
 	const savedCount = saved?.data?.length ?? 0;
-	const total = likedCount + pinnedCount + savedCount;
+	const total = likedCount + watchlistCount + savedCount;
 
 	return (
 		<Link href="/lists" className="btn ghost mylists-btn" title="View your saved lists">

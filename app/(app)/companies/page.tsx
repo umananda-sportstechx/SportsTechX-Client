@@ -8,7 +8,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
-	Page, Logo, Flag, AudiencePill, Tag, Empty, PageTitle,
+	Page, Logo, Flag, AudiencePill, SectorPill, Tag, Empty, PageTitle,
 	VerifiedBadge, RaisingDot,
 } from '@/components/ui/atoms';
 import {
@@ -18,6 +18,7 @@ import {
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { CompanyDrawer } from '@/components/ui/company-drawer';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { WatchlistPicker } from '@/components/ui/watchlist-picker';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 
@@ -84,6 +85,7 @@ export default function CompaniesPage() {
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
+	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
 		dedupingInterval: 60 * 60_000,
@@ -101,17 +103,28 @@ export default function CompaniesPage() {
 		[favoritesResp],
 	);
 
-	// Faceted filters from `ui_design_2/app/screens-2.jsx:31-45`. `favorites`
+	// Faceted filters mirroring `ui_design_2/app/screens-2.jsx:31-45`. `favorites`
 	// is a client-side gate that injects `ids=` from `/api/favorites/companies`.
+	// Order matches the design: top toggles, then SECTOR / BUSINESS DETAILS /
+	// LOCATION sections (driven by the `section` field on each facet).
 	const facets = useMemo<Facet[]>(() => [
-		{ key: 'is_verified', label: 'Verified only', kind: 'bool' },
+		{ key: 'favorites', label: 'Favorites', kind: 'bool' },
+		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
 		{ key: 'is_actively_raising', label: 'Actively raising', kind: 'bool' },
-		{ key: 'favorites', label: 'In my favorites', kind: 'bool' },
 		{ key: 'is_unicorn', label: 'Unicorn', kind: 'bool' },
+		{
+			key: 'sector_slug',
+			label: 'Sector',
+			kind: 'multi',
+			section: 'Sector',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 260,
+		},
 		{
 			key: 'business_model',
 			label: 'Business model',
 			kind: 'multi',
+			section: 'Business details',
 			options: () => [
 				{ value: 'b2b', label: 'B2B' },
 				{ value: 'b2c', label: 'B2C' },
@@ -121,29 +134,18 @@ export default function CompaniesPage() {
 			],
 		},
 		{
-			key: 'sector_slug',
-			label: 'Sector',
-			kind: 'multi',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
-			maxHeight: 260,
-		},
-		{
 			key: 'last_round_type',
 			label: 'Stage',
 			kind: 'multi',
+			section: 'Business details',
 			options: () => roundTypes.map((r) => ({ value: r.slug, label: r.name })),
 			maxHeight: 240,
 		},
 		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
-		},
-		{
 			key: 'founded',
-			label: 'Founded',
+			label: 'Founded year',
 			kind: 'range',
+			section: 'Business details',
 			min: 1990,
 			max: new Date().getFullYear(),
 			step: 1,
@@ -152,9 +154,17 @@ export default function CompaniesPage() {
 			key: 'raised',
 			label: 'Total funding (USD millions)',
 			kind: 'range',
+			section: 'Business details',
 			min: 0,
 			max: 250,
 			step: 5,
+		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			section: 'Location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
 	], [sectorList, roundTypes]);
 
@@ -280,8 +290,8 @@ export default function CompaniesPage() {
 						<MyListsBtn />
 						<button
 							className="btn"
-							onClick={() => router.push('/lists')}
-							title="Open My Lists"
+							onClick={() => setPickerOpen(true)}
+							title="Create or edit your watchlists"
 						>
 							<Plus size={12} /> Add to watchlist
 						</button>
@@ -406,6 +416,12 @@ export default function CompaniesPage() {
 						onClose={() => setDrawerTarget(null)}
 					/>
 
+					<WatchlistPicker
+						open={pickerOpen}
+						onClose={() => setPickerOpen(false)}
+						companyId={null}
+					/>
+
 					<CompareBar kind="companies" />
 
 					{totalPages > 1 && (
@@ -481,27 +497,18 @@ function CompanyCard({
 				</div>
 			</div>
 			{c.description && <p className="co-sub">{c.description}</p>}
-			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10, alignItems: 'center' }}>
 				{c.primary_sector && (
-					<AudiencePill sectorSlug={c.primary_sector_slug ?? c.primary_sector} label={c.primary_sector} size="sm" />
+					<SectorPill
+						name={c.primary_sector}
+						slug={c.primary_sector_slug ?? null}
+					/>
 				)}
-				{c.last_round_type && <Tag>{c.last_round_type}</Tag>}
+				{c.primary_sector_slug && (
+					<AudiencePill sectorSlug={c.primary_sector_slug} size="sm" />
+				)}
 			</div>
-			<div className="co-card-foot">
-				<div>
-					<div className="co-stat-label">Total raised</div>
-					<div className="co-stat-val">{formatRaised(c.total_funding_usd)}</div>
-				</div>
-				<div>
-					<div className="co-stat-label">Last round</div>
-					<div className="co-stat-val">{c.last_round_type ?? '—'}</div>
-				</div>
-				<div>
-					<div className="co-stat-label">Founded</div>
-					<div className="co-stat-val">{c.founded_year ?? '—'}</div>
-				</div>
-			</div>
-			<div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+			<div className="co-card-compare">
 				<CompareToggle id={c.id} kind="companies" />
 			</div>
 		</div>

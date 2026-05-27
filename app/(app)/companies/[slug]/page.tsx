@@ -11,6 +11,7 @@ import {
 	Page, Logo, Flag, Tag, Empty, AudiencePill,
 	VerifiedBadge, RaisingPill, KV,
 } from '@/components/ui/atoms';
+import { WatchlistPicker } from '@/components/ui/watchlist-picker';
 
 /**
  * Company detail — pixel-aligned to `ui_design_2/app/company-detail.jsx`
@@ -108,6 +109,7 @@ export default function CompanyDetailPage() {
 	const slug = params?.slug ?? '';
 	const [tab, setTab] = useState<Tab>('overview');
 	const [shareToast, setShareToast] = useState<string | null>(null);
+	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const { data: company, isLoading, error } = useSWR<Company>(
 		slug && slug !== 'undefined' ? qk.companies.detail(slug) : null,
@@ -270,7 +272,7 @@ export default function CompanyDetailPage() {
 					<button className="btn ghost" onClick={onShare}>
 						<Send size={12} /> Share
 					</button>
-					<button className="btn" onClick={() => router.push('/lists')} title="Open My Lists">
+					<button className="btn" onClick={() => setPickerOpen(true)} title="Add to watchlist">
 						<Plus size={12} /> Add to watchlist
 					</button>
 				</div>
@@ -348,6 +350,13 @@ export default function CompanyDetailPage() {
 			)}
 
 			<VerifyFooter company={company} />
+
+			<WatchlistPicker
+				open={pickerOpen}
+				onClose={() => setPickerOpen(false)}
+				companyId={company.id}
+				companyName={company.name}
+			/>
 		</Page>
 	);
 }

@@ -124,6 +124,20 @@
   display: flex; flex-direction: column;
   padding: 2px 0;
 }
+.flt-status-flat {
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* ─── Section header (groups facets under e.g. "BUSINESS DETAILS") ─── */
+.flt-section-h {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  padding: 14px 10px 6px;
+}
 
 /* ─── Bool row ─── */
 
