@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Zap, Users, Briefcase } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -104,15 +104,62 @@ export function Flag({
 }
 
 // ============================================================================
-// LOGO — colored block with company initials
+// LOGO — real brand logo with graceful fallback chain
 // ============================================================================
 
 interface LogoProps {
-	co: { name?: string; logo?: string; color?: string };
+	co: {
+		name?: string;
+		/** Short initials/emoji override for the fallback block. */
+		logo?: string;
+		color?: string;
+		/** Curated logo URL stored on the company record (best source). */
+		custom_logo_url?: string | null;
+		/** Company website — used to derive the Google-favicons fallback. */
+		website?: string | null;
+	};
 	size?: number;
 }
 
+/**
+ * Resolution order:
+ *   1. `custom_logo_url` (curated, carried over from the legacy DB)
+ *   2. Google Favicons by website domain (free, no token)
+ *   3. Coloured initials block (always works, even with no website)
+ *
+ * `<img>` onError walks to the next source. Clearbit's free Logo API is dead;
+ * if a logo.dev token is ever added this is the single place to slot it in
+ * between (1) and (2).
+ */
 export function Logo({ co, size = 32 }: LogoProps) {
+	// Build the ordered list of remote candidates for this company.
+	const sources: string[] = [];
+	if (co.custom_logo_url) sources.push(co.custom_logo_url);
+	const domain = extractDomain(co.website);
+	if (domain) sources.push(`https://www.google.com/s2/favicons?sz=128&domain=${domain}`);
+
+	const [srcIdx, setSrcIdx] = useState(0);
+	const src = sources[srcIdx];
+
+	if (src) {
+		return (
+			<div
+				className="co-logo co-logo-img"
+				style={{ width: size, height: size }}
+			>
+				{/* eslint-disable-next-line @next/next/no-img-element */}
+				<img
+					src={src}
+					alt={co.name ? `${co.name} logo` : 'logo'}
+					width={size}
+					height={size}
+					loading="lazy"
+					onError={() => setSrcIdx((i) => i + 1)}
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			className="co-logo"
@@ -127,6 +174,17 @@ export function Logo({ co, size = 32 }: LogoProps) {
 			{co.logo ?? co.name?.slice(0, 2).toUpperCase() ?? '—'}
 		</div>
 	);
+}
+
+/** Pull a bare hostname from a website URL (drops protocol, path, www). */
+function extractDomain(website: string | null | undefined): string | null {
+	if (!website) return null;
+	let s = website.trim();
+	if (!s) return null;
+	s = s.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+	const host = s.split(/[/?#]/)[0]?.trim();
+	if (!host || !host.includes('.')) return null;
+	return host.toLowerCase();
 }
 
 // ============================================================================

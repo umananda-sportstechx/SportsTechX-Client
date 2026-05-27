@@ -35,6 +35,7 @@ interface Company {
 	slug?: string | null;
 	description?: string | null;
 	website?: string | null;
+	custom_logo_url?: string | null;
 	primary_sector?: string | null;
 	primary_sector_slug?: string | null;
 	primary_sport?: string | null;
@@ -81,6 +82,8 @@ interface SimilarCompany {
 	primary_sector?: string | null;
 	hq_country?: string | null;
 	total_funding_usd?: number | string | null;
+	website?: string | null;
+	custom_logo_url?: string | null;
 }
 
 interface NewsItem {
@@ -201,7 +204,7 @@ export default function CompanyDetailPage() {
 
 			{/* Hero */}
 			<header className="co-hero">
-				<Logo co={{ name: company.name }} size={72} />
+				<Logo co={{ name: company.name, website: company.website, custom_logo_url: company.custom_logo_url }} size={72} />
 				<div style={{ flex: 1, minWidth: 0 }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
 						<h1
@@ -693,7 +696,7 @@ function Similar({ companies }: { companies: SimilarCompany[] }) {
 					return (
 						<Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="co-similar-card">
 							<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-								<Logo co={{ name: c.name }} size={32} />
+								<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={32} />
 								<div style={{ minWidth: 0 }}>
 									<div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
 									<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>

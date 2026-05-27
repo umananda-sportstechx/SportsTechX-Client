@@ -21,6 +21,7 @@ interface Deal {
 	company_id?: string | null;
 	company_name?: string | null;
 	company_slug?: string | null;
+	company_website?: string | null;
 	announced_date?: string | null;
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
@@ -225,7 +226,7 @@ export default function DealsListPage() {
 												<td className="num">{formatShortDate(d.announced_date)}</td>
 												<td>
 													<div className="tbl-name-cell">
-														<Logo co={{ name: d.company_name ?? '—' }} size={24} />
+														<Logo co={{ name: d.company_name ?? '—', website: d.company_website }} size={24} />
 														<span className="tbl-name">{d.company_name ?? '—'}</span>
 													</div>
 												</td>

@@ -36,6 +36,8 @@ interface AcquisitionRow {
 	acquiree_slug?: string | null;
 	acquiree_description?: string | null;
 	acquiree_is_verified?: boolean | null;
+	acquiree_website?: string | null;
+	acquiree_logo?: string | null;
 	acquirer_name?: string | null;
 	acquirer_slug?: string | null;
 	acquisition_type?: string | null;
@@ -305,7 +307,7 @@ export default function MnaPage() {
 										}}
 									>
 										<div className="deal-card-head">
-											<Logo co={{ name: d.acquiree_name ?? '—' }} size={40} />
+											<Logo co={{ name: d.acquiree_name ?? '—', website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={40} />
 											<div style={{ minWidth: 0, flex: 1 }}>
 												<div className="deal-card-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 													{d.acquiree_name ?? '—'}
@@ -371,7 +373,7 @@ export default function MnaPage() {
 												<td className="num">{formatShortDate(d.acquisition_date)}</td>
 												<td>
 													<div className="tbl-name-cell">
-														<Logo co={{ name: d.acquiree_name ?? '—' }} size={28} />
+														<Logo co={{ name: d.acquiree_name ?? '—', website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={28} />
 														<div className="tbl-name-text">
 															<div className="tbl-name-line">
 																{linkable ? (

@@ -28,6 +28,7 @@ interface Company {
 	slug?: string | null;
 	description?: string | null;
 	website?: string | null;
+	custom_logo_url?: string | null;
 	primary_sector?: string | null;
 	primary_sector_slug?: string | null;
 	primary_sport?: string | null;
@@ -130,7 +131,7 @@ export function CompanyDrawer({
 			{company && (
 				<>
 					<DrawerHead onClose={onClose}>
-						<Logo co={{ name: company.name }} size={40} />
+						<Logo co={{ name: company.name, website: company.website, custom_logo_url: company.custom_logo_url }} size={40} />
 						<div style={{ flex: 1, minWidth: 0 }}>
 							<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
 								<button
