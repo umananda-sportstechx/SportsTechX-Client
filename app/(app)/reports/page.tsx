@@ -251,6 +251,7 @@ function UpgradeToProBadge({ userType, total }: { userType: UserType; total: num
 				gap: 12,
 				padding: '10px 12px 10px 14px',
 				border: '1px solid var(--border)',
+				borderRadius: 0,
 				background: 'var(--bg-2)',
 			}}
 		>
