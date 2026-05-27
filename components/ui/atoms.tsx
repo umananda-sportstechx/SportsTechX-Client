@@ -87,21 +87,40 @@ export function Logo({ co, size = 32 }: LogoProps) {
 
 /**
  * Build an SVG path for a sparkline scaled to (w, h). Min/max normalised.
- * Replaces ui_design's `STX_DATA.sparkPath` helper so this atom is self-contained.
+ * Uses a Catmull-Rom → cubic-Bezier conversion (tension 0.5) so the line
+ * passes smoothly through every data point — looks far better than straight
+ * `L` segments on the dashboard's KPI cards where real quarterly series can
+ * be jagged.
  */
 function sparkPath(values: number[], w: number, h: number): string {
 	if (values.length === 0) return '';
+	if (values.length === 1) {
+		const y = h / 2;
+		return `M0,${y.toFixed(1)} L${w},${y.toFixed(1)}`;
+	}
 	const min = Math.min(...values);
 	const max = Math.max(...values);
 	const range = max - min || 1;
-	const step = w / Math.max(values.length - 1, 1);
-	return values
-		.map((v, i) => {
-			const x = i * step;
-			const y = h - ((v - min) / range) * h;
-			return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-		})
-		.join(' ');
+	const step = w / (values.length - 1);
+	const pts = values.map((v, i) => ({
+		x: i * step,
+		y: h - ((v - min) / range) * h,
+	}));
+
+	// Catmull-Rom to cubic Bezier — smooth curve through every point.
+	let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+	for (let i = 0; i < pts.length - 1; i++) {
+		const p0 = pts[i - 1] ?? pts[i];
+		const p1 = pts[i];
+		const p2 = pts[i + 1];
+		const p3 = pts[i + 2] ?? pts[i + 1];
+		const cp1x = p1.x + (p2.x - p0.x) / 6;
+		const cp1y = p1.y + (p2.y - p0.y) / 6;
+		const cp2x = p2.x - (p3.x - p1.x) / 6;
+		const cp2y = p2.y - (p3.y - p1.y) / 6;
+		d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+	}
+	return d;
 }
 
 interface SparklineProps {
@@ -114,12 +133,14 @@ interface SparklineProps {
 
 export function Sparkline({ values, w = 70, h = 28, color, fill = true }: SparklineProps) {
 	const path = sparkPath(values, w, h);
-	const c = color ?? 'var(--accent)';
-	const fillPath = fill ? `${path} L${w},${h} L0,${h} Z` : null;
+	if (!path) return null;
+	const c = color ?? 'var(--pos)';
+	// Close to the baseline + back to start to make a fill region.
+	const fillPath = fill ? `${path} L${w.toFixed(1)},${h.toFixed(1)} L0,${h.toFixed(1)} Z` : null;
 	return (
 		<svg className="stat-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
 			{fill && fillPath && <path d={fillPath} fill={c} opacity="0.12" />}
-			<path d={path} stroke={c} strokeWidth="1.5" fill="none" />
+			<path d={path} stroke={c} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
 		</svg>
 	);
 }
@@ -139,6 +160,9 @@ interface StatProps {
 }
 
 export function Stat({ label, value, unit, delta, deltaDir = 'pos', spark, sparkColor }: StatProps) {
+	// Auto-pick sparkline color from delta direction unless caller overrides.
+	// Matches `ui_design_2/app/atoms.jsx:146` behaviour.
+	const sc = sparkColor ?? (deltaDir === 'neg' ? 'var(--neg)' : 'var(--pos)');
 	return (
 		<div className="stat">
 			<div className="stat-label">{label}</div>
@@ -152,7 +176,7 @@ export function Stat({ label, value, unit, delta, deltaDir = 'pos', spark, spark
 						{deltaDir === 'pos' ? '▲' : '▼'} {delta}
 					</span>
 				)}
-				{spark && <Sparkline values={spark} color={sparkColor} />}
+				{spark && spark.length > 0 && <Sparkline values={spark} color={sc} />}
 			</div>
 		</div>
 	);

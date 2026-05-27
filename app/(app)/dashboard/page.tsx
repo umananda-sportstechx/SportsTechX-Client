@@ -215,29 +215,11 @@ export default function DashboardPage() {
 							</Link>
 						}
 					/>
-					{!latestIssue ? (
-						<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
+					<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
+						{!latestIssue ? (
 							<Empty msg="No newsletter issues yet" />
-						</div>
-					) : (
-						<>
-							{/* Cover image from Beehiiv RSS thumbnail — clickable, opens issue */}
-							{latestIssue.thumbnail && (
-								<a
-									href={latestIssue.link}
-									target="_blank"
-									rel="noopener noreferrer"
-									style={{ display: 'block', position: 'relative', height: 160, overflow: 'hidden', borderBottom: '1px solid var(--border)' }}
-								>
-									{/* eslint-disable-next-line @next/next/no-img-element */}
-									<img
-										src={latestIssue.thumbnail}
-										alt=""
-										style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-									/>
-								</a>
-							)}
-							<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+						) : (
+							<>
 								<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
 									The Sports Tech Recap · {formatIssueDate(latestIssue.pubDate)}
 								</div>
@@ -247,12 +229,36 @@ export default function DashboardPage() {
 										fontSize: 22,
 										fontWeight: 700,
 										lineHeight: 1.2,
-										marginBottom: 10,
+										marginBottom: 12,
 										letterSpacing: '-0.01em',
 									}}
 								>
 									{latestIssue.title}
 								</h3>
+								{/* Cover from Beehiiv RSS thumbnail — sits between title and description,
+								    clickable, opens issue in new tab. */}
+								{latestIssue.thumbnail && (
+									<a
+										href={latestIssue.link}
+										target="_blank"
+										rel="noopener noreferrer"
+										style={{
+											display: 'block',
+											position: 'relative',
+											aspectRatio: '16 / 9',
+											overflow: 'hidden',
+											marginBottom: 12,
+											border: '1px solid var(--border)',
+										}}
+									>
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={latestIssue.thumbnail}
+											alt=""
+											style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+										/>
+									</a>
+								)}
 								<p
 									style={{
 										fontSize: 13,
@@ -276,9 +282,9 @@ export default function DashboardPage() {
 										Read issue <ArrowRight size={12} />
 									</a>
 								</div>
-							</div>
-						</>
-					)}
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 
@@ -471,7 +477,6 @@ function heroStrip(
 			delta: capDelta?.label,
 			deltaDir: (capDelta?.dir ?? 'pos') as 'pos' | 'neg',
 			spark: capSpark,
-			sparkColor: 'var(--pos)',
 		},
 		{
 			label: 'Disclosed rounds',
@@ -479,7 +484,6 @@ function heroStrip(
 			delta: roundsDelta?.label,
 			deltaDir: (roundsDelta?.dir ?? 'pos') as 'pos' | 'neg',
 			spark: roundsSpark,
-			sparkColor: 'var(--pos)',
 		},
 		{
 			label: 'M&A · YTD',
