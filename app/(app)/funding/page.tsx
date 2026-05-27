@@ -7,13 +7,14 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill } from '@/components/ui/atoms';
+import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill, VerifiedBadge } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { DealDrawer } from '@/components/ui/deal-drawer';
+import { MyListsBtn } from '@/components/ui/my-lists-btn';
 
 /**
  * Funding tracker — pixel-aligned to `ui_design_2/app/screens-2.jsx`
@@ -35,6 +36,8 @@ interface DealRow {
 	company_name?: string | null;
 	company_slug?: string | null;
 	company_website?: string | null;
+	company_description?: string | null;
+	company_is_verified?: boolean | null;
 	announced_date?: string | null;
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
@@ -43,6 +46,7 @@ interface DealRow {
 	primary_sector_slug?: string | null;
 	sector_slug?: string | null;
 	lead_investor?: string | null;
+	investors?: string[] | null;
 	hq_country?: string | null;
 	hq_city?: string | null;
 	total_funding_usd?: number | string | null;
@@ -94,40 +98,48 @@ export default function FundingPage() {
 	});
 	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
 
+	// Facets mirror `ui_design_2/screens-2.jsx:FundingScreen.facets`. Bool
+	// at the top renders flat; the rest group under Deal details / Location.
 	const facets = useMemo<Facet[]>(() => [
+		{ key: 'is_company_verified', label: 'Verified company only', kind: 'bool' },
 		{
 			key: 'round_type_slug',
 			label: 'Round type',
 			kind: 'multi',
+			section: 'Deal details',
 			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
 		},
 		{
 			key: 'sector_slug',
-			label: 'Sub-sector',
+			label: 'Sector',
 			kind: 'multi',
+			section: 'Deal details',
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
-		},
-		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
 		{
 			key: 'amount',
 			label: 'Deal size',
 			kind: 'range',
+			section: 'Deal details',
 			min: 0,
 			max: 250,
 			step: 5,
 			prefix: '$',
 			suffix: 'M',
 		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			section: 'Location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
 	], [sectorList, roundList]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const v = params.get('is_company_verified'); if (v) init.is_company_verified = v === 'true';
 		const s = params.get('sector_slug');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
 		const r = params.get('round_type_slug');
@@ -143,6 +155,7 @@ export default function FundingPage() {
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
+		if (filterState.is_company_verified === true) sp.set('is_company_verified', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
 		const rnd = filterState.round_type_slug as string[] | undefined;
@@ -179,15 +192,14 @@ export default function FundingPage() {
 		year: currentYear,
 		sort: sortToParam(sort) ?? '-announced_date',
 	};
-	if (debouncedSearch) tableParams.search = debouncedSearch;
+	if (debouncedSearch) tableParams.q = debouncedSearch;
+	if (filterState.is_company_verified === true) tableParams.is_company_verified = true;
 	const sec = filterState.sector_slug as string[] | undefined;
-	if (sec?.length === 1) tableParams.sector_slug = sec[0];
-	else if (sec?.length) tableParams.sector_slug = sec.join(',');
+	if (sec?.length) tableParams.sector_slug = sec.join(',');
 	const rnd = filterState.round_type_slug as string[] | undefined;
-	if (rnd?.length === 1) tableParams.round_type_slug = rnd[0];
-	else if (rnd?.length) tableParams.round_type_slug = rnd.join(',');
+	if (rnd?.length) tableParams.round_type_slug = rnd.join(',');
 	const ctry = filterState.country as string[] | undefined;
-	if (ctry?.length === 1) tableParams.country = ctry[0];
+	if (ctry?.length) tableParams.country = ctry.join(',');
 	const amt = filterState.amount as [number, number] | undefined;
 	if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
 		tableParams.amount_usd_min = amt[0] * 1_000_000;
@@ -210,6 +222,7 @@ export default function FundingPage() {
 			<PageTitle
 				kicker={`Funding Tracker · ${currentYear} YTD`}
 				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
+				action={<MyListsBtn />}
 			/>
 
 			{/* All four stat cards use .card.feature per design */}
@@ -236,7 +249,7 @@ export default function FundingPage() {
 					facets={facets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}
-					defaultOpen={{ round_type_slug: true, sector_slug: true }}
+					defaultOpen={{ round_type_slug: true, sector_slug: true, country: true }}
 				/>
 
 				<div className="flt-main">
@@ -278,9 +291,14 @@ export default function FundingPage() {
 										<div className="deal-card-head">
 											<Logo co={{ name: d.company_name ?? '—' }} size={40} />
 											<div style={{ minWidth: 0, flex: 1 }}>
-												<div className="deal-card-name">{d.company_name ?? '—'}</div>
-												{(d.company_sub ?? d.co_sub ?? d.description) && (
-													<div className="deal-card-sub">{d.company_sub ?? d.co_sub ?? d.description}</div>
+												<div className="deal-card-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+													{d.company_name ?? '—'}
+													{d.company_is_verified && <VerifiedBadge size={13} />}
+												</div>
+												{(d.company_sub ?? d.co_sub ?? d.company_description ?? d.description) && (
+													<div className="deal-card-sub">
+														{d.company_sub ?? d.co_sub ?? d.company_description ?? d.description}
+													</div>
 												)}
 											</div>
 											<div className="deal-card-amount">
@@ -294,7 +312,15 @@ export default function FundingPage() {
 											</span>
 											<span className="deal-card-date">{formatShortDate(d.announced_date)}</span>
 										</div>
-										{d.lead_investor && (
+										{(d.investors?.length ?? 0) > 0 ? (
+											<div className="deal-card-investors">
+												<span className="deal-card-investors-label">Investors</span>
+												<span className="deal-card-investors-list">
+													{d.investors!.slice(0, 3).join(' · ')}
+													{d.investors!.length > 3 && ` +${d.investors!.length - 3}`}
+												</span>
+											</div>
+										) : d.lead_investor && (
 											<div className="deal-card-investors">
 												<span className="deal-card-investors-label">Lead investor</span>
 												<span className="deal-card-investors-list">{d.lead_investor}</span>
@@ -350,9 +376,12 @@ export default function FundingPage() {
 																>
 																	{d.company_name ?? '—'}
 																</Link>
+																{d.company_is_verified && <VerifiedBadge size={12} />}
 															</div>
-															{(d.company_sub ?? d.co_sub ?? d.description) && (
-																<div className="tbl-sub">{d.company_sub ?? d.co_sub ?? d.description}</div>
+															{(d.company_sub ?? d.co_sub ?? d.company_description ?? d.description) && (
+																<div className="tbl-sub">
+																	{d.company_sub ?? d.co_sub ?? d.company_description ?? d.description}
+																</div>
 															)}
 														</div>
 													</div>
@@ -364,7 +393,9 @@ export default function FundingPage() {
 												</td>
 												<td title={d.hq_country ?? ''}>{cc && <Flag cc={cc} />}</td>
 												<td>{round !== '—' ? <Tag variant="pos">{round}</Tag> : '—'}</td>
-												<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
+												<td style={{ color: 'var(--fg-2)' }}>
+													<InvestorList investors={d.investors ?? (d.lead_investor ? [d.lead_investor] : [])} />
+												</td>
 												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
 													{formatDealAmount(d.amount_usd)}
 												</td>
@@ -397,6 +428,35 @@ export default function FundingPage() {
 				</div>
 			</div>
 		</Page>
+	);
+}
+
+function InvestorList({ investors }: { investors: string[] }) {
+	if (investors.length === 0) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
+	const visible = investors.slice(0, 2);
+	const extra = investors.length - visible.length;
+	const router = useRouter();
+	return (
+		<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+			{visible.map((name, i) => (
+				<button
+					key={i}
+					className="inv-link"
+					onClick={(e) => {
+						e.stopPropagation();
+						router.push(`/investors?q=${encodeURIComponent(name)}`);
+					}}
+					title={name}
+				>
+					{name}
+				</button>
+			))}
+			{extra > 0 && (
+				<span style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' }}>
+					+{extra}
+				</span>
+			)}
+		</span>
 	);
 }
 

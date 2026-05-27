@@ -530,6 +530,19 @@
 .co-card:hover .co-card-compare,
 .co-card:focus-within .co-card-compare { opacity: 1; }
 
+/* ─── Investor link chip (funding table) ─── */
+.inv-link {
+  background: transparent; border: 0;
+  padding: 0;
+  font: inherit; font-size: 12px;
+  color: var(--fg-2);
+  cursor: pointer;
+  max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.inv-link + .inv-link::before { content: '·'; color: var(--fg-muted); margin: 0 4px; }
+.inv-link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
 /* ─── Watchlist picker modal ─── */
 .wp-overlay {
   position: fixed; inset: 0;
