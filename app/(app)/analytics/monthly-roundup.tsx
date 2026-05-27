@@ -1,70 +1,145 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import useSWR from 'swr';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { SectionHead, Stat, Empty, Tag } from '@/components/ui/atoms';
+import { Stat, SectionHead, Empty, Tag, Flag } from '@/components/ui/atoms';
+import {
+	PieDonut, PieLegend, Monogram, SegToggle,
+	type PieSegment,
+} from '@/components/ui/analytics-charts';
 
 /**
- * Monthly roundup — pick a month, see deal count + capital deployed +
- * top sectors + top investors for just that window. Reads:
- *   - `/api/analytics/quarterly-capital` (filtered to a single month)
- *   - `/api/analytics/sector-heat` with that month's range applied client-side
- *   - `/api/analytics/top-funded-companies` for the month
+ * Monthly Roundup — pick a month, see KPIs + sector/biz/country breakdowns +
+ * top rounds (funding mode) or top acquisitions (M&A mode).
+ *
+ * Data is computed from real deal/acquisition rows fetched with a date-range
+ * filter (`from` / `to` set to the chosen month) — no precomputed monthly
+ * endpoint exists yet, so we aggregate client-side on a single month worth
+ * of rows.
  */
-
-interface QuarterlyPoint {
-	year: number;
-	quarter: number;
-	quarter_label: string;
-	total_amount: number;
-	deal_count: number;
-}
 
 interface DealRow {
 	id: string;
+	company_id?: string;
 	company_name?: string;
+	company_slug?: string;
 	announced_date?: string | null;
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
 	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
+	business_model?: string | null;
+	hq_country?: string | null;
+	hq_city?: string | null;
+	country_code?: string | null;
 	lead_investor?: string | null;
 }
 
-interface DealsResponse { data: DealRow[]; total: number }
+interface AcquisitionRow {
+	id: string;
+	acquiree_name?: string | null;
+	acquirer_name?: string | null;
+	acquisition_date?: string | null;
+	amount_usd?: number | string | null;
+	primary_sector?: string | null;
+	hq_country?: string | null;
+}
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+interface DealsResponse { data: DealRow[]; total: number }
+interface AcqResponse { data: AcquisitionRow[]; total: number }
+
+const MONTHS = [
+	'January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const SECTOR_COLORS = [
+	'oklch(58% 0.22 290)', 'oklch(58% 0.22 240)', 'oklch(58% 0.22 160)',
+	'oklch(62% 0.18 30)', 'oklch(62% 0.18 60)', 'oklch(62% 0.18 350)',
+	'oklch(62% 0.14 140)', 'oklch(62% 0.18 200)',
+];
+
+const BIZ_LABELS: Record<string, string> = {
+	b2b: 'B2B', b2c: 'B2C', b2b2c: 'B2B2C', d2c: 'D2C', b2g: 'B2G', other: 'Other',
+};
 
 export function MonthlyRoundupTab() {
 	const now = new Date();
+	const [type, setType] = useState<'funding' | 'mna'>('funding');
 	const [year, setYear] = useState(now.getFullYear());
 	const [month, setMonth] = useState(now.getMonth()); // 0-indexed
+	const [secMode, setSecMode] = useState<'amount' | 'count'>('amount');
+	const [bizMode, setBizMode] = useState<'amount' | 'count'>('amount');
+	const [countryMode, setCountryMode] = useState<'amount' | 'count'>('amount');
 
-	const monthStart = new Date(year, month, 1);
-	const monthEnd = new Date(year, month + 1, 0);
+	// Compute YYYY-MM-DD window for this month
+	const monthStart = new Date(Date.UTC(year, month, 1));
+	const monthEnd = new Date(Date.UTC(year, month + 1, 0));
 	const fromIso = monthStart.toISOString().slice(0, 10);
 	const toIso = monthEnd.toISOString().slice(0, 10);
 
-	const { data: monthDeals } = useSWR<DealsResponse>(
-		qk.deals.list({
-			from: fromIso,
-			to: toIso,
-			limit: 100,
-			sort: '-amount_usd',
-		}),
+	const { data: dealsResp } = useSWR<DealsResponse>(
+		type === 'funding'
+			? qk.deals.list({ from: fromIso, to: toIso, limit: 200, sort: '-amount_usd' })
+			: null,
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
-	const { data: quarters } = useSWR<QuarterlyPoint[]>(
-		qk.analytics.quarterly({ from: year - 1, to: year }),
+	const { data: acqResp } = useSWR<AcqResponse>(
+		type === 'mna'
+			? qk.acquisitions.list({ from: fromIso, to: toIso, limit: 200, sort: '-amount_usd' })
+			: null,
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
-	const deals = monthDeals?.data ?? [];
-	const totalAmount = deals.reduce((s, d) => s + (Number(d.amount_usd) || 0), 0);
-	const dealCount = monthDeals?.total ?? deals.length;
-	const monthQuarter = quarters?.find((q) => q.year === year && q.quarter === Math.floor(month / 3) + 1);
+	const deals = dealsResp?.data ?? [];
+	const acquisitions = acqResp?.data ?? [];
+
+	// KPIs
+	const fundingKpis = useMemo(() => {
+		const total = deals.reduce((s, d) => s + (Number(d.amount_usd) || 0), 0);
+		const count = dealsResp?.total ?? deals.length;
+		const avg = count > 0 ? total / count : 0;
+		return { total, count, avg };
+	}, [deals, dealsResp]);
+
+	const mnaKpis = useMemo(() => {
+		const total = acquisitions.reduce((s, a) => s + (Number(a.amount_usd) || 0), 0);
+		const count = acqResp?.total ?? acquisitions.length;
+		const avg = count > 0 ? total / count : 0;
+		return { total, count, avg };
+	}, [acquisitions, acqResp]);
+
+	const kpiList = type === 'funding'
+		? [
+			{ label: 'Total funding', value: splitAmt(fundingKpis.total), sub: `${fundingKpis.count} rounds` },
+			{ label: 'Avg. round size', value: splitAmt(fundingKpis.avg), sub: 'mean ticket' },
+			{ label: 'Deal count', value: { value: fundingKpis.count.toString(), unit: '' }, sub: 'announced this month' },
+		]
+		: [
+			{ label: 'Disclosed value', value: splitAmt(mnaKpis.total), sub: `${mnaKpis.count} acquisitions` },
+			{ label: 'Avg. deal value', value: splitAmt(mnaKpis.avg), sub: 'mean ticket' },
+			{ label: 'Acquisitions', value: { value: mnaKpis.count.toString(), unit: '' }, sub: 'closed this month' },
+		];
+
+	// Pie breakdowns — sector, business model, country
+	const sectorSegments = useMemo(() => {
+		if (type === 'funding') return groupSegments(deals, (d) => d.primary_sector, secMode, 'amount_usd');
+		return groupSegments(acquisitions, (a) => a.primary_sector, secMode, 'amount_usd');
+	}, [type, deals, acquisitions, secMode]);
+
+	const bizSegments = useMemo(() => {
+		if (type !== 'funding') return [];
+		return groupSegments(deals, (d) => BIZ_LABELS[d.business_model ?? 'other'] ?? d.business_model, bizMode, 'amount_usd');
+	}, [type, deals, bizMode]);
+
+	const countrySegments = useMemo(() => {
+		if (type === 'funding') return groupSegments(deals, (d) => d.hq_country, countryMode, 'amount_usd');
+		return groupSegments(acquisitions, (a) => a.hq_country, countryMode, 'amount_usd');
+	}, [type, deals, acquisitions, countryMode]);
 
 	const stepMonth = (delta: number) => {
 		let m = month + delta;
@@ -75,119 +150,232 @@ export function MonthlyRoundupTab() {
 		setYear(y);
 	};
 
-	const topSectors = topByKey(deals, (d) => d.primary_sector ?? null).slice(0, 6);
-	const topInvestors = topByKey(deals, (d) => d.lead_investor ?? null).slice(0, 6);
+	const monthLabel = `${MONTHS[month]} ${year}`;
+	const isFunding = type === 'funding';
 
 	return (
 		<>
-			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-					<button className="btn ghost" onClick={() => stepMonth(-1)}><ChevronLeft size={14} /></button>
-					<div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, minWidth: 160, textAlign: 'center' }}>
-						{MONTHS[month]} {year}
+			{/* Filter strip */}
+			<div className="filter-bar" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+				<SegToggle
+					options={[{ value: 'funding', label: 'Funding' }, { value: 'mna', label: 'M&A' }]}
+					value={type}
+					onChange={(v) => setType(v as 'funding' | 'mna')}
+				/>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					<button className="btn ghost" onClick={() => stepMonth(-1)} aria-label="Previous month">
+						<ChevronLeft size={14} />
+					</button>
+					<div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, minWidth: 160, textAlign: 'center' }}>
+						{monthLabel}
 					</div>
-					<button className="btn ghost" onClick={() => stepMonth(1)}><ChevronRight size={14} /></button>
+					<button className="btn ghost" onClick={() => stepMonth(1)} aria-label="Next month">
+						<ChevronRight size={14} />
+					</button>
 				</div>
-				<div className="lists-meta">{dealCount} deals · {fromIso} → {toIso}</div>
 			</div>
 
-			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				<StatCard label="Capital deployed" value={splitDollars(totalAmount)} />
-				<StatCard label="Deals announced" value={{ value: dealCount.toString(), unit: '' }} />
-				<StatCard
-					label="Avg. round"
-					value={dealCount > 0 ? splitDollars(totalAmount / dealCount) : { value: '—', unit: '' }}
-				/>
-				<StatCard
-					label="Quarter pace"
-					value={monthQuarter ? splitDollars(monthQuarter.total_amount) : { value: '—', unit: '' }}
-				/>
+			{/* KPI strip */}
+			<div className="grid-3" style={{ marginBottom: 'var(--space-5)' }}>
+				{kpiList.map((k, i) => (
+					<div key={i} className="card feature" style={{ padding: 'var(--space-4)' }}>
+						<Stat
+							label={k.label}
+							value={k.value.value}
+							unit={k.value.unit}
+							delta={k.sub}
+							deltaDir="pos"
+						/>
+					</div>
+				))}
 			</div>
 
-			<div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
+			{/* 3-up pie cards */}
+			<div className="grid-3" style={{ marginBottom: 'var(--space-5)' }}>
 				<div className="card">
-					<SectionHead title="Top sectors" />
-					<RankList items={topSectors} unit="deals" />
+					<SectionHead
+						title="By Sector"
+						action={<SegToggle options={[{ value: 'amount', label: 'Amount' }, { value: 'count', label: 'Count' }]} value={secMode} onChange={(v) => setSecMode(v as 'amount' | 'count')} />}
+					/>
+					<div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+						{sectorSegments.length === 0
+							? <Empty msg="No data for this window" />
+							: <>
+								<div style={{ display: 'flex', justifyContent: 'center' }}>
+									<PieDonut segments={sectorSegments} size={180} mode="pie" />
+								</div>
+								<PieLegend segments={sectorSegments} />
+							</>}
+					</div>
 				</div>
-				<div className="card">
-					<SectionHead title="Top lead investors" />
-					<RankList items={topInvestors} unit="deals" />
-				</div>
-			</div>
-
-			<div className="card">
-				<SectionHead title="All deals this month" meta={`${dealCount} disclosed`} />
-				{deals.length === 0 ? (
-					<Empty msg="No deals in this window." />
-				) : (
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>Date</th>
-								<th>Company</th>
-								<th>Sector</th>
-								<th>Round</th>
-								<th>Lead</th>
-								<th style={{ textAlign: 'right' }}>Amount</th>
-							</tr>
-						</thead>
-						<tbody>
-							{deals.slice(0, 30).map((d) => (
-								<tr key={d.id}>
-									<td className="num">{formatShortDate(d.announced_date)}</td>
-									<td style={{ fontWeight: 600 }}>{d.company_name ?? '—'}</td>
-									<td>{d.primary_sector ? <Tag>{d.primary_sector}</Tag> : '—'}</td>
-									<td>{d.round_type_name ? <Tag variant="pos">{d.round_type_name}</Tag> : '—'}</td>
-									<td style={{ color: 'var(--fg-2)' }}>{d.lead_investor ?? '—'}</td>
-									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
-										{formatDollars(d.amount_usd)}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+				{isFunding && (
+					<div className="card">
+						<SectionHead
+							title="By Business Model"
+							action={<SegToggle options={[{ value: 'amount', label: 'Amount' }, { value: 'count', label: 'Count' }]} value={bizMode} onChange={(v) => setBizMode(v as 'amount' | 'count')} />}
+						/>
+						<div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+							{bizSegments.length === 0
+								? <Empty msg="No data for this window" />
+								: <>
+									<div style={{ display: 'flex', justifyContent: 'center' }}>
+										<PieDonut segments={bizSegments} size={180} mode="pie" />
+									</div>
+									<PieLegend segments={bizSegments} />
+								</>}
+						</div>
+					</div>
 				)}
+				<div className="card">
+					<SectionHead
+						title="By Country"
+						action={<SegToggle options={[{ value: 'amount', label: 'Amount' }, { value: 'count', label: 'Count' }]} value={countryMode} onChange={(v) => setCountryMode(v as 'amount' | 'count')} />}
+					/>
+					<div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+						{countrySegments.length === 0
+							? <Empty msg="No data for this window" />
+							: <>
+								<div style={{ display: 'flex', justifyContent: 'center' }}>
+									<PieDonut segments={countrySegments} size={180} mode="pie" />
+								</div>
+								<PieLegend segments={countrySegments} />
+							</>}
+					</div>
+				</div>
 			</div>
+
+			{/* Top rounds / acquisitions */}
+			{isFunding ? (
+				<div className="card">
+					<SectionHead title="Top Funding Rounds" meta="largest rounds this month" />
+					<div className="card-pad" style={{ paddingTop: 0 }}>
+						{deals.length === 0 ? (
+							<Empty msg="No deals in this window" />
+						) : (
+							<table className="data-table">
+								<thead>
+									<tr>
+										<th style={{ width: 30 }}>#</th>
+										<th>Company</th>
+										<th>Location</th>
+										<th>Round</th>
+										<th className="amt" style={{ textAlign: 'right' }}>Amount</th>
+									</tr>
+								</thead>
+								<tbody>
+									{deals.slice(0, 15).map((d, i) => {
+										const cc = d.country_code ?? (d.hq_country ? countryCode(d.hq_country) : '');
+										return (
+											<tr key={d.id}>
+												<td className="rank-idx">{i + 1}</td>
+												<td>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+														<Monogram name={d.company_name ?? '—'} />
+														<Link
+															href={d.company_slug ? `/companies/${d.company_slug}` : `/deals/${d.id}`}
+															style={{ fontWeight: 600 }}
+														>
+															{d.company_name ?? '—'}
+														</Link>
+													</div>
+												</td>
+												<td>
+													<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-2)' }}>
+														{cc && <Flag cc={cc} />}{d.hq_city ?? d.hq_country ?? '—'}
+													</span>
+												</td>
+												<td>{d.round_type_name ? <Tag>{d.round_type_name}</Tag> : '—'}</td>
+												<td className="amt">{formatAmtCompact(Number(d.amount_usd) || 0)}</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						)}
+					</div>
+				</div>
+			) : (
+				<div className="card">
+					<SectionHead title="Top Acquisitions" meta="largest M&A deals this month" />
+					<div className="card-pad" style={{ paddingTop: 0 }}>
+						{acquisitions.length === 0 ? (
+							<Empty msg="No acquisitions in this window" />
+						) : (
+							<table className="data-table">
+								<thead>
+									<tr>
+										<th style={{ width: 30 }}>#</th>
+										<th>Target</th>
+										<th>Acquirer</th>
+										<th>Location</th>
+										<th className="amt" style={{ textAlign: 'right' }}>Value</th>
+									</tr>
+								</thead>
+								<tbody>
+									{acquisitions.slice(0, 15).map((a, i) => {
+										const cc = a.hq_country ? countryCode(a.hq_country) : '';
+										return (
+											<tr key={a.id}>
+												<td className="rank-idx">{i + 1}</td>
+												<td>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+														<Monogram name={a.acquiree_name ?? '—'} />
+														<span style={{ fontWeight: 600 }}>{a.acquiree_name ?? '—'}</span>
+													</div>
+												</td>
+												<td>{a.acquirer_name ?? '—'}</td>
+												<td>
+													<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-2)' }}>
+														{cc && <Flag cc={cc} />}{a.hq_country ?? '—'}
+													</span>
+												</td>
+												<td className="amt">{formatAmtCompact(Number(a.amount_usd) || 0)}</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						)}
+					</div>
+				</div>
+			)}
 		</>
 	);
 }
 
-function StatCard({ label, value }: { label: string; value: { value: string; unit: string } }) {
-	return (
-		<div className="card" style={{ padding: 'var(--space-4)' }}>
-			<Stat label={label} value={value.value} unit={value.unit} deltaDir="pos" />
-		</div>
-	);
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
-function RankList({ items, unit }: { items: Array<{ name: string; count: number }>; unit: string }) {
-	if (items.length === 0) return <Empty msg="No data" />;
-	const max = items[0]?.count ?? 1;
-	return (
-		<div>
-			{items.map((it, i) => (
-				<div key={`${it.name}-${i}`} className="rank-row">
-					<span className="rank-idx">{(i + 1).toString().padStart(2, '0')}</span>
-					<span className="rank-name">{it.name}</span>
-					<span className="rank-bar"><span style={{ transform: `scaleX(${it.count / max})` }} /></span>
-					<span className="rank-val">{it.count} {unit}</span>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function topByKey<T>(rows: T[], pick: (r: T) => string | null): Array<{ name: string; count: number }> {
-	const counts = new Map<string, number>();
+function groupSegments<T>(
+	rows: T[],
+	pick: (r: T) => string | null | undefined,
+	mode: 'amount' | 'count',
+	amountKey: keyof T,
+): PieSegment[] {
+	const buckets = new Map<string, { amount: number; count: number }>();
 	for (const r of rows) {
-		const k = pick(r);
-		if (!k) continue;
-		counts.set(k, (counts.get(k) ?? 0) + 1);
+		const key = pick(r);
+		if (!key) continue;
+		const cur = buckets.get(key) ?? { amount: 0, count: 0 };
+		cur.amount += Number(r[amountKey] as unknown) || 0;
+		cur.count += 1;
+		buckets.set(key, cur);
 	}
-	return Array.from(counts.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+	const entries = Array.from(buckets.entries())
+		.sort((a, b) => (mode === 'amount' ? b[1].amount - a[1].amount : b[1].count - a[1].count))
+		.slice(0, 6);
+	return entries.map(([name, val], i) => {
+		const v = mode === 'amount' ? val.amount : val.count;
+		const label = mode === 'amount' ? formatAmtCompact(val.amount) : `${val.count} deal${val.count === 1 ? '' : 's'}`;
+		return {
+			name,
+			v,
+			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+			label,
+		};
+	});
 }
 
-function splitDollars(n: number): { value: string; unit: string } {
+function splitAmt(n: number): { value: string; unit: string } {
 	if (!Number.isFinite(n) || n <= 0) return { value: '—', unit: '' };
 	if (n >= 1_000_000_000) return { value: `$${(n / 1_000_000_000).toFixed(2)}`, unit: 'B' };
 	if (n >= 1_000_000) return { value: `$${(n / 1_000_000).toFixed(1)}`, unit: 'M' };
@@ -195,19 +383,21 @@ function splitDollars(n: number): { value: string; unit: string } {
 	return { value: `$${n.toFixed(0)}`, unit: '' };
 }
 
-function formatDollars(value: number | string | null | undefined): string {
-	if (value == null) return '—';
-	const n = typeof value === 'string' ? Number(value) : value;
+function formatAmtCompact(n: number): string {
 	if (!Number.isFinite(n) || n <= 0) return '—';
 	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
 	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
 	return `$${n.toFixed(0)}`;
 }
 
-function formatShortDate(iso: string | null | undefined): string {
-	if (!iso) return '—';
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
-	return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE', Austria: 'AT', Poland: 'PL',
+		India: 'IN', China: 'CN', Japan: 'JP', Singapore: 'SG', Australia: 'AU',
+		Brazil: 'BR', Canada: 'CA', Portugal: 'PT', Israel: 'IL', 'Saudi Arabia': 'SA',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }

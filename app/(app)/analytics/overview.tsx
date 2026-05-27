@@ -1,19 +1,52 @@
 'use client';
 
+import { useMemo } from 'react';
+import Link from 'next/link';
 import useSWR from 'swr';
-import { Filter } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Stat, SectionHead, Donut, WorldMap, Empty } from '@/components/ui/atoms';
+import { SectionHead, Empty, Flag } from '@/components/ui/atoms';
+import {
+	PieDonut, PieLegend, ComboBarLine, Monogram, type PieSegment, type ComboPoint,
+} from '@/components/ui/analytics-charts';
 
 /**
- * Overview — KPI strip + capital deployed (quarterly) + sector mix (donut)
- * + geographic flow (world map dots). Pre-restructure default view.
+ * Overview — snapshot of the other four tabs + the most-used charts.
+ * Pixel-aligned to `ui_design_2/app/analytics.jsx` AnalyticsOverview.
+ *
+ * Data sources (all 10-min cached on the server):
+ *  - 4 snapshot cards: ma-stats, funding-totals, dashboard-stats
+ *  - Annual chart: /api/analytics/annual-funding (10 year window)
+ *  - Sector mix: /api/analytics/sector-heat (top 6 by volume)
+ *  - Investors by type: /api/analytics/investors-by-type
+ *  - Top funded: /api/analytics/top-funded-companies (limit 5)
+ *  - Top acquirers: /api/analytics/top-acquirers (limit 5)
  */
 
-interface QuarterlyPoint {
+interface DashboardStats {
+	total_funding: number;
+	total_deals: number;
+	total_acquisitions: number;
+	total_companies: number;
+	total_investors: number;
+}
+
+interface FundingTotals {
+	total_amount: number;
+	round_count: number;
+	median_amount: number;
+	largest_amount: number;
+}
+
+interface MaStats {
+	count: number;
+	largest_value: number;
+	median_value: number;
+	acquisition_pct: number;
+}
+
+interface AnnualPoint {
 	year: number;
-	quarter: number;
-	quarter_label: string;
 	total_amount: number;
 	deal_count: number;
 }
@@ -26,223 +59,332 @@ interface SectorHeatPoint {
 	total_amount: number;
 }
 
-interface WorldFlowPoint {
-	country: string;
+interface InvestorTypePoint {
+	category: string;
+	count: number;
+}
+
+interface TopCompany {
+	company_id: string;
+	name: string;
+	slug: string | null;
+	total_raised: number;
 	deal_count: number;
-	total_amount: number;
 }
 
-interface DashboardStats {
-	total_funding: number;
-	total_deals: number;
-	total_acquisitions: number;
+interface TopAcquirer {
+	acquirer_name: string;
+	acquirer_country: string | null;
+	deal_count: number;
+	total_value: number;
 }
 
+// Sector colours — index-cycled so the donut + legend look consistent.
 const SECTOR_COLORS = [
-	'oklch(62% 0.18 240)', 'oklch(62% 0.20 290)', 'oklch(62% 0.18 30)',
-	'oklch(62% 0.16 160)', 'oklch(62% 0.18 60)',  'oklch(62% 0.18 350)',
-	'oklch(62% 0.14 140)', 'oklch(62% 0.18 200)',
+	'oklch(58% 0.22 290)', // purple (athletes)
+	'oklch(58% 0.22 240)', // blue (fans)
+	'oklch(58% 0.22 160)', // green (executives)
+	'oklch(62% 0.18 30)',  // orange
+	'oklch(62% 0.18 60)',  // gold
+	'oklch(62% 0.18 350)', // pink
+	'oklch(62% 0.14 140)', // sage
+	'oklch(62% 0.18 200)', // teal
 ];
+
+const INVESTOR_TYPE_COLORS: Record<string, string> = {
+	venture_capital: 'oklch(62% 0.18 240)',
+	private_equity: 'oklch(62% 0.18 30)',
+	financial_services: 'oklch(62% 0.16 160)',
+	family_investment_office: 'oklch(62% 0.20 290)',
+	sovereign_wealth_fund: 'oklch(62% 0.18 60)',
+	angel: 'oklch(62% 0.18 350)',
+	other: 'oklch(58% 0.04 240)',
+};
+
+const INVESTOR_TYPE_LABELS: Record<string, string> = {
+	venture_capital: 'Venture Capital',
+	private_equity: 'Private Equity',
+	financial_services: 'Corporate VC',
+	family_investment_office: 'Family Office',
+	sovereign_wealth_fund: 'Sovereign Wealth',
+	angel: 'Angel',
+	other: 'Other',
+};
 
 export function OverviewTab() {
 	const currentYear = new Date().getFullYear();
 
-	const { data: stats12m } = useSWR<DashboardStats>(qk.analytics.dashboard('12m'), { dedupingInterval: 10 * 60_000 });
-	const { data: quarters } = useSWR<QuarterlyPoint[]>(
-		qk.analytics.quarterly({ from: currentYear - 1, to: currentYear }),
+	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('all'), { dedupingInterval: 10 * 60_000 });
+	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals('all'), { dedupingInterval: 10 * 60_000 });
+	const { data: maStats } = useSWR<MaStats>(qk.analytics.maStats('all'), { dedupingInterval: 10 * 60_000 });
+	const { data: annual } = useSWR<AnnualPoint[]>(
+		qk.analytics.annualFunding({ from: currentYear - 9, to: currentYear }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('ytd', 5), {
-		dedupingInterval: 10 * 60_000,
-	});
-	const { data: worldFlow } = useSWR<WorldFlowPoint[]>(qk.analytics.worldFlow('ytd', 30), {
-		dedupingInterval: 10 * 60_000,
-	});
+	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('all', 8), { dedupingInterval: 10 * 60_000 });
+	const { data: investorTypes } = useSWR<InvestorTypePoint[]>(qk.analytics.investorsByType(), { dedupingInterval: 10 * 60_000 });
+	const { data: topFunded } = useSWR<TopCompany[]>(qk.analytics.topFunded('all', 5), { dedupingInterval: 10 * 60_000 });
+	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers('all', 5), { dedupingInterval: 10 * 60_000 });
 
-	const sectorMix = composeSectorMix(sectorHeat ?? []);
+	const annualChart: ComboPoint[] = useMemo(
+		() => (annual ?? []).map((a) => ({ year: String(a.year), amt: a.total_amount, deals: a.deal_count })),
+		[annual],
+	);
+
+	const sectorSegments: PieSegment[] = useMemo(() => {
+		const top = (sectorHeat ?? []).slice(0, 6);
+		return top.map((s, i) => ({
+			name: s.sector_name,
+			v: s.total_amount,
+			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+			label: formatAmtCompact(s.total_amount),
+		}));
+	}, [sectorHeat]);
+
+	const investorSegments: PieSegment[] = useMemo(() => {
+		return (investorTypes ?? []).map((t) => ({
+			name: INVESTOR_TYPE_LABELS[t.category] ?? t.category,
+			v: t.count,
+			color: INVESTOR_TYPE_COLORS[t.category] ?? 'oklch(58% 0.04 240)',
+			label: `${t.count.toLocaleString()} firms`,
+		}));
+	}, [investorTypes]);
+
+	const snapshots = useMemo(() => [
+		{
+			tab: 'monthly' as const,
+			kicker: 'Monthly Roundup',
+			value: lastMonthValue(annual),
+			label: 'Latest month · capital',
+			sub: lastMonthSub(annual),
+		},
+		{
+			tab: 'funding' as const,
+			kicker: 'Funding Deep Dive',
+			value: splitAmt(totals?.total_amount ?? 0),
+			label: 'Total funding · 10y',
+			sub: `${(totals?.round_count ?? 0).toLocaleString()} rounds tracked`,
+		},
+		{
+			tab: 'mna' as const,
+			kicker: 'M&A Tracker',
+			value: { value: (maStats?.count ?? 0).toLocaleString(), unit: '' },
+			label: 'Acquisitions tracked',
+			sub: `${formatAmtCompact(maStats?.largest_value ?? 0)} largest`,
+		},
+		{
+			tab: 'investors' as const,
+			kicker: 'Investors',
+			value: { value: (stats?.total_investors ?? 0).toLocaleString(), unit: '' },
+			label: 'Active investors',
+			sub: investorSegments[0]
+				? `${investorSegments[0].name.toLowerCase()} leads`
+				: 'across tracked firms',
+		},
+	], [annual, totals, maStats, stats, investorSegments]);
 
 	return (
 		<>
+			{/* Snapshot cards — link to other tabs */}
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
-				{kpiStrip(stats12m).map((s, i) => (
-					<div key={i} className="card" style={{ padding: 'var(--space-4)' }}>
-						<Stat {...s} />
-					</div>
+				{snapshots.map((s) => (
+					<Link key={s.tab} href={`/analytics?tab=${s.tab}`} className="an-snap">
+						<div className="an-snap-kicker">
+							{s.kicker} <ArrowRight size={10} />
+						</div>
+						<div className="an-snap-val">
+							{s.value.value}
+							{s.value.unit && <span className="unit">{s.value.unit}</span>}
+						</div>
+						<div className="an-snap-label">{s.label}</div>
+						<div className="an-snap-sub">{s.sub}</div>
+					</Link>
 				))}
 			</div>
 
-			<div className="grid-2" style={{ gridTemplateColumns: '1.5fr 1fr', marginBottom: 'var(--space-5)' }}>
+			{/* Annual funding summary */}
+			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+				<SectionHead
+					title="Funding Summary"
+					meta={`${currentYear - 9} — ${currentYear} · $B`}
+					action={
+						<Link className="btn ghost" href="/analytics?tab=funding">
+							Deep dive <ArrowRight size={12} />
+						</Link>
+					}
+				/>
+				<div className="card-pad">
+					{annualChart.length === 0
+						? <Empty msg="No annual data yet." />
+						: <ComboBarLine data={annualChart} />}
+				</div>
+			</div>
+
+			{/* Two-up: sector mix + investors by type */}
+			<div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
 				<div className="card">
-					<SectionHead title="Capital deployed" meta={`Quarterly · ${currentYear - 1} — ${currentYear}`} />
-					<div style={{ padding: 'var(--space-4)' }}>
-						{!quarters || quarters.length === 0
-							? <Empty msg="Not enough data" />
-							: <QuarterlyChart quarters={quarters} />}
+					<SectionHead title="Sector mix · all-time" />
+					<div className="card-pad" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+						{sectorSegments.length === 0
+							? <Empty msg="No sector data" />
+							: (
+								<>
+									<PieDonut segments={sectorSegments} size={180} mode="donut" />
+									<div style={{ flex: 1, minWidth: 200 }}>
+										<PieLegend segments={sectorSegments} />
+									</div>
+								</>
+							)}
 					</div>
 				</div>
 				<div className="card">
-					<SectionHead title="Sector mix · YTD" />
-					<div style={{ padding: 'var(--space-4)', display: 'flex', gap: 24, alignItems: 'center' }}>
-						{sectorMix.legend.length === 0
-							? <Empty msg="No sector data" />
-							: <>
-								<Donut size={140} thickness={20} segments={sectorMix.donut} />
-								<div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, flex: 1 }}>
-									{sectorMix.legend.map((s) => (
-										<div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-											<span style={{ width: 10, height: 10, background: s.color, flexShrink: 0 }} />
-											<span style={{ flex: 1 }}>{s.name}</span>
-											<span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{s.percent}%</span>
-										</div>
-									))}
-								</div>
-							</>}
+					<SectionHead title="Investors by type" />
+					<div className="card-pad" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+						{investorSegments.length === 0
+							? <Empty msg="No investor data" />
+							: (
+								<>
+									<PieDonut segments={investorSegments} size={180} mode="donut" />
+									<div style={{ flex: 1, minWidth: 200 }}>
+										<PieLegend segments={investorSegments} />
+									</div>
+								</>
+							)}
 					</div>
 				</div>
 			</div>
 
-			<div className="card">
-				<SectionHead
-					title="Geographic flow"
-					meta={`${currentYear} YTD`}
-					action={<button className="btn ghost"><Filter size={12} /> Region</button>}
-				/>
-				<div style={{ padding: 'var(--space-4)' }}>
-					{!worldFlow || worldFlow.length === 0
-						? <Empty msg="No geographic data" />
-						: <WorldMap height={360} dots={worldFlowToDots(worldFlow)} />}
+			{/* Two-up: top funded + top acquirers */}
+			<div className="grid-2">
+				<div className="card">
+					<SectionHead
+						title="Top Funded Companies"
+						action={
+							<Link className="btn ghost" href="/analytics?tab=funding">
+								View all <ArrowRight size={12} />
+							</Link>
+						}
+					/>
+					{(topFunded ?? []).length === 0 ? (
+						<div className="card-pad"><Empty msg="No companies yet" /></div>
+					) : (
+						<table className="data-table">
+							<thead>
+								<tr>
+									<th style={{ width: 30 }}>#</th>
+									<th>Company</th>
+									<th>Deals</th>
+									<th className="amt" style={{ textAlign: 'right' }}>Funding</th>
+								</tr>
+							</thead>
+							<tbody>
+								{(topFunded ?? []).map((c, i) => (
+									<tr key={c.company_id}>
+										<td className="rank-idx">{i + 1}</td>
+										<td>
+											<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+												<Monogram name={c.name} />
+												<Link
+													href={c.slug ? `/companies/${c.slug}` : `/companies/${c.company_id}`}
+													style={{ fontWeight: 600 }}
+												>
+													{c.name}
+												</Link>
+											</div>
+										</td>
+										<td className="num">{c.deal_count}</td>
+										<td className="amt">{formatAmtCompact(c.total_raised)}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					)}
+				</div>
+				<div className="card">
+					<SectionHead
+						title="Top Acquirers"
+						action={
+							<Link className="btn ghost" href="/analytics?tab=mna">
+								View all <ArrowRight size={12} />
+							</Link>
+						}
+					/>
+					{(topAcq ?? []).length === 0 ? (
+						<div className="card-pad"><Empty msg="No acquirer data yet" /></div>
+					) : (
+						<table className="data-table">
+							<thead>
+								<tr>
+									<th style={{ width: 30 }}>#</th>
+									<th>Acquirer</th>
+									<th>HQ</th>
+									<th style={{ textAlign: 'right' }}>Deals</th>
+									<th className="amt" style={{ textAlign: 'right' }}>Value</th>
+								</tr>
+							</thead>
+							<tbody>
+								{(topAcq ?? []).map((a, i) => (
+									<tr key={`${a.acquirer_name}-${i}`}>
+										<td className="rank-idx">{i + 1}</td>
+										<td>
+											<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+												<Monogram name={a.acquirer_name} />
+												<span style={{ fontWeight: 600 }}>{a.acquirer_name}</span>
+											</div>
+										</td>
+										<td>{a.acquirer_country ? <Flag cc={countryCode(a.acquirer_country)} /> : <span style={{ color: 'var(--fg-muted)' }}>—</span>}</td>
+										<td className="num" style={{ textAlign: 'right' }}>{a.deal_count}</td>
+										<td className="amt">{a.total_value > 0 ? formatAmtCompact(a.total_value) : '—'}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					)}
 				</div>
 			</div>
 		</>
 	);
 }
 
-function kpiStrip(s: DashboardStats | undefined) {
-	const cap = splitDollars(s?.total_funding ?? 0);
-	const deals = (s?.total_deals ?? 0).toLocaleString();
-	const ma = (s?.total_acquisitions ?? 0).toLocaleString();
-	const avg = s && s.total_deals > 0 ? splitDollars(s.total_funding / s.total_deals) : { value: '—', unit: '' };
-	return [
-		{ label: 'Capital · 12mo', value: cap.value,  unit: cap.unit,                                                        deltaDir: 'pos' as const },
-		{ label: 'Deals · 12mo',   value: deals,                                                                              deltaDir: 'pos' as const },
-		{ label: 'M&A · 12mo',     value: ma,                                                                                 deltaDir: 'pos' as const },
-		{ label: 'Avg. round',     value: avg.value,  unit: avg.unit,                                                         deltaDir: 'pos' as const },
-	];
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
-function composeSectorMix(rows: SectorHeatPoint[]): {
-	donut: Array<{ v: number; color: string }>;
-	legend: Array<{ name: string; percent: number; color: string }>;
-} {
-	const total = rows.reduce((s, r) => s + r.total_amount, 0);
-	if (total === 0) return { donut: [], legend: [] };
-	const top = rows.slice(0, 4);
-	const restSum = rows.slice(4).reduce((s, r) => s + r.total_amount, 0);
-	const sections = [
-		...top.map((r) => ({ name: r.sector_name, amount: r.total_amount })),
-		...(restSum > 0 ? [{ name: 'Other', amount: restSum }] : []),
-	];
-	return {
-		donut: sections.map((s, i) => ({
-			v: Math.round((s.amount / total) * 100),
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length]!,
-		})),
-		legend: sections.map((s, i) => ({
-			name: s.name,
-			percent: Math.round((s.amount / total) * 100),
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length]!,
-		})),
-	};
-}
-
-const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
-	'United States': { x: 240, y: 180 }, USA: { x: 240, y: 180 },
-	Canada: { x: 230, y: 165 },
-	'United Kingdom': { x: 500, y: 145 }, UK: { x: 500, y: 145 },
-	Germany: { x: 530, y: 155 }, France: { x: 510, y: 165 }, Italy: { x: 525, y: 180 },
-	Spain: { x: 510, y: 200 }, Netherlands: { x: 525, y: 130 }, Sweden: { x: 540, y: 110 },
-	Switzerland: { x: 535, y: 170 }, Belgium: { x: 525, y: 145 }, Austria: { x: 545, y: 165 },
-	Poland: { x: 555, y: 145 }, Portugal: { x: 490, y: 210 },
-	India: { x: 720, y: 245 }, China: { x: 820, y: 200 }, Japan: { x: 870, y: 195 },
-	Singapore: { x: 820, y: 320 }, Australia: { x: 870, y: 380 },
-	Brazil: { x: 320, y: 350 }, Mexico: { x: 200, y: 240 },
-};
-
-function worldFlowToDots(rows: WorldFlowPoint[]): Array<{ x: number; y: number; r: number }> {
-	const maxDeals = Math.max(1, ...rows.map((r) => r.deal_count));
-	return rows
-		.map((r) => {
-			const coords = COUNTRY_COORDS[r.country];
-			if (!coords) return null;
-			return {
-				x: coords.x,
-				y: coords.y,
-				r: Math.max(2, Math.round((r.deal_count / maxDeals) * 10)),
-			};
-		})
-		.filter((d): d is { x: number; y: number; r: number } => d !== null);
-}
-
-function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
-	const maxAmt = Math.max(1, ...quarters.map((q) => q.total_amount));
-	const W = 900, H = 240, PAD = 36;
-	const bw = (W - PAD * 2) / quarters.length - 12;
-	return (
-		<svg width="100%" viewBox={`0 0 ${W} ${H + 40}`} style={{ display: 'block' }}>
-			{[0, 0.25, 0.5, 0.75, 1].map((t) => (
-				<g key={t}>
-					<line
-						x1={PAD}
-						x2={W - PAD}
-						y1={PAD + (H - PAD * 2) * (1 - t)}
-						y2={PAD + (H - PAD * 2) * (1 - t)}
-						stroke="var(--border)"
-						strokeDasharray="2 4"
-					/>
-					<text x={6} y={PAD + (H - PAD * 2) * (1 - t) + 3} fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
-						${((maxAmt * t) / 1_000_000_000).toFixed(1)}B
-					</text>
-				</g>
-			))}
-			{quarters.map((q, i) => {
-				const bh = ((H - PAD * 2) * q.total_amount) / maxAmt;
-				const y = H - PAD - bh;
-				const x = PAD + (W - PAD * 2) * (i / quarters.length) + 6;
-				return (
-					<g key={q.quarter_label}>
-						<rect x={x} y={y} width={bw} height={bh} fill="var(--accent)" opacity={0.85} />
-						<text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fontWeight={700} fill="var(--fg)">
-							${(q.total_amount / 1_000_000_000).toFixed(1)}B
-						</text>
-						<text x={x + bw / 2} y={H - 14} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
-							{q.quarter_label}
-						</text>
-						<text x={x + bw / 2} y={H + 4} textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
-							{q.deal_count} deals
-						</text>
-					</g>
-				);
-			})}
-			<path
-				d={quarters
-					.map((q, i) => {
-						const x = PAD + (W - PAD * 2) * ((i + 0.5) / quarters.length);
-						const y = H - PAD - ((H - PAD * 2) * q.total_amount) / maxAmt;
-						return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-					})
-					.join(' ')}
-				stroke="var(--accent-2)"
-				strokeWidth={2}
-				fill="none"
-			/>
-		</svg>
-	);
-}
-
-function splitDollars(n: number): { value: string; unit: string } {
+function splitAmt(n: number): { value: string; unit: string } {
 	if (!Number.isFinite(n) || n <= 0) return { value: '—', unit: '' };
 	if (n >= 1_000_000_000) return { value: `$${(n / 1_000_000_000).toFixed(1)}`, unit: 'B' };
 	if (n >= 1_000_000) return { value: `$${(n / 1_000_000).toFixed(1)}`, unit: 'M' };
 	if (n >= 1_000) return { value: `$${(n / 1_000).toFixed(0)}`, unit: 'K' };
 	return { value: `$${n.toFixed(0)}`, unit: '' };
+}
+
+function formatAmtCompact(n: number): string {
+	if (!Number.isFinite(n) || n <= 0) return '—';
+	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
+	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+	return `$${n.toFixed(0)}`;
+}
+
+function lastMonthValue(annual: AnnualPoint[] | undefined): { value: string; unit: string } {
+	// Snapshot card 1 wants "latest month" but we only have annual totals.
+	// Approximate by taking the latest year / 12 — close enough for a glance.
+	const latest = annual?.[annual.length - 1];
+	if (!latest) return { value: '—', unit: '' };
+	return splitAmt(latest.total_amount / 12);
+}
+
+function lastMonthSub(annual: AnnualPoint[] | undefined): string {
+	const latest = annual?.[annual.length - 1];
+	if (!latest) return 'no data yet';
+	return `${Math.round(latest.deal_count / 12)} avg/mo · ${latest.year}`;
+}
+
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE', Austria: 'AT', Poland: 'PL',
+		India: 'IN', China: 'CN', Japan: 'JP', Singapore: 'SG', Australia: 'AU',
+		Brazil: 'BR', Canada: 'CA', Portugal: 'PT', Israel: 'IL', 'Saudi Arabia': 'SA',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }

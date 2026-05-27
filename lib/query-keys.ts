@@ -120,6 +120,11 @@ export const qk = {
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
+    annualFunding: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-funding', params] as const,
+    annualMa: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-ma', params] as const,
+    investorsByType: () => ['/api/analytics/investors-by-type'] as const,
+    topAcquirers: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-acquirers', { period, limit }] as const,
+    bizModel: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/business-model-breakdown', { period }] as const,
   },
 
   // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────
