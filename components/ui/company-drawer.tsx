@@ -11,8 +11,9 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
-import { ArrowRight, Send, Heart } from 'lucide-react';
+import { ArrowRight, Send, Heart, Plus, Zap } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useFavorite } from '@/hooks/use-favorite';
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
@@ -75,11 +76,28 @@ export function CompanyDrawer({
 }) {
 	const router = useRouter();
 	const [tab, setTab] = useState<Tab>('general');
+	const [shareToast, setShareToast] = useState<string | null>(null);
 
 	const { data: company, isLoading } = useSWR<Company>(
 		idOrSlug ? qk.companies.detail(idOrSlug) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
+
+	const fav = useFavorite('companies', company?.id);
+
+	const onShare = async () => {
+		if (!company) return;
+		const target = company.slug ?? company.id;
+		const url = `${window.location.origin}/companies/${target}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			setShareToast('Link copied');
+			setTimeout(() => setShareToast(null), 1800);
+		} catch {
+			setShareToast('Copy failed');
+			setTimeout(() => setShareToast(null), 1800);
+		}
+	};
 
 	const { data: dealsResp } = useSWR<DealsResponse>(
 		company?.id ? qk.deals.list({ company_id: company.id, limit: 30, sort: '-announced_date' }) : null,
@@ -138,10 +156,58 @@ export function CompanyDrawer({
 							)}
 						</div>
 						<div style={{ display: 'flex', gap: 4 }}>
-							<button className="icon-btn" title="Share"><Send size={14} /></button>
-							<button className="icon-btn" title="Save"><Heart size={14} /></button>
+							<button className="icon-btn" title="Share link" onClick={onShare}>
+								<Send size={14} />
+							</button>
+							<button
+								className="icon-btn"
+								title={fav.isFavorite ? 'Saved' : 'Save'}
+								disabled={fav.pending}
+								onClick={() => void fav.toggle()}
+							>
+								<Heart
+									size={14}
+									style={fav.isFavorite ? { color: 'var(--accent)', fill: 'currentColor' } : undefined}
+								/>
+							</button>
+							<button className="icon-btn" title="My lists" onClick={() => router.push('/lists')}>
+								<Plus size={14} />
+							</button>
 						</div>
 					</DrawerHead>
+
+					{company.is_actively_raising && (
+						<div className="co-drawer-raising">
+							<Zap size={14} style={{ color: 'var(--pos)' }} />
+							<span style={{ fontWeight: 700, fontSize: 12 }}>Actively raising</span>
+							{company.last_round_type && (
+								<span className="co-drawer-raising-meta">
+									Next · {company.last_round_type}
+								</span>
+							)}
+						</div>
+					)}
+
+					{shareToast && (
+						<div
+							style={{
+								position: 'absolute',
+								top: 12,
+								left: '50%',
+								transform: 'translateX(-50%)',
+								background: 'var(--fg)',
+								color: 'var(--bg)',
+								padding: '6px 12px',
+								borderRadius: 4,
+								fontSize: 12,
+								fontWeight: 600,
+								zIndex: 1000,
+								pointerEvents: 'none',
+							}}
+						>
+							{shareToast}
+						</div>
+					)}
 
 					<DrawerTabs
 						tabs={[

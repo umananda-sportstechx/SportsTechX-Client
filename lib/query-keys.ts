@@ -39,6 +39,9 @@ export const qk = {
     // string as cache identity and dropped it from the URL, so the detail fetch
     // resolved to the list endpoint and the drawer/detail page were empty.
     detail: (idOrSlug: string) => [`/api/companies/${idOrSlug}`] as const,
+    news: (idOrSlug: string) => [`/api/companies/${idOrSlug}/news`] as const,
+    team: (idOrSlug: string) => [`/api/companies/${idOrSlug}/team`] as const,
+    similar: (idOrSlug: string) => [`/api/companies/${idOrSlug}/similar`] as const,
   },
   investors: {
     list: (params: Record<string, unknown> = {}) => ['/api/investors', params] as const,

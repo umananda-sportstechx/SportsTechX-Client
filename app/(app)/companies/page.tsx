@@ -6,8 +6,9 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useFavorite } from '@/hooks/use-favorite';
 import {
-	Page, Logo, Flag, SectorPill, AudiencePill, Tag, Empty, PageTitle,
+	Page, Logo, Flag, AudiencePill, Tag, Empty, PageTitle,
 	VerifiedBadge, RaisingDot,
 } from '@/components/ui/atoms';
 import {
@@ -16,8 +17,13 @@ import {
 } from '@/components/ui/filter-rail';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { CompanyDrawer } from '@/components/ui/company-drawer';
+import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
+
+interface RoundType { id: string; name: string; slug: string }
+interface FavoriteCompany { company_id: string }
+interface FavoritesResponse { data: FavoriteCompany[] }
 
 /**
  * Companies list — pixel-aligned to `ui_design_2/app/screens-2.jsx`
@@ -42,6 +48,7 @@ interface CompanyRow {
 	is_verified?: boolean | null;
 	is_actively_raising?: boolean | null;
 	last_round_type?: string | null;
+	business_model?: string | null;
 }
 
 interface CompaniesResponse {
@@ -83,26 +90,24 @@ export default function CompaniesPage() {
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
 
-	// 9 facets matching `ui_design_2/app/screens-2.jsx:31-45` (favorites bool
-	// is replaced by a "Verified only" bool here — favorites belong to the
-	// per-user `/api/favorites` endpoint and would need merging client-side).
+	const { data: roundTypesResp } = useSWR<RefResponse<RoundType> | RoundType[]>(qk.reference.roundTypes(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const roundTypes = Array.isArray(roundTypesResp) ? roundTypesResp : (roundTypesResp?.data ?? []);
+
+	const { data: favoritesResp } = useSWR<FavoritesResponse>(qk.favorites.list('companies'));
+	const favoriteIds = useMemo(
+		() => (favoritesResp?.data ?? []).map((r) => r.company_id),
+		[favoritesResp],
+	);
+
+	// Faceted filters from `ui_design_2/app/screens-2.jsx:31-45`. `favorites`
+	// is a client-side gate that injects `ids=` from `/api/favorites/companies`.
 	const facets = useMemo<Facet[]>(() => [
 		{ key: 'is_verified', label: 'Verified only', kind: 'bool' },
 		{ key: 'is_actively_raising', label: 'Actively raising', kind: 'bool' },
+		{ key: 'favorites', label: 'In my favorites', kind: 'bool' },
 		{ key: 'is_unicorn', label: 'Unicorn', kind: 'bool' },
-		{
-			key: 'sector_slug',
-			label: 'Sector',
-			kind: 'multi',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
-			maxHeight: 260,
-		},
-		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
-		},
 		{
 			key: 'business_model',
 			label: 'Business model',
@@ -116,6 +121,26 @@ export default function CompaniesPage() {
 			],
 		},
 		{
+			key: 'sector_slug',
+			label: 'Sector',
+			kind: 'multi',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 260,
+		},
+		{
+			key: 'last_round_type',
+			label: 'Stage',
+			kind: 'multi',
+			options: () => roundTypes.map((r) => ({ value: r.slug, label: r.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		{
 			key: 'founded',
 			label: 'Founded',
 			kind: 'range',
@@ -123,22 +148,36 @@ export default function CompaniesPage() {
 			max: new Date().getFullYear(),
 			step: 1,
 		},
-	], [sectorList]);
+		{
+			key: 'raised',
+			label: 'Total funding (USD millions)',
+			kind: 'range',
+			min: 0,
+			max: 250,
+			step: 5,
+		},
+	], [sectorList, roundTypes]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
 		const v = params.get('is_verified'); if (v) init.is_verified = v === 'true';
 		const r = params.get('is_actively_raising'); if (r) init.is_actively_raising = r === 'true';
 		const u = params.get('is_unicorn'); if (u) init.is_unicorn = u === 'true';
+		const fav = params.get('favorites'); if (fav) init.favorites = fav === 'true';
 		const s = params.get('sector_slug') ?? params.get('sector');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
 		const bm = params.get('business_model');
 		if (bm) init.business_model = bm.split(',').filter(Boolean);
+		const stage = params.get('last_round_type');
+		if (stage) init.last_round_type = stage.split(',').filter(Boolean);
 		const fMin = params.get('founded_year_min');
 		const fMax = params.get('founded_year_max');
 		if (fMin && fMax) init.founded = [Number(fMin), Number(fMax)] as [number, number];
+		const rMin = params.get('min_funding');
+		const rMax = params.get('max_funding');
+		if (rMin && rMax) init.raised = [Number(rMin) / 1_000_000, Number(rMax) / 1_000_000] as [number, number];
 		return init;
 	});
 
@@ -148,16 +187,24 @@ export default function CompaniesPage() {
 		if (filterState.is_verified === true) sp.set('is_verified', 'true');
 		if (filterState.is_actively_raising === true) sp.set('is_actively_raising', 'true');
 		if (filterState.is_unicorn === true) sp.set('is_unicorn', 'true');
+		if (filterState.favorites === true) sp.set('favorites', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
 		const bm = filterState.business_model as string[] | undefined;
 		if (bm?.length) sp.set('business_model', bm.join(','));
+		const stage = filterState.last_round_type as string[] | undefined;
+		if (stage?.length) sp.set('last_round_type', stage.join(','));
 		const f = filterState.founded as [number, number] | undefined;
 		if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
 			sp.set('founded_year_min', String(f[0]));
 			sp.set('founded_year_max', String(f[1]));
+		}
+		const raised = filterState.raised as [number, number] | undefined;
+		if (raised && (raised[0] !== 0 || raised[1] !== 250)) {
+			sp.set('min_funding', String(raised[0] * 1_000_000));
+			sp.set('max_funding', String(raised[1] * 1_000_000));
 		}
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'grid') sp.set('view', view);
@@ -178,14 +225,27 @@ export default function CompaniesPage() {
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length === 1) queryParams.country = ctry[0];
 	const bm = filterState.business_model as string[] | undefined;
-	if (bm?.length === 1) queryParams.business_model = bm[0];
+	if (bm?.length) queryParams.business_model = bm.join(',');
+	const stage = filterState.last_round_type as string[] | undefined;
+	if (stage?.length) queryParams.last_round_type = stage.join(',');
 	if (filterState.is_verified === true) queryParams.is_verified = true;
 	if (filterState.is_actively_raising === true) queryParams.is_actively_raising = true;
 	if (filterState.is_unicorn === true) queryParams.is_unicorn = true;
+	if (filterState.favorites === true) {
+		// `ids` short-circuits the list to the user's saved set. If the user
+		// has no favorites, force an empty result by passing a sentinel UUID
+		// that won't match anything.
+		queryParams.ids = favoriteIds.length ? favoriteIds.join(',') : '00000000-0000-0000-0000-000000000000';
+	}
 	const f = filterState.founded as [number, number] | undefined;
 	if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
 		queryParams.founded_year_min = f[0];
 		queryParams.founded_year_max = f[1];
+	}
+	const raised = filterState.raised as [number, number] | undefined;
+	if (raised && (raised[0] !== 0 || raised[1] !== 250)) {
+		queryParams.min_funding = raised[0] * 1_000_000;
+		queryParams.max_funding = raised[1] * 1_000_000;
 	}
 	const sortParam = sortToParam(sort);
 	if (sortParam) queryParams.sort = sortParam;
@@ -215,7 +275,18 @@ export default function CompaniesPage() {
 			<PageTitle
 				kicker={`Database · ${total.toLocaleString()} entries`}
 				title="Companies"
-				action={<button className="btn"><Plus size={12} /> Add to watchlist</button>}
+				action={
+					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+						<MyListsBtn />
+						<button
+							className="btn"
+							onClick={() => router.push('/lists')}
+							title="Open My Lists"
+						>
+							<Plus size={12} /> Add to watchlist
+						</button>
+					</div>
+				}
 			/>
 
 			<div className="flt-layout">
@@ -257,7 +328,9 @@ export default function CompaniesPage() {
 									<tr>
 										<th style={{ width: 36 }} />
 										<SortHeader label="Company" sortKey="name" sort={sort} setSort={setSort} />
+										<th>Audience</th>
 										<th>Sector</th>
+										<th>Stage</th>
 										<th>HQ</th>
 										<SortHeader label="Raised" sortKey="-created_at" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 										<SortHeader label="Founded" sortKey="founded_year" sort={sort} setSort={setSort} defaultDir="desc" />
@@ -273,14 +346,23 @@ export default function CompaniesPage() {
 												onClick={(e) => handleRowClick(c, e)}
 											>
 												<td>
-													<CompareToggle id={c.id} kind="companies" />
+													<RowHeartBtn id={c.id} />
 												</td>
 												<td>
 													<div className="tbl-name-cell">
 														<Logo co={{ name: c.name }} size={28} />
 														<div className="tbl-name-text">
 															<div className="tbl-name-line">
-																<span className="tbl-name">{c.name}</span>
+																<button
+																	className="tbl-name co-row-name"
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		const target = resolveTarget(c);
+																		if (target) router.push(`/companies/${target}`);
+																	}}
+																>
+																	{c.name}
+																</button>
 																{c.is_verified && <VerifiedBadge size={12} />}
 																{c.is_actively_raising && <RaisingDot size={7} />}
 															</div>
@@ -289,9 +371,17 @@ export default function CompaniesPage() {
 													</div>
 												</td>
 												<td>
-													{c.primary_sector ? (
-														<AudiencePill sectorSlug={c.primary_sector_slug ?? c.primary_sector} label={c.primary_sector} size="sm" />
+													{c.primary_sector_slug ? (
+														<AudiencePill sectorSlug={c.primary_sector_slug} size="sm" />
 													) : '—'}
+												</td>
+												<td>
+													{c.primary_sector ? (
+														<Tag>{c.primary_sector}</Tag>
+													) : '—'}
+												</td>
+												<td>
+													{c.last_round_type ? <Tag>{c.last_round_type}</Tag> : '—'}
 												</td>
 												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -337,6 +427,21 @@ export default function CompaniesPage() {
 	);
 }
 
+function RowHeartBtn({ id, size = 13 }: { id: string; size?: number }) {
+	const { isFavorite, toggle, pending } = useFavorite('companies', id);
+	return (
+		<button
+			className="co-fav-btn"
+			disabled={pending}
+			onClick={(e) => { e.stopPropagation(); void toggle(); }}
+			title={isFavorite ? 'Saved' : 'Save'}
+			aria-label={isFavorite ? 'Saved' : 'Save'}
+		>
+			<Heart size={size} style={isFavorite ? { color: 'var(--accent)', fill: 'currentColor' } : undefined} />
+		</button>
+	);
+}
+
 function CompanyCard({
 	c, onClick,
 }: {
@@ -344,7 +449,6 @@ function CompanyCard({
 	onClick: (c: CompanyRow, e: React.MouseEvent) => void;
 }) {
 	const cc = c.hq_country ? countryCode(c.hq_country) : '';
-	const [fav, setFav] = useState(false);
 	return (
 		<div
 			role="button"
@@ -361,14 +465,7 @@ function CompanyCard({
 			}}
 		>
 			<div className="co-card-head">
-				<button
-					className="co-fav-btn"
-					onClick={(e) => { e.stopPropagation(); setFav((f) => !f); }}
-					title={fav ? 'Saved' : 'Save'}
-					aria-label={fav ? 'Saved' : 'Save'}
-				>
-					<Heart size={14} style={fav ? { color: 'var(--accent)', fill: 'currentColor' } : undefined} />
-				</button>
+				<RowHeartBtn id={c.id} size={14} />
 				<Logo co={{ name: c.name }} size={44} />
 				<div style={{ flex: 1, minWidth: 0 }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

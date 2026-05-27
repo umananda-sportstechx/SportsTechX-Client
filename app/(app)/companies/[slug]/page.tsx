@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { ArrowLeft, Heart, Plus, Send } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Heart, Link2, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useFavorite } from '@/hooks/use-favorite';
 import {
 	Page, Logo, Flag, Tag, Empty, AudiencePill,
 	VerifiedBadge, RaisingPill, KV,
@@ -80,19 +81,40 @@ interface SimilarCompany {
 	hq_country?: string | null;
 	total_funding_usd?: number | string | null;
 }
-interface CompaniesResponse { data: SimilarCompany[]; total: number }
 
-type Tab = 'overview' | 'funding' | 'mna' | 'similar';
+interface NewsItem {
+	id: string;
+	title: string;
+	url: string | null;
+	source: string | null;
+	summary: string | null;
+	published_at: string | null;
+}
+
+interface TeamMember {
+	id: string;
+	full_name: string;
+	title: string | null;
+	linkedin_url: string | null;
+	photo_url: string | null;
+	is_founder: boolean;
+}
+
+type Tab = 'overview' | 'funding' | 'mna' | 'news' | 'team' | 'similar';
 
 export default function CompanyDetailPage() {
 	const params = useParams<{ slug: string }>();
+	const router = useRouter();
 	const slug = params?.slug ?? '';
 	const [tab, setTab] = useState<Tab>('overview');
+	const [shareToast, setShareToast] = useState<string | null>(null);
 
 	const { data: company, isLoading, error } = useSWR<Company>(
 		slug && slug !== 'undefined' ? qk.companies.detail(slug) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
+
+	const fav = useFavorite('companies', company?.id);
 
 	const { data: dealsResp } = useSWR<DealsResponse>(
 		company?.id ? qk.deals.list({ company_id: company.id, limit: 30, sort: '-announced_date' }) : null,
@@ -106,17 +128,40 @@ export default function CompanyDetailPage() {
 	);
 	const acquisitions = useMemo(() => acqResp?.data ?? [], [acqResp]);
 
-	const sectorSlug = company?.primary_sector_slug;
-	const { data: similarResp } = useSWR<CompaniesResponse>(
-		company?.id && sectorSlug
-			? qk.companies.list({ sector_slug: sectorSlug, limit: 7, sort: '-created_at' })
-			: null,
+	const { data: newsResp } = useSWR<NewsItem[]>(
+		company?.slug || company?.id ? qk.companies.news((company.slug ?? company.id) as string) : null,
+		{ dedupingInterval: 10 * 60_000 },
+	);
+	const news = useMemo(() => newsResp ?? [], [newsResp]);
+
+	const { data: teamResp } = useSWR<TeamMember[]>(
+		company?.slug || company?.id ? qk.companies.team((company.slug ?? company.id) as string) : null,
+		{ dedupingInterval: 10 * 60_000 },
+	);
+	const team = useMemo(() => teamResp ?? [], [teamResp]);
+
+	const { data: similarResp } = useSWR<SimilarCompany[]>(
+		company?.slug || company?.id ? qk.companies.similar((company.slug ?? company.id) as string) : null,
 		{ dedupingInterval: 10 * 60_000 },
 	);
 	const similar = useMemo(
-		() => (similarResp?.data ?? []).filter((c) => c.id !== company?.id).slice(0, 6),
+		() => (similarResp ?? []).filter((c) => c.id !== company?.id).slice(0, 6),
 		[similarResp, company?.id],
 	);
+
+	const onShare = async () => {
+		if (!company) return;
+		const target = company.slug ?? company.id;
+		const url = `${window.location.origin}/companies/${target}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			setShareToast('Link copied');
+			setTimeout(() => setShareToast(null), 1800);
+		} catch {
+			setShareToast('Copy failed');
+			setTimeout(() => setShareToast(null), 1800);
+		}
+	};
 
 	if (isLoading) {
 		return <Page><Empty msg="Loading company…" /></Page>;
@@ -141,6 +186,8 @@ export default function CompanyDetailPage() {
 		{ key: 'overview', label: 'Overview', show: true },
 		{ key: 'funding', label: 'Funding', count: deals.length, show: deals.length > 0 },
 		{ key: 'mna', label: 'M&A', count: acquisitions.length, show: acquisitions.length > 0 },
+		{ key: 'team', label: 'Team', count: team.length, show: team.length > 0 },
+		{ key: 'news', label: 'News', count: news.length, show: news.length > 0 },
 		{ key: 'similar', label: 'Similar companies', count: similar.length, show: similar.length > 0 },
 	];
 
@@ -208,10 +255,43 @@ export default function CompanyDetailPage() {
 					</div>
 				</div>
 				<div className="co-hero-actions">
-					<button className="btn ghost"><Heart size={12} /> Save</button>
-					<button className="btn ghost"><Send size={12} /> Share</button>
-					<button className="btn"><Plus size={12} /> Add to watchlist</button>
+					<button
+						className="btn ghost"
+						disabled={fav.pending}
+						onClick={() => void fav.toggle()}
+						aria-pressed={fav.isFavorite}
+					>
+						<Heart
+							size={12}
+							style={fav.isFavorite ? { color: 'var(--accent)', fill: 'currentColor' } : undefined}
+						/>
+						{fav.isFavorite ? 'Saved' : 'Save'}
+					</button>
+					<button className="btn ghost" onClick={onShare}>
+						<Send size={12} /> Share
+					</button>
+					<button className="btn" onClick={() => router.push('/lists')} title="Open My Lists">
+						<Plus size={12} /> Add to watchlist
+					</button>
 				</div>
+				{shareToast && (
+					<div
+						style={{
+							position: 'absolute',
+							top: 12,
+							right: 12,
+							background: 'var(--fg)',
+							color: 'var(--bg)',
+							padding: '6px 12px',
+							borderRadius: 4,
+							fontSize: 12,
+							fontWeight: 600,
+							zIndex: 50,
+						}}
+					>
+						{shareToast}
+					</div>
+				)}
 			</header>
 
 			{/* Tabs */}
@@ -249,6 +329,16 @@ export default function CompanyDetailPage() {
 			{tab === 'mna' && (
 				<div className="co-page-main">
 					<Mna acquisitions={acquisitions} companyName={company.name} />
+				</div>
+			)}
+			{tab === 'team' && (
+				<div className="co-page-main">
+					<Team members={team} />
+				</div>
+			)}
+			{tab === 'news' && (
+				<div className="co-page-main">
+					<News items={news} />
 				</div>
 			)}
 			{tab === 'similar' && (
@@ -463,6 +553,112 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 						))}
 					</tbody>
 				</table>
+			</div>
+		</section>
+	);
+}
+
+// ─── Team tab ─────────────────────────────────────────────────────────────
+
+function Team({ members }: { members: TeamMember[] }) {
+	if (members.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">Team</h3>
+				<div className="co-empty">No team members on record yet.</div>
+			</section>
+		);
+	}
+	const founders = members.filter((m) => m.is_founder);
+	const others = members.filter((m) => !m.is_founder);
+	return (
+		<section className="co-sec">
+			<h3 className="co-sec-h">Team</h3>
+			{founders.length > 0 && (
+				<>
+					<h4 className="co-sec-sub">Founders</h4>
+					<div className="team-grid">
+						{founders.map((m) => <TeamCard key={m.id} m={m} />)}
+					</div>
+				</>
+			)}
+			{others.length > 0 && (
+				<>
+					<h4 className="co-sec-sub" style={{ marginTop: 18 }}>Team</h4>
+					<div className="team-grid">
+						{others.map((m) => <TeamCard key={m.id} m={m} />)}
+					</div>
+				</>
+			)}
+		</section>
+	);
+}
+
+function TeamCard({ m }: { m: TeamMember }) {
+	const initials = m.full_name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+	return (
+		<div className="team-card">
+			<div className="team-card-photo" aria-hidden="true">
+				{m.photo_url
+					/* eslint-disable-next-line @next/next/no-img-element */
+					? <img src={m.photo_url} alt="" />
+					: <span>{initials}</span>}
+			</div>
+			<div className="team-card-name">{m.full_name}</div>
+			{m.title && <div className="team-card-title">{m.title}</div>}
+			{m.linkedin_url && (
+				<a
+					className="team-card-linkedin"
+					href={m.linkedin_url}
+					target="_blank"
+					rel="noopener noreferrer"
+					title="LinkedIn"
+				>
+					<Link2 size={12} />
+				</a>
+			)}
+		</div>
+	);
+}
+
+// ─── News tab ─────────────────────────────────────────────────────────────
+
+function News({ items }: { items: NewsItem[] }) {
+	if (items.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">News</h3>
+				<div className="co-empty">No press signals tracked yet.</div>
+			</section>
+		);
+	}
+	return (
+		<section className="co-sec">
+			<h3 className="co-sec-h">Recent news</h3>
+			<div className="co-news-list">
+				{items.map((n) => (
+					<article key={n.id} className="co-news-article">
+						<div className="co-news-meta">
+							{n.published_at && <span>{formatShortDate(n.published_at)}</span>}
+							{n.source && (
+								<>
+									{n.published_at && <span className="dot-sep">·</span>}
+									<span className="co-news-source">{n.source}</span>
+								</>
+							)}
+						</div>
+						<div className="co-news-title">
+							{n.url ? (
+								<a href={n.url} target="_blank" rel="noopener noreferrer">
+									{n.title} <ExternalLink size={11} />
+								</a>
+							) : (
+								n.title
+							)}
+						</div>
+						{n.summary && <p className="co-news-summary">{n.summary}</p>}
+					</article>
+				))}
 			</div>
 		</section>
 	);
