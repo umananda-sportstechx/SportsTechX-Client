@@ -93,6 +93,11 @@ export default function LoginPage() {
             job_title: jobTitle,
             country,
           },
+          // Pin the confirmation-email redirect to the origin the user
+          // signed up from. Without this, Supabase falls back to the
+          // project's Site URL (configured in the dashboard) — which
+          // historically was set to localhost and broke prod confirmations.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (err) { setError(err.message); return; }
