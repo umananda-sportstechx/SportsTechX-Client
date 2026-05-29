@@ -151,16 +151,24 @@ export default function SubscriptionsPage() {
 				</div>
 			) : (
 				<div className="grid-3" style={{ marginBottom: 'var(--space-6)' }}>
-					{plans.map((p) => (
-						<PlanCard
-							key={p.slug}
-							plan={p}
-							isCurrent={p.tier === currentTier}
-							currentRank={currentRank}
-							isBusy={busySlug === p.slug}
-							onCta={() => void handleCta(p)}
-						/>
-					))}
+					{plans.map((p) => {
+						// When the user already has an active paid subscription, switches
+						// between paid tiers must go through the Stripe Billing Portal —
+						// that's the only flow that updates the EXISTING subscription
+						// with proration. A fresh Checkout would create a duplicate sub.
+						const isPaidSwitch = isActive && p.tier !== 'free' && p.tier !== currentTier;
+						return (
+							<PlanCard
+								key={p.slug}
+								plan={p}
+								isCurrent={p.tier === currentTier}
+								currentRank={currentRank}
+								isBusy={busySlug === p.slug || (isPaidSwitch && portalBusy)}
+								routeThroughPortal={isPaidSwitch}
+								onCta={() => isPaidSwitch ? void handlePortal() : void handleCta(p)}
+							/>
+						);
+					})}
 				</div>
 			)}
 
@@ -242,12 +250,16 @@ function SubscriptionBanner({
 // ─── Plan card ────────────────────────────────────────────────────────────
 
 function PlanCard({
-	plan, isCurrent, currentRank, isBusy, onCta,
+	plan, isCurrent, currentRank, isBusy, routeThroughPortal, onCta,
 }: {
 	plan: PlanRow;
 	isCurrent: boolean;
 	currentRank: number;
 	isBusy: boolean;
+	/** True when clicking this CTA should open the Stripe Billing Portal
+	 *  (paid→paid switch on an existing subscription) rather than create a
+	 *  fresh Checkout session. Tells the CTA copy to read "in portal". */
+	routeThroughPortal: boolean;
 	onCta: () => void;
 }) {
 	const accent = ACCENT_BY_TIER[plan.tier] ?? 'var(--accent)';
@@ -255,13 +267,14 @@ function PlanCard({
 	const popular = plan.tier === 'growth';
 	const tierRank = TIER_RANK[plan.tier] ?? 0;
 	const isDowngrade = tierRank < currentRank;
+	const portalSuffix = routeThroughPortal ? ' in portal' : '';
 	const ctaLabel = isCurrent
 		? 'Current plan'
 		: isFree
 			? 'Downgrade in portal'
 			: isDowngrade
-				? `Downgrade to ${plan.name}`
-				: `Upgrade to ${plan.name}`;
+				? `Downgrade to ${plan.name}${portalSuffix}`
+				: `Upgrade to ${plan.name}${portalSuffix}`;
 	const ctaDisabled = isCurrent || isBusy || isFree;
 	const ctaVariant = popular && !isCurrent ? '' : 'ghost';
 
