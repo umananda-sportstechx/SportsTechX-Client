@@ -122,6 +122,8 @@ export default function CompaniesPage() {
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 260,
 		},
+		// Tier-locked teaser (ui_design_3 IA) — sub-sub-sector is a Growth feature.
+		{ key: 'sub_sub_sector', label: 'Sub Sub Sector', kind: 'locked', tier: 'GROWTH', section: 'Sector' },
 		{
 			key: 'business_model',
 			label: 'Business model',
@@ -168,6 +170,14 @@ export default function CompaniesPage() {
 			section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
+		// Tier-locked location teasers (ui_design_3 IA) — Growth features.
+		{ key: 'city', label: 'City', kind: 'locked', tier: 'GROWTH', section: 'Location' },
+		{ key: 'continent', label: 'Continent', kind: 'locked', tier: 'GROWTH', section: 'Location' },
+		{ key: 'region', label: 'Region', kind: 'locked', tier: 'GROWTH', section: 'Location' },
+		// Program info + Other — Growth teasers.
+		{ key: 'accelerator', label: 'Accelerator', kind: 'locked', tier: 'GROWTH', section: 'Program info' },
+		{ key: 'cohort', label: 'Cohort', kind: 'locked', tier: 'GROWTH', section: 'Program info' },
+		{ key: 'tech_tags', label: 'Tech Tags', kind: 'locked', tier: 'GROWTH', section: 'Other' },
 	], [sectorList, roundTypes]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {

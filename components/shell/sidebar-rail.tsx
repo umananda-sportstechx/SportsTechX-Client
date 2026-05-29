@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { useFeatureAccessContext } from '@/contexts/feature-access-context';
 
 /**
  * SportsTechX rail navigation. Ported from ui_design/app/nav.jsx.
@@ -29,6 +30,9 @@ interface NavItem {
 	name: string;
 	icon: LucideIcon;
 	path: string;
+	/** Feature-catalog slug used to compute the tier badge / locked state.
+	 *  Omit for always-free items (dashboard, framework, events, etc.). */
+	slug?: string;
 }
 
 interface NavGroup {
@@ -43,32 +47,26 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
 			{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
 			{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
+			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics', slug: 'analytics_access' },
 		]
 	},
-	// { label: 'Intel', items: [
-	// 	{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
-	// 	{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
-	// 	{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
-	// ]},
 	{
 		label: 'Data', items: [
-			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics' },
 			{ id: 'companies', name: 'Companies', icon: Building2, path: '/companies' },
-			{ id: 'funding', name: 'Funding Tracker', icon: DollarSign, path: '/funding' },
-			{ id: 'mna', name: 'M&A Tracker', icon: Shield, path: '/ma' },
+			{ id: 'funding', name: 'Funding Tracker', icon: DollarSign, path: '/funding', slug: 'deals_full' },
+			{ id: 'mna', name: 'M&A Tracker', icon: Shield, path: '/ma', slug: 'acquisitions_full' },
 		]
 	},
 	{
-		label: 'Eco', items: [
-			{ id: 'investors', name: 'Investors', icon: Wallet, path: '/investors' },
+		label: 'Ecosystem', items: [
+			{ id: 'investors', name: 'Investors', icon: Wallet, path: '/investors', slug: 'investors_full' },
 			{ id: 'programs', name: 'Programs', icon: Zap, path: '/programs' },
 			{ id: 'events', name: 'Events', icon: CalendarDays, path: '/events' },
 		]
 	},
-	// { label: 'Insight', items: [
-	// 	{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics' },
-	// ]},
 	{
+		// `lists` (My lists) is a client addition retained per the keep-behavior
+		// rule — the prototype reaches lists via the "My Lists" button instead.
 		label: 'Account', items: [
 			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
 			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
@@ -92,6 +90,10 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 	const router = useRouter();
 	const pathname = usePathname();
 	const [signingOut, setSigningOut] = useState(false);
+	// Server-driven tier matrix — drives the PRO/GROWTH badge + locked state on
+	// gated nav items. `checkAccess` is a plain function (not a hook), safe to
+	// call per item inside the render loop.
+	const { checkAccess, isLoading: accessLoading } = useFeatureAccessContext();
 
 	const handleNav = (path: string) => {
 		router.push(path);
@@ -147,15 +149,27 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 							const Icon = item.icon;
 							// Active when pathname exactly matches OR is a sub-route (e.g., /companies/abc).
 							const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+							// Tier badge: only when the matrix has loaded and the item is
+							// locked for the current plan. Label = the tier that unlocks it.
+							const access = item.slug && !accessLoading ? checkAccess(item.slug) : null;
+							const locked = !!access?.isLocked;
+							const tierBadge = locked && access?.requiredTier
+								? access.requiredTier.toUpperCase()
+								: null;
 							return (
 								<button
 									key={item.id}
-									className={`rail-item ${isActive ? 'active' : ''}`}
+									className={`rail-item ${isActive ? 'active' : ''} ${locked ? 'locked' : ''}`}
 									onClick={() => handleNav(item.path)}
 								>
 									<Icon size={18} />
 									<span className="rail-label">{item.name}</span>
-									<span className="rail-tip">{item.name}</span>
+									{tierBadge && (
+										<span className={`rail-tier rail-tier-${tierBadge}`}>{tierBadge}</span>
+									)}
+									<span className="rail-tip">
+										{item.name}{tierBadge ? ` · ${tierBadge}` : ''}
+									</span>
 								</button>
 							);
 						})}

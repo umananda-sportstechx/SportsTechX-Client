@@ -48,14 +48,17 @@ export const viewport: Viewport = {
  * `AppInit` runs in useEffect.
  *
  * next-themes already injects its own boot script for the theme attribute, so
- * we only need to handle the accent hue here. `data-density` stays as a
- * hardcoded default since there's no runtime toggle for it yet.
+ * we handle the accent hue and density here (Settings → Appearance writes both
+ * to localStorage). Without this, navigations would flash the default until
+ * `AppInit` runs in useEffect.
  */
 const ACCENT_BOOT_SCRIPT = `
 (function(){
   try {
     var hue = localStorage.getItem('stx:accent-hue');
     if (hue) document.documentElement.style.setProperty('--accent-hue', hue);
+    var density = localStorage.getItem('stx:density');
+    if (density === 'comfortable' || density === 'compact') document.documentElement.setAttribute('data-density', density);
   } catch (_) { /* ignore */ }
 })();
 `;
@@ -67,7 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       // Default density. Tweaks panel can flip this at runtime. The theme
       // attribute (data-theme) is now managed entirely by next-themes via
       // providers.tsx — no hardcoded default here, otherwise it sticks.
-      data-density="comfortable"
+      // `compact` matches the ui_design_3 shipped default.
+      data-density="compact"
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full`}
     >

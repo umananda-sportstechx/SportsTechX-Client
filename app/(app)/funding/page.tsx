@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Building2, DollarSign } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill, VerifiedBadge } from '@/components/ui/atoms';
@@ -15,6 +15,7 @@ import {
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { DealDrawer } from '@/components/ui/deal-drawer';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { FeatureGate } from '@/components/shell/screen-lock';
 
 /**
  * Funding tracker — pixel-aligned to `ui_design_2/app/screens-2.jsx`
@@ -79,7 +80,17 @@ interface SectorRef { id: string; name: string; slug: string }
 interface RoundRef { id: string; name: string; slug: string }
 interface RefResponse<T> { data: T[] }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export default function FundingPage() {
+	return (
+		<FeatureGate slug="deals_full" screen="funding">
+			<FundingPageInner />
+		</FeatureGate>
+	);
+}
+
+function FundingPageInner() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
@@ -87,6 +98,10 @@ export default function FundingPage() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
+	// Filter-rail mode (ui_design_3 FundingFilterRail): Startup = company facets,
+	// Deal info = round-level facets. Filters from both modes stay applied; mode
+	// only controls which facet group the rail shows.
+	const [mode, setMode] = useState<'startup' | 'deal'>(params.get('mode') === 'deal' ? 'deal' : 'startup');
 	const [sort, setSort] = useState<SortState | null>(
 		paramToSort(params.get('sort')) ?? { key: 'announced_date', dir: 'desc' },
 	);
@@ -102,54 +117,75 @@ export default function FundingPage() {
 	});
 	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
 
-	// Facets mirror `ui_design_2/screens-2.jsx:FundingScreen.facets`. Bool
-	// at the top renders flat; the rest group under Deal details / Location.
-	const facets = useMemo<Facet[]>(() => [
+	// Year options for the Deal-info "Deal year" facet — last 12 years.
+	const yearOpts = useMemo(() => {
+		const ys: { value: string; label: string }[] = [];
+		for (let y = currentYear; y >= currentYear - 11; y--) ys.push({ value: String(y), label: String(y) });
+		return ys;
+	}, [currentYear]);
+
+	// Two facet groups, mirroring `ui_design_3/app/funding-filters.jsx`.
+	// Startup mode = company attributes; Deal info mode = round-level facets.
+	const startupFacets = useMemo<Facet[]>(() => [
 		{ key: 'is_company_verified', label: 'Verified company only', kind: 'bool' },
 		{
-			key: 'round_type_slug',
-			label: 'Round type',
-			kind: 'multi',
-			section: 'Deal details',
-			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
-		},
-		{
-			key: 'sector_slug',
-			label: 'Sector',
-			kind: 'multi',
-			section: 'Deal details',
+			key: 'sector_slug', label: 'Sector', kind: 'multi', section: 'Company',
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
-			key: 'amount',
-			label: 'Deal size',
-			kind: 'range',
-			section: 'Deal details',
-			min: 0,
-			max: 250,
-			step: 5,
-			prefix: '$',
-			suffix: 'M',
-		},
-		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			section: 'Location',
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-	], [sectorList, roundList]);
+	], [sectorList]);
+
+	const dealFacets = useMemo<Facet[]>(() => [
+		{ key: 'disclosed_only', label: 'Exclude undisclosed rounds', kind: 'bool' },
+		{
+			key: 'round_type_slug', label: 'Round type', kind: 'multi', section: 'Round details',
+			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
+		},
+		{
+			key: 'years', label: 'Deal year', kind: 'multi', section: 'Round details',
+			options: () => yearOpts, maxHeight: 200,
+		},
+		{
+			key: 'quarter', label: 'Deal quarter', kind: 'multi', section: 'Round details',
+			options: () => [
+				{ value: '1', label: 'Q1' }, { value: '2', label: 'Q2' },
+				{ value: '3', label: 'Q3' }, { value: '4', label: 'Q4' },
+			],
+		},
+		{
+			key: 'month', label: 'Deal month', kind: 'multi', section: 'Round details',
+			options: () => MONTHS.map((m, i) => ({ value: String(i + 1), label: m })),
+		},
+		{
+			key: 'amount', label: 'Round amount', kind: 'range', section: 'Round details',
+			min: 0, max: 250, step: 5, prefix: '$', suffix: 'M',
+		},
+		// Investor filter is a Pro feature (param exists; searchable control TBD).
+		{ key: 'investors', label: 'Investors', kind: 'locked', tier: 'PRO', section: 'Round details' },
+	], [roundList, yearOpts]);
+
+	// Union drives ActiveFiltersBar chips + initial state; the rail shows only
+	// the active mode's group.
+	const allFacets = useMemo(() => [...startupFacets, ...dealFacets], [startupFacets, dealFacets]);
+	const railFacets = mode === 'deal' ? dealFacets : startupFacets;
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
-		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const init = emptyFilterState(allFacets, { search: params.get('q') ?? '' });
 		const v = params.get('is_company_verified'); if (v) init.is_company_verified = v === 'true';
+		if (params.get('disclosed_only') === 'true') init.disclosed_only = true;
 		const s = params.get('sector_slug');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
 		const r = params.get('round_type_slug');
 		if (r) init.round_type_slug = r.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
+		const ys = params.get('years'); if (ys) init.years = ys.split(',').filter(Boolean);
+		const qt = params.get('quarter'); if (qt) init.quarter = qt.split(',').filter(Boolean);
+		const mo = params.get('month'); if (mo) init.month = mo.split(',').filter(Boolean);
 		const aMin = params.get('amount_usd_min');
 		const aMax = params.get('amount_usd_max');
 		if (aMin && aMax) init.amount = [Number(aMin) / 1_000_000, Number(aMax) / 1_000_000] as [number, number];
@@ -166,6 +202,13 @@ export default function FundingPage() {
 		if (rnd?.length) sp.set('round_type_slug', rnd.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
+		if (filterState.disclosed_only === true) sp.set('disclosed_only', 'true');
+		const yrs = filterState.years as string[] | undefined;
+		if (yrs?.length) sp.set('years', yrs.join(','));
+		const qtr = filterState.quarter as string[] | undefined;
+		if (qtr?.length) sp.set('quarter', qtr.join(','));
+		const mon = filterState.month as string[] | undefined;
+		if (mon?.length) sp.set('month', mon.join(','));
 		const amt = filterState.amount as [number, number] | undefined;
 		if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
 			sp.set('amount_usd_min', String(amt[0] * 1_000_000));
@@ -173,12 +216,13 @@ export default function FundingPage() {
 		}
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'table') sp.set('view', view);
+		if (mode === 'deal') sp.set('mode', 'deal');
 		const sortParam = sortToParam(sort);
 		if (sortParam && sortParam !== '-announced_date') sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view, sort]);
+	}, [filterState, page, view, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
@@ -190,20 +234,29 @@ export default function FundingPage() {
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
+	const yrs = filterState.years as string[] | undefined;
 	const tableParams: Record<string, unknown> = {
 		page,
 		limit: view === 'grid' ? 36 : 30,
-		year: currentYear,
 		sort: sortToParam(sort) ?? '-announced_date',
 	};
+	// Default to the current year for relevance/volume, UNLESS the Deal-info
+	// "Deal year" filter is active (then honor the explicit year selection).
+	if (yrs?.length) tableParams.years = yrs.join(',');
+	else tableParams.year = currentYear;
 	if (debouncedSearch) tableParams.q = debouncedSearch;
 	if (filterState.is_company_verified === true) tableParams.is_company_verified = true;
+	if (filterState.disclosed_only === true) tableParams.disclosed_only = true;
 	const sec = filterState.sector_slug as string[] | undefined;
 	if (sec?.length) tableParams.sector_slug = sec.join(',');
 	const rnd = filterState.round_type_slug as string[] | undefined;
 	if (rnd?.length) tableParams.round_type_slug = rnd.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length) tableParams.country = ctry.join(',');
+	const qtr = filterState.quarter as string[] | undefined;
+	if (qtr?.length) tableParams.quarter = qtr.join(',');
+	const mon = filterState.month as string[] | undefined;
+	if (mon?.length) tableParams.month = mon.join(',');
 	const amt = filterState.amount as [number, number] | undefined;
 	if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
 		tableParams.amount_usd_min = amt[0] * 1_000_000;
@@ -250,15 +303,37 @@ export default function FundingPage() {
 
 			<div className="flt-layout">
 				<FilterRail
-					facets={facets}
+					facets={railFacets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}
-					defaultOpen={{ round_type_slug: true, sector_slug: true, country: true }}
+					defaultOpen={{ round_type_slug: true, years: true, sector_slug: true, country: true }}
+					topSlot={
+						<div className="ff-mode-wrap">
+							<div className="ff-mode" role="tablist" aria-label="Filter group">
+								<button
+									role="tab"
+									aria-selected={mode === 'startup'}
+									className={`ff-mode-btn ${mode === 'startup' ? 'on' : ''}`}
+									onClick={() => setMode('startup')}
+								>
+									<Building2 size={11} /> Startup
+								</button>
+								<button
+									role="tab"
+									aria-selected={mode === 'deal'}
+									className={`ff-mode-btn ${mode === 'deal' ? 'on' : ''}`}
+									onClick={() => setMode('deal')}
+								>
+									<DollarSign size={11} /> Deal info
+								</button>
+							</div>
+						</div>
+					}
 				/>
 
 				<div className="flt-main">
 					<ActiveFiltersBar
-						facets={facets}
+						facets={allFacets}
 						state={filterState}
 						setState={setFilterState}
 						placeholder="Search deals, companies, investors…"
@@ -436,28 +511,53 @@ export default function FundingPage() {
 }
 
 function InvestorList({ investors }: { investors: string[] }) {
-	if (investors.length === 0) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
-	const visible = investors.slice(0, 2);
-	const extra = investors.length - visible.length;
 	const router = useRouter();
+	const [open, setOpen] = useState(false);
+	if (investors.length === 0) return <span style={{ color: 'var(--fg-muted)' }}>—</span>;
+	const MAX = 2;
+	const shown = investors.slice(0, MAX);
+	const rest = investors.slice(MAX);
+	const goInvestor = (name: string) => router.push(`/investors?q=${encodeURIComponent(name)}`);
 	return (
-		<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-			{visible.map((name, i) => (
-				<button
-					key={i}
-					className="inv-link"
-					onClick={(e) => {
-						e.stopPropagation();
-						router.push(`/investors?q=${encodeURIComponent(name)}`);
-					}}
-					title={name}
-				>
-					{name}
-				</button>
+		<span className="inv-cell" style={{ gap: 6 }}>
+			{shown.map((name, i) => (
+				<Fragment key={name + i}>
+					<button
+						className="inv-link"
+						onClick={(e) => { e.stopPropagation(); goInvestor(name); }}
+						title={`Open ${name}`}
+					>
+						{name}
+					</button>
+					{i < shown.length - 1 && <span className="inv-sep">,&nbsp;</span>}
+				</Fragment>
 			))}
-			{extra > 0 && (
-				<span style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' }}>
-					+{extra}
+			{rest.length > 0 && (
+				<span className="inv-more-wrap" onMouseLeave={() => setOpen(false)}>
+					<span className="inv-sep">,&nbsp;</span>
+					<button
+						className="inv-more"
+						onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+						onMouseEnter={() => setOpen(true)}
+						title={rest.join(', ')}
+					>
+						+{rest.length}
+					</button>
+					{open && (
+						<div className="inv-pop" onClick={(e) => e.stopPropagation()}>
+							<div className="inv-pop-h">+{rest.length} co-investors</div>
+							{rest.map((name, i) => (
+								<button
+									key={name + i}
+									className="inv-pop-row"
+									onClick={(e) => { e.stopPropagation(); goInvestor(name); }}
+								>
+									{name}
+									<ArrowRight size={10} />
+								</button>
+							))}
+						</div>
+					)}
 				</span>
 			)}
 		</span>

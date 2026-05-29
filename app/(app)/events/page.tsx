@@ -8,9 +8,16 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
-	FilterRail, ActiveFiltersBar,
+	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
 
 interface EventEntity {
 	id: string;
@@ -43,24 +50,48 @@ export default function EventsPage() {
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
 
-	const facets = useMemo<Facet[]>(() => [], []);
+	const facets = useMemo<Facet[]>(() => [
+		{
+			key: 'start_month', label: 'Month', kind: 'multi',
+			options: () => MONTHS.map((m, i) => ({ value: String(i + 1), label: m })),
+		},
+		{
+			key: 'country', label: 'Country', kind: 'multi',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		// No tags/theme data model on the backend yet → upsell teaser.
+		{ key: 'theme', label: 'Theme', kind: 'locked', tier: 'GROWTH' },
+	], []);
 
-	const [filterState, setFilterState] = useState<FilterState>(() =>
-		emptyFilterState(facets, { search: params.get('q') ?? '' }),
-	);
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const m = params.get('start_month'); if (m) init.start_month = m.split(',').filter(Boolean);
+		const c = params.get('country'); if (c) init.country = c.split(',').filter(Boolean);
+		return init;
+	});
 
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
+		const mon = filterState.start_month as string[] | undefined;
+		if (mon?.length) sp.set('start_month', mon.join(','));
+		const ctry = filterState.country as string[] | undefined;
+		if (ctry?.length) sp.set('country', ctry.join(','));
 		if (page > 1) sp.set('page', String(page));
+		if (view !== 'grid') sp.set('view', view);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page]);
+	}, [filterState, page, view]);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24, sort: 'start_date' };
 	if (filterState.search) queryParams.search = filterState.search;
+	const monSel = filterState.start_month as string[] | undefined;
+	if (monSel?.length) queryParams.start_month = monSel.join(',');
+	const ctrySel = filterState.country as string[] | undefined;
+	if (ctrySel?.length) queryParams.country = ctrySel.join(',');
 
 	const { data, isLoading } = useSWR<EventsResponse>(
 		qk.ecosystem.listByType('event', queryParams),
@@ -94,6 +125,7 @@ export default function EventsPage() {
 						placeholder="Search events, cities…"
 						total={total}
 						shown={events.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
 					/>
 
 					{isLoading && events.length === 0 ? (
@@ -103,10 +135,12 @@ export default function EventsPage() {
 							<h3>No events match</h3>
 							<p>Try clearing some filters.</p>
 						</div>
-					) : (
+					) : view === 'grid' ? (
 						<div className="grid-3">
 							{events.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
 						</div>
+					) : (
+						<EventsTable events={events} />
 					)}
 
 					{totalPages > 1 && (
@@ -125,6 +159,39 @@ export default function EventsPage() {
 				</div>
 			</div>
 		</Page>
+	);
+}
+
+function EventsTable({ events }: { events: EventEntity[] }) {
+	return (
+		<div className="card">
+			<table className="data-table">
+				<thead>
+					<tr>
+						<th>Date</th>
+						<th>Event</th>
+						<th>Location</th>
+						<th>Attendees</th>
+					</tr>
+				</thead>
+				<tbody>
+					{events.map((e) => {
+						const d = splitDate(e.start_date);
+						const cc = e.hq_country ? countryCode(e.hq_country) : '';
+						return (
+							<tr key={e.id} style={{ cursor: 'pointer' }}>
+								<td className="num" style={{ whiteSpace: 'nowrap' }}>{d.month} {d.day} {d.year}</td>
+								<td>
+									<Link href={`/events/${e.slug ?? e.id}`} className="tbl-name co-row-name">{e.name}</Link>
+								</td>
+								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}</span></td>
+								<td style={{ fontSize: 12, color: 'var(--fg-2)' }}>{e.expected_attendees ?? '—'}</td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
+		</div>
 	);
 }
 

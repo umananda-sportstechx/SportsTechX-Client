@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/filter-rail';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { FeatureGate } from '@/components/shell/screen-lock';
 
 /**
  * M&A tracker — pixel-aligned to `ui_design_2/screens-2.jsx:MnaScreen`.
@@ -98,6 +99,14 @@ const COMMON_COUNTRIES = [
 ];
 
 export default function MnaPage() {
+	return (
+		<FeatureGate slug="acquisitions_full" screen="mna">
+			<MnaPageInner />
+		</FeatureGate>
+	);
+}
+
+function MnaPageInner() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();

@@ -6,8 +6,8 @@ import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Stat, SectionHead, Empty, Flag } from '@/components/ui/atoms';
 import {
-	PieDonut, ComboBarLine, Monogram, YearRangeToggle,
-	type PieSegment, type ComboPoint, type YearRange,
+	ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
+	type ComboPoint, type YearRange, type HBarRow,
 } from '@/components/ui/analytics-charts';
 
 interface MaStats {
@@ -38,6 +38,17 @@ interface TopAcquirer {
 	total_value: number;
 }
 
+interface AcquisitionRow {
+	id: string;
+	acquiree_name?: string | null;
+	acquirer_name?: string | null;
+	acquisition_date?: string | null;
+	amount_usd?: number | string | null;
+	hq_country?: string | null;
+}
+
+interface AcqResponse { data: AcquisitionRow[]; total: number }
+
 const SECTOR_COLORS = [
 	'oklch(58% 0.22 290)', 'oklch(58% 0.22 240)', 'oklch(58% 0.22 160)',
 	'oklch(62% 0.18 30)', 'oklch(62% 0.18 60)', 'oklch(62% 0.18 350)',
@@ -58,20 +69,29 @@ export function MaDeepDiveTab() {
 	);
 	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
 	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
+	// Largest disclosed acquisitions — sorted by deal size off the real list endpoint.
+	const { data: largestResp } = useSWR<AcqResponse>(
+		qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 8 }),
+		{ dedupingInterval: 10 * 60_000 },
+	);
 
 	const annualChart: ComboPoint[] = useMemo(
 		() => (annual ?? []).map((a) => ({ year: String(a.year), amt: a.total_amount, deals: a.deal_count })),
 		[annual],
 	);
 
-	const sectorSegments: PieSegment[] = useMemo(() => {
+	// M&A-by-sector drilldown rows (flat — sector-heat has no hierarchy).
+	const sectorRows: HBarRow[] = useMemo(() => {
 		return (sectorHeat ?? []).map((s, i) => ({
-			name: s.sector_name,
-			v: s.total_amount,
+			id: s.sector_id,
+			label: s.sector_name,
+			value: s.total_amount,
+			formatted: formatAmtCompact(s.total_amount),
 			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-			label: formatAmtCompact(s.total_amount),
 		}));
 	}, [sectorHeat]);
+
+	const largest = largestResp?.data ?? [];
 
 	const totalValue = useMemo(() => (annual ?? []).reduce((s, a) => s + a.total_amount, 0), [annual]);
 	const totalDeals = useMemo(() => (annual ?? []).reduce((s, a) => s + a.deal_count, 0), [annual]);
@@ -137,14 +157,15 @@ export function MaDeepDiveTab() {
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
 				<SectionHead title="M&A by Sector" action={<YearRangeToggle value={range} onChange={setRange} />} />
 				<div className="card-pad">
-					{sectorSegments.length === 0
+					{sectorRows.length === 0
 						? <Empty msg="No sector data yet." />
-						: <PieDonut segments={sectorSegments} mode="bar" />}
+						: <HBarDrilldown rows={sectorRows} />}
 				</div>
 			</div>
 
-			<div className="card">
-				<SectionHead title="Top Acquirers" action={<YearRangeToggle value={range} onChange={setRange} />} />
+			<div className="grid-2">
+				<div className="card">
+					<SectionHead title="Top Acquirers" action={<YearRangeToggle value={range} onChange={setRange} />} />
 				<div className="card-pad">
 					{(topAcq ?? []).length === 0 ? (
 						<Empty msg="No acquirer data yet." />
@@ -177,6 +198,51 @@ export function MaDeepDiveTab() {
 							</tbody>
 						</table>
 					)}
+				</div>
+				</div>
+
+				<div className="card">
+					<SectionHead title="Largest Acquisitions" meta="biggest disclosed deals" />
+					<div className="card-pad">
+						{largest.length === 0 ? (
+							<Empty msg="No disclosed acquisitions yet." />
+						) : (
+							<table className="data-table">
+								<thead>
+									<tr>
+										<th style={{ width: 30 }}>#</th>
+										<th>Target</th>
+										<th>Acquirer</th>
+										<th className="amt" style={{ textAlign: 'right' }}>Value</th>
+									</tr>
+								</thead>
+								<tbody>
+									{largest.map((d, i) => {
+										const cc = d.hq_country ? countryCode(d.hq_country) : '';
+										return (
+											<tr key={d.id}>
+												<td className="rank-idx">{i + 1}</td>
+												<td>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+														<Monogram name={d.acquiree_name ?? '—'} />
+														<div>
+															<div style={{ fontWeight: 600 }}>{d.acquiree_name ?? '—'}</div>
+															<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+																{cc && <Flag cc={cc} />}
+																{d.acquisition_date ? d.acquisition_date.slice(0, 4) : '—'}
+															</div>
+														</div>
+													</div>
+												</td>
+												<td>{d.acquirer_name ?? '—'}</td>
+												<td className="amt">{formatAmtCompact(Number(d.amount_usd) || 0)}</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						)}
+					</div>
 				</div>
 			</div>
 		</>

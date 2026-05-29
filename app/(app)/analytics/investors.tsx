@@ -42,6 +42,12 @@ const TYPE_COLORS: Record<string, string> = {
 	other: 'oklch(58% 0.04 240)',
 };
 
+const GEO_COLORS = [
+	'oklch(58% 0.22 240)', 'oklch(58% 0.22 290)', 'oklch(58% 0.22 160)',
+	'oklch(62% 0.18 30)', 'oklch(62% 0.18 60)', 'oklch(62% 0.18 350)',
+	'oklch(62% 0.14 140)', 'oklch(58% 0.04 240)',
+];
+
 const TYPE_LABELS: Record<string, string> = {
 	venture_capital: 'Venture Capital',
 	private_equity: 'Private Equity',
@@ -70,6 +76,27 @@ export function InvestorsTab() {
 	}, [investorTypes]);
 
 	const investors = list?.data ?? [];
+
+	// By-geography breakdown — aggregated client-side off the fetched investor
+	// sample's `hq_country` (no dedicated investor-geo endpoint).
+	const geoSegments: PieSegment[] = useMemo(() => {
+		const buckets = new Map<string, number>();
+		for (const inv of investors) {
+			const country = inv.hq_country;
+			if (!country) continue;
+			buckets.set(country, (buckets.get(country) ?? 0) + 1);
+		}
+		return Array.from(buckets.entries())
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 8)
+			.map(([name, count], i) => ({
+				name,
+				v: count,
+				color: GEO_COLORS[i % GEO_COLORS.length],
+				label: count.toLocaleString(),
+			}));
+	}, [investors]);
+
 	const totalAum = investors.reduce((s, i) => s + Number(i.total_aum_usd ?? 0), 0);
 	const totalInvestors = stats?.total_investors ?? list?.total ?? 0;
 	const topType = typeSegments[0];
@@ -128,20 +155,30 @@ export function InvestorsTab() {
 				</div>
 			</div>
 
-			{/* Investors by type */}
-			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="Investors by Type" meta="distribution across the universe" />
-				<div className="card-pad" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-					{typeSegments.length === 0
-						? <Empty msg="No investor type data" />
-						: (
-							<>
-								<PieDonut segments={typeSegments} size={200} mode="donut" />
-								<div style={{ flex: 1, minWidth: 240 }}>
-									<PieLegend segments={typeSegments} />
-								</div>
-							</>
-						)}
+			{/* Investors by type + by geography */}
+			<div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
+				<div className="card">
+					<SectionHead title="Investors by Type" meta="distribution across the universe" />
+					<div className="card-pad" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+						{typeSegments.length === 0
+							? <Empty msg="No investor type data" />
+							: (
+								<>
+									<PieDonut segments={typeSegments} size={180} mode="donut" />
+									<div style={{ flex: 1, minWidth: 200 }}>
+										<PieLegend segments={typeSegments} />
+									</div>
+								</>
+							)}
+					</div>
+				</div>
+				<div className="card">
+					<SectionHead title="By Geography" meta="HQ country of tracked firms" />
+					<div className="card-pad">
+						{geoSegments.length === 0
+							? <Empty msg="No geography data" />
+							: <PieDonut segments={geoSegments} mode="bar" />}
+					</div>
 				</div>
 			</div>
 
