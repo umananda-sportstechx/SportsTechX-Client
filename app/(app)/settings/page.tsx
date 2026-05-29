@@ -219,12 +219,15 @@ function ProfileTab() {
 
 function AppearanceTab() {
 	const { theme, setTheme } = useTheme();
-	const [accentHue, setAccentHue] = useState<number>(350);
+	const [accentHue, setAccentHue] = useState<number>(14);
+	const [density, setDensityState] = useState<'comfortable' | 'compact'>('compact');
 
 	useEffect(() => {
 		const initial = getComputedStyle(document.documentElement).getPropertyValue('--accent-hue').trim();
 		const parsed = Number(initial);
 		if (Number.isFinite(parsed) && parsed > 0) setAccentHue(parsed);
+		const d = document.documentElement.getAttribute('data-density');
+		if (d === 'comfortable' || d === 'compact') setDensityState(d);
 	}, []);
 
 	const setAccent = (h: number) => {
@@ -232,6 +235,14 @@ function AppearanceTab() {
 		setAccentHue(h);
 		try {
 			localStorage.setItem('stx:accent-hue', String(h));
+		} catch { /* ignore */ }
+	};
+
+	const setDensity = (d: 'comfortable' | 'compact') => {
+		document.documentElement.setAttribute('data-density', d);
+		setDensityState(d);
+		try {
+			localStorage.setItem('stx:density', d);
 		} catch { /* ignore */ }
 	};
 
@@ -286,6 +297,24 @@ function AppearanceTab() {
 							<div style={{ fontWeight: 700, fontSize: 13 }}>{t.name}</div>
 							<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{t.desc}</div>
 						</div>
+					</button>
+				))}
+			</div>
+
+			<div className="co-stat-label" style={{ marginBottom: 10 }}>Density</div>
+			<div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+				{([
+					{ id: 'comfortable', name: 'Comfortable', desc: 'Roomier spacing' },
+					{ id: 'compact', name: 'Compact', desc: 'Denser, more on screen' },
+				] as const).map((d) => (
+					<button
+						key={d.id}
+						onClick={() => setDensity(d.id)}
+						className={`btn ${density === d.id ? '' : 'ghost'}`}
+						style={{ height: 'auto', padding: '10px 16px', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}
+					>
+						<span style={{ fontWeight: 700, fontSize: 13 }}>{d.name}</span>
+						<span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>{d.desc}</span>
 					</button>
 				))}
 			</div>

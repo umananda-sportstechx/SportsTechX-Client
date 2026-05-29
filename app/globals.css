@@ -29,8 +29,10 @@
  * ============================================================================ */
 
 :root {
-  /* Accent — drives every accent color via the hue var. */
-  --accent-hue: 350;
+  /* Accent — drives every accent color via the hue var.
+   * 14 (Crimson) is the ui_design_3 shipped default. Users can override via
+   * Settings → Appearance (persisted to localStorage `stx:accent-hue`). */
+  --accent-hue: 14;
   --accent: oklch(58% 0.22 var(--accent-hue));
   --accent-2: oklch(70% 0.18 var(--accent-hue));
   --accent-soft: oklch(58% 0.22 var(--accent-hue) / 0.12);

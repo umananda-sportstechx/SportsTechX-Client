@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Page, PageTitle } from '@/components/ui/atoms';
+import { FeatureGate } from '@/components/shell/screen-lock';
 import { OverviewTab } from './overview';
 import { MonthlyRoundupTab } from './monthly-roundup';
 import { FundingDeepDiveTab } from './funding-deep-dive';
@@ -27,6 +28,14 @@ const TABS: Array<{ key: Tab; label: string }> = [
 ];
 
 export default function AnalyticsPage() {
+	return (
+		<FeatureGate slug="analytics_access" screen="analytics">
+			<AnalyticsPageInner />
+		</FeatureGate>
+	);
+}
+
+function AnalyticsPageInner() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();

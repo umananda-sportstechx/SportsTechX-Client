@@ -96,3 +96,20 @@
   display: flex; gap: 6px; align-items: center;
   border-top: 1px solid var(--border); padding-top: 12px;
 }
+
+/* Watchlist detail table — per-row fav / remove buttons */
+.co-table tbody td { vertical-align: middle; }
+.co-row-name { font-weight: 600; }
+.co-fav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  background: transparent; border: 0; padding: 0;
+  color: var(--fg-muted); cursor: pointer;
+  transition: color .12s, background .12s;
+}
+.co-fav-btn:hover { color: var(--fg); background: var(--bg-3); }
+.co-empty {
+  font-size: 13px; color: var(--fg-muted);
+  padding: 24px; text-align: center;
+  border: 1px dashed var(--border);
+}

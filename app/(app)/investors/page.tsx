@@ -7,10 +7,12 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { FeatureGate } from '@/components/shell/screen-lock';
 import {
-	FilterRail, ActiveFiltersBar,
+	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
@@ -39,6 +41,14 @@ interface InvestorsResponse {
 	totalPages: number;
 }
 
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
+
+interface RoundRef { id: string; name: string; slug: string }
+
 const CATEGORY_OPTIONS = [
 	{ value: 'venture_capital', label: 'VC' },
 	{ value: 'financial_services', label: 'CVC' },
@@ -59,12 +69,27 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function InvestorsPage() {
+	return (
+		<FeatureGate slug="investors_full" screen="investors">
+			<InvestorsPageInner />
+		</FeatureGate>
+	);
+}
+
+function InvestorsPageInner() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
+	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
+
+	const { data: roundsResp } = useSWR<{ data: RoundRef[] } | RoundRef[]>(qk.reference.roundTypes(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
 
 	const facets = useMemo<Facet[]>(() => [
 		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
@@ -75,7 +100,28 @@ export default function InvestorsPage() {
 			kind: 'multi',
 			options: () => CATEGORY_OPTIONS,
 		},
-	], []);
+		{
+			key: 'round_type_slug',
+			label: 'Stage focus',
+			kind: 'multi',
+			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
+			maxHeight: 220,
+		},
+		{
+			key: 'country',
+			label: 'Country',
+			kind: 'multi',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		{
+			key: 'deals',
+			label: 'Deal count',
+			kind: 'range',
+			min: 0,
+			max: 50,
+			step: 1,
+		},
+	], [roundList]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -83,6 +129,13 @@ export default function InvestorsPage() {
 		const a = params.get('actively_investing'); if (a) init.actively_investing = a === 'true';
 		const c = params.get('category');
 		if (c) init.category = c.split(',').filter(Boolean);
+		const rt = params.get('round_type_slug');
+		if (rt) init.round_type_slug = rt.split(',').filter(Boolean);
+		const ct = params.get('country');
+		if (ct) init.country = ct.split(',').filter(Boolean);
+		const dMin = params.get('deals_min');
+		const dMax = params.get('deals_max');
+		if (dMin && dMax) init.deals = [Number(dMin), Number(dMax)] as [number, number];
 		return init;
 	});
 
@@ -93,11 +146,20 @@ export default function InvestorsPage() {
 		if (filterState.actively_investing === true) sp.set('actively_investing', 'true');
 		const cat = filterState.category as string[] | undefined;
 		if (cat?.length) sp.set('category', cat.join(','));
+		const rt = filterState.round_type_slug as string[] | undefined;
+		if (rt?.length) sp.set('round_type_slug', rt.join(','));
+		const ct = filterState.country as string[] | undefined;
+		if (ct?.length) sp.set('country', ct.join(','));
+		const dl = filterState.deals as [number, number] | undefined;
+		if (dl && (dl[0] !== 0 || dl[1] !== 50)) { sp.set('deals_min', String(dl[0])); sp.set('deals_max', String(dl[1])); }
 		if (page > 1) sp.set('page', String(page));
+		if (view !== 'grid') sp.set('view', view);
+		const sortParam = sortToParam(sort);
+		if (sortParam) sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page]);
+	}, [filterState, page, view, sort]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
@@ -107,6 +169,14 @@ export default function InvestorsPage() {
 	if (cat?.length === 1) queryParams.category = cat[0];
 	if (filterState.is_verified === true) queryParams.is_verified = true;
 	if (filterState.actively_investing === true) queryParams.actively_investing = true;
+	const rtSel = filterState.round_type_slug as string[] | undefined;
+	if (rtSel?.length) queryParams.round_type_slug = rtSel.join(',');
+	const ctSel = filterState.country as string[] | undefined;
+	if (ctSel?.length) queryParams.country = ctSel.join(',');
+	const dlSel = filterState.deals as [number, number] | undefined;
+	if (dlSel && (dlSel[0] !== 0 || dlSel[1] !== 50)) { queryParams.deals_min = dlSel[0]; queryParams.deals_max = dlSel[1]; }
+	const sortParam = sortToParam(sort);
+	if (sortParam) queryParams.sort = sortParam;
 
 	const { data, isLoading } = useSWR<InvestorsResponse>(qk.investors.list(queryParams), {
 		dedupingInterval: 3 * 60_000,
@@ -141,6 +211,7 @@ export default function InvestorsPage() {
 						placeholder="Search firms, thesis, portfolio…"
 						total={total}
 						shown={investors.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
 					/>
 
 					{isLoading && investors.length === 0 ? (
@@ -150,12 +221,19 @@ export default function InvestorsPage() {
 							<h3>No investors match</h3>
 							<p>Try clearing some filters.</p>
 						</div>
-					) : (
+					) : view === 'grid' ? (
 						<div className="inv-grid">
 							{investors.map((i) => (
 								<InvestorCard key={i.id} i={i} onOpenDrawer={setDrawerTarget} />
 							))}
 						</div>
+					) : (
+						<InvestorTable
+							investors={investors}
+							sort={sort}
+							setSort={setSort}
+							onOpenDrawer={setDrawerTarget}
+						/>
 					)}
 
 					<InvestorDrawer
@@ -181,6 +259,70 @@ export default function InvestorsPage() {
 				</div>
 			</div>
 		</Page>
+	);
+}
+
+function InvestorTable({
+	investors, sort, setSort, onOpenDrawer,
+}: {
+	investors: InvestorRow[];
+	sort: SortState | null;
+	setSort: (s: SortState | null) => void;
+	onOpenDrawer: (idOrSlug: string) => void;
+}) {
+	return (
+		<div className="card">
+			<table className="data-table">
+				<thead>
+					<tr>
+						<SortHeader label="Firm" sortKey="name" sort={sort} setSort={setSort} />
+						<th>Type</th>
+						<th>HQ</th>
+						<th>AUM</th>
+						<th style={{ textAlign: 'right' }}>Deals</th>
+						<th>Stage focus</th>
+						<th>Recent</th>
+					</tr>
+				</thead>
+				<tbody>
+					{investors.map((i) => {
+						const cc = i.hq_country ? countryCode(i.hq_country) : '';
+						const color = TYPE_COLORS[i.category ?? 'other'] ?? 'oklch(62% 0.04 240)';
+						const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+						const target = i.slug ?? i.id;
+						return (
+							<tr
+								key={i.id}
+								style={{ cursor: 'pointer' }}
+								onClick={(e) => {
+									if ((e.target as HTMLElement).closest('button, a')) return;
+									if (e.metaKey || e.ctrlKey) { window.open(`/investors/${target}`, '_blank'); return; }
+									onOpenDrawer(target);
+								}}
+							>
+								<td>
+									<div className="tbl-name-cell">
+										<div className="co-logo" style={{ width: 28, height: 28, background: color, color: '#fff', fontSize: 10, flexShrink: 0 }}>
+											{initials}
+										</div>
+										<div className="tbl-name-text">
+											<div className="tbl-name-line"><span className="tbl-name">{i.name}</span></div>
+											{(i.thesis ?? i.description) && <div className="tbl-sub">{i.thesis ?? i.description}</div>}
+										</div>
+									</div>
+								</td>
+								<td><Tag>{formatType(i.category ?? i.type)}</Tag></td>
+								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {i.hq_country ?? '—'}</span></td>
+								<td className="num" style={{ fontWeight: 700 }}>{formatDollars(i.total_aum_usd) ?? '—'}</td>
+								<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>{i.deals_count ?? '—'}</td>
+								<td style={{ fontSize: 12 }}><span className="tbl-ellipsis">{i.primary_focus ?? '—'}</span></td>
+								<td style={{ fontSize: 12, color: 'var(--fg-2)' }}><span className="tbl-ellipsis">{i.recent_investment ?? '—'}</span></td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
+		</div>
 	);
 }
 

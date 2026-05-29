@@ -4,11 +4,11 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { ArrowLeft, ExternalLink, Heart, Link2, Plus, Send } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Heart, Link2, Lock, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
-	Page, Logo, Flag, Tag, Empty, AudiencePill,
+	Page, Logo, Flag, Tag, Empty, AudiencePill, SectorPill,
 	VerifiedBadge, RaisingPill, KV,
 } from '@/components/ui/atoms';
 import { WatchlistPicker } from '@/components/ui/watchlist-picker';
@@ -52,6 +52,14 @@ interface Company {
 	is_actively_raising?: boolean | null;
 	is_unicorn?: boolean | null;
 	updated_at?: string | null;
+	// Optional social/contact fields — present only when the API joins the
+	// company's `social_profiles` row. Rendered conditionally (no fakes).
+	contact_email?: string | null;
+	twitter_url?: string | null;
+	instagram_url?: string | null;
+	facebook_url?: string | null;
+	linkedin_url?: string | null;
+	youtube_url?: string | null;
 }
 
 interface Deal {
@@ -66,10 +74,14 @@ interface Deal {
 interface Acquisition {
 	id: string;
 	acquisition_date?: string | null;
+	acquisition_year?: number | null;
 	amount_usd?: number | string | null;
 	acquirer_name?: string | null;
 	acquiree_name?: string | null;
 	acquisition_type?: string | null;
+	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
+	hq_country?: string | null;
 }
 
 interface DealsResponse { data: Deal[]; total: number }
@@ -104,7 +116,7 @@ interface TeamMember {
 	is_founder: boolean;
 }
 
-type Tab = 'overview' | 'funding' | 'mna' | 'news' | 'team' | 'similar';
+type Tab = 'overview' | 'funding' | 'mna' | 'investors' | 'news' | 'team' | 'similar';
 
 export default function CompanyDetailPage() {
 	const params = useParams<{ slug: string }>();
@@ -154,6 +166,9 @@ export default function CompanyDetailPage() {
 		[similarResp, company?.id],
 	);
 
+	// Investor roster derived from the real `lead_investor` on each deal.
+	const investors = useMemo(() => buildInvestorRoster(deals), [deals]);
+
 	const onShare = async () => {
 		if (!company) return;
 		const target = company.slug ?? company.id;
@@ -191,6 +206,7 @@ export default function CompanyDetailPage() {
 		{ key: 'overview', label: 'Overview', show: true },
 		{ key: 'funding', label: 'Funding', count: deals.length, show: deals.length > 0 },
 		{ key: 'mna', label: 'M&A', count: acquisitions.length, show: acquisitions.length > 0 },
+		{ key: 'investors', label: 'Investors', count: investors.length, show: investors.length > 0 },
 		{ key: 'team', label: 'Team', count: team.length, show: team.length > 0 },
 		{ key: 'news', label: 'News', count: news.length, show: news.length > 0 },
 		{ key: 'similar', label: 'Similar companies', count: similar.length, show: similar.length > 0 },
@@ -323,6 +339,8 @@ export default function CompanyDetailPage() {
 					</main>
 					<aside className="co-page-rail">
 						<KeyFactsCard company={company} />
+						<ConnectCard company={company} />
+						<PrimaryContactCard company={company} />
 					</aside>
 				</div>
 			)}
@@ -334,6 +352,11 @@ export default function CompanyDetailPage() {
 			{tab === 'mna' && (
 				<div className="co-page-main">
 					<Mna acquisitions={acquisitions} companyName={company.name} />
+				</div>
+			)}
+			{tab === 'investors' && (
+				<div className="co-page-main">
+					<Investors investors={investors} companyName={company.name} roundCount={deals.length} />
 				</div>
 			)}
 			{tab === 'team' && (
@@ -394,6 +417,86 @@ function KeyFactsCard({ company }: { company: Company }) {
 			{(company.deal_count ?? 0) > 0 && (
 				<KV label="Rounds tracked" value={company.deal_count} />
 			)}
+		</div>
+	);
+}
+
+// ─── Right rail: Connect + Primary contact ─────────────────────────────────
+
+function SocialIcon({ kind, size = 14 }: { kind: 'mail' | 'twitter' | 'instagram' | 'facebook' | 'linkedin'; size?: number }) {
+	switch (kind) {
+		case 'mail':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M3 5h18v14H3z M3 5l9 7 9-7" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" /></svg>;
+		case 'twitter':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M18 4h3l-7 8 8 8h-6l-5-6-5 6H3l8-9-8-9h6l4 5z" fill="currentColor" /></svg>;
+		case 'instagram':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></g></svg>;
+		case 'facebook':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M14 8h2V5h-2.5C12 5 11 6 11 7.5V10H9v3h2v8h3v-8h2l1-3h-3V8z" fill="currentColor" /></svg>;
+		case 'linkedin':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" /><rect x="6" y="10" width="2.5" height="8" /><circle cx="7.2" cy="7.2" r="1.4" /><path d="M11 10h2.4v1.2c.5-.8 1.5-1.4 2.6-1.4 2 0 2.8 1.3 2.8 3.2V18h-2.5v-4.3c0-1-.4-1.7-1.3-1.7-.9 0-1.5.6-1.5 1.7V18H11v-8z" /></g></svg>;
+	}
+}
+
+/** Real socials/website only — nothing rendered if the company has none. */
+function ConnectCard({ company }: { company: Company }) {
+	const socials: Array<{ kind: 'twitter' | 'instagram' | 'facebook' | 'linkedin'; url: string }> = [];
+	if (company.twitter_url) socials.push({ kind: 'twitter', url: company.twitter_url });
+	if (company.instagram_url) socials.push({ kind: 'instagram', url: company.instagram_url });
+	if (company.facebook_url) socials.push({ kind: 'facebook', url: company.facebook_url });
+	if (company.linkedin_url) socials.push({ kind: 'linkedin', url: company.linkedin_url });
+
+	if (!company.contact_email && !company.website && socials.length === 0) return null;
+
+	return (
+		<div className="card co-rail-card">
+			<div className="co-rail-h">Connect</div>
+			<div style={{ padding: 12 }}>
+				{company.contact_email && (
+					<a className="co-social-mail" href={`mailto:${company.contact_email}`} title={company.contact_email}>
+						<SocialIcon kind="mail" size={14} />
+						<span>{company.contact_email}</span>
+					</a>
+				)}
+				{!company.contact_email && company.website && (
+					<a className="co-social-mail" href={company.website} target="_blank" rel="noopener noreferrer" title={company.website}>
+						<Link2 size={14} />
+						<span>{company.website.replace(/^https?:\/\//, '')}</span>
+					</a>
+				)}
+				{socials.length > 0 && (
+					<div className="co-social-icons" style={{ marginTop: company.contact_email || company.website ? 8 : 0 }}>
+						{socials.map((s) => (
+							<a key={s.kind} className="co-social-ico" href={s.url} target="_blank" rel="noopener noreferrer" title={s.kind}>
+								<SocialIcon kind={s.kind} size={s.kind === 'twitter' ? 13 : 14} />
+							</a>
+						))}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+/** Pro-locked primary-contact teaser — visual lock, no fabricated data. */
+function PrimaryContactCard({ company }: { company: Company }) {
+	void company;
+	return (
+		<div className="card co-rail-card co-locked-block">
+			<div className="co-locked-head">
+				<div className="co-rail-h" style={{ margin: 0, padding: 0, borderBottom: 0 }}>Primary contact</div>
+				<span className="co-pro-tag">PRO</span>
+			</div>
+			<div className="co-locked-stack">
+				<div className="co-locked-cover">
+					<div className="co-locked-icon">
+						<Lock size={20} />
+					</div>
+					<div className="co-locked-title">Unlock contact details</div>
+					<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
+					<button className="btn co-locked-btn" type="button">Upgrade to Pro</button>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -475,6 +578,27 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 				</div>
 			</div>
 
+			{/* Capital raised over time — one bar per disclosed round, oldest → newest */}
+			{(() => {
+				const chartRounds = [...deals]
+					.reverse()
+					.map((r) => ({
+						amount: Number(r.amount_usd) || 0,
+						stage: r.round_type_name ?? r.round_type ?? '—',
+						date: r.announced_date ? formatShortDate(r.announced_date) : '—',
+					}))
+					.filter((r) => r.amount > 0);
+				if (chartRounds.length === 0) return null;
+				return (
+					<>
+						<h4 className="co-sec-sub">Capital raised over time</h4>
+						<div className="card co-chart-card">
+							<RoundsChart rounds={chartRounds} />
+						</div>
+					</>
+				);
+			})()}
+
 			<h4 className="co-sec-sub">Round detail</h4>
 			<div className="card" style={{ padding: 0 }}>
 				<table className="data-table">
@@ -507,6 +631,64 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 	);
 }
 
+// Bar chart: one bar per disclosed funding round, oldest → newest.
+// Ported from ui_design_3 RoundsChart; amounts shown in $M.
+function RoundsChart({ rounds }: { rounds: Array<{ amount: number; stage: string; date: string }> }) {
+	if (!rounds.length) return <div className="co-empty">No rounds to chart yet.</div>;
+	const W = 760, H = 240, PAD_L = 48, PAD_R = 24, PAD_T = 28, PAD_B = 48;
+	// amounts are raw USD; render axis/bars in $M
+	const toM = (n: number) => n / 1_000_000;
+	const maxAmt = Math.max(...rounds.map((r) => toM(r.amount)), 1);
+	const innerW = W - PAD_L - PAD_R;
+	const innerH = H - PAD_T - PAD_B;
+	const slot = innerW / rounds.length;
+	const bw = Math.min(slot * 0.55, 80);
+	const fmtM = (m: number) => (m >= 100 ? m.toFixed(0) : m.toFixed(1));
+	return (
+		<svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+			{[0, 0.25, 0.5, 0.75, 1].map((t) => {
+				const y = PAD_T + innerH * (1 - t);
+				return (
+					<g key={t}>
+						<line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="var(--border)" strokeDasharray="2 4" />
+						<text x={PAD_L - 8} y={y + 3} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
+							${fmtM(maxAmt * t)}M
+						</text>
+					</g>
+				);
+			})}
+			{rounds.map((r, i) => {
+				const m = toM(r.amount);
+				const cx = PAD_L + slot * (i + 0.5);
+				const bh = (m / maxAmt) * innerH;
+				const y = PAD_T + innerH - bh;
+				return (
+					<g key={i}>
+						<rect x={cx - bw / 2} y={y} width={bw} height={bh} fill={i % 2 === 0 ? '#79CABD' : '#C0F4DE'} />
+						<text x={cx} y={y - 8} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fontWeight="700" fill="var(--fg)">
+							${fmtM(m)}M
+						</text>
+						<text x={cx} y={H - PAD_B + 16} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--fg)">
+							{r.stage}
+						</text>
+						<text x={cx} y={H - PAD_B + 30} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
+							{r.date}
+						</text>
+					</g>
+				);
+			})}
+			<path
+				d={rounds.map((r, i) => {
+					const cx = PAD_L + slot * (i + 0.5);
+					const y = PAD_T + innerH - (toM(r.amount) / maxAmt) * innerH;
+					return `${i === 0 ? 'M' : 'L'}${cx},${y}`;
+				}).join(' ')}
+				stroke="var(--accent)" strokeWidth="1.5" fill="none" opacity="0.7"
+			/>
+		</svg>
+	);
+}
+
 // ─── M&A tab ──────────────────────────────────────────────────────────────
 
 function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; companyName: string }) {
@@ -518,8 +700,53 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 			</section>
 		);
 	}
-	const disclosedValue = acquisitions.reduce((s, a) => s + (Number(a.amount_usd) || 0), 0);
+	const disclosed = acquisitions.filter((a) => Number(a.amount_usd) > 0);
+	const disclosedValue = disclosed.reduce((s, a) => s + (Number(a.amount_usd) || 0), 0);
 	const latest = acquisitions[0];
+
+	// Deal year derived from `acquisition_year` (falls back to the date).
+	const dealYear = (a: Acquisition): number | null => {
+		if (a.acquisition_year) return a.acquisition_year;
+		if (a.acquisition_date) {
+			const y = new Date(a.acquisition_date).getFullYear();
+			return Number.isFinite(y) ? y : null;
+		}
+		return null;
+	};
+
+	// Last-6-years bar chart of deal counts.
+	const thisYear = new Date().getFullYear();
+	const yearCounts: Record<number, number> = {};
+	acquisitions.forEach((a) => {
+		const y = dealYear(a);
+		if (y != null) yearCounts[y] = (yearCounts[y] || 0) + 1;
+	});
+	const chartYears: Array<{ year: number; count: number }> = [];
+	for (let y = thisYear - 5; y <= thisYear; y++) chartYears.push({ year: y, count: yearCounts[y] || 0 });
+
+	// Sector + country distributions (real fields from the acquisitions join).
+	const sectors: Record<string, { label: string; slug: string | null; count: number }> = {};
+	const countries: Record<string, number> = {};
+	acquisitions.forEach((a) => {
+		if (a.primary_sector) {
+			const key = a.primary_sector_slug ?? a.primary_sector;
+			sectors[key] = sectors[key]
+				? { ...sectors[key], count: sectors[key].count + 1 }
+				: { label: a.primary_sector, slug: a.primary_sector_slug ?? null, count: 1 };
+		}
+		if (a.hq_country) {
+			const cc = countryCode(a.hq_country);
+			countries[cc] = (countries[cc] || 0) + 1;
+		}
+	});
+	const sectorData = Object.values(sectors).map((s) => ({
+		key: s.slug ?? s.label, label: s.label, count: s.count,
+		icon: <SectorPill slug={s.slug} name={s.label} />,
+	}));
+	const countryData = Object.entries(countries).map(([cc, n]) => ({
+		key: cc, label: cc, count: n, icon: <Flag cc={cc} />,
+	}));
+
 	return (
 		<section className="co-sec">
 			<h3 className="co-sec-h">M&amp;A activity</h3>
@@ -534,11 +761,46 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 					<div className="co-mini-stat-v">{formatDollars(disclosedValue)}</div>
 				</div>
 				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Disclosed deals</div>
+					<div className="co-mini-stat-v">{disclosed.length} / {acquisitions.length}</div>
+				</div>
+				<div className="co-mini-stat">
 					<div className="co-mini-stat-l">Latest</div>
 					<div className="co-mini-stat-v" style={{ fontSize: 14, fontFamily: 'var(--font-mono)' }}>
 						{latest?.acquisition_date ? formatShortDate(latest.acquisition_date) : '—'}
 					</div>
 				</div>
+			</div>
+
+			<h4 className="co-sec-sub">Acquisitions by year</h4>
+			<div className="card co-chart-card">
+				<MnaYearChart data={chartYears} />
+			</div>
+
+			{(sectorData.length > 0 || countryData.length > 0) && (
+				<div className="co-split-grid">
+					{sectorData.length > 0 && (
+						<div>
+							<h4 className="co-sec-sub">Sector split</h4>
+							<div className="card co-chart-card">
+								<MnaSplitChart data={sectorData} total={acquisitions.length} />
+							</div>
+						</div>
+					)}
+					{countryData.length > 0 && (
+						<div>
+							<h4 className="co-sec-sub">Country split</h4>
+							<div className="card co-chart-card">
+								<MnaSplitChart data={countryData} total={acquisitions.length} />
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
+			<h4 className="co-sec-sub">Acquisition timeline</h4>
+			<div className="card co-chart-card">
+				<MnaTimeline acquisitions={acquisitions} />
 			</div>
 
 			<h4 className="co-sec-sub">Acquisition detail</h4>
@@ -563,6 +825,193 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 								</td>
 							</tr>
 						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	);
+}
+
+// Acquisitions per year — bar chart, last 6 years. Ported from ui_design_3.
+function MnaYearChart({ data }: { data: Array<{ year: number; count: number }> }) {
+	const W = 760, H = 200, PAD_L = 40, PAD_R = 20, PAD_T = 24, PAD_B = 36;
+	const innerW = W - PAD_L - PAD_R;
+	const innerH = H - PAD_T - PAD_B;
+	const max = Math.max(...data.map((d) => d.count), 1);
+	const slot = innerW / data.length;
+	const bw = slot * 0.55;
+	const ticks: number[] = [];
+	for (let t = 0; t <= max; t++) ticks.push(t);
+	return (
+		<svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+			{ticks.map((t) => {
+				const y = PAD_T + innerH * (1 - t / max);
+				return (
+					<g key={t}>
+						<line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="var(--border)" strokeDasharray="2 4" />
+						<text x={PAD_L - 8} y={y + 3} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">{t}</text>
+					</g>
+				);
+			})}
+			{data.map((d, i) => {
+				const cx = PAD_L + slot * (i + 0.5);
+				const bh = (d.count / max) * innerH;
+				const y = PAD_T + innerH - bh;
+				return (
+					<g key={i}>
+						{d.count > 0 && (
+							<>
+								<rect x={cx - bw / 2} y={y} width={bw} height={bh} fill="var(--accent)" />
+								<text x={cx} y={y - 6} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fontWeight="700" fill="var(--fg)">{d.count}</text>
+							</>
+						)}
+						<text x={cx} y={H - PAD_B + 16} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill="var(--fg-2)">{`'${String(d.year).slice(-2)}`}</text>
+					</g>
+				);
+			})}
+		</svg>
+	);
+}
+
+// Horizontal-bar split chart for sector + country (and investor) splits.
+interface SplitDatum { key: string; label: string; count: number; icon?: React.ReactNode }
+function MnaSplitChart({ data, total }: { data: SplitDatum[]; total: number }) {
+	if (!data.length) return <div className="co-empty">No data.</div>;
+	const sorted = [...data].sort((a, b) => b.count - a.count);
+	const max = sorted[0].count || 1;
+	return (
+		<div className="co-split-list">
+			{sorted.map((d) => {
+				const pct = total ? Math.round((d.count / total) * 100) : 0;
+				return (
+					<div key={d.key} className="co-split-row">
+						<span className="co-split-label">
+							{d.icon}
+							<span>{d.label}</span>
+						</span>
+						<div className="co-split-bar-wrap">
+							<div className="co-split-bar" style={{ width: `${(d.count / max) * 100}%`, background: 'var(--accent)' }} />
+						</div>
+						<span className="co-split-meta">
+							<b>{d.count}</b><span style={{ color: 'var(--fg-muted)' }}> · {pct}%</span>
+						</span>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+// Horizontal timeline of acquisitions — one node per deal along a baseline.
+function MnaTimeline({ acquisitions }: { acquisitions: Acquisition[] }) {
+	const W = 760, H = 180, PAD_L = 60, PAD_R = 60, PAD_T = 50;
+	const innerW = W - PAD_L - PAD_R;
+	const items = [...acquisitions].reverse(); // oldest → newest
+	return (
+		<svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+			<line x1={PAD_L} x2={W - PAD_R} y1={PAD_T + 40} y2={PAD_T + 40} stroke="var(--border-strong)" strokeWidth="2" />
+			{items.map((m, i) => {
+				const cx = items.length === 1 ? PAD_L + innerW / 2 : PAD_L + (innerW * i) / (items.length - 1);
+				const amount = Number(m.amount_usd) || 0;
+				const hasValue = amount > 0;
+				const label = m.acquirer_name ?? '—';
+				return (
+					<g key={m.id}>
+						<circle cx={cx} cy={PAD_T + 40} r="9" fill="var(--bg)" stroke="var(--pos)" strokeWidth="2.5" />
+						<circle cx={cx} cy={PAD_T + 40} r="3" fill="var(--pos)" />
+						<text x={cx} y={PAD_T + 20} textAnchor="middle" fontSize="13" fontFamily="var(--font-display)" fontWeight="700" fill="var(--fg)">{label}</text>
+						{m.acquisition_type && (
+							<text x={cx} y={PAD_T + 4} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--fg-muted)">
+								{formatType(m.acquisition_type).toUpperCase()}
+							</text>
+						)}
+						<text x={cx} y={PAD_T + 65} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill="var(--fg)">
+							{m.acquisition_date ? formatShortDate(m.acquisition_date) : (m.acquisition_year ?? '—')}
+						</text>
+						<text x={cx} y={PAD_T + 82} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fontWeight="700" fill={hasValue ? 'var(--fg)' : 'var(--fg-muted)'}>
+							{hasValue ? formatDollars(amount) : 'undisclosed'}
+						</text>
+					</g>
+				);
+			})}
+		</svg>
+	);
+}
+
+// ─── Investors tab ──────────────────────────────────────────────────────────
+
+interface InvestorRow { name: string; rounds: number }
+
+/** Roster built from each deal's real `lead_investor`, aggregated by name. */
+function buildInvestorRoster(deals: Deal[]): InvestorRow[] {
+	const byName: Record<string, number> = {};
+	deals.forEach((d) => {
+		const name = (d.lead_investor ?? '').trim();
+		if (!name) return;
+		byName[name] = (byName[name] || 0) + 1;
+	});
+	return Object.entries(byName)
+		.map(([name, rounds]) => ({ name, rounds }))
+		.sort((a, b) => b.rounds - a.rounds || a.name.localeCompare(b.name));
+}
+
+function Investors({ investors, companyName, roundCount }: { investors: InvestorRow[]; companyName: string; roundCount: number }) {
+	if (investors.length === 0) {
+		return (
+			<section className="co-sec">
+				<h3 className="co-sec-h">Investors</h3>
+				<div className="co-empty">No disclosed lead investors for {companyName} yet.</div>
+			</section>
+		);
+	}
+	return (
+		<section className="co-sec">
+			<h3 className="co-sec-h">Investors</h3>
+			<p style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 14 }}>
+				Lead investors that have participated in funding rounds of {companyName}.
+			</p>
+
+			<div className="co-stat-strip">
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Lead investors</div>
+					<div className="co-mini-stat-v">{investors.length}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Rounds</div>
+					<div className="co-mini-stat-v">{roundCount}</div>
+				</div>
+				<div className="co-mini-stat">
+					<div className="co-mini-stat-l">Most active</div>
+					<div className="co-mini-stat-v" style={{ fontSize: 16 }}>{investors[0].rounds} round{investors[0].rounds === 1 ? '' : 's'}</div>
+				</div>
+			</div>
+
+			<h4 className="co-sec-sub">Investor roster</h4>
+			<div className="card" style={{ padding: 0 }}>
+				<table className="data-table">
+					<thead>
+						<tr>
+							<th>Investor</th>
+							<th className="num" style={{ textAlign: 'right' }}>Rounds led</th>
+						</tr>
+					</thead>
+					<tbody>
+						{investors.map((inv) => {
+							const initials = inv.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+							return (
+								<tr key={inv.name}>
+									<td>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+											<span className="co-inv-logo">{initials}</span>
+											<span style={{ fontWeight: 600 }}>{inv.name}</span>
+										</div>
+									</td>
+									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+										{inv.rounds} of {roundCount}
+									</td>
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>
