@@ -11,7 +11,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
-import { ArrowRight, Send, Heart, Plus, Zap } from 'lucide-react';
+import { ArrowRight, Send, Heart, Link2, Lock, Plus, Zap } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
@@ -44,6 +44,12 @@ interface Company {
 	is_verified?: boolean | null;
 	is_actively_raising?: boolean | null;
 	is_unicorn?: boolean | null;
+	// Optional socials — rendered only when the API provides them (no fakes).
+	contact_email?: string | null;
+	twitter_url?: string | null;
+	instagram_url?: string | null;
+	facebook_url?: string | null;
+	linkedin_url?: string | null;
 }
 
 interface Deal {
@@ -68,7 +74,7 @@ interface Acquisition {
 
 interface AcqResponse { data: Acquisition[] }
 
-type Tab = 'general' | 'funding' | 'mna';
+type Tab = 'general' | 'funding' | 'mna' | 'investors';
 
 export function CompanyDrawer({
 	idOrSlug, onClose,
@@ -113,6 +119,9 @@ export function CompanyDrawer({
 		{ dedupingInterval: 5 * 60_000 },
 	);
 	const acquisitions = acqResp?.data ?? [];
+
+	// Lead-investor roster derived from real deal data.
+	const investors = buildInvestorRoster(deals);
 
 	const open = idOrSlug != null;
 
@@ -217,6 +226,7 @@ export function CompanyDrawer({
 							{ key: 'general', label: 'General' },
 							{ key: 'funding', label: 'Funding', count: deals.length },
 							{ key: 'mna', label: 'M&A', count: acquisitions.length },
+							...(investors.length > 0 ? [{ key: 'investors', label: 'Investors', count: investors.length }] : []),
 						]}
 						current={tab}
 						onTab={(k) => setTab(k as Tab)}
@@ -224,8 +234,15 @@ export function CompanyDrawer({
 
 					<DrawerBody>
 						{tab === 'general' && <General company={company} />}
-						{tab === 'funding' && <Funding company={company} deals={deals} />}
+						{tab === 'funding' && (
+							<Funding
+								company={company}
+								deals={deals}
+								onOpenFull={() => router.push(`/companies/${company.slug ?? company.id}`)}
+							/>
+						)}
 						{tab === 'mna' && <Mna acquisitions={acquisitions} />}
+						{tab === 'investors' && <Investors investors={investors} roundCount={deals.length} />}
 					</DrawerBody>
 
 					<DrawerFoot>
@@ -301,11 +318,88 @@ function General({ company }: { company: Company }) {
 				)}
 				{company.is_unicorn && <KV label="Unicorn" value="Yes 🦄" />}
 			</div>
+
+			<ConnectBlock company={company} />
+			<PrimaryContactLocked />
 		</div>
 	);
 }
 
-function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
+function SocialIcon({ kind, size = 14 }: { kind: 'mail' | 'twitter' | 'instagram' | 'facebook' | 'linkedin'; size?: number }) {
+	switch (kind) {
+		case 'mail':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M3 5h18v14H3z M3 5l9 7 9-7" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" /></svg>;
+		case 'twitter':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M18 4h3l-7 8 8 8h-6l-5-6-5 6H3l8-9-8-9h6l4 5z" fill="currentColor" /></svg>;
+		case 'instagram':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></g></svg>;
+		case 'facebook':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M14 8h2V5h-2.5C12 5 11 6 11 7.5V10H9v3h2v8h3v-8h2l1-3h-3V8z" fill="currentColor" /></svg>;
+		case 'linkedin':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" /><rect x="6" y="10" width="2.5" height="8" /><circle cx="7.2" cy="7.2" r="1.4" /><path d="M11 10h2.4v1.2c.5-.8 1.5-1.4 2.6-1.4 2 0 2.8 1.3 2.8 3.2V18h-2.5v-4.3c0-1-.4-1.7-1.3-1.7-.9 0-1.5.6-1.5 1.7V18H11v-8z" /></g></svg>;
+	}
+}
+
+/** Connect block — real socials/website only, nothing fabricated. */
+function ConnectBlock({ company }: { company: Company }) {
+	const socials: Array<{ kind: 'twitter' | 'instagram' | 'facebook' | 'linkedin'; url: string }> = [];
+	if (company.twitter_url) socials.push({ kind: 'twitter', url: company.twitter_url });
+	if (company.instagram_url) socials.push({ kind: 'instagram', url: company.instagram_url });
+	if (company.facebook_url) socials.push({ kind: 'facebook', url: company.facebook_url });
+	if (company.linkedin_url) socials.push({ kind: 'linkedin', url: company.linkedin_url });
+
+	if (!company.contact_email && !company.website && socials.length === 0) return null;
+
+	return (
+		<>
+			<h4 className="co-drawer-h4">Connect</h4>
+			<div className="co-social-row">
+				{company.contact_email ? (
+					<a className="co-social co-social-mail" href={`mailto:${company.contact_email}`} title={company.contact_email}>
+						<SocialIcon kind="mail" size={14} />
+						<span>{company.contact_email}</span>
+					</a>
+				) : company.website ? (
+					<a className="co-social co-social-mail" href={company.website} target="_blank" rel="noopener noreferrer" title={company.website}>
+						<Link2 size={14} />
+						<span>{company.website.replace(/^https?:\/\//, '')}</span>
+					</a>
+				) : null}
+				{socials.length > 0 && (
+					<div className="co-social-icons">
+						{socials.map((s) => (
+							<a key={s.kind} className="co-social-ico" href={s.url} target="_blank" rel="noopener noreferrer" title={s.kind}>
+								<SocialIcon kind={s.kind} size={s.kind === 'twitter' ? 13 : 14} />
+							</a>
+						))}
+					</div>
+				)}
+			</div>
+		</>
+	);
+}
+
+/** Pro-locked primary-contact teaser — lock visual, no fabricated data. */
+function PrimaryContactLocked() {
+	return (
+		<div className="co-locked-block" style={{ marginTop: 18 }}>
+			<div className="co-locked-head">
+				<h4 className="co-drawer-h4" style={{ margin: 0 }}>Primary contact</h4>
+				<span className="co-pro-tag">PRO</span>
+			</div>
+			<div className="co-locked-stack">
+				<div className="co-locked-cover">
+					<div className="co-locked-icon"><Lock size={20} /></div>
+					<div className="co-locked-title">Unlock contact details</div>
+					<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
+					<button className="btn co-locked-btn" type="button">Upgrade to Pro</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal[]; onOpenFull?: () => void }) {
 	if (deals.length === 0) {
 		return <div className="co-empty">No funding rounds on record yet.</div>;
 	}
@@ -345,6 +439,11 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 					</div>
 				))}
 			</div>
+			{onOpenFull && (
+				<button className="co-drawer-cta" type="button" onClick={onOpenFull}>
+					View all analytics <ArrowRight size={12} />
+				</button>
+			)}
 		</div>
 	);
 }
@@ -374,6 +473,52 @@ function Mna({ acquisitions }: { acquisitions: Acquisition[] }) {
 						</div>
 					</div>
 				))}
+			</div>
+		</div>
+	);
+}
+
+interface InvestorRow { name: string; rounds: number }
+
+/** Lead-investor roster built from real `deal.lead_investor`, aggregated. */
+function buildInvestorRoster(deals: Deal[]): InvestorRow[] {
+	const byName: Record<string, number> = {};
+	deals.forEach((d) => {
+		const name = (d.lead_investor ?? '').trim();
+		if (!name) return;
+		byName[name] = (byName[name] || 0) + 1;
+	});
+	return Object.entries(byName)
+		.map(([name, rounds]) => ({ name, rounds }))
+		.sort((a, b) => b.rounds - a.rounds || a.name.localeCompare(b.name));
+}
+
+function Investors({ investors, roundCount }: { investors: InvestorRow[]; roundCount: number }) {
+	if (investors.length === 0) {
+		return <div className="co-empty">No disclosed lead investors yet.</div>;
+	}
+	return (
+		<div>
+			<div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+				<MiniStat label="Lead investors" value={investors.length} />
+				<MiniStat label="Rounds" value={roundCount} />
+			</div>
+			<h4 className="co-drawer-h4">Investor roster</h4>
+			<div className="co-inv-list">
+				{investors.map((inv) => {
+					const initials = inv.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+					return (
+						<div key={inv.name} className="co-inv-row" style={{ cursor: 'default' }}>
+							<span className="co-inv-logo">{initials}</span>
+							<span className="co-inv-text">
+								<span className="co-inv-name">{inv.name}</span>
+								<span className="co-inv-meta">
+									{inv.rounds} round{inv.rounds === 1 ? '' : 's'} led
+								</span>
+							</span>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

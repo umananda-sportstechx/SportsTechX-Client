@@ -34,7 +34,7 @@ export interface FacetOption {
 	count?: number;
 }
 
-export type FacetKind = 'bool' | 'multi' | 'range';
+export type FacetKind = 'bool' | 'multi' | 'range' | 'locked';
 
 export interface BoolFacet {
 	key: string;
@@ -64,7 +64,20 @@ export interface RangeFacet {
 	section?: string;
 }
 
-export type Facet = BoolFacet | MultiFacet | RangeFacet;
+/**
+ * A tier-locked teaser group: renders a PRO/GROWTH lock badge, never expands,
+ * holds no value. Used to surface upsell-only facets (e.g. Sub-sub-sector,
+ * City/Continent/Region) exactly as ui_design_3 does — purely visual.
+ */
+export interface LockedFacet {
+	key: string;
+	label: string;
+	kind: 'locked';
+	tier: 'GROWTH' | 'PRO';
+	section?: string;
+}
+
+export type Facet = BoolFacet | MultiFacet | RangeFacet | LockedFacet;
 
 export type FacetValue = boolean | string[] | [number, number] | null;
 
@@ -218,6 +231,20 @@ function FRBoolRow({
 	);
 }
 
+// ─── Tier-lock badge (PRO / GROWTH) ───────────────────────────────────────
+
+function TierLock({ tier }: { tier: 'GROWTH' | 'PRO' }) {
+	return (
+		<span className={`flt-tier flt-tier-${tier}`}>
+			<svg width="8" height="9" viewBox="0 0 8 9" fill="none" aria-hidden="true">
+				<path d="M2 4V2.5a2 2 0 1 1 4 0V4" stroke="currentColor" strokeWidth="1.1" fill="none" />
+				<rect x="1" y="4" width="6" height="4.5" rx="0.5" fill="currentColor" />
+			</svg>
+			{tier}
+		</span>
+	);
+}
+
 // ─── Rail group (collapsible) ─────────────────────────────────────────────
 
 function FRGroup({
@@ -228,6 +255,20 @@ function FRGroup({
 	setState: (s: FilterState) => void;
 	defaultOpen: boolean;
 }) {
+	// Tier-locked teaser: a non-interactive header with a lock badge, no body.
+	if (facet.kind === 'locked') {
+		return (
+			<div className="flt-group locked">
+				<div className="flt-group-h" aria-disabled="true">
+					<span className="flt-group-title">{facet.label}</span>
+					<span className="flt-group-meta">
+						<TierLock tier={facet.tier} />
+					</span>
+				</div>
+			</div>
+		);
+	}
+
 	const val = facetVal(state, facet.key);
 	const [open, setOpen] = useState(defaultOpen ?? isFacetActive(facet, val));
 	const count = facetActiveCount(facet, val);
@@ -320,13 +361,16 @@ function FRStatusBlock({
 // ─── Main FilterRail ──────────────────────────────────────────────────────
 
 export function FilterRail({
-	facets, state, setState, defaultOpen = {}, title = 'Filters',
+	facets, state, setState, defaultOpen = {}, title = 'Filters', topSlot,
 }: {
 	facets: Facet[];
 	state: FilterState;
 	setState: (s: FilterState) => void;
 	defaultOpen?: Record<string, boolean>;
 	title?: string;
+	/** Optional content rendered directly under the rail head (e.g. a mode
+	 *  toggle on the Funding rail). */
+	topSlot?: ReactNode;
 }) {
 	const boolFacets = facets.filter((f): f is BoolFacet => f.kind === 'bool');
 	const otherFacets = facets.filter((f) => f.kind !== 'bool');
@@ -345,6 +389,8 @@ export function FilterRail({
 					Reset
 				</button>
 			</div>
+
+			{topSlot}
 
 			{boolFacets.length > 0 && (
 				<div className="flt-status flt-status-flat">

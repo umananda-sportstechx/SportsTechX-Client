@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { AlertTriangle, ArrowRight, Check, Crown, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Crown, ExternalLink, Loader2, Sparkles, User, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
@@ -40,6 +40,14 @@ const ACCENT_BY_TIER: Record<string, string> = {
 	free: 'oklch(62% 0.10 240)',
 	growth: 'var(--accent)',
 	pro: 'oklch(62% 0.18 290)',
+};
+
+// Persona line per tier — marketing copy ported from ui_design_3
+// SubscriptionsScreen (not in the backend plan payload, so mapped by tier).
+const PERSONA_BY_TIER: Record<string, string> = {
+	free: 'Great for casual browsing or testing the platform',
+	growth: 'Best for startups, scouts and network builders',
+	pro: 'Built for investors, M&A teams and serious dealmakers',
 };
 
 const TIER_RANK: Record<string, number> = { free: 0, growth: 1, pro: 2 };
@@ -329,6 +337,13 @@ function PlanCard({
 					</div>
 				))}
 			</div>
+
+			{PERSONA_BY_TIER[plan.tier] && (
+				<div className="sub-persona">
+					<User size={14} />
+					<em>{PERSONA_BY_TIER[plan.tier]}</em>
+				</div>
+			)}
 		</div>
 	);
 }

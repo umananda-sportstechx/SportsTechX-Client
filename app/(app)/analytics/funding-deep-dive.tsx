@@ -7,8 +7,8 @@ import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Stat, SectionHead, Empty, Flag } from '@/components/ui/atoms';
 import {
-	PieDonut, ComboBarLine, Monogram, YearRangeToggle,
-	type PieSegment, type ComboPoint, type YearRange,
+	PieDonut, ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
+	type PieSegment, type ComboPoint, type YearRange, type HBarRow,
 } from '@/components/ui/analytics-charts';
 
 /**
@@ -80,9 +80,36 @@ const BIZ_LABELS: Record<string, string> = {
 
 const rangeToPeriod = (r: YearRange): 'ytd' | '12m' | 'all' => (r === 'ytd' ? 'ytd' : 'all');
 
+type Region = 'all' | 'n_america' | 'europe' | 'asia_pacific' | 'row';
+
+const REGION_CHIPS: Array<[Region, string]> = [
+	['all', 'All'],
+	['n_america', 'N. America'],
+	['europe', 'Europe'],
+	['asia_pacific', 'Asia Pacific'],
+	['row', 'Rest of World'],
+];
+
+// Map a country name to one of the broad regions used by the filter chips.
+const REGION_OF: Record<string, Exclude<Region, 'all'>> = {
+	'United States': 'n_america', USA: 'n_america', Canada: 'n_america', Mexico: 'n_america',
+	'United Kingdom': 'europe', UK: 'europe', Germany: 'europe', France: 'europe', Italy: 'europe',
+	Spain: 'europe', Netherlands: 'europe', Sweden: 'europe', Switzerland: 'europe', Belgium: 'europe',
+	Austria: 'europe', Poland: 'europe', Portugal: 'europe', Ireland: 'europe', Denmark: 'europe',
+	Norway: 'europe', Finland: 'europe',
+	China: 'asia_pacific', Japan: 'asia_pacific', India: 'asia_pacific', Singapore: 'asia_pacific',
+	Australia: 'asia_pacific', 'South Korea': 'asia_pacific', 'New Zealand': 'asia_pacific',
+	Indonesia: 'asia_pacific', Thailand: 'asia_pacific', Vietnam: 'asia_pacific',
+};
+
+function regionOf(country: string): Exclude<Region, 'all'> {
+	return REGION_OF[country] ?? 'row';
+}
+
 export function FundingDeepDiveTab() {
 	const currentYear = new Date().getFullYear();
 	const [range, setRange] = useState<YearRange>('10y');
+	const [region, setRegion] = useState<Region>('all');
 	const yearWindow = range === '10y' ? 9 : range === '5y' ? 4 : 0;
 
 	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
@@ -100,15 +127,6 @@ export function FundingDeepDiveTab() {
 		[annual],
 	);
 
-	const sectorSegments: PieSegment[] = useMemo(() => {
-		return (sectorHeat ?? []).map((s, i) => ({
-			name: s.sector_name,
-			v: s.total_amount,
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-			label: formatAmtCompact(s.total_amount),
-		}));
-	}, [sectorHeat]);
-
 	const bizSegments: PieSegment[] = useMemo(() => {
 		return (bizModel ?? []).map((b, i) => ({
 			name: BIZ_LABELS[b.business_model] ?? b.business_model,
@@ -118,10 +136,30 @@ export function FundingDeepDiveTab() {
 		}));
 	}, [bizModel]);
 
+	// Funding-by-sector drilldown rows. The sector-heat endpoint is flat (no
+	// sub-sector hierarchy), so each sector renders as a single-level bar — the
+	// HBarDrilldown still gives the prototype's hierarchical-bar visual.
+	const sectorRows: HBarRow[] = useMemo(() => {
+		return (sectorHeat ?? []).map((s, i) => ({
+			id: s.sector_id,
+			label: s.sector_name,
+			value: s.total_amount,
+			formatted: formatAmtCompact(s.total_amount),
+			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+		}));
+	}, [sectorHeat]);
+
 	const total = totals?.total_amount ?? 0;
 	const totalRounds = totals?.round_count ?? 0;
 	const countriesCount = (world ?? []).filter((w) => w.country).length;
 	const largest = totals?.largest_amount ?? 0;
+
+	// Client-side region filter over the country list (no server region facet).
+	const filteredWorld = useMemo(() => {
+		const all = world ?? [];
+		if (region === 'all') return all;
+		return all.filter((w) => w.country && regionOf(w.country) === region);
+	}, [world, region]);
 
 	return (
 		<>
@@ -186,13 +224,13 @@ export function FundingDeepDiveTab() {
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
 				<SectionHead
 					title="Funding by Sector"
-					meta="top sub-sectors by capital deployed"
+					meta="capital deployed by sector"
 					action={<YearRangeToggle value={range} onChange={setRange} />}
 				/>
 				<div className="card-pad">
-					{sectorSegments.length === 0
+					{sectorRows.length === 0
 						? <Empty msg="No sector data yet." />
-						: <PieDonut segments={sectorSegments} mode="bar" />}
+						: <HBarDrilldown rows={sectorRows} />}
 					<div style={{ marginTop: 'var(--space-3)' }}>
 						<Link href="/framework" style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
 							Understand the Framework →
@@ -215,8 +253,19 @@ export function FundingDeepDiveTab() {
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
 				<SectionHead title="Top Funded Countries" action={<YearRangeToggle value={range} onChange={setRange} />} />
 				<div className="card-pad">
-					{(world ?? []).length === 0 ? (
-						<Empty msg="No country data yet." />
+					<div className="filter-bar" style={{ marginBottom: 'var(--space-3)' }}>
+						{REGION_CHIPS.map(([v, l]) => (
+							<button
+								key={v}
+								className={`chip ${region === v ? 'on' : ''}`}
+								onClick={() => setRegion(v)}
+							>
+								{l}
+							</button>
+						))}
+					</div>
+					{filteredWorld.length === 0 ? (
+						<Empty msg="No country data for this region." />
 					) : (
 						<table className="data-table">
 							<thead>
@@ -228,7 +277,7 @@ export function FundingDeepDiveTab() {
 								</tr>
 							</thead>
 							<tbody>
-								{(world ?? []).map((c, i) => (
+								{filteredWorld.map((c, i) => (
 									<tr key={c.country}>
 										<td className="rank-idx">{i + 1}</td>
 										<td>
