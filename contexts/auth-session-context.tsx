@@ -72,8 +72,18 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		supabase.auth.signOut().catch(() => undefined);
 		clearAuthCookies();
 		void globalMutate(() => true, undefined, { revalidate: false });
+		logoutState.setSessionValid(false);
 		setState({ user: null, loading: false, sessionValid: false });
-		window.location.href = '/login?reason=session_expired';
+		// If we're already on an auth page, don't hard-navigate — that
+		// reloads the page, resets all React state, and starves the user
+		// of any in-progress form input. Cookies and SWR cache are
+		// cleared above, so the SWR queries gated on `sessionValid` won't
+		// re-fire and we won't loop. Forgot/reset/confirm flows likewise
+		// need to stay put.
+		const AUTH_PATHS = ['/login', '/forgot-password', '/reset-password', '/auth/callback', '/confirm'];
+		if (typeof window !== 'undefined' && !AUTH_PATHS.includes(window.location.pathname)) {
+			window.location.href = '/login?reason=session_expired';
+		}
 	}, [clearAuthCookies]);
 
 	const scheduleRefresh = useCallback(
