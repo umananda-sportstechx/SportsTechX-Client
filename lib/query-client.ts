@@ -58,13 +58,34 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
 
 // ─── 401 redirect-to-login ───────────────────────────────────────────────────
 
+/**
+ * Paths where a hard-navigation to `/login?reason=session_expired` would loop:
+ *  - we're already there, OR
+ *  - we're in the middle of confirming/resetting a session (so the SWR layer
+ *    hasn't lost the cookie yet but the backend isn't honouring it).
+ *
+ * If the user lands on any of these with an unauthenticated 401, we let the
+ * page handle the failure inline (show an error) instead of redirecting.
+ * Otherwise: stale cookies → SWR fires → 401 → hard nav → page mounts →
+ * SWR fires → 401 → hard nav → … (state-wiping infinite loop every ~1.5s).
+ */
+const AUTH_PATHS = new Set([
+  '/login', '/forgot-password', '/reset-password',
+  '/auth/callback', '/confirm',
+]);
+
+function onAuthPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  return AUTH_PATHS.has(window.location.pathname);
+}
+
 async function handleResponse(res: Response, _context?: string): Promise<void> {
   if (res.ok) return;
 
   const text = await res.text().catch(() => res.statusText);
 
   if ((res.status === 401 || res.status === 403) && !logoutState.isLoggingOut()) {
-    if (logoutState.hasValidSession()) {
+    if (logoutState.hasValidSession() && !onAuthPath()) {
       setTimeout(() => {
         window.location.href = '/login?reason=session_expired';
       }, 1500);
