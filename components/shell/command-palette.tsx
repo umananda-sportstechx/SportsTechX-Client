@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Building2, Wallet, Sparkles, ArrowRight } from 'lucide-react';
+import { Wallet, Sparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { NAV_GROUPS } from './sidebar-rail';
+import { Logo } from '@/components/ui/atoms';
 
 /**
  * Command palette (Cmd+K).
@@ -37,6 +39,7 @@ interface PaletteRow {
 	cat: string;
 	kind: 'nav' | 'co' | 'inv' | 'ai';
 	href?: string;
+	icon?: LucideIcon;
 }
 
 interface CommandPaletteProps {
@@ -63,7 +66,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 	// Navigation matches (instant, no backend hit).
 	const navResults: PaletteRow[] = ALL_NAV_ITEMS
 		.filter((i) => !q || i.name.toLowerCase().includes(q.toLowerCase()))
-		.map((i) => ({ id: i.id, name: i.name, cat: 'Navigate', kind: 'nav', href: i.path }));
+		.map((i) => ({ id: i.id, name: i.name, cat: 'Navigate', kind: 'nav' as const, href: i.path, icon: i.icon }));
 
 	// Backend search — only fires at 3+ chars. /api/search rejects shorter
 	// queries with VALIDATION_ERROR because at 1-2 chars the GIN trigram scan
@@ -153,10 +156,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 							onMouseEnter={() => setSel(i)}
 							onClick={() => handleSelect(item)}
 						>
-							{item.kind === 'co' && <Building2 size={16} />}
+							{item.kind === 'co' && <Logo co={{ name: item.name }} size={22} />}
 							{item.kind === 'inv' && <Wallet size={16} />}
 							{item.kind === 'ai' && <Sparkles size={16} />}
-							{item.kind === 'nav' && <ArrowRight size={16} />}
+							{item.kind === 'nav' && item.icon && <item.icon size={16} />}
 							<div style={{ display: 'flex', flexDirection: 'column' }}>
 								<span style={{ fontWeight: 500 }}>{item.name}</span>
 								{item.sub && <span style={{ fontSize: 11, opacity: 0.7 }}>{item.sub}</span>}
