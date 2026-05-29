@@ -42,11 +42,40 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'login' | 'signup'>('login');
+  // True when the URL hash carries a Supabase OTP-expired error — we show
+  // an inline "Resend confirmation email" CTA next to the error banner.
+  const [showResend, setShowResend] = useState(false);
 
   useEffect(() => {
     // Enable query polling on login page mount (recovery after logout)
     if (!logoutState.isLoggingOut()) enableQueryPolling();
     if (reason === 'session_expired') setError('Your session expired. Please sign in again.');
+
+    // Supabase's verify endpoint encodes errors in the URL HASH fragment
+    // (e.g. #error=access_denied&error_code=otp_expired&error_description=…).
+    // Most commonly this fires because the single-use OTP was consumed by
+    // an email link-preview (Gmail/Slack/antivirus all prefetch URLs in
+    // mails), so by the time the user actually clicks the link, it's gone.
+    // Parse the fragment, show a useful message, and offer a one-click
+    // resend instead of leaving them staring at "auth_callback_failed".
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const h = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const code = h.get('error_code');
+      const desc = h.get('error_description');
+      if (code === 'otp_expired') {
+        setError('Your confirmation link expired or was already used. Enter your email below and resend it.');
+        setShowResend(true);
+        // Strip the hash so a reload doesn't keep showing the same message.
+        const u = new URL(window.location.href);
+        u.hash = '';
+        window.history.replaceState({}, '', u.toString());
+      } else if (code) {
+        setError(desc?.replace(/\+/g, ' ') ?? 'Authentication failed. Please try again.');
+        const u = new URL(window.location.href);
+        u.hash = '';
+        window.history.replaceState({}, '', u.toString());
+      }
+    }
   }, [reason]);
 
   const supabase = getSupabaseBrowser();
@@ -132,6 +161,25 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const handleResendConfirmation = async () => {
+    if (!email) { setError('Enter the email you signed up with first.'); return; }
+    setLoading(true);
+    setError('');
+    setMessage('');
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (err) {
+      setError(err.message);
+    } else {
+      setMessage('New confirmation email sent. Check your inbox.');
+      setShowResend(false);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* Left panel - branding */}
@@ -167,6 +215,20 @@ export default function LoginPage() {
               {error && (
                 <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
                   {error}
+                  {showResend && (
+                    <div className="mt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResendConfirmation}
+                        disabled={loading}
+                      >
+                        {loading && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                        Resend confirmation email
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
               {message && (
