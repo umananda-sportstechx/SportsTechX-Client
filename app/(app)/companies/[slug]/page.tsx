@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { ArrowLeft, ExternalLink, Heart, Link2, Lock, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
 import {
 	Page, Logo, Flag, Tag, Empty, AudiencePill, SectorPill,
 	VerifiedBadge, RaisingPill, KV,
@@ -478,25 +479,79 @@ function ConnectCard({ company }: { company: Company }) {
 	);
 }
 
-/** Pro-locked primary-contact teaser — visual lock, no fabricated data. */
+interface PrimaryContactData {
+	id: string;
+	full_name: string | null;
+	job_position: string | null;
+	email: string | null;
+	linkedin_url: string | null;
+	phone: string | null;
+	role: string | null;
+}
+
+/**
+ * Primary-contact rail card. Pro-gated via the `company_contacts` feature:
+ *   - not entitled → upgrade teaser linking to /subscriptions;
+ *   - entitled → the real contact, or an honest empty state. No fabricated data.
+ */
 function PrimaryContactCard({ company }: { company: Company }) {
-	void company;
-	return (
-		<div className="card co-rail-card co-locked-block">
-			<div className="co-locked-head">
-				<div className="co-rail-h" style={{ margin: 0, padding: 0, borderBottom: 0 }}>Primary contact</div>
-				<span className="co-pro-tag">PRO</span>
-			</div>
-			<div className="co-locked-stack">
-				<div className="co-locked-cover">
-					<div className="co-locked-icon">
-						<Lock size={20} />
+	const access = useFeatureAccess('company_contacts');
+	const target = (company.slug ?? company.id) as string;
+	const entitled = !access.isLoading && !access.isLocked;
+	const { data: contact } = useSWR<PrimaryContactData | null>(
+		entitled && target ? qk.companies.contacts(target) : null,
+	);
+
+	if (access.isLoading) return null;
+
+	if (access.isLocked) {
+		return (
+			<div className="card co-rail-card co-locked-block">
+				<div className="co-locked-head">
+					<div className="co-rail-h" style={{ margin: 0, padding: 0, borderBottom: 0 }}>Primary contact</div>
+					<span className="co-pro-tag">PRO</span>
+				</div>
+				<div className="co-locked-stack">
+					<div className="co-locked-cover">
+						<div className="co-locked-icon">
+							<Lock size={20} />
+						</div>
+						<div className="co-locked-title">Unlock contact details</div>
+						<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
+						<Link href="/subscriptions" className="btn co-locked-btn">Upgrade to Pro</Link>
 					</div>
-					<div className="co-locked-title">Unlock contact details</div>
-					<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
-					<button className="btn co-locked-btn" type="button">Upgrade to Pro</button>
 				</div>
 			</div>
+		);
+	}
+
+	return (
+		<div className="card co-rail-card">
+			<div className="co-rail-h">Primary contact</div>
+			{contact ? (
+				<div style={{ padding: '4px 2px' }}>
+					<div style={{ fontWeight: 700 }}>{contact.full_name ?? '—'}</div>
+					{(contact.role || contact.job_position) && (
+						<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
+							{contact.role ?? contact.job_position}
+						</div>
+					)}
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+						{contact.email && (
+							<a href={`mailto:${contact.email}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+								<Send size={12} /> {contact.email}
+							</a>
+						)}
+						{contact.linkedin_url && (
+							<a href={contact.linkedin_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+								<Link2 size={12} /> LinkedIn
+							</a>
+						)}
+					</div>
+				</div>
+			) : (
+				<Empty msg="No contact on record yet." />
+			)}
 		</div>
 	);
 }

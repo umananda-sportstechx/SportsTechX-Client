@@ -61,8 +61,6 @@ export default function EventsPage() {
 			key: 'country', label: 'Country', kind: 'multi',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-		// No tags/theme data model on the backend yet → upsell teaser.
-		{ key: 'theme', label: 'Theme', kind: 'locked', tier: 'GROWTH' },
 	], []);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {

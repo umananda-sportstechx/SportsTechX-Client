@@ -24,7 +24,9 @@
  */
 
 import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { Check, ChevronRight, Search, X, List, Grid3x3 } from 'lucide-react';
+import { useFeatureAccessContext, type FeatureAccessResult } from '@/contexts/feature-access-context';
 
 // ─── Facet types ──────────────────────────────────────────────────────────
 
@@ -34,13 +36,24 @@ export interface FacetOption {
 	count?: number;
 }
 
-export type FacetKind = 'bool' | 'multi' | 'range' | 'locked';
+export type FacetKind = 'bool' | 'multi' | 'range';
 
+/**
+ * Optional entitlement gate. When set, the facet is checked against the
+ * server-driven feature matrix via `useFeatureAccess(gate)`:
+ *   - entitled (right tier / per-user grant / admin) → the real control renders
+ *     and works exactly like an ungated facet;
+ *   - not entitled → a lock teaser renders in its place with a working
+ *     "Upgrade" link to /subscriptions (the required tier comes from the matrix,
+ *     NOT a hardcoded label).
+ * `gate` is a feature slug (e.g. `advanced_filters`).
+ */
 export interface BoolFacet {
 	key: string;
 	label: string;
 	kind: 'bool';
 	section?: string;
+	gate?: string;
 }
 
 export interface MultiFacet {
@@ -50,6 +63,7 @@ export interface MultiFacet {
 	options: () => FacetOption[];
 	maxHeight?: number;
 	section?: string;
+	gate?: string;
 }
 
 export interface RangeFacet {
@@ -62,22 +76,10 @@ export interface RangeFacet {
 	prefix?: string;
 	suffix?: string;
 	section?: string;
+	gate?: string;
 }
 
-/**
- * A tier-locked teaser group: renders a PRO/GROWTH lock badge, never expands,
- * holds no value. Used to surface upsell-only facets (e.g. Sub-sub-sector,
- * City/Continent/Region) exactly as ui_design_3 does — purely visual.
- */
-export interface LockedFacet {
-	key: string;
-	label: string;
-	kind: 'locked';
-	tier: 'GROWTH' | 'PRO';
-	section?: string;
-}
-
-export type Facet = BoolFacet | MultiFacet | RangeFacet | LockedFacet;
+export type Facet = BoolFacet | MultiFacet | RangeFacet;
 
 export type FacetValue = boolean | string[] | [number, number] | null;
 
@@ -245,28 +247,42 @@ function TierLock({ tier }: { tier: 'GROWTH' | 'PRO' }) {
 	);
 }
 
+/**
+ * Lock teaser for a gated facet the current user isn't entitled to. The header
+ * is a real link to /subscriptions (unlike the old purely-visual teaser), and
+ * the tier badge reflects the minimum tier from the feature matrix.
+ */
+function LockedGroup({ label, requiredTier }: { label: string; requiredTier: FeatureAccessResult['requiredTier'] }) {
+	const tier: 'GROWTH' | 'PRO' = requiredTier === 'pro' ? 'PRO' : 'GROWTH';
+	return (
+		<div className="flt-group locked">
+			<Link href="/subscriptions" className="flt-group-h" title={`Unlock with ${tier === 'PRO' ? 'Pro' : 'Growth'}`}>
+				<span className="flt-group-title">{label}</span>
+				<span className="flt-group-meta">
+					<TierLock tier={tier} />
+				</span>
+			</Link>
+		</div>
+	);
+}
+
 // ─── Rail group (collapsible) ─────────────────────────────────────────────
 
 function FRGroup({
-	facet, state, setState, defaultOpen,
+	facet, state, setState, defaultOpen, access,
 }: {
 	facet: Facet;
 	state: FilterState;
 	setState: (s: FilterState) => void;
 	defaultOpen: boolean;
+	/** Entitlement result for `facet.gate`, or null when the facet is ungated. */
+	access: FeatureAccessResult | null;
 }) {
-	// Tier-locked teaser: a non-interactive header with a lock badge, no body.
-	if (facet.kind === 'locked') {
-		return (
-			<div className="flt-group locked">
-				<div className="flt-group-h" aria-disabled="true">
-					<span className="flt-group-title">{facet.label}</span>
-					<span className="flt-group-meta">
-						<TierLock tier={facet.tier} />
-					</span>
-				</div>
-			</div>
-		);
+	// Gated facet the user can't (yet) access → lock teaser instead of the
+	// control. `isLocked` is also true while the matrix is still loading, so the
+	// real control only appears once entitlement is confirmed.
+	if (facet.gate && access?.isLocked) {
+		return <LockedGroup label={facet.label} requiredTier={access.requiredTier} />;
 	}
 
 	const val = facetVal(state, facet.key);
@@ -372,6 +388,9 @@ export function FilterRail({
 	 *  toggle on the Funding rail). */
 	topSlot?: ReactNode;
 }) {
+	// `checkAccess` is a plain function (not a hook), safe to call per gated
+	// facet inside the render loop. Drives the per-facet lock teaser.
+	const { checkAccess } = useFeatureAccessContext();
 	const boolFacets = facets.filter((f): f is BoolFacet => f.kind === 'bool');
 	const otherFacets = facets.filter((f) => f.kind !== 'bool');
 	const activeTotal = totalActiveFilters(facets, state);
@@ -420,6 +439,7 @@ export function FilterRail({
 							state={state}
 							setState={setState}
 							defaultOpen={defaultOpen[f.key] ?? isFacetActive(f, facetVal(state, f.key))}
+							access={f.gate ? checkAccess(f.gate) : null}
 						/>,
 					);
 				}
