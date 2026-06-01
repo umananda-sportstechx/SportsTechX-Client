@@ -29,6 +29,7 @@ export const qk = {
     techTags: () => ['/api/tech-tags'] as const,
     currencies: () => ['/api/currencies'] as const,
     roundTypes: () => ['/api/round-types'] as const,
+    locationFacets: () => ['/api/locations/facets'] as const,
   },
 
   // ── Browsable collections ───────────────────────────────────────────────
@@ -41,6 +42,7 @@ export const qk = {
     detail: (idOrSlug: string) => [`/api/companies/${idOrSlug}`] as const,
     news: (idOrSlug: string) => [`/api/companies/${idOrSlug}/news`] as const,
     team: (idOrSlug: string) => [`/api/companies/${idOrSlug}/team`] as const,
+    contacts: (idOrSlug: string) => [`/api/companies/${idOrSlug}/contacts`] as const,
     similar: (idOrSlug: string) => [`/api/companies/${idOrSlug}/similar`] as const,
   },
   investors: {
