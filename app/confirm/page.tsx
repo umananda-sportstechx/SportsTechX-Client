@@ -8,11 +8,23 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Page } from '@/components/ui/atoms';
 
 /**
- * Email confirmation landing. Supabase's verification email links here with
- * `?token_hash=…&type=signup|recovery|magiclink|email_change`. We call
- * supabase.auth.verifyOtp to swap the token for a session, then redirect to
- * the dashboard. If the user was already signed in (e.g. clicked the link
- * from a different device), we still verify the token so the action lands.
+ * Email confirmation landing — UNAUTHENTICATED route.
+ *
+ * Supabase's email links go here with `?token_hash=…&type=signup|recovery|
+ * magiclink|email_change`. We call `supabase.auth.verifyOtp` to swap the
+ * token for a session, then redirect to the dashboard.
+ *
+ * IMPORTANT: this page intentionally lives OUTSIDE the `(app)` route group
+ * because `(app)/layout.tsx` wraps everything in `<ProtectedRoute>`, which
+ * would boot the user back to `/login` before `verifyOtp` has had a chance
+ * to mint the session. The flow needs to be: anonymous user → verifyOtp →
+ * session → redirect to a protected page (which is now allowed).
+ *
+ * Compared to the old `/auth/v1/verify?token=…` link Supabase generates by
+ * default, `token_hash` is NOT consumed by email link-previews (Gmail /
+ * Slack / antivirus all prefetch URLs, which on the old endpoint burns the
+ * single-use OTP before the user clicks). `verifyOtp` is an SDK call from
+ * a real browser session, so previews can't accidentally consume it.
  */
 export default function ConfirmPage() {
 	const params = useSearchParams();
