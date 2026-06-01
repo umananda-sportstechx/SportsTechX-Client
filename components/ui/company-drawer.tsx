@@ -8,12 +8,24 @@
  * "Open full profile →" CTA navigates to `/companies/[slug]`.
  */
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { ArrowRight, Send, Heart, Link2, Lock, Plus, Zap } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
+
+interface PrimaryContactData {
+	id: string;
+	full_name: string | null;
+	job_position: string | null;
+	email: string | null;
+	linkedin_url: string | null;
+	phone: string | null;
+	role: string | null;
+}
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
@@ -320,7 +332,7 @@ function General({ company }: { company: Company }) {
 			</div>
 
 			<ConnectBlock company={company} />
-			<PrimaryContactLocked />
+			<PrimaryContact company={company} />
 		</div>
 	);
 }
@@ -379,22 +391,68 @@ function ConnectBlock({ company }: { company: Company }) {
 	);
 }
 
-/** Pro-locked primary-contact teaser — lock visual, no fabricated data. */
-function PrimaryContactLocked() {
+/**
+ * Primary-contact block. Pro-gated via the `company_contacts` feature:
+ *   - not entitled → upgrade teaser with a working link to /subscriptions;
+ *   - entitled → the real contact, or an honest empty state. No fabricated data.
+ */
+function PrimaryContact({ company }: { company: Company }) {
+	const access = useFeatureAccess('company_contacts');
+	const entitled = !access.isLoading && !access.isLocked;
+	const { data: contact } = useSWR<PrimaryContactData | null>(
+		entitled ? qk.companies.contacts(company.id) : null,
+	);
+
+	if (access.isLoading) return null;
+
+	if (access.isLocked) {
+		return (
+			<div className="co-locked-block" style={{ marginTop: 18 }}>
+				<div className="co-locked-head">
+					<h4 className="co-drawer-h4" style={{ margin: 0 }}>Primary contact</h4>
+					<span className="co-pro-tag">PRO</span>
+				</div>
+				<div className="co-locked-stack">
+					<div className="co-locked-cover">
+						<div className="co-locked-icon"><Lock size={20} /></div>
+						<div className="co-locked-title">Unlock contact details</div>
+						<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
+						<Link href="/subscriptions" className="btn co-locked-btn">Upgrade to Pro</Link>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="co-locked-block" style={{ marginTop: 18 }}>
 			<div className="co-locked-head">
 				<h4 className="co-drawer-h4" style={{ margin: 0 }}>Primary contact</h4>
-				<span className="co-pro-tag">PRO</span>
 			</div>
-			<div className="co-locked-stack">
-				<div className="co-locked-cover">
-					<div className="co-locked-icon"><Lock size={20} /></div>
-					<div className="co-locked-title">Unlock contact details</div>
-					<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
-					<button className="btn co-locked-btn" type="button">Upgrade to Pro</button>
+			{contact ? (
+				<div style={{ padding: '4px 2px' }}>
+					<div style={{ fontWeight: 700 }}>{contact.full_name ?? '—'}</div>
+					{(contact.role || contact.job_position) && (
+						<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
+							{contact.role ?? contact.job_position}
+						</div>
+					)}
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+						{contact.email && (
+							<a href={`mailto:${contact.email}`} className="co-social-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+								<Send size={12} /> {contact.email}
+							</a>
+						)}
+						{contact.linkedin_url && (
+							<a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="co-social-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+								<Link2 size={12} /> LinkedIn
+							</a>
+						)}
+					</div>
 				</div>
-			</div>
+			) : (
+				<Empty msg="No contact on record yet." />
+			)}
 		</div>
 	);
 }

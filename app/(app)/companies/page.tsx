@@ -62,6 +62,8 @@ interface CompaniesResponse {
 }
 
 interface SectorRef { id: string; name: string; slug: string }
+interface TechTagRef { id: string; name: string; slug: string }
+interface LocationFacets { cities: string[]; continents: string[]; regions: string[] }
 interface RefResponse<T> { data: T[] }
 
 const COMMON_COUNTRIES = [
@@ -101,6 +103,17 @@ export default function CompaniesPage() {
 	});
 	const roundTypes = Array.isArray(roundTypesResp) ? roundTypesResp : (roundTypesResp?.data ?? []);
 
+	// Tech tags + location facets back the advanced (Growth-gated) filters. Both
+	// are tiny, near-static reference lists — cache for an hour.
+	const { data: techTagsResp } = useSWR<RefResponse<TechTagRef> | TechTagRef[]>(qk.reference.techTags(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const techTags = Array.isArray(techTagsResp) ? techTagsResp : (techTagsResp?.data ?? []);
+
+	const { data: locationFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
 	const { data: favoritesResp } = useSWR<FavoritesResponse>(qk.favorites.list('companies'));
 	const favoriteIds = useMemo(
 		() => (favoritesResp?.data ?? []).map((r) => r.company_id),
@@ -124,8 +137,6 @@ export default function CompaniesPage() {
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 260,
 		},
-		// Tier-locked teaser (ui_design_3 IA) — sub-sub-sector is a Growth feature.
-		{ key: 'sub_sub_sector', label: 'Sub Sub Sector', kind: 'locked', tier: 'GROWTH', section: 'Sector' },
 		{
 			key: 'business_model',
 			label: 'Business model',
@@ -172,15 +183,31 @@ export default function CompaniesPage() {
 			section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-		// Tier-locked location teasers (ui_design_3 IA) — Growth features.
-		{ key: 'city', label: 'City', kind: 'locked', tier: 'GROWTH', section: 'Location' },
-		{ key: 'continent', label: 'Continent', kind: 'locked', tier: 'GROWTH', section: 'Location' },
-		{ key: 'region', label: 'Region', kind: 'locked', tier: 'GROWTH', section: 'Location' },
-		// Program info + Other — Growth teasers.
-		{ key: 'accelerator', label: 'Accelerator', kind: 'locked', tier: 'GROWTH', section: 'Program info' },
-		{ key: 'cohort', label: 'Cohort', kind: 'locked', tier: 'GROWTH', section: 'Program info' },
-		{ key: 'tech_tags', label: 'Tech Tags', kind: 'locked', tier: 'GROWTH', section: 'Other' },
-	], [sectorList, roundTypes]);
+		// Advanced location facets — gated on `advanced_filters` (Growth+). The
+		// FilterRail renders a working Upgrade teaser for users without access and
+		// the real multi-select for entitled users. Options come from the live
+		// /api/locations/facets reference list, so they reflect actual data.
+		{
+			key: 'city', label: 'City', kind: 'multi', section: 'Location', gate: 'advanced_filters',
+			options: () => (locationFacets?.cities ?? []).map((c) => ({ value: c, label: c })),
+			maxHeight: 220,
+		},
+		{
+			key: 'continent', label: 'Continent', kind: 'multi', section: 'Location', gate: 'advanced_filters',
+			options: () => (locationFacets?.continents ?? []).map((c) => ({ value: c, label: c })),
+		},
+		{
+			key: 'region', label: 'Region', kind: 'multi', section: 'Location', gate: 'advanced_filters',
+			options: () => (locationFacets?.regions ?? []).map((r) => ({ value: r, label: r })),
+		},
+		// Tech tags — gated on `advanced_filters`. Backed by /api/tech-tags; the
+		// selected slugs map to the backend `tech_tag_slug` param.
+		{
+			key: 'tech_tag_slug', label: 'Tech tags', kind: 'multi', section: 'Other', gate: 'advanced_filters',
+			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
+			maxHeight: 240,
+		},
+	], [sectorList, roundTypes, techTags, locationFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -192,6 +219,14 @@ export default function CompaniesPage() {
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
+		const city = params.get('city');
+		if (city) init.city = city.split(',').filter(Boolean);
+		const cont = params.get('continent');
+		if (cont) init.continent = cont.split(',').filter(Boolean);
+		const reg = params.get('region');
+		if (reg) init.region = reg.split(',').filter(Boolean);
+		const tech = params.get('tech_tag_slug');
+		if (tech) init.tech_tag_slug = tech.split(',').filter(Boolean);
 		const bm = params.get('business_model');
 		if (bm) init.business_model = bm.split(',').filter(Boolean);
 		const stage = params.get('last_round_type');
@@ -216,6 +251,14 @@ export default function CompaniesPage() {
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
+		const cityF = filterState.city as string[] | undefined;
+		if (cityF?.length) sp.set('city', cityF.join(','));
+		const contF = filterState.continent as string[] | undefined;
+		if (contF?.length) sp.set('continent', contF.join(','));
+		const regF = filterState.region as string[] | undefined;
+		if (regF?.length) sp.set('region', regF.join(','));
+		const techF = filterState.tech_tag_slug as string[] | undefined;
+		if (techF?.length) sp.set('tech_tag_slug', techF.join(','));
 		const bm = filterState.business_model as string[] | undefined;
 		if (bm?.length) sp.set('business_model', bm.join(','));
 		const stage = filterState.last_round_type as string[] | undefined;
@@ -248,6 +291,14 @@ export default function CompaniesPage() {
 	else if (sec?.length) queryParams.sector_slug = sec.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length === 1) queryParams.country = ctry[0];
+	const cityF = filterState.city as string[] | undefined;
+	if (cityF?.length) queryParams.city = cityF.join(',');
+	const contF = filterState.continent as string[] | undefined;
+	if (contF?.length) queryParams.continent = contF.join(',');
+	const regF = filterState.region as string[] | undefined;
+	if (regF?.length) queryParams.region = regF.join(',');
+	const techF = filterState.tech_tag_slug as string[] | undefined;
+	if (techF?.length) queryParams.tech_tag_slug = techF.join(',');
 	const bm = filterState.business_model as string[] | undefined;
 	if (bm?.length) queryParams.business_model = bm.join(',');
 	const stage = filterState.last_round_type as string[] | undefined;
