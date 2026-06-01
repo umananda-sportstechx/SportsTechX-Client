@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -45,8 +47,38 @@ const THEMES = [
  * `--accent-hue` CSS variable and toggles next-themes; Billing pulls from the
  * existing /api/billing/subscription endpoint.
  */
+const VALID_TABS = new Set<Tab>(['profile', 'appearance', 'notifications', 'api', 'billing']);
+
 export default function SettingsPage() {
-	const [tab, setTab] = useState<Tab>('profile');
+	const router = useRouter();
+	const pathname = usePathname();
+	const params = useSearchParams();
+
+	// Persist the active tab in `?tab=…` so the URL is shareable, reloadable,
+	// and back/forward-button correct. Default = profile; unknown values fall
+	// back to profile rather than rendering an empty pane.
+	const urlTab = params.get('tab') as Tab | null;
+	const [tab, setTabState] = useState<Tab>(urlTab && VALID_TABS.has(urlTab) ? urlTab : 'profile');
+
+	const setTab = (next: Tab) => {
+		setTabState(next);
+		const sp = new URLSearchParams(params.toString());
+		if (next === 'profile') sp.delete('tab');
+		else sp.set('tab', next);
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+	};
+
+	// Keep state in sync when the user navigates via back/forward — Next's
+	// `router.replace` doesn't fire an effect on the same component, but
+	// URL changes from anywhere else (back button, manual paste) re-render
+	// useSearchParams.
+	useEffect(() => {
+		if (urlTab && VALID_TABS.has(urlTab) && urlTab !== tab) setTabState(urlTab);
+		// `tab` intentionally NOT in deps — only react to URL changes.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [urlTab]);
+
 	return (
 		<Page>
 			<PageTitle kicker="Account" title="Settings" />
@@ -456,8 +488,10 @@ function ApiTab() {
 
 function BillingTab() {
 	const { data: profile } = useUserProfile();
+	const { mutate } = useSWRConfig();
 	const tier = (profile?.user_type ?? 'free').toLowerCase();
 	const isFree = tier === 'free';
+	const [syncing, setSyncing] = useState(false);
 
 	// Free-tier users have no Stripe customer → /invoices returns []. Suppress
 	// the fetch entirely to avoid the network round-trip + flicker.
@@ -467,11 +501,56 @@ function BillingTab() {
 	);
 	const list = invoices ?? [];
 
+	const handleSync = async () => {
+		setSyncing(true);
+		try {
+			const res = await apiRequest('POST', '/api/billing/sync', {});
+			const data = (await res.json()) as {
+				status: 'ok' | 'no_customer';
+				customer_id: string | null;
+				subscriptions_synced: number;
+				orphans_deactivated: number;
+			};
+			// Refresh every cache touched by a possible tier change.
+			await Promise.all([
+				mutate(qk.profile()),
+				mutate(qk.billing.subscription()),
+				mutate(qk.billing.invoices()),
+			]);
+			if (data.status === 'no_customer') {
+				toast.info("No Stripe customer found for your account — nothing to sync.");
+			} else if (data.subscriptions_synced === 0 && data.orphans_deactivated === 0) {
+				toast.success('Already in sync with Stripe.');
+			} else {
+				const parts: string[] = [];
+				if (data.subscriptions_synced > 0) parts.push(`${data.subscriptions_synced} subscription${data.subscriptions_synced === 1 ? '' : 's'} synced`);
+				if (data.orphans_deactivated > 0) parts.push(`${data.orphans_deactivated} stale row${data.orphans_deactivated === 1 ? '' : 's'} deactivated`);
+				toast.success(parts.join(' · '));
+			}
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Sync failed.');
+		} finally {
+			setSyncing(false);
+		}
+	};
+
 	return (
 		<div>
-			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
-				Billing
-			</h3>
+			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+				<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, margin: 0 }}>
+					Billing
+				</h3>
+				<button
+					className="btn ghost"
+					onClick={() => void handleSync()}
+					disabled={syncing}
+					title="Re-fetch your subscription state from Stripe — useful if a payment webhook didn't reach us"
+				>
+					{syncing
+						? <><Loader2 size={12} className="animate-spin" /> Syncing…</>
+						: <><RefreshCw size={12} /> Sync with Stripe</>}
+				</button>
+			</div>
 			<div
 				className="card"
 				style={{ padding: 'var(--space-4)', background: 'var(--bg-2)', marginBottom: 16 }}
