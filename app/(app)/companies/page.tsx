@@ -83,7 +83,9 @@ export default function CompaniesPage() {
 	const pathname = usePathname();
 	const params = useSearchParams();
 
-	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'grid');
+	// Default = table — denser, sortable, and what most operators want to land on
+	// when comparing companies. `?view=grid` opts into the card layout.
+	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'table');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
