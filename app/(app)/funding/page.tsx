@@ -78,6 +78,7 @@ interface QuarterlyPoint {
 
 interface SectorRef { id: string; name: string; slug: string }
 interface RoundRef { id: string; name: string; slug: string }
+interface InvestorRef { id: string; name: string }
 interface RefResponse<T> { data: T[] }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -116,6 +117,13 @@ function FundingPageInner() {
 		dedupingInterval: 60 * 60_000,
 	});
 	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
+
+	// Investor options for the (gated) investor picker. Pulled once, cached long
+	// — the selected ids map to the backend `investor_id` filter.
+	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.investors.list({ limit: 200 }), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const investorList = investorsResp?.data ?? [];
 
 	// Year options for the Deal-info "Deal year" facet — last 12 years.
 	const yearOpts = useMemo(() => {
@@ -164,9 +172,14 @@ function FundingPageInner() {
 			key: 'amount', label: 'Round amount', kind: 'range', section: 'Round details',
 			min: 0, max: 250, step: 5, prefix: '$', suffix: 'M',
 		},
-		// Investor filter is a Pro feature (param exists; searchable control TBD).
-		{ key: 'investors', label: 'Investors', kind: 'locked', tier: 'PRO', section: 'Round details' },
-	], [roundList, yearOpts]);
+		// Investor picker — gated on `advanced_filters`. Selected investor ids map
+		// to the backend `investor_id` (csv) param. Searchable when >8 options.
+		{
+			key: 'investors', label: 'Investors', kind: 'multi', section: 'Round details', gate: 'advanced_filters',
+			options: () => investorList.map((i) => ({ value: i.id, label: i.name })),
+			maxHeight: 220,
+		},
+	], [roundList, yearOpts, investorList]);
 
 	// Union drives ActiveFiltersBar chips + initial state; the rail shows only
 	// the active mode's group.
@@ -186,6 +199,7 @@ function FundingPageInner() {
 		const ys = params.get('years'); if (ys) init.years = ys.split(',').filter(Boolean);
 		const qt = params.get('quarter'); if (qt) init.quarter = qt.split(',').filter(Boolean);
 		const mo = params.get('month'); if (mo) init.month = mo.split(',').filter(Boolean);
+		const iv = params.get('investors'); if (iv) init.investors = iv.split(',').filter(Boolean);
 		const aMin = params.get('amount_usd_min');
 		const aMax = params.get('amount_usd_max');
 		if (aMin && aMax) init.amount = [Number(aMin) / 1_000_000, Number(aMax) / 1_000_000] as [number, number];
@@ -209,6 +223,8 @@ function FundingPageInner() {
 		if (qtr?.length) sp.set('quarter', qtr.join(','));
 		const mon = filterState.month as string[] | undefined;
 		if (mon?.length) sp.set('month', mon.join(','));
+		const inv = filterState.investors as string[] | undefined;
+		if (inv?.length) sp.set('investors', inv.join(','));
 		const amt = filterState.amount as [number, number] | undefined;
 		if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
 			sp.set('amount_usd_min', String(amt[0] * 1_000_000));
@@ -257,6 +273,8 @@ function FundingPageInner() {
 	if (qtr?.length) tableParams.quarter = qtr.join(',');
 	const mon = filterState.month as string[] | undefined;
 	if (mon?.length) tableParams.month = mon.join(',');
+	const inv = filterState.investors as string[] | undefined;
+	if (inv?.length) tableParams.investor_id = inv.join(',');
 	const amt = filterState.amount as [number, number] | undefined;
 	if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
 		tableParams.amount_usd_min = amt[0] * 1_000_000;
