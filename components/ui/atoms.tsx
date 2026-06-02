@@ -65,27 +65,38 @@ const CC_TO_COUNTRY: Record<string, string> = {
 };
 
 /**
- * Flag — pseudo country flag rendered as a 3-stripe linear gradient.
+ * Flag — real country flag.
  *
- * Tooltips: every flag carries a `title` (and matching `aria-label`) with
- * the full country name so users hovering/focusing see "United States"
- * rather than the bare "US" code. Callers can override with the `name`
- * prop when they have richer context (e.g. the row already shows the
- * full name elsewhere).
+ * Renders the actual flag SVG from flagcdn.com (free, no API key — same
+ * "free CDN, no token" approach as the company logos' Google-favicons
+ * fallback). If the image fails to load (unknown/unmapped ISO code, CDN
+ * hiccup, or offline), it gracefully degrades to the old 3-stripe gradient
+ * so a flag cell is never empty.
+ *
+ * Tooltips: every flag carries `data-tip` + `aria-label` with the full
+ * country name (see `.flag[data-tip]` in app/design-system.css) so users
+ * hovering/focusing see "United States" rather than the bare "US" code.
+ * Callers can override with the `name` prop.
+ *
+ * To self-host instead (no external dependency at all), swap the `src` for
+ * the `flag-icons` npm package's SVGs — the `.flag` wrapper and tooltip stay
+ * identical.
  */
 export function Flag({
-	cc, size = 14, name,
+	cc, size = 18, name,
 }: {
 	cc: string;
 	size?: number;
 	/** Override the hover tooltip — falls back to the CC_TO_COUNTRY map. */
 	name?: string;
 }) {
-	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+	const code = cc?.toLowerCase();
 	const label = name ?? CC_TO_COUNTRY[cc] ?? cc;
+	const [failed, setFailed] = useState(false);
+	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+
 	// Custom CSS tooltip via `data-tip`; the browser default `title` is
 	// intentionally NOT set so users never see the plain yellow OS popup.
-	// Styling lives in app/design-system.css under `.flag[data-tip]`.
 	return (
 		<span
 			className="flag"
@@ -95,11 +106,27 @@ export function Flag({
 			style={{
 				width: size,
 				height: size * 0.7,
-				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
 				display: 'inline-block',
 				verticalAlign: 'middle',
+				overflow: 'hidden',
+				border: 'none',          // override the shared `.flag` hairline border
+				// Fallback gradient shows through if the <img> fails / is absent.
+				background: `linear-gradient(180deg, ${colors[0]} 0 33%, ${colors[1]} 33% 66%, ${colors[2]} 66%)`,
 			}}
-		/>
+		>
+			{code && !failed && (
+				/* eslint-disable-next-line @next/next/no-img-element */
+				<img
+					src={`https://flagcdn.com/${code}.svg`}
+					alt=""
+					width={size}
+					height={size * 0.7}
+					loading="lazy"
+					onError={() => setFailed(true)}
+					style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+				/>
+			)}
+		</span>
 	);
 }
 
