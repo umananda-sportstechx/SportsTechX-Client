@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Sun, Moon, Sparkles, ChevronRight, User, Settings, CreditCard, LogOut } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { GetVerifiedPill } from '@/components/get-verified/topbar-pill';
 
 interface TopbarProps {
 	onCmdOpen: () => void;
@@ -95,6 +96,8 @@ export function Topbar({
 				<span className="kbd">⌘K</span>
 			</button>
 			<span className="topbar-spacer" />
+
+			<GetVerifiedPill />
 
 			{liveLabel && (
 				<span

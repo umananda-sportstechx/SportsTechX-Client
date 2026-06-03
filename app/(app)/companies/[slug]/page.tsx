@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { ArrowLeft, ExternalLink, Heart, Link2, Lock, Plus, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronRight, ExternalLink, Heart, Link2, Lock, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
@@ -13,6 +13,7 @@ import {
 	VerifiedBadge, RaisingPill, KV,
 } from '@/components/ui/atoms';
 import { WatchlistPicker } from '@/components/ui/watchlist-picker';
+import { ProLockedTab, TabLockBadge } from '@/components/ui/pro-locked-tab';
 
 /**
  * Company detail — pixel-aligned to `ui_design_2/app/company-detail.jsx`
@@ -203,11 +204,11 @@ export default function CompanyDetailPage() {
 	const isVerified = company.is_verified === true;
 	const isRaising = company.is_actively_raising === true;
 
-	const visibleTabs: Array<{ key: Tab; label: string; count?: number; show: boolean }> = [
+	const visibleTabs: Array<{ key: Tab; label: string; count?: number; show: boolean; slug?: string }> = [
 		{ key: 'overview', label: 'Overview', show: true },
-		{ key: 'funding', label: 'Funding', count: deals.length, show: deals.length > 0 },
-		{ key: 'mna', label: 'M&A', count: acquisitions.length, show: acquisitions.length > 0 },
-		{ key: 'investors', label: 'Investors', count: investors.length, show: investors.length > 0 },
+		{ key: 'funding', label: 'Funding', count: deals.length, show: deals.length > 0, slug: 'deals_full' },
+		{ key: 'mna', label: 'M&A', count: acquisitions.length, show: acquisitions.length > 0, slug: 'acquisitions_full' },
+		{ key: 'investors', label: 'Investors', count: investors.length, show: investors.length > 0, slug: 'investors_full' },
 		{ key: 'team', label: 'Team', count: team.length, show: team.length > 0 },
 		{ key: 'news', label: 'News', count: news.length, show: news.length > 0 },
 		{ key: 'similar', label: 'Similar companies', count: similar.length, show: similar.length > 0 },
@@ -328,6 +329,7 @@ export default function CompanyDetailPage() {
 					>
 						{t.label}
 						{t.count != null && t.count > 0 && <span className="co-page-tab-count">{t.count}</span>}
+						{t.slug && <TabLockBadge slug={t.slug} />}
 					</button>
 				))}
 			</nav>
@@ -336,7 +338,7 @@ export default function CompanyDetailPage() {
 			{tab === 'overview' && (
 				<div className="co-page-grid">
 					<main className="co-page-main">
-						<Overview company={company} deals={deals} />
+						<Overview company={company} deals={deals} news={news} />
 					</main>
 					<aside className="co-page-rail">
 						<KeyFactsCard company={company} />
@@ -347,17 +349,23 @@ export default function CompanyDetailPage() {
 			)}
 			{tab === 'funding' && (
 				<div className="co-page-main">
-					<Funding company={company} deals={deals} />
+					<ProLockedTab slug="deals_full" title="Funding">
+						<Funding company={company} deals={deals} />
+					</ProLockedTab>
 				</div>
 			)}
 			{tab === 'mna' && (
 				<div className="co-page-main">
-					<Mna acquisitions={acquisitions} companyName={company.name} />
+					<ProLockedTab slug="acquisitions_full" title="M&A">
+						<Mna acquisitions={acquisitions} companyName={company.name} />
+					</ProLockedTab>
 				</div>
 			)}
 			{tab === 'investors' && (
 				<div className="co-page-main">
-					<Investors investors={investors} companyName={company.name} roundCount={deals.length} />
+					<ProLockedTab slug="investors_full" title="Investors">
+						<Investors investors={investors} companyName={company.name} roundCount={deals.length} />
+					</ProLockedTab>
 				</div>
 			)}
 			{tab === 'team' && (
@@ -558,7 +566,8 @@ function PrimaryContactCard({ company }: { company: Company }) {
 
 // ─── Overview tab ─────────────────────────────────────────────────────────
 
-function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
+function Overview({ company, deals, news }: { company: Company; deals: Deal[]; news: NewsItem[] }) {
+	const signals = news.slice(0, 6);
 	return (
 		<>
 			<section className="co-sec">
@@ -572,6 +581,33 @@ function Overview({ company, deals }: { company: Company; deals: Deal[] }) {
 				<section className="co-sec">
 					<h3 className="co-sec-h">Funding timeline</h3>
 					<FundingTimeline deals={deals} />
+				</section>
+			)}
+
+			{signals.length > 0 && (
+				<section className="co-sec">
+					<h3 className="co-sec-h">Recent signals</h3>
+					<div className="co-news">
+						{signals.map((n) => (
+							<div key={n.id} className="co-news-row">
+								{n.source && <span className="co-news-kind">{n.source}</span>}
+								<span style={{ flex: 1, minWidth: 0 }}>
+									{n.url ? (
+										<a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+											{n.title} <ExternalLink size={11} style={{ verticalAlign: 'middle' }} />
+										</a>
+									) : (
+										n.title
+									)}
+								</span>
+								{n.published_at && (
+									<span style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+										{formatShortDate(n.published_at)}
+									</span>
+								)}
+							</div>
+						))}
+					</div>
 				</section>
 			)}
 		</>
@@ -600,6 +636,7 @@ function FundingTimeline({ deals }: { deals: Deal[] }) {
 // ─── Funding tab ──────────────────────────────────────────────────────────
 
 function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
+	const router = useRouter();
 	if (deals.length === 0) {
 		return (
 			<section className="co-sec">
@@ -654,7 +691,12 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 				);
 			})()}
 
-			<h4 className="co-sec-sub">Round detail</h4>
+			<div className="co-sec-sub-row">
+				<h4 className="co-sec-sub" style={{ margin: 0 }}>Round detail</h4>
+				<Link className="co-callback-link" href={`/funding?q=${encodeURIComponent(company.name)}`}>
+					Open in Funding Tracker <ArrowRight size={11} />
+				</Link>
+			</div>
 			<div className="card" style={{ padding: 0 }}>
 				<table className="data-table">
 					<thead>
@@ -663,19 +705,26 @@ function Funding({ company, deals }: { company: Company; deals: Deal[] }) {
 							<th>Stage</th>
 							<th>Lead investor</th>
 							<th style={{ textAlign: 'right' }}>Amount</th>
+							<th style={{ width: 28 }}></th>
 						</tr>
 					</thead>
 					<tbody>
 						{deals.map((r) => {
 							const round = r.round_type_name ?? r.round_type ?? '—';
 							return (
-								<tr key={r.id}>
+								<tr
+									key={r.id}
+									style={{ cursor: 'pointer' }}
+									onClick={() => router.push(`/funding?q=${encodeURIComponent(company.name)}`)}
+									title="Open in Funding Tracker"
+								>
 									<td className="num">{r.announced_date ? formatShortDate(r.announced_date) : '—'}</td>
 									<td><Tag variant={round.toLowerCase().includes('series') ? 'pos' : ''}>{round}</Tag></td>
 									<td>{r.lead_investor ?? '—'}</td>
 									<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
 										{formatDollars(r.amount_usd)}
 									</td>
+									<td style={{ color: 'var(--fg-muted)', textAlign: 'right' }}><ChevronRight size={12} /></td>
 								</tr>
 							);
 						})}
@@ -747,6 +796,7 @@ function RoundsChart({ rounds }: { rounds: Array<{ amount: number; stage: string
 // ─── M&A tab ──────────────────────────────────────────────────────────────
 
 function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; companyName: string }) {
+	const router = useRouter();
 	if (acquisitions.length === 0) {
 		return (
 			<section className="co-sec">
@@ -858,7 +908,12 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 				<MnaTimeline acquisitions={acquisitions} />
 			</div>
 
-			<h4 className="co-sec-sub">Acquisition detail</h4>
+			<div className="co-sec-sub-row">
+				<h4 className="co-sec-sub" style={{ margin: 0 }}>Acquisition detail</h4>
+				<Link className="co-callback-link" href={`/ma?q=${encodeURIComponent(companyName)}`}>
+					Open in M&amp;A Tracker <ArrowRight size={11} />
+				</Link>
+			</div>
 			<div className="card" style={{ padding: 0 }}>
 				<table className="data-table">
 					<thead>
@@ -867,17 +922,24 @@ function Mna({ acquisitions, companyName }: { acquisitions: Acquisition[]; compa
 							<th>Acquirer</th>
 							<th>Type</th>
 							<th style={{ textAlign: 'right' }}>Value</th>
+							<th style={{ width: 28 }}></th>
 						</tr>
 					</thead>
 					<tbody>
 						{acquisitions.map((m) => (
-							<tr key={m.id}>
+							<tr
+								key={m.id}
+								style={{ cursor: 'pointer' }}
+								onClick={() => router.push(`/ma?q=${encodeURIComponent(companyName)}`)}
+								title="Open in M&A Tracker"
+							>
 								<td className="num">{m.acquisition_date ? formatShortDate(m.acquisition_date) : '—'}</td>
 								<td style={{ fontWeight: 600 }}>{m.acquirer_name ?? '—'}</td>
 								<td>{m.acquisition_type ? <Tag>{formatType(m.acquisition_type)}</Tag> : '—'}</td>
 								<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
 									{formatDollars(m.amount_usd)}
 								</td>
+								<td style={{ color: 'var(--fg-muted)', textAlign: 'right' }}><ChevronRight size={12} /></td>
 							</tr>
 						))}
 					</tbody>

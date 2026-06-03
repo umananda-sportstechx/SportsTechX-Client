@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import { SortHeader, applySort, type SortState } from '@/components/ui/sort-header';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const COMMON_COUNTRIES = [
@@ -51,6 +52,7 @@ export default function EventsPage() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
+	const [sort, setSort] = useState<SortState | null>(null);
 
 	const facets = useMemo<Facet[]>(() => [
 		{
@@ -100,6 +102,19 @@ export default function EventsPage() {
 	const total = data?.total ?? 0;
 	const totalPages = data?.totalPages ?? 1;
 
+	// Client-side sort of the current page's rows (the list endpoint does not
+	// support sorting by date/location/attendees). Mirrors the design prototype's
+	// `applySort` over in-hand rows.
+	const sortedEvents = useMemo(() => applySort(events, sort, {
+		date: (e) => (e.start_date ? new Date(e.start_date).getTime() : null),
+		name: (e) => e.name.toLowerCase(),
+		location: (e) => [e.hq_country, e.hq_city].filter(Boolean).join(' ').toLowerCase() || null,
+		attendees: (e) => {
+			const n = parseInt(String(e.expected_attendees ?? '').replace(/[^\d]/g, ''), 10);
+			return Number.isNaN(n) ? null : n;
+		},
+	}), [events, sort]);
+
 	return (
 		<Page>
 			<PageTitle
@@ -135,10 +150,10 @@ export default function EventsPage() {
 						</div>
 					) : view === 'grid' ? (
 						<div className="grid-3">
-							{events.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
+							{sortedEvents.map((e, i) => <EventCard key={e.id} e={e} i={i} />)}
 						</div>
 					) : (
-						<EventsTable events={events} />
+						<EventsTable events={sortedEvents} sort={sort} setSort={setSort} />
 					)}
 
 					{totalPages > 1 && (
@@ -160,16 +175,23 @@ export default function EventsPage() {
 	);
 }
 
-function EventsTable({ events }: { events: EventEntity[] }) {
+function EventsTable({
+	events, sort, setSort,
+}: {
+	events: EventEntity[];
+	sort: SortState | null;
+	setSort: (s: SortState | null) => void;
+}) {
 	return (
 		<div className="card">
 			<table className="data-table">
 				<thead>
 					<tr>
-						<th>Date</th>
-						<th>Event</th>
-						<th>Location</th>
-						<th>Attendees</th>
+						<SortHeader label="Date" sortKey="date" sort={sort} setSort={setSort} width={120} />
+						<SortHeader label="Event" sortKey="name" sort={sort} setSort={setSort} />
+						<SortHeader label="Location" sortKey="location" sort={sort} setSort={setSort} />
+						<SortHeader label="Attendees" sortKey="attendees" sort={sort} setSort={setSort} defaultDir="desc" />
+						<th style={{ width: 110 }}></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -184,6 +206,11 @@ function EventsTable({ events }: { events: EventEntity[] }) {
 								</td>
 								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}</span></td>
 								<td style={{ fontSize: 12, color: 'var(--fg-2)' }}>{e.expected_attendees ?? '—'}</td>
+								<td>
+									<Link href={`/events/${e.slug ?? e.id}`} className="btn ghost">
+										Details <ArrowRight size={11} />
+									</Link>
+								</td>
 							</tr>
 						);
 					})}

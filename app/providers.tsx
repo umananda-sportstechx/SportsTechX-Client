@@ -10,6 +10,7 @@ import { AuthSessionProvider } from '@/contexts/auth-session-context';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import { FeatureAccessProvider } from '@/contexts/feature-access-context';
 import { MobileNavProvider } from '@/contexts/mobile-nav-context';
+import { ClaimModalHost } from '@/components/claim/claim-modal-host';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { identify, initAnalytics, reset } from '@/lib/analytics';
 import { useEffect } from 'react';
@@ -58,6 +59,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <MobileNavProvider>
                 <AppInit />
                 {children}
+                <ClaimModalHost />
                 <Toaster richColors position="top-right" />
               </MobileNavProvider>
             </FeatureAccessProvider>
