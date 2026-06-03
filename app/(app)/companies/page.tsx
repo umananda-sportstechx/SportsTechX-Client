@@ -21,6 +21,9 @@ import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { WatchlistPicker } from '@/components/ui/watchlist-picker';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
+import { VerifyBanner } from '@/components/get-verified/verify-banner';
+import { ExplorerUpgradeBanner, ExplorerLockedFooter, EXPLORER_CAP } from '@/components/ui/explorer-upgrade';
+import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 
 interface RoundType { id: string; name: string; slug: string }
 interface FavoriteCompany { company_id: string }
@@ -103,6 +106,11 @@ export default function CompaniesPage() {
 	});
 	const roundTypes = Array.isArray(roundTypesResp) ? roundTypesResp : (roundTypesResp?.data ?? []);
 
+	const { data: sportsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
 	// Tech tags + location facets back the advanced (Growth-gated) filters. Both
 	// are tiny, near-static reference lists — cache for an hour.
 	const { data: techTagsResp } = useSWR<RefResponse<TechTagRef> | TechTagRef[]>(qk.reference.techTags(), {
@@ -159,6 +167,14 @@ export default function CompaniesPage() {
 			maxHeight: 240,
 		},
 		{
+			key: 'sport_slug',
+			label: 'Sport',
+			kind: 'multi',
+			section: 'Business details',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
 			key: 'founded',
 			label: 'Founded year',
 			kind: 'range',
@@ -207,7 +223,7 @@ export default function CompaniesPage() {
 			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
 			maxHeight: 240,
 		},
-	], [sectorList, roundTypes, techTags, locationFacets]);
+	], [sectorList, roundTypes, sportList, techTags, locationFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -299,6 +315,8 @@ export default function CompaniesPage() {
 	if (regF?.length) queryParams.region = regF.join(',');
 	const techF = filterState.tech_tag_slug as string[] | undefined;
 	if (techF?.length) queryParams.tech_tag_slug = techF.join(',');
+	const sportF = filterState.sport_slug as string[] | undefined;
+	if (sportF?.length) queryParams.sport_slug = sportF.join(',');
 	const bm = filterState.business_model as string[] | undefined;
 	if (bm?.length) queryParams.business_model = bm.join(',');
 	const stage = filterState.last_round_type as string[] | undefined;
@@ -329,9 +347,20 @@ export default function CompaniesPage() {
 		dedupingInterval: 3 * 60_000,
 	});
 
-	const companies = data?.data ?? [];
+	const rawCompanies = data?.data ?? [];
 	const total = data?.total ?? 0;
-	const totalPages = data?.totalPages ?? 1;
+
+	// Free (Explorer) tier sees only the first EXPLORER_CAP companies. Cap the
+	// rows on the boundary page and the reachable page count; everything past
+	// the cap is "locked" behind a Growth upgrade.
+	const { data: profile } = useUserProfile();
+	const isExplorer = getUserType(profile) === 'free';
+	const PAGE_SIZE = 24;
+	const capPages = Math.ceil(EXPLORER_CAP / PAGE_SIZE);
+	const rowsAllowedThisPage = isExplorer ? Math.max(0, EXPLORER_CAP - (page - 1) * PAGE_SIZE) : Infinity;
+	const companies = isExplorer ? rawCompanies.slice(0, rowsAllowedThisPage) : rawCompanies;
+	const totalPages = isExplorer ? Math.min(data?.totalPages ?? 1, capPages) : (data?.totalPages ?? 1);
+	const hiddenCount = isExplorer ? Math.max(0, total - EXPLORER_CAP) : 0;
 
 	const handleRowClick = (c: CompanyRow, e: React.MouseEvent) => {
 		// Skip if the click landed on an inner button (fav, compare, etc.)
@@ -364,6 +393,8 @@ export default function CompaniesPage() {
 				}
 			/>
 
+			<VerifyBanner />
+
 			<div className="flt-layout">
 				<FilterRail
 					facets={facets}
@@ -382,6 +413,8 @@ export default function CompaniesPage() {
 						shown={companies.length}
 						viewToggle={<ViewToggle view={view} setView={setView} />}
 					/>
+
+					{isExplorer && total > 0 && <ExplorerUpgradeBanner capped={hiddenCount > 0} />}
 
 					{isLoading && companies.length === 0 ? (
 						<Empty msg="Loading…" />
@@ -474,6 +507,10 @@ export default function CompaniesPage() {
 								</tbody>
 							</table>
 						</div>
+					)}
+
+					{isExplorer && hiddenCount > 0 && companies.length > 0 && (
+						<ExplorerLockedFooter hiddenCount={hiddenCount} />
 					)}
 
 					<CompanyDrawer

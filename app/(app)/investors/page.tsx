@@ -6,7 +6,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge } from '@/components/ui/atoms';
 import { FeatureGate } from '@/components/shell/screen-lock';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -21,6 +21,7 @@ interface InvestorRow {
 	id: string;
 	name: string;
 	slug?: string;
+	is_verified?: boolean | null;
 	description?: string | null;
 	thesis?: string | null;
 	category?: string | null;
@@ -276,8 +277,8 @@ function InvestorTable({
 				<thead>
 					<tr>
 						<SortHeader label="Firm" sortKey="name" sort={sort} setSort={setSort} />
-						<th>Type</th>
-						<th>HQ</th>
+						<SortHeader label="Type" sortKey="category" sort={sort} setSort={setSort} />
+						<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
 						<th>AUM</th>
 						<th style={{ textAlign: 'right' }}>Deals</th>
 						<th>Stage focus</th>
@@ -306,7 +307,7 @@ function InvestorTable({
 											{initials}
 										</div>
 										<div className="tbl-name-text">
-											<div className="tbl-name-line"><span className="tbl-name">{i.name}</span></div>
+											<div className="tbl-name-line" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="tbl-name">{i.name}</span>{i.is_verified && <VerifiedBadge size={12} />}</div>
 											{(i.thesis ?? i.description) && <div className="tbl-sub">{i.thesis ?? i.description}</div>}
 										</div>
 									</div>
@@ -364,7 +365,7 @@ function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOr
 						{initials}
 					</div>
 					<div style={{ flex: 1, minWidth: 0 }}>
-						<div style={{ fontWeight: 700, fontSize: 15 }}>{i.name}</div>
+						<div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>{i.name}{i.is_verified && <VerifiedBadge size={12} />}</div>
 						<div
 							style={{
 								fontSize: 11,

@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
   '/auth',            // /auth/callback and any other supabase auth flow pages
   '/privacy-policy',
   '/terms-of-service',
+  '/w',               // /w/[token] — public read-only shared watchlist pages
 ];
 
 /**

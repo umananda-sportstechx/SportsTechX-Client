@@ -219,8 +219,11 @@ function ProgramCard({ p, i }: { p: EcosystemEntity; i: number }) {
 					</div>
 				</div>
 				<Link href={`/programs/${p.slug ?? p.id}`} style={{ textDecoration: 'none' }}>
-					<button className="btn ghost" style={{ marginTop: 14, width: '100%', justifyContent: 'center' }}>
-						View <ArrowRight size={12} />
+					<button
+						className={`btn ${status === 'open' ? '' : 'ghost'}`}
+						style={{ marginTop: 14, width: '100%', justifyContent: 'center' }}
+					>
+						{status === 'open' ? 'Apply' : 'View'} <ArrowRight size={12} />
 					</button>
 				</Link>
 			</div>
