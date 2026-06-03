@@ -253,6 +253,8 @@ function AppearanceTab() {
 	const { theme, setTheme } = useTheme();
 	const [accentHue, setAccentHue] = useState<number>(14);
 	const [density, setDensityState] = useState<'comfortable' | 'compact'>('compact');
+	const [currency, setCurrencyState] = useState<string>('USD');
+	const [region, setRegionState] = useState<string>('Global');
 
 	useEffect(() => {
 		const initial = getComputedStyle(document.documentElement).getPropertyValue('--accent-hue').trim();
@@ -260,6 +262,12 @@ function AppearanceTab() {
 		if (Number.isFinite(parsed) && parsed > 0) setAccentHue(parsed);
 		const d = document.documentElement.getAttribute('data-density');
 		if (d === 'comfortable' || d === 'compact') setDensityState(d);
+		try {
+			const c = localStorage.getItem('stx:currency');
+			if (c) setCurrencyState(c);
+			const r = localStorage.getItem('stx:region');
+			if (r) setRegionState(r);
+		} catch { /* ignore */ }
 	}, []);
 
 	const setAccent = (h: number) => {
@@ -275,6 +283,20 @@ function AppearanceTab() {
 		setDensityState(d);
 		try {
 			localStorage.setItem('stx:density', d);
+		} catch { /* ignore */ }
+	};
+
+	const setCurrency = (c: string) => {
+		setCurrencyState(c);
+		try {
+			localStorage.setItem('stx:currency', c);
+		} catch { /* ignore */ }
+	};
+
+	const setRegion = (r: string) => {
+		setRegionState(r);
+		try {
+			localStorage.setItem('stx:region', r);
 		} catch { /* ignore */ }
 	};
 
@@ -349,6 +371,31 @@ function AppearanceTab() {
 						<span style={{ fontSize: 11, opacity: 0.7, fontWeight: 400 }}>{d.desc}</span>
 					</button>
 				))}
+			</div>
+
+			<div className="co-stat-label" style={{ marginBottom: 10 }}>Currency · Region</div>
+			<div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+				<select
+					className="search-input"
+					value={currency}
+					onChange={(e) => setCurrency(e.target.value)}
+					style={{ flex: 1 }}
+				>
+					<option value="USD">USD ($)</option>
+					<option value="EUR">EUR (€)</option>
+					<option value="GBP">GBP (£)</option>
+				</select>
+				<select
+					className="search-input"
+					value={region}
+					onChange={(e) => setRegion(e.target.value)}
+					style={{ flex: 1 }}
+				>
+					<option value="Global">Global</option>
+					<option value="North America">North America</option>
+					<option value="Europe">Europe</option>
+					<option value="APAC">APAC</option>
+				</select>
 			</div>
 		</div>
 	);

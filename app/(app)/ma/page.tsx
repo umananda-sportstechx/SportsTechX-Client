@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Target, Building2, Handshake } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
@@ -114,6 +114,14 @@ function MnaPageInner() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
+	// Per-party filter mode (mirrors the funding page's Startup/Deal toggle):
+	// Acquiree = target-side facets, Acquirer = buyer-side facets, Deal =
+	// deal-level facets. Selections from all three modes stay applied; mode only
+	// controls which facet group the rail renders.
+	const [mode, setMode] = useState<'acquiree' | 'acquirer' | 'deal'>(() => {
+		const m = params.get('mode');
+		return m === 'acquirer' || m === 'deal' ? m : 'acquiree';
+	});
 	const [sort, setSort] = useState<SortState | null>(
 		paramToSort(params.get('sort')) ?? { key: 'acquisition_date', dir: 'desc' },
 	);
@@ -123,29 +131,84 @@ function MnaPageInner() {
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
 
-	const facets = useMemo<Facet[]>(() => [
-		{ key: 'disclosed_only', label: 'Disclosed value only', kind: 'bool' },
+	const { data: sportsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
+	// Acquiree (target) side facets. Keys are per-party so each side keeps its
+	// own selection; they map to acquiree_* query params in tableParams.
+	const acquireeFacets = useMemo<Facet[]>(() => [
+		{ key: 'acquiree_is_sportstech', label: 'Target is SportsTech', kind: 'bool', section: 'Target' },
 		{
-			key: 'acquisition_type',
-			label: 'Acquirer type',
-			kind: 'multi',
-			section: 'Deal details',
-			options: () => TYPE_OPTIONS,
-		},
-		{
-			key: 'business_model',
+			key: 'acquiree_business_model',
 			label: 'Target business model',
 			kind: 'multi',
-			section: 'Deal details',
+			section: 'Target',
 			options: () => BIZ_MODEL_OPTIONS,
 		},
 		{
-			key: 'sector_slug',
-			label: 'Sector',
+			key: 'acquiree_sector_slug',
+			label: 'Target sector',
 			kind: 'multi',
-			section: 'Deal details',
+			section: 'Target',
 			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
+		},
+		{
+			key: 'acquiree_sport_slug',
+			label: 'Target sport',
+			kind: 'multi',
+			section: 'Target',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'country',
+			label: 'Target HQ',
+			kind: 'multi',
+			section: 'Location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+	], [sectorList, sportList]);
+
+	// Acquirer (buyer) side facets. Map to acquirer_* query params.
+	const acquirerFacets = useMemo<Facet[]>(() => [
+		{ key: 'acquirer_is_sportstech', label: 'Acquirer is SportsTech', kind: 'bool', section: 'Acquirer' },
+		{
+			key: 'acquirer_business_model',
+			label: 'Acquirer business model',
+			kind: 'multi',
+			section: 'Acquirer',
+			options: () => BIZ_MODEL_OPTIONS,
+		},
+		{
+			key: 'acquirer_sector_slug',
+			label: 'Acquirer sector',
+			kind: 'multi',
+			section: 'Acquirer',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'acquirer_sport_slug',
+			label: 'Acquirer sport',
+			kind: 'multi',
+			section: 'Acquirer',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+	], [sectorList, sportList]);
+
+	// Deal-level facets — shared across modes, shown in "Deal" mode.
+	const dealFacets = useMemo<Facet[]>(() => [
+		{ key: 'disclosed_only', label: 'Disclosed value only', kind: 'bool' },
+		{
+			key: 'acquisition_type',
+			label: 'Acquisition type',
+			kind: 'multi',
+			section: 'Deal details',
+			options: () => TYPE_OPTIONS,
 		},
 		{
 			key: 'value',
@@ -159,28 +222,53 @@ function MnaPageInner() {
 			suffix: 'M',
 		},
 		{
-			key: 'country',
-			label: 'Target HQ',
-			kind: 'multi',
-			section: 'Location',
-			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+			key: 'year',
+			label: 'Acquisition year',
+			kind: 'range',
+			section: 'Deal details',
+			min: 2010,
+			max: currentYear,
+			step: 1,
 		},
-	], [sectorList]);
+	], [currentYear]);
+
+	// Union drives ActiveFiltersBar chips + initial filter state; the rail shows
+	// only the active mode's group.
+	const allFacets = useMemo(
+		() => [...acquireeFacets, ...acquirerFacets, ...dealFacets],
+		[acquireeFacets, acquirerFacets, dealFacets],
+	);
+	const railFacets = mode === 'acquirer' ? acquirerFacets : mode === 'deal' ? dealFacets : acquireeFacets;
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
-		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const init = emptyFilterState(allFacets, { search: params.get('q') ?? '' });
 		const d = params.get('disclosed_only'); if (d) init.disclosed_only = d === 'true';
+		if (params.get('acquiree_is_sportstech') === 'true') init.acquiree_is_sportstech = true;
+		if (params.get('acquirer_is_sportstech') === 'true') init.acquirer_is_sportstech = true;
 		const t = params.get('acquisition_type');
 		if (t) init.acquisition_type = t.split(',').filter(Boolean);
-		const bm = params.get('business_model');
-		if (bm) init.business_model = bm.split(',').filter(Boolean);
-		const s = params.get('sector_slug');
-		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		// business_model is the legacy alias for the acquiree side.
+		const bm = params.get('acquiree_business_model') ?? params.get('business_model');
+		if (bm) init.acquiree_business_model = bm.split(',').filter(Boolean);
+		const abm = params.get('acquirer_business_model');
+		if (abm) init.acquirer_business_model = abm.split(',').filter(Boolean);
+		// sector_slug / sport_slug are legacy either-side aliases → seed acquiree.
+		const s = params.get('acquiree_sector_slug') ?? params.get('sector_slug');
+		if (s) init.acquiree_sector_slug = s.split(',').filter(Boolean);
+		const asec = params.get('acquirer_sector_slug');
+		if (asec) init.acquirer_sector_slug = asec.split(',').filter(Boolean);
+		const sp = params.get('acquiree_sport_slug') ?? params.get('sport_slug');
+		if (sp) init.acquiree_sport_slug = sp.split(',').filter(Boolean);
+		const asp = params.get('acquirer_sport_slug');
+		if (asp) init.acquirer_sport_slug = asp.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
 		const vMin = params.get('amount_usd_min');
 		const vMax = params.get('amount_usd_max');
 		if (vMin && vMax) init.value = [Number(vMin) / 1_000_000, Number(vMax) / 1_000_000] as [number, number];
+		const yMin = params.get('year_min');
+		const yMax = params.get('year_max');
+		if (yMin && yMax) init.year = [Number(yMin), Number(yMax)] as [number, number];
 		return init;
 	});
 
@@ -188,12 +276,22 @@ function MnaPageInner() {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
 		if (filterState.disclosed_only === true) sp.set('disclosed_only', 'true');
+		if (filterState.acquiree_is_sportstech === true) sp.set('acquiree_is_sportstech', 'true');
+		if (filterState.acquirer_is_sportstech === true) sp.set('acquirer_is_sportstech', 'true');
 		const t = filterState.acquisition_type as string[] | undefined;
 		if (t?.length) sp.set('acquisition_type', t.join(','));
-		const bm = filterState.business_model as string[] | undefined;
-		if (bm?.length) sp.set('business_model', bm.join(','));
-		const sec = filterState.sector_slug as string[] | undefined;
-		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const bm = filterState.acquiree_business_model as string[] | undefined;
+		if (bm?.length) sp.set('acquiree_business_model', bm.join(','));
+		const abm = filterState.acquirer_business_model as string[] | undefined;
+		if (abm?.length) sp.set('acquirer_business_model', abm.join(','));
+		const sec = filterState.acquiree_sector_slug as string[] | undefined;
+		if (sec?.length) sp.set('acquiree_sector_slug', sec.join(','));
+		const asec = filterState.acquirer_sector_slug as string[] | undefined;
+		if (asec?.length) sp.set('acquirer_sector_slug', asec.join(','));
+		const spt = filterState.acquiree_sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('acquiree_sport_slug', spt.join(','));
+		const aspt = filterState.acquirer_sport_slug as string[] | undefined;
+		if (aspt?.length) sp.set('acquirer_sport_slug', aspt.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
 		const v = filterState.value as [number, number] | undefined;
@@ -201,14 +299,20 @@ function MnaPageInner() {
 			sp.set('amount_usd_min', String(v[0] * 1_000_000));
 			sp.set('amount_usd_max', String(v[1] * 1_000_000));
 		}
+		const yr = filterState.year as [number, number] | undefined;
+		if (yr && (yr[0] !== 2010 || yr[1] !== currentYear)) {
+			sp.set('year_min', String(yr[0]));
+			sp.set('year_max', String(yr[1]));
+		}
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'table') sp.set('view', view);
+		if (mode !== 'acquiree') sp.set('mode', mode);
 		const sortParam = sortToParam(sort);
 		if (sortParam && sortParam !== '-acquisition_date') sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view, sort]);
+	}, [filterState, page, view, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
@@ -227,18 +331,33 @@ function MnaPageInner() {
 	};
 	if (debouncedSearch) tableParams.q = debouncedSearch;
 	if (filterState.disclosed_only === true) tableParams.disclosed_only = true;
+	if (filterState.acquiree_is_sportstech === true) tableParams.acquiree_is_sportstech = true;
+	if (filterState.acquirer_is_sportstech === true) tableParams.acquirer_is_sportstech = true;
 	const t = filterState.acquisition_type as string[] | undefined;
 	if (t?.length) tableParams.acquisition_type = t.join(',');
-	const bm = filterState.business_model as string[] | undefined;
-	if (bm?.length) tableParams.business_model = bm.join(',');
-	const sec = filterState.sector_slug as string[] | undefined;
-	if (sec?.length) tableParams.sector_slug = sec.join(',');
+	const bm = filterState.acquiree_business_model as string[] | undefined;
+	if (bm?.length) tableParams.acquiree_business_model = bm.join(',');
+	const abm = filterState.acquirer_business_model as string[] | undefined;
+	if (abm?.length) tableParams.acquirer_business_model = abm.join(',');
+	const sec = filterState.acquiree_sector_slug as string[] | undefined;
+	if (sec?.length) tableParams.acquiree_sector_slug = sec.join(',');
+	const asec = filterState.acquirer_sector_slug as string[] | undefined;
+	if (asec?.length) tableParams.acquirer_sector_slug = asec.join(',');
+	const spt = filterState.acquiree_sport_slug as string[] | undefined;
+	if (spt?.length) tableParams.acquiree_sport_slug = spt.join(',');
+	const aspt = filterState.acquirer_sport_slug as string[] | undefined;
+	if (aspt?.length) tableParams.acquirer_sport_slug = aspt.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length) tableParams.country = ctry.join(',');
 	const v = filterState.value as [number, number] | undefined;
 	if (v && (v[0] !== 0 || v[1] !== 1500)) {
 		tableParams.amount_usd_min = v[0] * 1_000_000;
 		tableParams.amount_usd_max = v[1] * 1_000_000;
+	}
+	const yr = filterState.year as [number, number] | undefined;
+	if (yr && (yr[0] !== 2010 || yr[1] !== currentYear)) {
+		tableParams.year_min = yr[0];
+		tableParams.year_max = yr[1];
 	}
 
 	const { data: tableData, isLoading } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(tableParams), { dedupingInterval: 3 * 60_000 });
@@ -275,15 +394,50 @@ function MnaPageInner() {
 
 			<div className="flt-layout">
 				<FilterRail
-					facets={facets}
+					facets={railFacets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}
-					defaultOpen={{ acquisition_type: true, sector_slug: true, country: true }}
+					defaultOpen={{
+						acquisition_type: true,
+						acquiree_sector_slug: true,
+						acquirer_sector_slug: true,
+						country: true,
+					}}
+					topSlot={
+						<div className="ff-mode-wrap">
+							<div className="ff-mode" role="tablist" aria-label="Filter party">
+								<button
+									role="tab"
+									aria-selected={mode === 'acquiree'}
+									className={`ff-mode-btn ${mode === 'acquiree' ? 'on' : ''}`}
+									onClick={() => setMode('acquiree')}
+								>
+									<Target size={11} /> Acquiree
+								</button>
+								<button
+									role="tab"
+									aria-selected={mode === 'acquirer'}
+									className={`ff-mode-btn ${mode === 'acquirer' ? 'on' : ''}`}
+									onClick={() => setMode('acquirer')}
+								>
+									<Building2 size={11} /> Acquirer
+								</button>
+								<button
+									role="tab"
+									aria-selected={mode === 'deal'}
+									className={`ff-mode-btn ${mode === 'deal' ? 'on' : ''}`}
+									onClick={() => setMode('deal')}
+								>
+									<Handshake size={11} /> Deal
+								</button>
+							</div>
+						</div>
+					}
 				/>
 
 				<div className="flt-main">
 					<ActiveFiltersBar
-						facets={facets}
+						facets={allFacets}
 						state={filterState}
 						setState={setFilterState}
 						placeholder="Search targets, acquirers…"

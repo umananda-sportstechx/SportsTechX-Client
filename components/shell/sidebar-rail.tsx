@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight, Heart,
+	ChevronRight, Heart, BadgeCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -58,7 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
 		]
 	},
 	{
-		label: 'Ecosystem', items: [
+		label: 'Eco', items: [
 			{ id: 'investors', name: 'Investors', icon: Wallet, path: '/investors', slug: 'investors_full' },
 			{ id: 'programs', name: 'Programs', icon: Zap, path: '/programs' },
 			{ id: 'events', name: 'Events', icon: CalendarDays, path: '/events' },
@@ -68,6 +68,7 @@ const NAV_GROUPS: NavGroup[] = [
 		// `lists` (My lists) is a client addition retained per the keep-behavior
 		// rule — the prototype reaches lists via the "My Lists" button instead.
 		label: 'Account', items: [
+			{ id: 'getverified', name: 'Get Verified', icon: BadgeCheck, path: '/get-verified' },
 			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
 			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
 			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
