@@ -10,6 +10,10 @@
 @import "./company-detail.css";
 /* My Lists — Liked / Watchlists / Saved Searches. */
 @import "./lists.css";
+
+@import "./claim-modal.css";
+
+@import "./get-verified.css";
 /* Analytics — sub-tab nav + ranking helpers. */
 @import "./analytics.css";
 
@@ -43,6 +47,12 @@
   --neg: oklch(62% 0.21 5);     /* pink-red */
   --info: oklch(70% 0.16 235);
   --warn: oklch(78% 0.16 75);
+
+  /* Verification accent — drives the claim/verify modal + get-verified surfaces
+   * (matched to ui_design/verify.css). Light theme deepens it for contrast. */
+  --verify: oklch(52% 0.16 230);
+  --verify-soft: color-mix(in oklch, oklch(52% 0.16 230), transparent 88%);
+  --verify-line: color-mix(in oklch, oklch(52% 0.16 230), transparent 62%);
 
   /* Light theme greyscale */
   --bg: #FAFAF7;
@@ -98,6 +108,11 @@
   --grid-line: rgba(250, 250, 247, 0.06);
   /* Used by .card.feature stat cards + analytics snapshot tiles */
   --slate-deep: #2C3A4A;
+
+  /* Brighter verification accent on dark surfaces (matches verify.css default). */
+  --verify: oklch(62% 0.16 220);
+  --verify-soft: color-mix(in oklch, oklch(62% 0.16 220), transparent 88%);
+  --verify-line: color-mix(in oklch, oklch(62% 0.16 220), transparent 62%);
 }
 
 /* Tailwind v4 token mapping — so utilities resolve to design tokens. */

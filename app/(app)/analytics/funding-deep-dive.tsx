@@ -5,7 +5,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Stat, SectionHead, Empty, Flag } from '@/components/ui/atoms';
+import { Stat, SectionHead, Empty, Flag, AudienceIcon, audienceColor } from '@/components/ui/atoms';
 import {
 	PieDonut, ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
 	type PieSegment, type ComboPoint, type YearRange, type HBarRow,
@@ -51,6 +51,13 @@ interface BizModelPoint {
 
 interface WorldPoint {
 	country: string;
+	deal_count: number;
+	total_amount: number;
+}
+
+interface CityPoint {
+	city: string;
+	country: string | null;
 	deal_count: number;
 	total_amount: number;
 }
@@ -106,10 +113,25 @@ function regionOf(country: string): Exclude<Region, 'all'> {
 	return REGION_OF[country] ?? 'row';
 }
 
+// Audience segmented filter for the Top Funded Companies table. Audience is
+// derived server-side from each company's sector (descendant-of-root). `all`
+// sends no audience param; the three audiences map to the framework roots.
+// The analytics audience param only covers the three top-level pillars (not the
+// atoms' wider `Audience`, which also has 'business'), so narrow it explicitly.
+type AudienceFilter = 'all' | 'athletes' | 'fans' | 'executives';
+
+const AUDIENCE_CHIPS: Array<[AudienceFilter, string]> = [
+	['all', 'All'],
+	['athletes', 'For Athletes'],
+	['fans', 'For Fans'],
+	['executives', 'For Executives'],
+];
+
 export function FundingDeepDiveTab() {
 	const currentYear = new Date().getFullYear();
 	const [range, setRange] = useState<YearRange>('10y');
 	const [region, setRegion] = useState<Region>('all');
+	const [audience, setAudience] = useState<AudienceFilter>('all');
 	const yearWindow = range === '10y' ? 9 : range === '5y' ? 4 : 0;
 
 	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
@@ -120,7 +142,11 @@ export function FundingDeepDiveTab() {
 	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat(rangeToPeriod(range), 12), { dedupingInterval: 10 * 60_000 });
 	const { data: bizModel } = useSWR<BizModelPoint[]>(qk.analytics.bizModel(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
 	const { data: world } = useSWR<WorldPoint[]>(qk.analytics.worldFlow(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
-	const { data: topFunded } = useSWR<TopCompany[]>(qk.analytics.topFunded(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
+	const { data: cities } = useSWR<CityPoint[]>(qk.analytics.topFundedCities(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
+	const { data: topFunded } = useSWR<TopCompany[]>(
+		qk.analytics.topFunded(rangeToPeriod(range), 10, audience === 'all' ? undefined : audience),
+		{ dedupingInterval: 10 * 60_000 },
+	);
 
 	const annualChart: ComboPoint[] = useMemo(
 		() => (annual ?? []).map((a) => ({ year: String(a.year), amt: a.total_amount, deals: a.deal_count })),
@@ -160,6 +186,14 @@ export function FundingDeepDiveTab() {
 		if (region === 'all') return all;
 		return all.filter((w) => w.country && regionOf(w.country) === region);
 	}, [world, region]);
+
+	// Same region filter applied to the cities list (filtered by the city's
+	// country). Cities with an unknown country fall into "Rest of World".
+	const filteredCities = useMemo(() => {
+		const all = cities ?? [];
+		if (region === 'all') return all;
+		return all.filter((c) => regionOf(c.country ?? '') === region);
+	}, [cities, region]);
 
 	return (
 		<>
@@ -249,9 +283,9 @@ export function FundingDeepDiveTab() {
 				</div>
 			</div>
 
-			{/* Top countries */}
+			{/* Top countries & cities (2-up) */}
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="Top Funded Countries" action={<YearRangeToggle value={range} onChange={setRange} />} />
+				<SectionHead title="Top Funded Countries & Cities" action={<YearRangeToggle value={range} onChange={setRange} />} />
 				<div className="card-pad">
 					<div className="filter-bar" style={{ marginBottom: 'var(--space-3)' }}>
 						{REGION_CHIPS.map(([v, l]) => (
@@ -264,36 +298,76 @@ export function FundingDeepDiveTab() {
 							</button>
 						))}
 					</div>
-					{filteredWorld.length === 0 ? (
-						<Empty msg="No country data for this region." />
-					) : (
-						<table className="data-table">
-							<thead>
-								<tr>
-									<th style={{ width: 30 }}>#</th>
-									<th>Country</th>
-									<th className="amt" style={{ textAlign: 'right' }}>Amount</th>
-									<th style={{ textAlign: 'right' }}>Rounds</th>
-								</tr>
-							</thead>
-							<tbody>
-								{filteredWorld.map((c, i) => (
-									<tr key={c.country}>
-										<td className="rank-idx">{i + 1}</td>
-										<td>
-											<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-												<Flag cc={countryCode(c.country)} /> {c.country}
-											</span>
-										</td>
-										<td className="amt">{formatAmtCompact(c.total_amount)}</td>
-										<td className="num" style={{ textAlign: 'right', color: 'var(--fg-2)' }}>
-											{c.deal_count.toLocaleString()}
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					)}
+					<div className="grid-2">
+						{/* Countries */}
+						<div>
+							<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 8 }}>Countries</div>
+							{filteredWorld.length === 0 ? (
+								<Empty msg="No country data for this region." />
+							) : (
+								<table className="data-table">
+									<thead>
+										<tr>
+											<th style={{ width: 30 }}>#</th>
+											<th>Country</th>
+											<th className="amt" style={{ textAlign: 'right' }}>Amount</th>
+											<th style={{ textAlign: 'right' }}>Rounds</th>
+										</tr>
+									</thead>
+									<tbody>
+										{filteredWorld.map((c, i) => (
+											<tr key={c.country}>
+												<td className="rank-idx">{i + 1}</td>
+												<td>
+													<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+														<Flag cc={countryCode(c.country)} /> {c.country}
+													</span>
+												</td>
+												<td className="amt">{formatAmtCompact(c.total_amount)}</td>
+												<td className="num" style={{ textAlign: 'right', color: 'var(--fg-2)' }}>
+													{c.deal_count.toLocaleString()}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							)}
+						</div>
+						{/* Cities */}
+						<div>
+							<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 8 }}>Cities</div>
+							{filteredCities.length === 0 ? (
+								<Empty msg="No city data for this region." />
+							) : (
+								<table className="data-table">
+									<thead>
+										<tr>
+											<th style={{ width: 30 }}>#</th>
+											<th>City</th>
+											<th className="amt" style={{ textAlign: 'right' }}>Amount</th>
+											<th style={{ textAlign: 'right' }}>Rounds</th>
+										</tr>
+									</thead>
+									<tbody>
+										{filteredCities.map((c, i) => (
+											<tr key={`${c.city}-${c.country ?? ''}`}>
+												<td className="rank-idx">{i + 1}</td>
+												<td>
+													<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+														{c.country && <Flag cc={countryCode(c.country)} />} {c.city}
+													</span>
+												</td>
+												<td className="amt">{formatAmtCompact(c.total_amount)}</td>
+												<td className="num" style={{ textAlign: 'right', color: 'var(--fg-2)' }}>
+													{c.deal_count.toLocaleString()}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							)}
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -301,6 +375,18 @@ export function FundingDeepDiveTab() {
 			<div className="card">
 				<SectionHead title="Top Funded Companies" action={<YearRangeToggle value={range} onChange={setRange} />} />
 				<div className="card-pad">
+					<div className="aud-filter" style={{ marginBottom: 'var(--space-3)' }}>
+						{AUDIENCE_CHIPS.map(([v, l]) => (
+							<button
+								key={v}
+								className={audience === v ? 'on' : ''}
+								onClick={() => setAudience(v)}
+							>
+								{v !== 'all' && <AudienceIcon audience={v} size={13} style={{ color: audienceColor(v) }} />}
+								{l}
+							</button>
+						))}
+					</div>
 					{(topFunded ?? []).length === 0 ? (
 						<Empty msg="No companies yet." />
 					) : (

@@ -5,8 +5,9 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { ArrowRight, Send, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useFavorite } from '@/hooks/use-favorite';
 import { Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot } from './drawer';
-import { Flag, Tag, KV, Empty } from './atoms';
+import { Flag, Tag, KV, Empty, VerifiedBadge } from './atoms';
 
 interface Investor {
 	id: string;
@@ -18,7 +19,9 @@ interface Investor {
 	hq_country?: string | null;
 	hq_city?: string | null;
 	total_aum_usd?: number | string | null;
+	total_funding?: number | string | null;
 	deals_count?: number | null;
+	num_investments?: number | null;
 	year_launched?: number | null;
 	is_verified?: boolean | null;
 	actively_investing?: boolean | null;
@@ -68,11 +71,28 @@ export function InvestorDrawer({
 }) {
 	const router = useRouter();
 	const [tab, setTab] = useState<Tab>('general');
+	const [shareToast, setShareToast] = useState<string | null>(null);
 
 	const { data: investor, isLoading } = useSWR<Investor>(
 		idOrSlug ? qk.investors.detail(idOrSlug) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
+
+	const fav = useFavorite('investors', investor?.id);
+
+	const onShare = async () => {
+		if (!investor) return;
+		const target = investor.slug ?? investor.id;
+		const url = `${window.location.origin}/investors/${target}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			setShareToast('Link copied');
+			setTimeout(() => setShareToast(null), 1800);
+		} catch {
+			setShareToast('Copy failed');
+			setTimeout(() => setShareToast(null), 1800);
+		}
+	};
 
 	const { data: dealsResp } = useSWR<DealsResponse>(
 		investor?.id ? qk.deals.list({ investor_id: investor.id, limit: 30, sort: '-announced_date' }) : null,
@@ -109,6 +129,7 @@ export function InvestorDrawer({
 								>
 									{investor.name}
 								</button>
+								{investor.is_verified && <VerifiedBadge size={15} title="Verified investor" />}
 								{investor.category && <Tag>{TYPE_LABELS[investor.category] ?? investor.category}</Tag>}
 							</div>
 							{investor.primary_focus && (
@@ -117,9 +138,37 @@ export function InvestorDrawer({
 								</div>
 							)}
 						</div>
-						<div style={{ display: 'flex', gap: 4 }}>
-							<button className="icon-btn" title="Share"><Send size={14} /></button>
-							<button className="icon-btn" title="Save"><Heart size={14} /></button>
+						<div style={{ display: 'flex', gap: 4, position: 'relative' }}>
+							<button className="icon-btn" title="Share" onClick={onShare}><Send size={14} /></button>
+							<button
+								className="icon-btn"
+								title={fav.isFavorite ? 'Saved' : 'Save'}
+								aria-pressed={fav.isFavorite}
+								disabled={fav.pending}
+								onClick={() => void fav.toggle()}
+							>
+								<Heart size={14} style={fav.isFavorite ? { color: 'var(--accent)', fill: 'currentColor' } : undefined} />
+							</button>
+							{shareToast && (
+								<span
+									style={{
+										position: 'absolute',
+										top: '100%',
+										right: 0,
+										marginTop: 6,
+										whiteSpace: 'nowrap',
+										background: 'var(--fg)',
+										color: 'var(--bg)',
+										padding: '4px 10px',
+										borderRadius: 4,
+										fontSize: 11,
+										fontWeight: 600,
+										zIndex: 50,
+									}}
+								>
+									{shareToast}
+								</span>
+							)}
 						</div>
 					</DrawerHead>
 
@@ -177,8 +226,10 @@ function General({ investor }: { investor: Investor }) {
 					<KV label="Type" value={<Tag>{TYPE_LABELS[investor.category] ?? investor.category}</Tag>} />
 				)}
 				{investor.year_launched && <KV label="Launched" value={investor.year_launched} />}
-				<KV label="AUM" value={<b>{formatDollars(investor.total_aum_usd)}</b>} />
-				{investor.deals_count != null && <KV label="Deals" value={investor.deals_count} />}
+				<KV label="AUM" value={<b>{formatDollars(investor.total_aum_usd ?? investor.total_funding)}</b>} />
+				{(investor.deals_count ?? investor.num_investments) != null && (
+					<KV label="Deals" value={investor.deals_count ?? investor.num_investments} />
+				)}
 				{investor.recent_investment && <KV label="Recent" value={investor.recent_investment} />}
 			</div>
 		</div>

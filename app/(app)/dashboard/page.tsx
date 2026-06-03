@@ -29,6 +29,7 @@ interface DashboardStats {
 	total_companies: number;
 	total_investors: number;
 	total_ecosystem_entities: number;
+	actively_raising_new_this_month: number;
 }
 
 interface FundingTotals {
@@ -126,6 +127,7 @@ export default function DashboardPage() {
 	const openPrograms = programs?.data ?? [];
 	const programsCount = programs?.total ?? openPrograms.length;
 	const actuallyRaising = raisingResp?.total ?? 0;
+	const raisingNewThisMonth = stats?.actively_raising_new_this_month ?? 0;
 	const latestIssue = newsletter?.[0];
 
 	return (
@@ -355,6 +357,9 @@ export default function DashboardPage() {
 						<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 44, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, margin: 0 }}>
 							{actuallyRaising.toLocaleString()}
 						</h3>
+						{raisingNewThisMonth > 0 && (
+							<span className="stat-delta pos">+{raisingNewThisMonth} this month</span>
+						)}
 					</div>
 					<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 12 }}>
 						Companies confirmed to be on the market or in active conversations with investors — filterable by stage, sector and geography.

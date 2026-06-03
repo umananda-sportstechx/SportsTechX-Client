@@ -48,6 +48,8 @@ export const qk = {
   investors: {
     list: (params: Record<string, unknown> = {}) => ['/api/investors', params] as const,
     detail: (idOrSlug: string) => [`/api/investors/${idOrSlug}`] as const,
+    thesis: (idOrSlug: string) => [`/api/investors/${idOrSlug}/thesis`] as const,
+    funds: (idOrSlug: string) => [`/api/investors/${idOrSlug}/funds`] as const,
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
@@ -87,6 +89,9 @@ export const qk = {
     detail: (id: string) => [`/api/user-watchlists/${id}`] as const,
     companies: (id: string) => [`/api/user-watchlists/${id}/companies`] as const,
     containing: (companyId: string) => [`/api/user-watchlists/containing/${companyId}`] as const,
+  },
+  publicWatchlists: {
+    byToken: (token: string) => [`/api/public/watchlists/${token}`] as const,
   },
   claims: {
     mine: () => ['/api/claims/mine'] as const,
@@ -136,7 +141,9 @@ export const qk = {
     maQuarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/ma-quarterly', params] as const,
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
-    topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-funded-companies', { period, limit }] as const,
+    topFundedCities: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/top-funded-cities', { period, limit }] as const,
+    topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10, audience?: 'athletes' | 'fans' | 'executives') =>
+      ['/api/analytics/top-funded-companies', audience ? { period, limit, audience } : { period, limit }] as const,
     annualFunding: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-funding', params] as const,
     annualMa: (params: { from?: number; to?: number } = {}) => ['/api/analytics/annual-ma', params] as const,
     investorsByType: () => ['/api/analytics/investors-by-type'] as const,

@@ -6,6 +6,11 @@ import { qk } from '@/lib/query-keys';
 
 export type UserType = 'free' | 'growth' | 'pro';
 
+// Self-declared persona, orthogonal to user_role (RBAC) and user_type (tier).
+// null = undeclared (treated as a regular 'user'). A verified claim is the
+// authoritative "verified founder/investor" layer on top of this hint.
+export type AccountType = 'founder' | 'investor' | 'user';
+
 export interface Profile {
   id: string;
   email: string | null;
@@ -17,6 +22,8 @@ export interface Profile {
   // feature gating in the user-facing app, NOT admin access.
   user_type: string | null;
   user_type_detail: string | null;
+  // `account_type` is the self-declared persona set at onboarding.
+  account_type: AccountType | null;
   avatar_url: string | null;
   company_name: string | null;
   job_title: string | null;
@@ -29,6 +36,13 @@ export interface Profile {
   notification_email: boolean | null;
   notification_marketing: boolean | null;
   notification_updates: boolean | null;
+  // Onboarding progress. `onboarding_stage` is a free-text token the client
+  // advances through the post-signup flow; the per-tier complete flags mark a
+  // finished onboarding for that tier.
+  onboarding_stage: string | null;
+  onboarding_complete_free: boolean | null;
+  onboarding_complete_growth: boolean | null;
+  onboarding_complete_pro: boolean | null;
   created_at: string;
 }
 
@@ -47,6 +61,11 @@ export function useUserProfile() {
 export function getUserType(profile: Profile | null | undefined): UserType {
   if (!profile) return 'free';
   return (profile.user_type?.toLowerCase() as UserType) ?? 'free';
+}
+
+// Resolve the self-declared persona, defaulting an undeclared profile to 'user'.
+export function getAccountType(profile: Profile | null | undefined): AccountType {
+  return (profile?.account_type as AccountType) ?? 'user';
 }
 
 export function useIsAdmin() {
