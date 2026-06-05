@@ -11,7 +11,7 @@ import { useFeatureAccess } from '@/contexts/feature-access-context';
 import {
   Home, Globe, Book, Database, Building2, DollarSign, Handshake,
   TrendingUp, Network, CalendarDays, CreditCard, Settings, Code,
-  Link2, Key, FileText, ChevronDown, ChevronRight, Menu, X, Lock, Shield,
+  Link2, Key, FileText, ChevronDown, ChevronRight, Menu, X, Lock,
 } from 'lucide-react';
 
 // ── Navigation structure ─────────────────────────────────────────────────────
@@ -208,17 +208,6 @@ function SidebarContent({
         {/* Bottom nav */}
         <div className="px-3 mt-4 pt-4 border-t border-sidebar-border space-y-0.5">
           {renderItems(bottomNav)}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="default"
-              onClick={() => router.push('/admin')}
-              className="w-full justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <Shield className={cn('h-5 w-5', collapsed ? 'mx-auto' : 'mr-3')} />
-              {!collapsed && 'Admin'}
-            </Button>
-          )}
           <Button
             variant="ghost"
             onClick={handleLogout}
