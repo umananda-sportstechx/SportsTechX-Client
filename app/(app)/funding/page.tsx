@@ -10,10 +10,16 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill, VerifiedBadge } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
-	emptyFilterState, type Facet, type FilterState,
+	emptyFilterState, type Facet, type FilterState, type AmountValue,
 } from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { DealDrawer } from '@/components/ui/deal-drawer';
+import { CompareBar } from '@/components/compare-bar';
+import { CompareToggle } from '@/components/compare-toggle';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { FeatureGate } from '@/components/shell/screen-lock';
 
@@ -79,7 +85,17 @@ interface QuarterlyPoint {
 interface SectorRef { id: string; name: string; slug: string }
 interface RoundRef { id: string; name: string; slug: string }
 interface InvestorRef { id: string; name: string }
+interface SportRef { id: string; name: string; slug: string }
+interface TechTagRef { id: string; name: string; slug: string }
 interface RefResponse<T> { data: T[] }
+
+const BUSINESS_MODELS = [
+	{ value: 'b2b', label: 'B2B' },
+	{ value: 'b2c', label: 'B2C' },
+	{ value: 'b2b2c', label: 'B2B2C' },
+	{ value: 'd2c', label: 'D2C' },
+	{ value: 'b2g', label: 'B2G' },
+];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -118,6 +134,20 @@ function FundingPageInner() {
 	});
 	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
 
+	const { data: sportsResp } = useSWR<RefResponse<SportRef> | SportRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
+	const { data: techTagsResp } = useSWR<RefResponse<TechTagRef> | TechTagRef[]>(qk.reference.techTags(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const techTags = Array.isArray(techTagsResp) ? techTagsResp : (techTagsResp?.data ?? []);
+
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
 	// Investor options for the (gated) investor picker. Pulled once, cached long
 	// — the selected ids map to the backend `investor_id` filter.
 	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.investors.list({ limit: 200 }), {
@@ -142,13 +172,27 @@ function FundingPageInner() {
 			maxHeight: 240,
 		},
 		{
+			key: 'business_model', label: 'Business model', kind: 'multi', section: 'Company',
+			options: () => BUSINESS_MODELS,
+		},
+		{
+			key: 'sport_slug', label: 'Sport', kind: 'multi', section: 'Company',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
 			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-	], [sectorList]);
+		...locationFacets(locFacets),
+		{
+			key: 'tech_tag_slug', label: 'Tech tags', kind: 'multi', section: 'Other', gate: 'advanced_filters',
+			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
+			maxHeight: 240,
+		},
+	], [sectorList, sportList, techTags, locFacets]);
 
 	const dealFacets = useMemo<Facet[]>(() => [
-		{ key: 'disclosed_only', label: 'Exclude undisclosed rounds', kind: 'bool' },
 		{
 			key: 'round_type_slug', label: 'Round type', kind: 'multi', section: 'Round details',
 			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
@@ -158,19 +202,18 @@ function FundingPageInner() {
 			options: () => yearOpts, maxHeight: 200,
 		},
 		{
-			key: 'quarter', label: 'Deal quarter', kind: 'multi', section: 'Round details',
-			options: () => [
-				{ value: '1', label: 'Q1' }, { value: '2', label: 'Q2' },
-				{ value: '3', label: 'Q3' }, { value: '4', label: 'Q4' },
-			],
+			key: 'quarter', label: 'Deal quarter', kind: 'quarter', section: 'Round details',
 		},
 		{
 			key: 'month', label: 'Deal month', kind: 'multi', section: 'Round details',
 			options: () => MONTHS.map((m, i) => ({ value: String(i + 1), label: m })),
 		},
 		{
-			key: 'amount', label: 'Round amount', kind: 'range', section: 'Round details',
-			min: 0, max: 250, step: 5, prefix: '$', suffix: 'M',
+			key: 'amount', label: 'Round amount', kind: 'amount', section: 'Round details',
+			min: 0, max: 250, step: 5,
+			undisclosedLabel: 'Exclude undisclosed rounds',
+			undisclosedSubtext: 'Hide deals with no stated amount',
+			undisclosedDefault: false,
 		},
 		// Investor picker — gated on `advanced_filters`. Selected investor ids map
 		// to the backend `investor_id` (csv) param. Searchable when >8 options.
@@ -189,20 +232,33 @@ function FundingPageInner() {
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(allFacets, { search: params.get('q') ?? '' });
 		const v = params.get('is_company_verified'); if (v) init.is_company_verified = v === 'true';
-		if (params.get('disclosed_only') === 'true') init.disclosed_only = true;
 		const s = params.get('sector_slug');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		const bm = params.get('business_model');
+		if (bm) init.business_model = bm.split(',').filter(Boolean);
+		const sp2 = params.get('sport_slug');
+		if (sp2) init.sport_slug = sp2.split(',').filter(Boolean);
+		const tt = params.get('tech_tag_slug');
+		if (tt) init.tech_tag_slug = tt.split(',').filter(Boolean);
 		const r = params.get('round_type_slug');
 		if (r) init.round_type_slug = r.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
 		const ys = params.get('years'); if (ys) init.years = ys.split(',').filter(Boolean);
 		const qt = params.get('quarter'); if (qt) init.quarter = qt.split(',').filter(Boolean);
 		const mo = params.get('month'); if (mo) init.month = mo.split(',').filter(Boolean);
 		const iv = params.get('investors'); if (iv) init.investors = iv.split(',').filter(Boolean);
 		const aMin = params.get('amount_usd_min');
 		const aMax = params.get('amount_usd_max');
-		if (aMin && aMax) init.amount = [Number(aMin) / 1_000_000, Number(aMax) / 1_000_000] as [number, number];
+		const disc = params.get('disclosed_only') === 'true';
+		if (aMin || aMax || disc) {
+			init.amount = {
+				min: aMin ? Number(aMin) / 1_000_000 : 0,
+				max: aMax ? Number(aMax) / 1_000_000 : 250,
+				undisclosed: disc,
+			};
+		}
 		return init;
 	});
 
@@ -212,11 +268,17 @@ function FundingPageInner() {
 		if (filterState.is_company_verified === true) sp.set('is_company_verified', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const bm = filterState.business_model as string[] | undefined;
+		if (bm?.length) sp.set('business_model', bm.join(','));
+		const spt = filterState.sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('sport_slug', spt.join(','));
+		const tt = filterState.tech_tag_slug as string[] | undefined;
+		if (tt?.length) sp.set('tech_tag_slug', tt.join(','));
 		const rnd = filterState.round_type_slug as string[] | undefined;
 		if (rnd?.length) sp.set('round_type_slug', rnd.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
-		if (filterState.disclosed_only === true) sp.set('disclosed_only', 'true');
+		setLocationUrlParams(sp, filterState);
 		const yrs = filterState.years as string[] | undefined;
 		if (yrs?.length) sp.set('years', yrs.join(','));
 		const qtr = filterState.quarter as string[] | undefined;
@@ -225,10 +287,13 @@ function FundingPageInner() {
 		if (mon?.length) sp.set('month', mon.join(','));
 		const inv = filterState.investors as string[] | undefined;
 		if (inv?.length) sp.set('investors', inv.join(','));
-		const amt = filterState.amount as [number, number] | undefined;
-		if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
-			sp.set('amount_usd_min', String(amt[0] * 1_000_000));
-			sp.set('amount_usd_max', String(amt[1] * 1_000_000));
+		const amt = filterState.amount as AmountValue | undefined;
+		if (amt) {
+			if (amt.min !== 0 || amt.max !== 250) {
+				sp.set('amount_usd_min', String(amt.min * 1_000_000));
+				sp.set('amount_usd_max', String(amt.max * 1_000_000));
+			}
+			if (amt.undisclosed) sp.set('disclosed_only', 'true');
 		}
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'table') sp.set('view', view);
@@ -262,23 +327,33 @@ function FundingPageInner() {
 	else tableParams.year = currentYear;
 	if (debouncedSearch) tableParams.q = debouncedSearch;
 	if (filterState.is_company_verified === true) tableParams.is_company_verified = true;
-	if (filterState.disclosed_only === true) tableParams.disclosed_only = true;
 	const sec = filterState.sector_slug as string[] | undefined;
 	if (sec?.length) tableParams.sector_slug = sec.join(',');
+	const bm = filterState.business_model as string[] | undefined;
+	if (bm?.length) tableParams.business_model = bm.join(',');
+	const spt = filterState.sport_slug as string[] | undefined;
+	if (spt?.length) tableParams.sport_slug = spt.join(',');
+	const tt = filterState.tech_tag_slug as string[] | undefined;
+	if (tt?.length) tableParams.tech_tag_slug = tt.join(',');
 	const rnd = filterState.round_type_slug as string[] | undefined;
 	if (rnd?.length) tableParams.round_type_slug = rnd.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length) tableParams.country = ctry.join(',');
+	applyLocationQueryParams(tableParams, filterState);
 	const qtr = filterState.quarter as string[] | undefined;
-	if (qtr?.length) tableParams.quarter = qtr.join(',');
+	// Quarter facet stores labels (Q1…Q4); the API wants integers 1…4.
+	if (qtr?.length) tableParams.quarter = qtr.map((q) => q.replace(/^Q/i, '')).join(',');
 	const mon = filterState.month as string[] | undefined;
 	if (mon?.length) tableParams.month = mon.join(',');
 	const inv = filterState.investors as string[] | undefined;
 	if (inv?.length) tableParams.investor_id = inv.join(',');
-	const amt = filterState.amount as [number, number] | undefined;
-	if (amt && (amt[0] !== 0 || amt[1] !== 250)) {
-		tableParams.amount_usd_min = amt[0] * 1_000_000;
-		tableParams.amount_usd_max = amt[1] * 1_000_000;
+	const amt = filterState.amount as AmountValue | undefined;
+	if (amt) {
+		if (amt.min !== 0 || amt.max !== 250) {
+			tableParams.amount_usd_min = amt.min * 1_000_000;
+			tableParams.amount_usd_max = amt.max * 1_000_000;
+		}
+		if (amt.undisclosed) tableParams.disclosed_only = true;
 	}
 
 	const { data: tableData, isLoading } = useSWR<DealsResponse>(qk.deals.list(tableParams), { dedupingInterval: 3 * 60_000 });
@@ -372,9 +447,10 @@ function FundingPageInner() {
 							{tableDeals.map((d) => {
 								const cc = d.hq_country ? countryCode(d.hq_country) : '';
 								return (
-									<button
+									<div
 										key={d.id}
-										type="button"
+										role="button"
+										tabIndex={0}
 										className="card deal-card linkable"
 										onClick={(e) => {
 											if ((e.target as HTMLElement).closest('button, a')) return;
@@ -383,6 +459,13 @@ function FundingPageInner() {
 												return;
 											}
 											setDrawerTarget(d.id);
+										}}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												if ((e.target as HTMLElement).closest('button, a')) return;
+												e.preventDefault();
+												setDrawerTarget(d.id);
+											}
 										}}
 									>
 										<div className="deal-card-head">
@@ -423,7 +506,10 @@ function FundingPageInner() {
 												<span className="deal-card-investors-list">{d.lead_investor}</span>
 											</div>
 										)}
-									</button>
+										<div className="co-card-compare">
+											<CompareToggle id={d.id} kind="deals" />
+										</div>
+									</div>
 								);
 							})}
 						</div>
@@ -434,10 +520,10 @@ function FundingPageInner() {
 									<tr>
 										<SortHeader label="Date" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 										<SortHeader label="Company" sortKey="company_name" sort={sort} setSort={setSort} />
-										<th>Sector</th>
-										<th>HQ</th>
-										<th>Round</th>
-										<th>Lead investor</th>
+										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
+										<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
+										<SortHeader label="Round" sortKey="round_type_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Lead investor" sortKey="lead_investor" sort={sort} setSort={setSort} />
 										<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 									</tr>
 								</thead>
@@ -508,6 +594,8 @@ function FundingPageInner() {
 						id={drawerTarget}
 						onClose={() => setDrawerTarget(null)}
 					/>
+
+					<CompareBar kind="deals" />
 
 					{totalPages > 1 && (
 						<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>

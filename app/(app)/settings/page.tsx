@@ -13,14 +13,13 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import { ImageInput } from '@/components/ui/image-input';
 
-// Workspace tab is intentionally omitted — multi-user / team model is out of
-// scope. Re-add when the team module ships.
-type Tab = 'profile' | 'appearance' | 'notifications' | 'api' | 'billing';
+type Tab = 'profile' | 'appearance' | 'notifications' | 'workspace' | 'api' | 'billing';
 
 const TABS: Array<{ id: Tab; label: string }> = [
 	{ id: 'profile', label: 'Profile' },
 	{ id: 'appearance', label: 'Appearance' },
 	{ id: 'notifications', label: 'Notifications' },
+	{ id: 'workspace', label: 'Workspace' },
 	{ id: 'api', label: 'API & integrations' },
 	{ id: 'billing', label: 'Billing' },
 ];
@@ -47,7 +46,7 @@ const THEMES = [
  * `--accent-hue` CSS variable and toggles next-themes; Billing pulls from the
  * existing /api/billing/subscription endpoint.
  */
-const VALID_TABS = new Set<Tab>(['profile', 'appearance', 'notifications', 'api', 'billing']);
+const VALID_TABS = new Set<Tab>(['profile', 'appearance', 'notifications', 'workspace', 'api', 'billing']);
 
 export default function SettingsPage() {
 	const router = useRouter();
@@ -100,6 +99,7 @@ export default function SettingsPage() {
 					{tab === 'profile' && <ProfileTab />}
 					{tab === 'appearance' && <AppearanceTab />}
 					{tab === 'notifications' && <NotificationsTab />}
+					{tab === 'workspace' && <WorkspaceTab />}
 					{tab === 'api' && <ApiTab />}
 					{tab === 'billing' && <BillingTab />}
 				</div>
@@ -406,11 +406,18 @@ function NotificationsTab() {
 	const { mutate } = useSWRConfig();
 	const [pending, setPending] = useState<string | null>(null);
 
-	const items: Array<{ key: 'notification_newsletter' | 'notification_email' | 'notification_marketing' | 'notification_updates'; l: string; desc: string }> = [
-		{ key: 'notification_newsletter', l: 'Weekly newsletter', desc: 'Every Friday — top deals, M&A, market signals.' },
-		{ key: 'notification_email',      l: 'Email alerts',      desc: 'Funding, M&A, and report-release alerts as they happen.' },
-		{ key: 'notification_updates',    l: 'Product updates',   desc: 'New features, scheduled events, and changes that affect you.' },
-		{ key: 'notification_marketing',  l: 'Marketing emails',  desc: 'Occasional product news + cross-promotional partnerships.' },
+	// Design's domain-specific alert toggles (ui_design/screens-3.jsx). Each is
+	// backed by a dedicated `notification_*` profile column.
+	const items: Array<{
+		key: 'notification_newsletter' | 'notification_funding_alerts' | 'notification_ma_alerts' | 'notification_report_releases' | 'notification_programs_deadline';
+		l: string;
+		desc: string;
+	}> = [
+		{ key: 'notification_newsletter',       l: 'Newsletter',       desc: 'Every Friday — top deals, M&A, and market signals.' },
+		{ key: 'notification_funding_alerts',   l: 'Funding alerts',   desc: 'New funding rounds in the sectors and companies you follow.' },
+		{ key: 'notification_ma_alerts',        l: 'M&A alerts',       desc: 'Acquisitions and mergers as they’re announced.' },
+		{ key: 'notification_report_releases',  l: 'Report releases',  desc: 'When a new market report or deep-dive is published.' },
+		{ key: 'notification_programs_deadline', l: 'Program deadlines', desc: 'Reminders before accelerator and program application deadlines.' },
 	];
 
 	const toggle = async (key: typeof items[number]['key'], next: boolean) => {
@@ -445,6 +452,109 @@ function NotificationsTab() {
 					onToggle={(next) => void toggle(n.key, next)}
 				/>
 			))}
+		</div>
+	);
+}
+
+function WorkspaceTab() {
+	const { data: profile } = useUserProfile();
+	const { mutate } = useSWRConfig();
+	const [name, setName] = useState('');
+	const [saving, setSaving] = useState(false);
+	const [region, setRegionState] = useState('Global');
+	const [currency, setCurrencyState] = useState('USD');
+
+	useEffect(() => {
+		if (profile) setName(profile.company_name ?? '');
+	}, [profile]);
+
+	useEffect(() => {
+		try {
+			const r = localStorage.getItem('stx:region'); if (r) setRegionState(r);
+			const c = localStorage.getItem('stx:currency'); if (c) setCurrencyState(c);
+		} catch { /* ignore */ }
+	}, []);
+
+	const setRegion = (r: string) => {
+		setRegionState(r);
+		try { localStorage.setItem('stx:region', r); } catch { /* ignore */ }
+	};
+	const setCurrency = (c: string) => {
+		setCurrencyState(c);
+		try { localStorage.setItem('stx:currency', c); } catch { /* ignore */ }
+	};
+
+	// Workspace name is persisted onto the profile's company_name (the workspace
+	// is single-tenant per account until the team module ships).
+	const saveName = async () => {
+		setSaving(true);
+		try {
+			await apiRequest('PATCH', '/api/profiles/me', { company_name: name });
+			toast.success('Workspace updated');
+			void mutate(qk.profile());
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not save');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	const memberName = profile?.display_name || profile?.email || 'You';
+	const initials = memberName.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+
+	return (
+		<div>
+			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+				Workspace
+			</h3>
+			<p style={{ fontSize: 13, color: 'var(--fg-2)', marginBottom: 24 }}>
+				Your workspace name, defaults, and team members.
+			</p>
+
+			<Field label="Workspace name" value={name} onChange={setName} />
+			<button className="btn" style={{ marginBottom: 24 }} disabled={saving} onClick={() => void saveName()}>
+				{saving ? 'Saving…' : 'Save'}
+			</button>
+
+			<div className="co-stat-label" style={{ marginBottom: 10 }}>Default region · currency</div>
+			<div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
+				<select className="search-input" value={region} onChange={(e) => setRegion(e.target.value)} style={{ flex: 1 }}>
+					<option value="Global">Global</option>
+					<option value="North America">North America</option>
+					<option value="Europe">Europe</option>
+					<option value="APAC">APAC</option>
+				</select>
+				<select className="search-input" value={currency} onChange={(e) => setCurrency(e.target.value)} style={{ flex: 1 }}>
+					<option value="USD">USD ($)</option>
+					<option value="EUR">EUR (€)</option>
+					<option value="GBP">GBP (£)</option>
+				</select>
+			</div>
+
+			<div className="co-stat-label" style={{ marginBottom: 10 }}>Members</div>
+			<div
+				style={{
+					display: 'flex', alignItems: 'center', gap: 12,
+					padding: '12px 0', borderBottom: '1px solid var(--border)',
+				}}
+			>
+				{profile?.avatar_url ? (
+					/* eslint-disable-next-line @next/next/no-img-element */
+					<img src={profile.avatar_url} alt="" style={{ width: 32, height: 32, objectFit: 'cover', background: 'var(--bg-2)' }} />
+				) : (
+					<div style={{ width: 32, height: 32, background: 'var(--accent)', color: 'var(--accent-fg)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-display)' }}>
+						{initials}
+					</div>
+				)}
+				<div style={{ flex: 1 }}>
+					<div style={{ fontWeight: 600, fontSize: 14 }}>{memberName}</div>
+					<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{profile?.email}</div>
+				</div>
+				<Tag>Owner</Tag>
+			</div>
+			<button className="btn ghost" style={{ marginTop: 16 }} disabled title="Team invites are coming soon">
+				Invite teammates
+			</button>
 		</div>
 	);
 }

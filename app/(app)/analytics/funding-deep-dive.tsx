@@ -43,6 +43,10 @@ interface SectorHeatPoint {
 	total_amount: number;
 }
 
+interface SectorHeatTreeNode extends SectorHeatPoint {
+	children: SectorHeatPoint[];
+}
+
 interface BizModelPoint {
 	business_model: string;
 	deal_count: number;
@@ -132,6 +136,7 @@ export function FundingDeepDiveTab() {
 	const [range, setRange] = useState<YearRange>('10y');
 	const [region, setRegion] = useState<Region>('all');
 	const [audience, setAudience] = useState<AudienceFilter>('all');
+	const [filtersOpen, setFiltersOpen] = useState(false);
 	const yearWindow = range === '10y' ? 9 : range === '5y' ? 4 : 0;
 
 	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
@@ -139,7 +144,7 @@ export function FundingDeepDiveTab() {
 		qk.analytics.annualFunding({ from: currentYear - yearWindow, to: currentYear }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat(rangeToPeriod(range), 12), { dedupingInterval: 10 * 60_000 });
+	const { data: sectorTree } = useSWR<SectorHeatTreeNode[]>(qk.analytics.sectorHeatTree(rangeToPeriod(range), 8), { dedupingInterval: 10 * 60_000 });
 	const { data: bizModel } = useSWR<BizModelPoint[]>(qk.analytics.bizModel(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
 	const { data: world } = useSWR<WorldPoint[]>(qk.analytics.worldFlow(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
 	const { data: cities } = useSWR<CityPoint[]>(qk.analytics.topFundedCities(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
@@ -153,6 +158,12 @@ export function FundingDeepDiveTab() {
 		[annual],
 	);
 
+	// Sparkline series for the KPI cards, derived from the annual series
+	// (chronological). Total funding → annual $; rounds → annual deal count.
+	const annualSorted = useMemo(() => (annual ?? []).slice().sort((a, b) => a.year - b.year), [annual]);
+	const fundingSpark = useMemo(() => annualSorted.map((a) => a.total_amount), [annualSorted]);
+	const roundsSpark = useMemo(() => annualSorted.map((a) => a.deal_count), [annualSorted]);
+
 	const bizSegments: PieSegment[] = useMemo(() => {
 		return (bizModel ?? []).map((b, i) => ({
 			name: BIZ_LABELS[b.business_model] ?? b.business_model,
@@ -162,18 +173,27 @@ export function FundingDeepDiveTab() {
 		}));
 	}, [bizModel]);
 
-	// Funding-by-sector drilldown rows. The sector-heat endpoint is flat (no
-	// sub-sector hierarchy), so each sector renders as a single-level bar — the
-	// HBarDrilldown still gives the prototype's hierarchical-bar visual.
+	// Funding-by-sector drilldown rows: each top-level pillar with its
+	// sub-sectors nested as `children`, so the HBar expands into the hierarchy.
 	const sectorRows: HBarRow[] = useMemo(() => {
-		return (sectorHeat ?? []).map((s, i) => ({
-			id: s.sector_id,
-			label: s.sector_name,
-			value: s.total_amount,
-			formatted: formatAmtCompact(s.total_amount),
-			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-		}));
-	}, [sectorHeat]);
+		return (sectorTree ?? []).map((s, i) => {
+			const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+			return {
+				id: s.sector_id,
+				label: s.sector_name,
+				value: s.total_amount,
+				formatted: formatAmtCompact(s.total_amount),
+				color,
+				children: s.children.map((c) => ({
+					id: c.sector_id,
+					label: c.sector_name,
+					value: c.total_amount,
+					formatted: formatAmtCompact(c.total_amount),
+					color,
+				})),
+			};
+		});
+	}, [sectorTree]);
 
 	const total = totals?.total_amount ?? 0;
 	const totalRounds = totals?.round_count ?? 0;
@@ -199,7 +219,36 @@ export function FundingDeepDiveTab() {
 		<>
 			<div className="an-toolbar">
 				<h2>Funding Deep Dive</h2>
-				<button className="btn ghost"><Filter size={12} /> Filters</button>
+				<div style={{ position: 'relative' }}>
+					<button className="btn ghost" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen}>
+						<Filter size={12} /> Filters
+					</button>
+					{filtersOpen && (
+						<div
+							className="card"
+							style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, padding: 12, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 10 }}
+						>
+							<div>
+								<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-muted)', marginBottom: 6 }}>Time range</div>
+								<div className="filter-bar">
+									{(['10y', '5y', 'ytd'] as YearRange[]).map((r) => (
+										<button key={r} className={`chip ${range === r ? 'on' : ''}`} onClick={() => setRange(r)}>
+											{r === '10y' ? '10 yr' : r === '5y' ? '5 yr' : 'YTD'}
+										</button>
+									))}
+								</div>
+							</div>
+							<div>
+								<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-muted)', marginBottom: 6 }}>Region</div>
+								<div className="filter-bar">
+									{REGION_CHIPS.map(([v, l]) => (
+										<button key={v} className={`chip ${region === v ? 'on' : ''}`} onClick={() => setRegion(v)}>{l}</button>
+									))}
+								</div>
+							</div>
+						</div>
+					)}
+				</div>
 			</div>
 
 			{/* KPI strip */}
@@ -211,6 +260,7 @@ export function FundingDeepDiveTab() {
 						unit={splitAmt(total).unit}
 						delta={`across ${totalRounds.toLocaleString()} rounds`}
 						deltaDir="pos"
+						spark={fundingSpark}
 					/>
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
@@ -219,6 +269,7 @@ export function FundingDeepDiveTab() {
 						value={totalRounds.toLocaleString()}
 						delta="total deal count"
 						deltaDir="pos"
+						spark={roundsSpark}
 					/>
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>

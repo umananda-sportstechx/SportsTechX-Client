@@ -12,6 +12,10 @@ import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
@@ -49,6 +53,9 @@ const COMMON_COUNTRIES = [
 ];
 
 interface RoundRef { id: string; name: string; slug: string }
+interface SectorRef { id: string; name: string; slug: string }
+interface SportRef { id: string; name: string; slug: string }
+interface TechTagRef { id: string; name: string; slug: string }
 
 const CATEGORY_OPTIONS = [
 	{ value: 'venture_capital', label: 'VC' },
@@ -92,6 +99,27 @@ function InvestorsPageInner() {
 	});
 	const roundList = Array.isArray(roundsResp) ? roundsResp : (roundsResp?.data ?? []);
 
+	const { data: sectorsResp } = useSWR<{ data: SectorRef[] } | SectorRef[]>(qk.reference.sectors(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+
+	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
+	const { data: techTagsResp } = useSWR<{ data: TechTagRef[] } | TechTagRef[]>(qk.reference.techTags(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const techTags = Array.isArray(techTagsResp) ? techTagsResp : (techTagsResp?.data ?? []);
+
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
+	const currentYear = new Date().getFullYear();
+
 	const facets = useMemo<Facet[]>(() => [
 		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
 		{ key: 'actively_investing', label: 'Actively investing', kind: 'bool' },
@@ -112,17 +140,54 @@ function InvestorsPageInner() {
 			key: 'country',
 			label: 'Country',
 			kind: 'multi',
+			section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		...locationFacets(locFacets),
+		{
+			key: 'sector_slug',
+			label: 'Portfolio sector',
+			kind: 'multi',
+			section: 'Thesis',
+			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'sport_slug',
+			label: 'Sport',
+			kind: 'multi',
+			section: 'Thesis',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'tech_tag_slug',
+			label: 'Tech tags',
+			kind: 'multi',
+			section: 'Thesis',
+			gate: 'advanced_filters',
+			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'year_launched',
+			label: 'Year launched',
+			kind: 'range',
+			section: 'Firm',
+			min: 1990,
+			max: currentYear,
+			step: 1,
 		},
 		{
 			key: 'deals',
 			label: 'Deal count',
 			kind: 'range',
+			section: 'Firm',
 			min: 0,
 			max: 50,
 			step: 1,
 		},
-	], [roundList]);
+	], [roundList, sectorList, sportList, techTags, locFacets, currentYear]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -134,6 +199,16 @@ function InvestorsPageInner() {
 		if (rt) init.round_type_slug = rt.split(',').filter(Boolean);
 		const ct = params.get('country');
 		if (ct) init.country = ct.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
+		const sec = params.get('sector_slug');
+		if (sec) init.sector_slug = sec.split(',').filter(Boolean);
+		const sp = params.get('sport_slug');
+		if (sp) init.sport_slug = sp.split(',').filter(Boolean);
+		const tt = params.get('tech_tag_slug');
+		if (tt) init.tech_tag_slug = tt.split(',').filter(Boolean);
+		const ylMin = params.get('year_launched_min');
+		const ylMax = params.get('year_launched_max');
+		if (ylMin && ylMax) init.year_launched = [Number(ylMin), Number(ylMax)] as [number, number];
 		const dMin = params.get('deals_min');
 		const dMax = params.get('deals_max');
 		if (dMin && dMax) init.deals = [Number(dMin), Number(dMax)] as [number, number];
@@ -151,6 +226,15 @@ function InvestorsPageInner() {
 		if (rt?.length) sp.set('round_type_slug', rt.join(','));
 		const ct = filterState.country as string[] | undefined;
 		if (ct?.length) sp.set('country', ct.join(','));
+		setLocationUrlParams(sp, filterState);
+		const sec = filterState.sector_slug as string[] | undefined;
+		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const spt = filterState.sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('sport_slug', spt.join(','));
+		const tt = filterState.tech_tag_slug as string[] | undefined;
+		if (tt?.length) sp.set('tech_tag_slug', tt.join(','));
+		const yl = filterState.year_launched as [number, number] | undefined;
+		if (yl && (yl[0] !== 1990 || yl[1] !== currentYear)) { sp.set('year_launched_min', String(yl[0])); sp.set('year_launched_max', String(yl[1])); }
 		const dl = filterState.deals as [number, number] | undefined;
 		if (dl && (dl[0] !== 0 || dl[1] !== 50)) { sp.set('deals_min', String(dl[0])); sp.set('deals_max', String(dl[1])); }
 		if (page > 1) sp.set('page', String(page));
@@ -174,6 +258,15 @@ function InvestorsPageInner() {
 	if (rtSel?.length) queryParams.round_type_slug = rtSel.join(',');
 	const ctSel = filterState.country as string[] | undefined;
 	if (ctSel?.length) queryParams.country = ctSel.join(',');
+	applyLocationQueryParams(queryParams, filterState);
+	const secSel = filterState.sector_slug as string[] | undefined;
+	if (secSel?.length) queryParams.sector_slug = secSel.join(',');
+	const sptSel = filterState.sport_slug as string[] | undefined;
+	if (sptSel?.length) queryParams.sport_slug = sptSel.join(',');
+	const ttSel = filterState.tech_tag_slug as string[] | undefined;
+	if (ttSel?.length) queryParams.tech_tag_slug = ttSel.join(',');
+	const ylSel = filterState.year_launched as [number, number] | undefined;
+	if (ylSel && (ylSel[0] !== 1990 || ylSel[1] !== currentYear)) { queryParams.year_launched_min = ylSel[0]; queryParams.year_launched_max = ylSel[1]; }
 	const dlSel = filterState.deals as [number, number] | undefined;
 	if (dlSel && (dlSel[0] !== 0 || dlSel[1] !== 50)) { queryParams.deals_min = dlSel[0]; queryParams.deals_max = dlSel[1]; }
 	const sortParam = sortToParam(sort);
@@ -279,8 +372,8 @@ function InvestorTable({
 						<SortHeader label="Firm" sortKey="name" sort={sort} setSort={setSort} />
 						<SortHeader label="Type" sortKey="category" sort={sort} setSort={setSort} />
 						<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
-						<th>AUM</th>
-						<th style={{ textAlign: 'right' }}>Deals</th>
+						<SortHeader label="AUM" sortKey="aum" sort={sort} setSort={setSort} defaultDir="desc" />
+						<SortHeader label="Deals" sortKey="deals" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 						<th>Stage focus</th>
 						<th>Recent</th>
 					</tr>

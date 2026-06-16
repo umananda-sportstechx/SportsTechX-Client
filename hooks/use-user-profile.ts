@@ -36,6 +36,10 @@ export interface Profile {
   notification_email: boolean | null;
   notification_marketing: boolean | null;
   notification_updates: boolean | null;
+  notification_funding_alerts: boolean | null;
+  notification_ma_alerts: boolean | null;
+  notification_report_releases: boolean | null;
+  notification_programs_deadline: boolean | null;
   // Onboarding progress. `onboarding_stage` is a free-text token the client
   // advances through the post-signup flow; the per-tier complete flags mark a
   // finished onboarding for that tier.

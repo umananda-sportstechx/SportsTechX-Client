@@ -12,8 +12,12 @@ import {
 } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
-	emptyFilterState, type Facet, type FilterState,
+	emptyFilterState, type Facet, type FilterState, type TriValue, type AmountValue,
 } from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { FeatureGate } from '@/components/shell/screen-lock';
@@ -98,6 +102,8 @@ const COMMON_COUNTRIES = [
 	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
 ];
 
+const MA_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export default function MnaPage() {
 	return (
 		<FeatureGate slug="acquisitions_full" screen="mna">
@@ -136,10 +142,14 @@ function MnaPageInner() {
 	});
 	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
 
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
 	// Acquiree (target) side facets. Keys are per-party so each side keeps its
 	// own selection; they map to acquiree_* query params in tableParams.
 	const acquireeFacets = useMemo<Facet[]>(() => [
-		{ key: 'acquiree_is_sportstech', label: 'Target is SportsTech', kind: 'bool', section: 'Target' },
+		{ key: 'acquiree_is_sportstech', label: 'Target is SportsTech', kind: 'tri', section: 'Target', yesLabel: 'Yes', noLabel: 'No' },
 		{
 			key: 'acquiree_business_model',
 			label: 'Target business model',
@@ -170,11 +180,12 @@ function MnaPageInner() {
 			section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-	], [sectorList, sportList]);
+		...locationFacets(locFacets, { section: 'Location' }),
+	], [sectorList, sportList, locFacets]);
 
 	// Acquirer (buyer) side facets. Map to acquirer_* query params.
 	const acquirerFacets = useMemo<Facet[]>(() => [
-		{ key: 'acquirer_is_sportstech', label: 'Acquirer is SportsTech', kind: 'bool', section: 'Acquirer' },
+		{ key: 'acquirer_is_sportstech', label: 'Acquirer is SportsTech', kind: 'tri', section: 'Acquirer', yesLabel: 'Yes', noLabel: 'No' },
 		{
 			key: 'acquirer_business_model',
 			label: 'Acquirer business model',
@@ -198,11 +209,30 @@ function MnaPageInner() {
 			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
-	], [sectorList, sportList]);
+		{
+			key: 'acquirer_country',
+			label: 'Acquirer HQ',
+			kind: 'multi',
+			section: 'Acquirer location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		{
+			key: 'acquirer_city', label: 'Acquirer city', kind: 'multi', section: 'Acquirer location', gate: 'advanced_filters',
+			options: () => (locFacets?.cities ?? []).map((c) => ({ value: c, label: c })),
+			maxHeight: 220,
+		},
+		{
+			key: 'acquirer_continent', label: 'Acquirer continent', kind: 'multi', section: 'Acquirer location', gate: 'advanced_filters',
+			options: () => (locFacets?.continents ?? []).map((c) => ({ value: c, label: c })),
+		},
+		{
+			key: 'acquirer_region', label: 'Acquirer region', kind: 'multi', section: 'Acquirer location', gate: 'advanced_filters',
+			options: () => (locFacets?.regions ?? []).map((r) => ({ value: r, label: r })),
+		},
+	], [sectorList, sportList, locFacets]);
 
 	// Deal-level facets — shared across modes, shown in "Deal" mode.
 	const dealFacets = useMemo<Facet[]>(() => [
-		{ key: 'disclosed_only', label: 'Disclosed value only', kind: 'bool' },
 		{
 			key: 'acquisition_type',
 			label: 'Acquisition type',
@@ -211,15 +241,23 @@ function MnaPageInner() {
 			options: () => TYPE_OPTIONS,
 		},
 		{
+			key: 'month',
+			label: 'Acquisition month',
+			kind: 'multi',
+			section: 'Deal details',
+			options: () => MA_MONTHS.map((m, i) => ({ value: String(i + 1), label: m })),
+		},
+		{
 			key: 'value',
-			label: 'Deal value (USD millions)',
-			kind: 'range',
+			label: 'Deal value',
+			kind: 'amount',
 			section: 'Deal details',
 			min: 0,
-			max: 1500,
+			max: 2000,
 			step: 25,
-			prefix: '$',
-			suffix: 'M',
+			undisclosedLabel: 'Include undisclosed deals',
+			undisclosedSubtext: 'Show acquisitions with no stated value',
+			undisclosedDefault: true,
 		},
 		{
 			key: 'year',
@@ -242,9 +280,12 @@ function MnaPageInner() {
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(allFacets, { search: params.get('q') ?? '' });
-		const d = params.get('disclosed_only'); if (d) init.disclosed_only = d === 'true';
-		if (params.get('acquiree_is_sportstech') === 'true') init.acquiree_is_sportstech = true;
-		if (params.get('acquirer_is_sportstech') === 'true') init.acquirer_is_sportstech = true;
+		const stTarget = params.get('acquiree_is_sportstech');
+		if (stTarget === 'true') init.acquiree_is_sportstech = 'yes';
+		else if (stTarget === 'false') init.acquiree_is_sportstech = 'no';
+		const stAcq = params.get('acquirer_is_sportstech');
+		if (stAcq === 'true') init.acquirer_is_sportstech = 'yes';
+		else if (stAcq === 'false') init.acquirer_is_sportstech = 'no';
 		const t = params.get('acquisition_type');
 		if (t) init.acquisition_type = t.split(',').filter(Boolean);
 		// business_model is the legacy alias for the acquiree side.
@@ -263,9 +304,25 @@ function MnaPageInner() {
 		if (asp) init.acquirer_sport_slug = asp.split(',').filter(Boolean);
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
+		const ac = params.get('acquirer_country');
+		if (ac) init.acquirer_country = ac.split(',').filter(Boolean);
+		(['acquirer_city', 'acquirer_continent', 'acquirer_region'] as const).forEach((k) => {
+			const val = params.get(k); if (val) init[k] = val.split(',').filter(Boolean);
+		});
+		const mo = params.get('month');
+		if (mo) init.month = mo.split(',').filter(Boolean);
 		const vMin = params.get('amount_usd_min');
 		const vMax = params.get('amount_usd_max');
-		if (vMin && vMax) init.value = [Number(vMin) / 1_000_000, Number(vMax) / 1_000_000] as [number, number];
+		const disc = params.get('disclosed_only') === 'true';
+		if (vMin || vMax || disc) {
+			init.value = {
+				min: vMin ? Number(vMin) / 1_000_000 : 0,
+				max: vMax ? Number(vMax) / 1_000_000 : 2000,
+				// disclosed_only ON ⇒ exclude undisclosed ⇒ "include" switch OFF.
+				undisclosed: !disc,
+			};
+		}
 		const yMin = params.get('year_min');
 		const yMax = params.get('year_max');
 		if (yMin && yMax) init.year = [Number(yMin), Number(yMax)] as [number, number];
@@ -275,9 +332,10 @@ function MnaPageInner() {
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
-		if (filterState.disclosed_only === true) sp.set('disclosed_only', 'true');
-		if (filterState.acquiree_is_sportstech === true) sp.set('acquiree_is_sportstech', 'true');
-		if (filterState.acquirer_is_sportstech === true) sp.set('acquirer_is_sportstech', 'true');
+		const stT = filterState.acquiree_is_sportstech as TriValue | undefined;
+		if (stT === 'yes' || stT === 'no') sp.set('acquiree_is_sportstech', stT === 'yes' ? 'true' : 'false');
+		const stA = filterState.acquirer_is_sportstech as TriValue | undefined;
+		if (stA === 'yes' || stA === 'no') sp.set('acquirer_is_sportstech', stA === 'yes' ? 'true' : 'false');
 		const t = filterState.acquisition_type as string[] | undefined;
 		if (t?.length) sp.set('acquisition_type', t.join(','));
 		const bm = filterState.acquiree_business_model as string[] | undefined;
@@ -294,10 +352,22 @@ function MnaPageInner() {
 		if (aspt?.length) sp.set('acquirer_sport_slug', aspt.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
-		const v = filterState.value as [number, number] | undefined;
-		if (v && (v[0] !== 0 || v[1] !== 1500)) {
-			sp.set('amount_usd_min', String(v[0] * 1_000_000));
-			sp.set('amount_usd_max', String(v[1] * 1_000_000));
+		setLocationUrlParams(sp, filterState);
+		const ac = filterState.acquirer_country as string[] | undefined;
+		if (ac?.length) sp.set('acquirer_country', ac.join(','));
+		(['acquirer_city', 'acquirer_continent', 'acquirer_region'] as const).forEach((k) => {
+			const val = filterState[k] as string[] | undefined;
+			if (val?.length) sp.set(k, val.join(','));
+		});
+		const mo = filterState.month as string[] | undefined;
+		if (mo?.length) sp.set('month', mo.join(','));
+		const v = filterState.value as AmountValue | undefined;
+		if (v) {
+			if (v.min !== 0 || v.max !== 2000) {
+				sp.set('amount_usd_min', String(v.min * 1_000_000));
+				sp.set('amount_usd_max', String(v.max * 1_000_000));
+			}
+			if (!v.undisclosed) sp.set('disclosed_only', 'true');
 		}
 		const yr = filterState.year as [number, number] | undefined;
 		if (yr && (yr[0] !== 2010 || yr[1] !== currentYear)) {
@@ -330,9 +400,12 @@ function MnaPageInner() {
 		sort: sortToParam(sort) ?? '-acquisition_date',
 	};
 	if (debouncedSearch) tableParams.q = debouncedSearch;
-	if (filterState.disclosed_only === true) tableParams.disclosed_only = true;
-	if (filterState.acquiree_is_sportstech === true) tableParams.acquiree_is_sportstech = true;
-	if (filterState.acquirer_is_sportstech === true) tableParams.acquirer_is_sportstech = true;
+	const stT = filterState.acquiree_is_sportstech as TriValue | undefined;
+	if (stT === 'yes') tableParams.acquiree_is_sportstech = true;
+	else if (stT === 'no') tableParams.acquiree_is_sportstech = false;
+	const stA = filterState.acquirer_is_sportstech as TriValue | undefined;
+	if (stA === 'yes') tableParams.acquirer_is_sportstech = true;
+	else if (stA === 'no') tableParams.acquirer_is_sportstech = false;
 	const t = filterState.acquisition_type as string[] | undefined;
 	if (t?.length) tableParams.acquisition_type = t.join(',');
 	const bm = filterState.acquiree_business_model as string[] | undefined;
@@ -349,10 +422,22 @@ function MnaPageInner() {
 	if (aspt?.length) tableParams.acquirer_sport_slug = aspt.join(',');
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length) tableParams.country = ctry.join(',');
-	const v = filterState.value as [number, number] | undefined;
-	if (v && (v[0] !== 0 || v[1] !== 1500)) {
-		tableParams.amount_usd_min = v[0] * 1_000_000;
-		tableParams.amount_usd_max = v[1] * 1_000_000;
+	applyLocationQueryParams(tableParams, filterState);
+	const ac = filterState.acquirer_country as string[] | undefined;
+	if (ac?.length) tableParams.acquirer_country = ac.join(',');
+	(['acquirer_city', 'acquirer_continent', 'acquirer_region'] as const).forEach((k) => {
+		const val = filterState[k] as string[] | undefined;
+		if (val?.length) tableParams[k] = val.join(',');
+	});
+	const mo = filterState.month as string[] | undefined;
+	if (mo?.length) tableParams.month = mo.join(',');
+	const v = filterState.value as AmountValue | undefined;
+	if (v) {
+		if (v.min !== 0 || v.max !== 2000) {
+			tableParams.amount_usd_min = v.min * 1_000_000;
+			tableParams.amount_usd_max = v.max * 1_000_000;
+		}
+		if (!v.undisclosed) tableParams.disclosed_only = true;
 	}
 	const yr = filterState.year as [number, number] | undefined;
 	if (yr && (yr[0] !== 2010 || yr[1] !== currentYear)) {
@@ -509,12 +594,12 @@ function MnaPageInner() {
 								<thead>
 									<tr>
 										<SortHeader label="Date" sortKey="acquisition_date" sort={sort} setSort={setSort} defaultDir="desc" />
-										<th>Target</th>
-										<th>Sector</th>
-										<th>HQ</th>
-										<th>Type</th>
+										<SortHeader label="Target" sortKey="acquiree_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
+										<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
+										<SortHeader label="Type" sortKey="acquisition_type" sort={sort} setSort={setSort} />
 										<SortHeader label="Value" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
-										<th>Acquirer</th>
+										<SortHeader label="Acquirer" sortKey="acquirer_name" sort={sort} setSort={setSort} />
 									</tr>
 								</thead>
 								<tbody>
