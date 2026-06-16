@@ -84,9 +84,9 @@ interface SavedSearchesResponse { data: SavedSearch[] }
 
 const ENTITY_PATHS: Record<string, string> = {
 	companies: '/companies',
-	deals: '/deals',
+	deals: '/funding',
 	investors: '/investors',
-	acquisitions: '/acquisitions',
+	acquisitions: '/ma',
 	reports: '/reports',
 	programs: '/programs',
 	events: '/events',

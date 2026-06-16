@@ -4,12 +4,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight, Heart, BadgeCheck,
+	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
+import { usePersona } from '@/contexts/persona-context';
 
 /**
  * SportsTechX rail navigation. Ported from ui_design/app/nav.jsx.
@@ -39,6 +40,37 @@ interface NavGroup {
 	label: string;
 	items: NavItem[];
 }
+
+/**
+ * Persona workspace nav — prepended above the shared trackers when a founder
+ * or investor persona is active (ported from ui_design/app/nav.jsx
+ * WORKSPACE_NAV). Home maps to the persona-routed `/dashboard`; the sub-screens
+ * live under `/copilot/*`.
+ */
+const WORKSPACE_NAV: Record<'founder' | 'investor', NavGroup> = {
+	founder: {
+		label: 'Fundraising Copilot',
+		items: [
+			{ id: 'f-home', name: 'Home', icon: Home, path: '/dashboard' },
+			{ id: 'f-matches', name: 'Investor matches', icon: Heart, path: '/copilot/matches' },
+			{ id: 'f-benchmarks', name: 'Benchmarks', icon: TrendingUp, path: '/copilot/benchmarks' },
+			{ id: 'f-market', name: 'Market', icon: Globe, path: '/copilot/market' },
+			{ id: 'f-toolkit', name: 'Raise toolkit', icon: Zap, path: '/copilot/toolkit' },
+			{ id: 'f-company', name: 'My company', icon: Building2, path: '/copilot/company' },
+		],
+	},
+	investor: {
+		label: 'Dealflow Copilot',
+		items: [
+			{ id: 'i-home', name: 'Home', icon: Home, path: '/dashboard' },
+			{ id: 'i-sourcing', name: 'Sourcing', icon: Search, path: '/copilot/sourcing' },
+			{ id: 'i-market', name: 'Market intel', icon: Grid3x3, path: '/copilot/market-intel' },
+			{ id: 'i-diligence', name: 'Diligence', icon: Shield, path: '/copilot/diligence' },
+			{ id: 'i-thesis', name: 'My thesis', icon: Network, path: '/copilot/thesis' },
+			{ id: 'i-data', name: 'Data & API', icon: Code, path: '/copilot/data' },
+		],
+	},
+};
 
 const NAV_GROUPS: NavGroup[] = [
 	{
@@ -95,6 +127,10 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 	// gated nav items. `checkAccess` is a plain function (not a hook), safe to
 	// call per item inside the render loop.
 	const { checkAccess, isLoading: accessLoading } = useFeatureAccessContext();
+	const { persona } = usePersona();
+	const workspace = persona === 'founder' ? WORKSPACE_NAV.founder
+		: persona === 'investor' ? WORKSPACE_NAV.investor
+		: null;
 
 	const handleNav = (path: string) => {
 		router.push(path);
@@ -143,6 +179,30 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 			</div>
 
 			<nav className="rail-nav">
+				{workspace && (
+					<div className="rail-ws-group" data-persona={persona}>
+						<div className="rail-section rail-section-ws"><span className="rail-ws-dot" />{workspace.label}</div>
+						{workspace.items.map((item) => {
+							const Icon = item.icon;
+							// Home is active only on the exact dashboard route; sub-items
+							// match their own path (and sub-routes).
+							const isActive = item.path === '/dashboard'
+								? pathname === '/dashboard'
+								: pathname === item.path || pathname.startsWith(item.path + '/');
+							return (
+								<button
+									key={item.id}
+									className={`rail-item rail-item-ws ${isActive ? 'active' : ''}`}
+									onClick={() => handleNav(item.path)}
+								>
+									<Icon size={18} />
+									<span className="rail-label">{item.name}</span>
+									<span className="rail-tip">{item.name}</span>
+								</button>
+							);
+						})}
+					</div>
+				)}
 				{NAV_GROUPS.map((group) => (
 					<div key={group.label}>
 						<div className="rail-section">{group.label}</div>

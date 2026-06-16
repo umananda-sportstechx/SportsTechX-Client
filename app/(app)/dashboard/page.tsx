@@ -7,6 +7,9 @@ import { qk } from '@/lib/query-keys';
 import {
 	Page, Stat, Logo, Flag, SectionHead, Tag, Empty, AudiencePill,
 } from '@/components/ui/atoms';
+import { usePersona } from '@/contexts/persona-context';
+import { FounderHome } from '@/components/copilot/founder-home';
+import { InvestorHome } from '@/components/copilot/investor-home';
 
 /**
  * Dashboard — pixel-aligned to `ui_design_2/app/screens-1.jsx`.
@@ -106,7 +109,19 @@ interface QuarterlyPoint {
 	deal_count: number;
 }
 
+/**
+ * Persona-routed dashboard. `general` → the classic Pulse intelligence hub
+ * below; `founder`/`investor` → the Copilot home for that persona
+ * (ui_design/app/copilot.jsx PersonaHome).
+ */
 export default function DashboardPage() {
+	const { persona } = usePersona();
+	if (persona === 'founder') return <Page><FounderHome /></Page>;
+	if (persona === 'investor') return <Page><InvestorHome /></Page>;
+	return <GeneralDashboard />;
+}
+
+function GeneralDashboard() {
 	const currentYear = new Date().getFullYear();
 	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('ytd'), { dedupingInterval: 10 * 60_000 });
 	const { data: fundingTotals } = useSWR<FundingTotals>(qk.analytics.fundingTotals('ytd'), { dedupingInterval: 10 * 60_000 });

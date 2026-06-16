@@ -36,7 +36,24 @@ export interface FacetOption {
 	count?: number;
 }
 
-export type FacetKind = 'bool' | 'multi' | 'range';
+export type FacetKind = 'bool' | 'multi' | 'range' | 'quarter' | 'tri' | 'amount';
+
+/** Inline quarter picker options. */
+export const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'] as const;
+
+/** Tri-toggle value (e.g. Is-SportsTech: Any / Yes / No). */
+export type TriValue = 'any' | 'yes' | 'no';
+
+/**
+ * Amount-block value: a numeric range plus an "undisclosed" switch. Used for
+ * round/deal value facets. `undisclosed` carries the switch position; its
+ * default lives on the facet (`undisclosedDefault`).
+ */
+export interface AmountValue {
+	min: number;
+	max: number;
+	undisclosed: boolean;
+}
 
 /**
  * Optional entitlement gate. When set, the facet is checked against the
@@ -79,9 +96,50 @@ export interface RangeFacet {
 	gate?: string;
 }
 
-export type Facet = BoolFacet | MultiFacet | RangeFacet;
+/** Inline Q1–Q4 multi-pick. Value is a `string[]` of selected quarter labels. */
+export interface QuarterFacet {
+	key: string;
+	label: string;
+	kind: 'quarter';
+	section?: string;
+	gate?: string;
+}
 
-export type FacetValue = boolean | string[] | [number, number] | null;
+/** Any / Yes / No tri-toggle. Value is a `TriValue`. */
+export interface TriFacet {
+	key: string;
+	label: string;
+	kind: 'tri';
+	/** Label for the affirmative option (default "Yes"). */
+	yesLabel?: string;
+	/** Label for the negative option (default "No"). */
+	noLabel?: string;
+	section?: string;
+	gate?: string;
+}
+
+/** Numeric range + "undisclosed" switch. Value is an `AmountValue`. */
+export interface AmountFacet {
+	key: string;
+	label: string;
+	kind: 'amount';
+	min: number;
+	max: number;
+	step?: number;
+	/** Optional fixed scale labels under the slider (else min/max are formatted). */
+	scale?: string[];
+	/** Switch copy, e.g. "Exclude undisclosed rounds" / "Include undisclosed deals". */
+	undisclosedLabel?: string;
+	undisclosedSubtext?: string;
+	/** Default switch position (default `true`). */
+	undisclosedDefault?: boolean;
+	section?: string;
+	gate?: string;
+}
+
+export type Facet = BoolFacet | MultiFacet | RangeFacet | QuarterFacet | TriFacet | AmountFacet;
+
+export type FacetValue = boolean | string[] | [number, number] | TriValue | AmountValue | null;
 
 // `search` is a separate top-level string field. Other keys are `FacetValue`,
 // but TS's index-signature rule forces a union here. Cast through `facetVal()`
@@ -91,11 +149,16 @@ export interface FilterState {
 	[key: string]: FacetValue | string | undefined;
 }
 
+// Read a facet's value. `search` is the only top-level string key and is never
+// read through here, so a string value belongs to a `tri` facet — pass it on.
 function facetVal(state: FilterState, key: string): FacetValue {
 	const v = state[key];
 	if (v === undefined) return null;
-	if (typeof v === 'string') return null;
-	return v;
+	return v as FacetValue;
+}
+
+function amountDefault(facet: AmountFacet): AmountValue {
+	return { min: facet.min, max: facet.max, undisclosed: facet.undisclosedDefault ?? true };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -103,22 +166,35 @@ function facetVal(state: FilterState, key: string): FacetValue {
 function isFacetActive(facet: Facet, val: FacetValue): boolean {
 	if (val == null) return false;
 	if (facet.kind === 'bool') return val === true;
-	if (facet.kind === 'multi') return Array.isArray(val) && (val as string[]).length > 0;
+	if (facet.kind === 'multi' || facet.kind === 'quarter') return Array.isArray(val) && (val as string[]).length > 0;
 	if (facet.kind === 'range') {
 		const r = val as [number, number];
 		return Array.isArray(r) && r.length === 2 && (r[0] !== facet.min || r[1] !== facet.max);
+	}
+	if (facet.kind === 'tri') return val === 'yes' || val === 'no';
+	if (facet.kind === 'amount') {
+		const a = val as AmountValue;
+		const def = amountDefault(facet);
+		return a.min !== def.min || a.max !== def.max || a.undisclosed !== def.undisclosed;
 	}
 	return false;
 }
 
 function facetActiveCount(facet: Facet, val: FacetValue): number {
 	if (!isFacetActive(facet, val)) return 0;
-	if (facet.kind === 'multi') return (val as string[]).length;
+	if (facet.kind === 'multi' || facet.kind === 'quarter') return (val as string[]).length;
 	return 1;
 }
 
 export function clearFacetValue(facet: Facet): FacetValue {
-	return facet.kind === 'bool' ? false : facet.kind === 'multi' ? [] : null;
+	switch (facet.kind) {
+		case 'bool': return false;
+		case 'multi':
+		case 'quarter': return [];
+		case 'tri': return 'any';
+		case 'amount': return amountDefault(facet);
+		default: return null;
+	}
 }
 
 function totalActiveFilters(facets: Facet[], state: FilterState): number {
@@ -233,6 +309,139 @@ function FRBoolRow({
 	);
 }
 
+// ─── Inline quarter picker (Q1–Q4) ────────────────────────────────────────
+
+function FRQuarter({
+	value, onChange,
+}: {
+	value: string[];
+	onChange: (v: string[]) => void;
+}) {
+	return (
+		<div className="ff-qtr">
+			{QUARTERS.map((q) => {
+				const on = value.includes(q);
+				return (
+					<button
+						key={q}
+						className={`ff-qtr-row ${on ? 'on' : ''}`}
+						onClick={() => onChange(on ? value.filter((v) => v !== q) : [...value, q])}
+					>
+						<span className={`flt-check ${on ? 'on' : ''}`}>{on && <Check size={10} />}</span>
+						<span className="ff-qtr-label">{q}</span>
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+// ─── Tri-toggle (Any / Yes / No) ───────────────────────────────────────────
+
+function FRTri({
+	facet, value, onChange,
+}: {
+	facet: TriFacet;
+	value: TriValue;
+	onChange: (v: TriValue) => void;
+}) {
+	const opts: Array<[TriValue, string]> = [
+		['any', 'Any'],
+		['yes', facet.yesLabel ?? 'Yes'],
+		['no', facet.noLabel ?? 'No'],
+	];
+	return (
+		<div className="mf-tri" role="group" aria-label={facet.label}>
+			{opts.map(([v, label]) => (
+				<button
+					key={v}
+					type="button"
+					className={`mf-tri-btn ${value === v ? 'on' : ''}`}
+					aria-pressed={value === v}
+					onClick={() => onChange(v)}
+				>
+					{label}
+				</button>
+			))}
+		</div>
+	);
+}
+
+// ─── Amount block (min/max + dual slider + undisclosed switch) ─────────────
+
+function fmtAmountM(v: number): string {
+	return v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}B` : `$${v}M`;
+}
+
+function FRAmount({
+	facet, value, onChange,
+}: {
+	facet: AmountFacet;
+	value: AmountValue;
+	onChange: (v: AmountValue) => void;
+}) {
+	const { min, max } = facet;
+	const step = facet.step ?? 25;
+	const lo = value.min;
+	const hi = value.max;
+	const pctLo = ((lo - min) / (max - min)) * 100;
+	const pctHi = ((hi - min) / (max - min)) * 100;
+	const set = (patch: Partial<AmountValue>) => onChange({ ...value, ...patch });
+	return (
+		<div className="ff-amt mf-value">
+			<div className="ff-amt-inputs">
+				<div className="ff-amt-input">
+					<span className="ff-amt-k">MIN</span>
+					<span className="ff-amt-prefix">$</span>
+					<input
+						value={lo}
+						inputMode="numeric"
+						onChange={(e) => set({ min: Math.min(Math.max(min, +e.target.value || min), hi) })}
+					/>
+				</div>
+				<span className="ff-amt-dash">–</span>
+				<div className="ff-amt-input">
+					<span className="ff-amt-k">MAX</span>
+					<span className="ff-amt-prefix">$</span>
+					<input
+						value={hi}
+						inputMode="numeric"
+						onChange={(e) => set({ max: Math.max(Math.min(max, +e.target.value || max), lo) })}
+					/>
+				</div>
+			</div>
+
+			<div className="mf-slider">
+				<div className="mf-slider-track">
+					<div className="mf-slider-fill" style={{ left: `${pctLo}%`, right: `${100 - pctHi}%` }} />
+				</div>
+				<input type="range" min={min} max={max} step={step} value={lo} onChange={(e) => set({ min: Math.min(+e.target.value, hi) })} />
+				<input type="range" min={min} max={max} step={step} value={hi} onChange={(e) => set({ max: Math.max(+e.target.value, lo) })} />
+			</div>
+
+			<div className="ff-amt-scale">
+				{facet.scale
+					? facet.scale.map((s, i) => <span key={i}>{s}</span>)
+					: (<><span>{fmtAmountM(lo)}</span><span>{fmtAmountM(hi)}{hi === max ? '+' : ''}</span></>)}
+			</div>
+
+			<button
+				type="button"
+				className={`ff-amt-toggle ${value.undisclosed ? 'on' : ''}`}
+				onClick={() => set({ undisclosed: !value.undisclosed })}
+			>
+				<span className={`ff-switch ${value.undisclosed ? 'on' : ''}`}>
+					<span className="ff-switch-thumb" />
+				</span>
+				<span className="ff-amt-toggle-text">
+					<span className="ff-amt-toggle-l">{facet.undisclosedLabel ?? 'Include undisclosed'}</span>
+					{facet.undisclosedSubtext && <span className="ff-amt-toggle-s">{facet.undisclosedSubtext}</span>}
+				</span>
+			</button>
+		</div>
+	);
+}
+
 // ─── Tier-lock badge (PRO / GROWTH) ───────────────────────────────────────
 
 function TierLock({ tier }: { tier: 'GROWTH' | 'PRO' }) {
@@ -344,6 +553,26 @@ function FRGroup({
 						<FRRangeControl
 							facet={facet}
 							value={val as [number, number] | null}
+							onChange={(v) => onChange(v)}
+						/>
+					)}
+					{facet.kind === 'quarter' && (
+						<FRQuarter
+							value={(val as string[]) ?? []}
+							onChange={(v) => onChange(v)}
+						/>
+					)}
+					{facet.kind === 'tri' && (
+						<FRTri
+							facet={facet}
+							value={(val as TriValue) ?? 'any'}
+							onChange={(v) => onChange(v)}
+						/>
+					)}
+					{facet.kind === 'amount' && (
+						<FRAmount
+							facet={facet}
+							value={(val as AmountValue) ?? amountDefault(facet)}
 							onChange={(v) => onChange(v)}
 						/>
 					)}
@@ -500,6 +729,13 @@ export function ActiveFiltersBar({
 			const r = v as [number, number];
 			const fmt = (x: number) => `${f.prefix || ''}${x}${f.suffix || ''}`;
 			chips.push({ key: f.key, label: f.label, value: `${fmt(r[0])} – ${fmt(r[1])}`, facet: f });
+		} else if (f.kind === 'quarter') {
+			chips.push({ key: f.key, label: f.label, value: (v as string[]).join(', '), facet: f });
+		} else if (f.kind === 'tri') {
+			chips.push({ key: f.key, label: f.label, value: v === 'yes' ? (f.yesLabel ?? 'Yes') : (f.noLabel ?? 'No'), facet: f });
+		} else if (f.kind === 'amount') {
+			const a = v as AmountValue;
+			chips.push({ key: f.key, label: f.label, value: `${fmtAmountM(a.min)} – ${fmtAmountM(a.max)}${a.max >= f.max ? '+' : ''}`, facet: f });
 		}
 	});
 

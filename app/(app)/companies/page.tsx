@@ -64,7 +64,7 @@ interface CompaniesResponse {
 	totalPages: number;
 }
 
-interface SectorRef { id: string; name: string; slug: string }
+interface SectorRef { id: string; name: string; slug: string; parent_id?: string | null }
 interface TechTagRef { id: string; name: string; slug: string }
 interface LocationFacets { cities: string[]; continents: string[]; regions: string[] }
 interface RefResponse<T> { data: T[] }
@@ -100,6 +100,48 @@ export default function CompaniesPage() {
 		dedupingInterval: 60 * 60_000,
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+
+	// Split the flat sector list into its three hierarchy tiers (pillar →
+	// sub-sector → sub-sub-sector) by walking `parent_id`, and provide a
+	// `expand(slug)` that returns a slug plus all descendant slugs — so picking
+	// a pillar/sub-sector filters every leaf beneath it (the backend matches
+	// `company.sector_id` by slug, which is otherwise leaf-only).
+	const sectorTiers = useMemo(() => {
+		const byId = new Map(sectorList.map((s) => [s.id, s]));
+		const depthOf = (s: SectorRef) => {
+			let d = 0; let cur: SectorRef | undefined = s;
+			while (cur?.parent_id && d < 6) { d++; cur = byId.get(cur.parent_id); }
+			return d;
+		};
+		const childrenByParent = new Map<string, string[]>();
+		sectorList.forEach((s) => {
+			if (!s.parent_id) return;
+			const arr = childrenByParent.get(s.parent_id) ?? [];
+			arr.push(s.id);
+			childrenByParent.set(s.parent_id, arr);
+		});
+		const bySlug = new Map(sectorList.map((s) => [s.slug, s]));
+		const expand = (slug: string): string[] => {
+			const root = bySlug.get(slug);
+			if (!root) return [slug];
+			const out = [slug];
+			const stack = [root.id];
+			while (stack.length) {
+				const id = stack.pop()!;
+				for (const cid of childrenByParent.get(id) ?? []) {
+					const c = byId.get(cid);
+					if (c) { out.push(c.slug); stack.push(cid); }
+				}
+			}
+			return out;
+		};
+		return {
+			tops: sectorList.filter((s) => depthOf(s) === 0),
+			subs: sectorList.filter((s) => depthOf(s) === 1),
+			subSubs: sectorList.filter((s) => depthOf(s) >= 2),
+			expand,
+		};
+	}, [sectorList]);
 
 	const { data: roundTypesResp } = useSWR<RefResponse<RoundType> | RoundType[]>(qk.reference.roundTypes(), {
 		dedupingInterval: 60 * 60_000,
@@ -142,7 +184,24 @@ export default function CompaniesPage() {
 			label: 'Sector',
 			kind: 'multi',
 			section: 'Sector',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 260,
+		},
+		{
+			key: 'sub_sector_slug',
+			label: 'Sub-sector',
+			kind: 'multi',
+			section: 'Sector',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 260,
+		},
+		{
+			key: 'sub_sub_sector_slug',
+			label: 'Sub-sub-sector',
+			kind: 'multi',
+			section: 'Sector',
+			gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 260,
 		},
 		{
@@ -192,6 +251,7 @@ export default function CompaniesPage() {
 			max: 250,
 			step: 5,
 		},
+		{ key: 'unfunded', label: 'Unfunded only', kind: 'bool' },
 		{
 			key: 'country',
 			label: 'Country',
@@ -223,7 +283,7 @@ export default function CompaniesPage() {
 			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
 			maxHeight: 240,
 		},
-	], [sectorList, roundTypes, sportList, techTags, locationFacets]);
+	], [sectorTiers, roundTypes, sportList, techTags, locationFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -233,6 +293,11 @@ export default function CompaniesPage() {
 		const fav = params.get('favorites'); if (fav) init.favorites = fav === 'true';
 		const s = params.get('sector_slug') ?? params.get('sector');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		const ss = params.get('sub_sector_slug');
+		if (ss) init.sub_sector_slug = ss.split(',').filter(Boolean);
+		const sss = params.get('sub_sub_sector_slug');
+		if (sss) init.sub_sub_sector_slug = sss.split(',').filter(Boolean);
+		const unf = params.get('unfunded'); if (unf) init.unfunded = unf === 'true';
 		const c = params.get('country');
 		if (c) init.country = c.split(',').filter(Boolean);
 		const city = params.get('city');
@@ -265,6 +330,11 @@ export default function CompaniesPage() {
 		if (filterState.favorites === true) sp.set('favorites', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const subSec = filterState.sub_sector_slug as string[] | undefined;
+		if (subSec?.length) sp.set('sub_sector_slug', subSec.join(','));
+		const subSubSec = filterState.sub_sub_sector_slug as string[] | undefined;
+		if (subSubSec?.length) sp.set('sub_sub_sector_slug', subSubSec.join(','));
+		if (filterState.unfunded === true) sp.set('unfunded', 'true');
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
 		const cityF = filterState.city as string[] | undefined;
@@ -302,9 +372,17 @@ export default function CompaniesPage() {
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
-	const sec = filterState.sector_slug as string[] | undefined;
-	if (sec?.length === 1) queryParams.sector = sec[0];
-	else if (sec?.length) queryParams.sector_slug = sec.join(',');
+	// Merge all three sector tiers and expand each selection to its descendant
+	// slugs so a pillar/sub-sector also matches the leaf sectors beneath it.
+	const sectorSel = [
+		...(filterState.sector_slug as string[] ?? []),
+		...(filterState.sub_sector_slug as string[] ?? []),
+		...(filterState.sub_sub_sector_slug as string[] ?? []),
+	];
+	if (sectorSel.length) {
+		const expanded = Array.from(new Set(sectorSel.flatMap((s) => sectorTiers.expand(s))));
+		queryParams.sector_slug = expanded.join(',');
+	}
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length === 1) queryParams.country = ctry[0];
 	const cityF = filterState.city as string[] | undefined;
@@ -339,6 +417,11 @@ export default function CompaniesPage() {
 	if (raised && (raised[0] !== 0 || raised[1] !== 250)) {
 		queryParams.min_funding = raised[0] * 1_000_000;
 		queryParams.max_funding = raised[1] * 1_000_000;
+	}
+	// "Unfunded only" overrides the funding range with a hard 0-cap.
+	if (filterState.unfunded === true) {
+		queryParams.min_funding = 0;
+		queryParams.max_funding = 0;
 	}
 	const sortParam = sortToParam(sort);
 	if (sortParam) queryParams.sort = sortParam;
@@ -440,7 +523,7 @@ export default function CompaniesPage() {
 										<th>Sector</th>
 										<th>Stage</th>
 										<th>HQ</th>
-										<SortHeader label="Raised" sortKey="-created_at" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
+										<SortHeader label="Raised" sortKey="total_funding" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 										<SortHeader label="Founded" sortKey="founded_year" sort={sort} setSort={setSort} defaultDir="desc" />
 									</tr>
 								</thead>

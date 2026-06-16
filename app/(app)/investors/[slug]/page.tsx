@@ -6,9 +6,11 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowLeft, ExternalLink, Heart, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { openClaim } from '@/lib/claim-events';
 import { useFavorite } from '@/hooks/use-favorite';
 import { Page, Flag, Tag, Empty, VerifiedBadge } from '@/components/ui/atoms';
 import { SortHeader, applySort, parseMoney, type SortState } from '@/components/ui/sort-header';
+import { PieDonut, type PieSegment } from '@/components/ui/analytics-charts';
 
 interface Investor {
 	id: string;
@@ -28,6 +30,12 @@ interface Investor {
 	year_launched?: number | null;
 	recent_investment?: string | null;
 	is_verified?: boolean | null;
+	// Social/contact — joined from social_profiles on the detail endpoint.
+	contact_email?: string | null;
+	twitter_url?: string | null;
+	instagram_url?: string | null;
+	facebook_url?: string | null;
+	linkedin_url?: string | null;
 }
 
 interface Deal {
@@ -37,6 +45,34 @@ interface Deal {
 	announced_date?: string | null;
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
+	// Returned by the deals list endpoint — used for the portfolio breakdown.
+	primary_sector?: string | null;
+	sector_slug?: string | null;
+	hq_country?: string | null;
+}
+
+const SPLIT_COLORS = [
+	'oklch(58% 0.22 290)', 'oklch(58% 0.22 240)', 'oklch(58% 0.22 160)',
+	'oklch(62% 0.18 30)', 'oklch(62% 0.18 60)', 'oklch(62% 0.18 350)',
+	'oklch(62% 0.14 140)', 'oklch(62% 0.18 200)',
+];
+
+/** Aggregate portfolio deals into pie segments by a string key (top 8 + Other). */
+function splitBy(deals: Deal[], keyOf: (d: Deal) => string | null | undefined): PieSegment[] {
+	const counts = new Map<string, number>();
+	for (const d of deals) {
+		const k = keyOf(d);
+		if (!k) continue;
+		counts.set(k, (counts.get(k) ?? 0) + 1);
+	}
+	const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+	const top = sorted.slice(0, 8);
+	const restCount = sorted.slice(8).reduce((s, [, v]) => s + v, 0);
+	const segs: PieSegment[] = top.map(([name, v], i) => ({
+		name, v, color: SPLIT_COLORS[i % SPLIT_COLORS.length], label: String(v),
+	}));
+	if (restCount > 0) segs.push({ name: 'Other', v: restCount, color: 'var(--fg-muted)', label: String(restCount) });
+	return segs;
 }
 
 interface DealsResponse { data: Deal[]; total: number }
@@ -145,6 +181,11 @@ export default function InvestorDetailPage() {
 		amount_usd: (d) => parseMoney(d.amount_usd),
 		round_type_name: (d) => d.round_type_name ?? '',
 	});
+
+	// Portfolio breakdown segments derived from the investor's tracked deals.
+	const sectorSplit = useMemo(() => splitBy(deals, (d) => d.primary_sector), [deals]);
+	const countrySplit = useMemo(() => splitBy(deals, (d) => d.hq_country), [deals]);
+	const roundSplit = useMemo(() => splitBy(deals, (d) => d.round_type_name), [deals]);
 
 	return (
 		<Page>
@@ -290,7 +331,8 @@ export default function InvestorDetailPage() {
 							<div className="co-kv"><span className="co-kv-k">Recent</span><span className="co-kv-v">{investor.recent_investment}</span></div>
 						)}
 					</div>
-				</aside>
+				<ConnectCard investor={investor} />
+					</aside>
 			</div>
 
 			{/* Investment timeline */}
@@ -342,6 +384,34 @@ export default function InvestorDetailPage() {
 				</section>
 			)}
 
+			{/* Portfolio breakdown — sector / geography / stage splits over the
+			    investor's tracked deals. */}
+			{deals.length > 0 && (
+				<section className="co-sec">
+					<h3 className="co-sec-h">Portfolio breakdown</h3>
+					<div className="grid-3">
+						<div className="card">
+							<div className="co-rail-h">By sector</div>
+							<div style={{ padding: 'var(--space-4)' }}>
+								{sectorSplit.length === 0 ? <Empty msg="No sector data." /> : <PieDonut segments={sectorSplit} mode="donut" />}
+							</div>
+						</div>
+						<div className="card">
+							<div className="co-rail-h">By geography</div>
+							<div style={{ padding: 'var(--space-4)' }}>
+								{countrySplit.length === 0 ? <Empty msg="No geography data." /> : <PieDonut segments={countrySplit} mode="bar" />}
+							</div>
+						</div>
+						<div className="card">
+							<div className="co-rail-h">By stage</div>
+							<div style={{ padding: 'var(--space-4)' }}>
+								{roundSplit.length === 0 ? <Empty msg="No stage data." /> : <PieDonut segments={roundSplit} mode="bar" />}
+							</div>
+						</div>
+					</div>
+				</section>
+			)}
+
 			{/* Portfolio deals */}
 			<section className="co-sec">
 				<h3 className="co-sec-h">
@@ -383,7 +453,51 @@ export default function InvestorDetailPage() {
 					</div>
 				)}
 			</section>
+
+			<InvestorVerifyFooter investor={investor} />
 		</Page>
+	);
+}
+
+function InvestorVerifyFooter({ investor }: { investor: Investor }) {
+	const claim = () => openClaim({ role: 'investor', id: investor.id, name: investor.name, website: investor.website });
+	if (investor.is_verified) {
+		return (
+			<footer className="co-verify-foot verified" aria-label="Verified profile">
+				<VerifiedBadge size={22} />
+				<div className="co-verify-text">
+					<div className="co-verify-h">Verified profile</div>
+					<div className="co-verify-sub">Claimed and maintained by {investor.name}</div>
+				</div>
+				<div className="co-verify-actions">
+					<button className="btn ghost" onClick={claim}>Report an issue</button>
+				</div>
+			</footer>
+		);
+	}
+	return (
+		<footer className="co-verify-foot unverified" aria-label="Get verified">
+			<div className="co-verify-icon">
+				<svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true">
+					<path
+						d="M8 1.2l1.6 1.4 2.1-.2.5 2 1.8 1.1-.9 1.9.5 2.1-1.9.9-.8 2-2.1-.4L8 13.5l-1.6-1.4-2.1.4-.8-2-1.9-.9.5-2.1L1.2 5.5l1.8-1.1.5-2 2.1.2L7.2 1.2z"
+						stroke="currentColor"
+						strokeWidth="1.3"
+						fill="none"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</div>
+			<div className="co-verify-text">
+				<div className="co-verify-h">Is this your firm?</div>
+				<div className="co-verify-sub">
+					Claim {investor.name} to keep your thesis, funds and portfolio accurate — and earn a verified badge on your profile.
+				</div>
+			</div>
+			<div className="co-verify-actions">
+				<button className="btn" onClick={claim}>Claim &amp; verify</button>
+			</div>
+		</footer>
 	);
 }
 
@@ -396,6 +510,61 @@ function TagGroup({ label, items }: { label: string; items: string[] }) {
 			</div>
 			<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 				{items.map((it) => <Tag key={it}>{it}</Tag>)}
+			</div>
+		</div>
+	);
+}
+
+function SocialIcon({ kind, size = 14 }: { kind: 'mail' | 'twitter' | 'instagram' | 'facebook' | 'linkedin'; size?: number }) {
+	switch (kind) {
+		case 'mail':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M3 5h18v14H3z M3 5l9 7 9-7" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" /></svg>;
+		case 'twitter':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M18 4h3l-7 8 8 8h-6l-5-6-5 6H3l8-9-8-9h6l4 5z" fill="currentColor" /></svg>;
+		case 'instagram':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></g></svg>;
+		case 'facebook':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><path d="M14 8h2V5h-2.5C12 5 11 6 11 7.5V10H9v3h2v8h3v-8h2l1-3h-3V8z" fill="currentColor" /></svg>;
+		case 'linkedin':
+			return <svg width={size} height={size} viewBox="0 0 24 24"><g fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" /><rect x="6" y="10" width="2.5" height="8" /><circle cx="7.2" cy="7.2" r="1.4" /><path d="M11 10h2.4v1.2c.5-.8 1.5-1.4 2.6-1.4 2 0 2.8 1.3 2.8 3.2V18h-2.5v-4.3c0-1-.4-1.7-1.3-1.7-.9 0-1.5.6-1.5 1.7V18H11v-8z" /></g></svg>;
+	}
+}
+
+/** Real socials/website only — nothing rendered if the investor has none. */
+function ConnectCard({ investor }: { investor: Investor }) {
+	const socials: Array<{ kind: 'twitter' | 'instagram' | 'facebook' | 'linkedin'; url: string }> = [];
+	if (investor.twitter_url) socials.push({ kind: 'twitter', url: investor.twitter_url });
+	if (investor.instagram_url) socials.push({ kind: 'instagram', url: investor.instagram_url });
+	if (investor.facebook_url) socials.push({ kind: 'facebook', url: investor.facebook_url });
+	if (investor.linkedin_url) socials.push({ kind: 'linkedin', url: investor.linkedin_url });
+
+	if (!investor.contact_email && !investor.website && socials.length === 0) return null;
+
+	return (
+		<div className="card co-rail-card">
+			<div className="co-rail-h">Connect</div>
+			<div style={{ padding: 12 }}>
+				{investor.contact_email && (
+					<a className="co-social-mail" href={`mailto:${investor.contact_email}`} title={investor.contact_email}>
+						<SocialIcon kind="mail" size={14} />
+						<span>{investor.contact_email}</span>
+					</a>
+				)}
+				{!investor.contact_email && investor.website && (
+					<a className="co-social-mail" href={investor.website} target="_blank" rel="noopener noreferrer" title={investor.website}>
+						<ExternalLink size={14} />
+						<span>{investor.website.replace(/^https?:\/\//, '')}</span>
+					</a>
+				)}
+				{socials.length > 0 && (
+					<div className="co-social-icons" style={{ marginTop: investor.contact_email || investor.website ? 8 : 0 }}>
+						{socials.map((s) => (
+							<a key={s.kind} className="co-social-ico" href={s.url} target="_blank" rel="noopener noreferrer" title={s.kind}>
+								<SocialIcon kind={s.kind} size={s.kind === 'twitter' ? 13 : 14} />
+							</a>
+						))}
+					</div>
+				)}
 			</div>
 		</div>
 	);

@@ -140,6 +140,7 @@ export const qk = {
     quarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/quarterly-capital', params] as const,
     maQuarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/ma-quarterly', params] as const,
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
+    sectorHeatTree: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 8) => ['/api/analytics/sector-heat-tree', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
     topFundedCities: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/top-funded-cities', { period, limit }] as const,
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10, audience?: 'athletes' | 'fans' | 'executives') =>
@@ -149,6 +150,7 @@ export const qk = {
     investorsByType: () => ['/api/analytics/investors-by-type'] as const,
     topAcquirers: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10) => ['/api/analytics/top-acquirers', { period, limit }] as const,
     bizModel: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/business-model-breakdown', { period }] as const,
+    maTypeBreakdown: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-type-breakdown', { period }] as const,
   },
 
   // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────
