@@ -1,161 +1,332 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import useSWR from 'swr';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Search, X, Loader2, Building2, ChevronLeft, ChevronRight, ExternalLink, MapPin, Globe } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, ExternalLink, X, Globe, MapPin } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import {
+	FilterRail, ActiveFiltersBar, ViewToggle,
+	emptyFilterState, type Facet, type FilterState,
+} from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 
 interface EcosystemEntity {
-  id: string; name: string; description?: string; website?: string;
-  type?: string; country?: string; city?: string; sports?: string[];
-  is_verified?: boolean;
+	id: string;
+	name: string;
+	slug?: string | null;
+	description?: string | null;
+	entity_type?: string | null;
+	category?: string | null;
+	website?: string | null;
+	hq_city?: string | null;
+	hq_country?: string | null;
+	founded_year?: number | null;
+	is_verified?: boolean | null;
 }
 
-interface EcosystemResponse { data: EcosystemEntity[]; total: number; page: number; limit: number; totalPages: number; }
-
-function EntityDetailPanel({ entity, onClose }: { entity: EcosystemEntity; onClose: () => void }) {
-  return (
-    <div className="w-80 xl:w-96 border-l bg-card flex flex-col h-full shrink-0 animate-slide-in-right">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold truncate">{entity.name}</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center"><Globe className="h-5 w-5 text-muted-foreground" /></div>
-            <div>
-              <h3 className="font-semibold">{entity.name}</h3>
-              {entity.type && <Badge variant="secondary" className="text-xs mt-1">{entity.type}</Badge>}
-            </div>
-          </div>
-          {entity.description && <p className="text-sm text-muted-foreground leading-relaxed">{entity.description}</p>}
-          <Separator />
-          <div className="space-y-2.5">
-            {entity.country && <div className="flex items-center gap-2 text-sm"><MapPin className="h-4 w-4 text-muted-foreground shrink-0" /><span>{entity.city ? `${entity.city}, ` : ''}{entity.country}</span></div>}
-          </div>
-          {entity.website && (
-            <a href={entity.website} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm" className="w-full"><ExternalLink className="h-3.5 w-3.5 mr-2" />Visit Website</Button>
-            </a>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
+interface EcosystemResponse {
+	data: EcosystemEntity[];
+	total: number;
+	page: number;
+	totalPages: number;
 }
+
+interface SportRef { id: string; name: string; slug: string }
+
+const ENTITY_TYPE_OPTIONS = [
+	{ value: 'organization', label: 'Organisation' },
+	{ value: 'initiative', label: 'Initiative' },
+	{ value: 'program', label: 'Program' },
+	{ value: 'event', label: 'Event' },
+];
+
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 export default function EcosystemPage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+	const router = useRouter();
+	const pathname = usePathname();
+	const params = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get('q') ?? '');
-  const debouncedSearch = useDebouncedValue(search, 300);
-  const [type, setType] = useState(searchParams.get('type') ?? '');
-  const [page, setPage] = useState(Number(searchParams.get('page') ?? '1'));
-  const [selectedId, setSelectedId] = useState(searchParams.get('item') ?? '');
+	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
+	const [selectedId, setSelectedId] = useState<string>(params.get('item') ?? '');
 
-  const updateUrl = useCallback((updates: Record<string, string | number | null>) => {
-    const sp = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v == null || v === '') sp.delete(k); else sp.set(k, String(v)); });
-    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
-  }, [pathname, router, searchParams]);
+	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
 
-  const apiUrl = (() => {
-    const sp = new URLSearchParams();
-    if (debouncedSearch) sp.set('q', debouncedSearch);
-    if (type) sp.set('entity_type', type);
-    sp.set('page', String(page)); sp.set('limit', '50');
-    // Backend route is /api/ecosystem-entities — there is no /api/ecosystem.
-    // Param names also: `q` (not `search`), `entity_type` (not `type`).
-    return `/api/ecosystem-entities?${sp.toString()}`;
-  })();
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
 
-  const { data, isLoading, isValidating: isFetching } = useSWR<EcosystemResponse>([apiUrl], { dedupingInterval: 3 * 60_000, revalidateOnFocus: false });
+	const facets = useMemo<Facet[]>(() => [
+		{ key: 'entity_type', label: 'Type', kind: 'multi', options: () => ENTITY_TYPE_OPTIONS },
+		{
+			key: 'sport_slug', label: 'Sport', kind: 'multi', section: 'Focus',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		...locationFacets(locFacets),
+		{
+			key: 'founded', label: 'Year launched', kind: 'range', section: 'Other',
+			min: 1950, max: CURRENT_YEAR, step: 1,
+		},
+	], [sportList, locFacets]);
 
-  const entities = data?.data ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = data?.totalPages ?? 1;
-  const selected = entities.find(e => e.id === selectedId) ?? null;
+	const [filterState, setFilterState] = useState<FilterState>(() => {
+		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const et = params.get('entity_type'); if (et) init.entity_type = et.split(',').filter(Boolean);
+		const sp = params.get('sport_slug'); if (sp) init.sport_slug = sp.split(',').filter(Boolean);
+		const c = params.get('country'); if (c) init.country = c.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
+		const fMin = params.get('founded_year_min');
+		const fMax = params.get('founded_year_max');
+		if (fMin && fMax) init.founded = [Number(fMin), Number(fMax)] as [number, number];
+		return init;
+	});
 
-  const ENTITY_TYPES = ['League', 'Federation', 'Team', 'Brand', 'Media', 'Agency', 'Association', 'Venue'];
+	useEffect(() => {
+		const sp = new URLSearchParams();
+		if (filterState.search) sp.set('q', filterState.search);
+		const et = filterState.entity_type as string[] | undefined;
+		if (et?.length) sp.set('entity_type', et.join(','));
+		const spt = filterState.sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('sport_slug', spt.join(','));
+		const ctry = filterState.country as string[] | undefined;
+		if (ctry?.length) sp.set('country', ctry.join(','));
+		setLocationUrlParams(sp, filterState);
+		const f = filterState.founded as [number, number] | undefined;
+		if (f && (f[0] !== 1950 || f[1] !== CURRENT_YEAR)) {
+			sp.set('founded_year_min', String(f[0]));
+			sp.set('founded_year_max', String(f[1]));
+		}
+		if (selectedId) sp.set('item', selectedId);
+		if (page > 1) sp.set('page', String(page));
+		if (view !== 'table') sp.set('view', view);
+		const qs = sp.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filterState, page, view, selectedId]);
 
-  return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="border-b bg-background/95 backdrop-blur px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-semibold text-lg shrink-0">Ecosystem</h1>
-            {!isLoading && <span className="text-sm text-muted-foreground">{total.toLocaleString()} entities</span>}
-            {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-            <div className="flex-1" />
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search ecosystem..." className="pl-8 h-8" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); updateUrl({ q: e.target.value || null, page: null }); }} />
-              {search && <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(''); updateUrl({ q: null }); }}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>}
-            </div>
-            <Select value={type} onValueChange={v => { setType(v); setPage(1); updateUrl({ type: v || null, page: null }); }}>
-              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="All Types" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                {ENTITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 
-        <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-muted/90 backdrop-blur z-10">
-              <TableRow>
-                <TableHead className="text-xs">Entity</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Type</TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">Location</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 10 }).map((_, i) => <TableRow key={i}>{Array.from({ length: 3 }).map((_, j) => <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>)}</TableRow>)
-              ) : entities.length > 0 ? (
-                entities.map(entity => (
-                  <TableRow key={entity.id} className={cn('cursor-pointer', selectedId === entity.id && 'bg-primary/5 border-l-2 border-l-primary')}
-                    onClick={() => { const next = entity.id === selectedId ? '' : entity.id; setSelectedId(next); updateUrl({ item: next || null }); }}>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 bg-muted rounded flex items-center justify-center shrink-0"><Globe className="h-3.5 w-3.5 text-muted-foreground" /></div>
-                        <p className="text-sm font-medium">{entity.name}</p>
-                        {entity.is_verified && <Badge variant="success" className="text-xs">Verified</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{entity.type && <Badge variant="secondary" className="text-xs">{entity.type}</Badge>}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{entity.city && entity.country ? `${entity.city}, ${entity.country}` : (entity.country ?? '-')}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={3} className="text-center py-16 text-muted-foreground">No entities found</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+	const queryParams: Record<string, unknown> = { page, limit: 24 };
+	if (debouncedSearch) queryParams.q = debouncedSearch;
+	const et = filterState.entity_type as string[] | undefined;
+	if (et?.length) queryParams.entity_type = et.join(',');
+	const spt = filterState.sport_slug as string[] | undefined;
+	if (spt?.length) queryParams.sport_slug = spt.join(',');
+	const ctry = filterState.country as string[] | undefined;
+	if (ctry?.length) queryParams.country = ctry.join(',');
+	applyLocationQueryParams(queryParams, filterState);
+	const f = filterState.founded as [number, number] | undefined;
+	if (f && (f[0] !== 1950 || f[1] !== CURRENT_YEAR)) {
+		queryParams.founded_year_min = f[0];
+		queryParams.founded_year_max = f[1];
+	}
 
-        <div className="border-t px-4 py-2 flex items-center justify-end gap-1 bg-background shrink-0">
-          <span className="text-xs text-muted-foreground mr-2">Page {page} of {totalPages}</span>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => { setPage(p => p - 1); updateUrl({ page: page - 1 }); }}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); updateUrl({ page: page + 1 }); }}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
-      </div>
-      {selected && <EntityDetailPanel entity={selected} onClose={() => { setSelectedId(''); updateUrl({ item: null }); }} />}
-    </div>
-  );
+	const { data, isLoading } = useSWR<EcosystemResponse>(qk.ecosystem.list(queryParams), {
+		dedupingInterval: 3 * 60_000,
+	});
+
+	const entities = data?.data ?? [];
+	const total = data?.total ?? 0;
+	const totalPages = data?.totalPages ?? 1;
+	const selected = entities.find((e) => e.id === selectedId) ?? null;
+
+	return (
+		<Page>
+			<PageTitle
+				kicker={`Ecosystem · ${total.toLocaleString()} entities`}
+				title="Ecosystem"
+				sub="Leagues, federations, teams, brands, media and agencies across the sports-tech landscape."
+			/>
+
+			<div className="flt-layout">
+				<FilterRail
+					facets={facets}
+					state={filterState}
+					setState={(s) => { setFilterState(s); setPage(1); }}
+					defaultOpen={{ entity_type: true }}
+				/>
+
+				<div className="flt-main">
+					<ActiveFiltersBar
+						facets={facets}
+						state={filterState}
+						setState={setFilterState}
+						placeholder="Search ecosystem, locations…"
+						total={total}
+						shown={entities.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
+					/>
+
+					<div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+						<div style={{ flex: 1, minWidth: 0 }}>
+							{isLoading && entities.length === 0 ? (
+								<Empty msg="Loading…" />
+							) : entities.length === 0 ? (
+								<div className="card flt-empty-state">
+									<h3>No entities match</h3>
+									<p>Try clearing some filters.</p>
+								</div>
+							) : view === 'grid' ? (
+								<div className="co-grid">
+									{entities.map((e) => (
+										<EcoCard key={e.id} e={e} onClick={() => setSelectedId(e.id === selectedId ? '' : e.id)} />
+									))}
+								</div>
+							) : (
+								<div className="card">
+									<table className="data-table">
+										<thead>
+											<tr>
+												<th>Entity</th>
+												<th>Type</th>
+												<th>Location</th>
+											</tr>
+										</thead>
+										<tbody>
+											{entities.map((e) => {
+												const cc = e.hq_country ? countryCode(e.hq_country) : '';
+												return (
+													<tr
+														key={e.id}
+														style={{ cursor: 'pointer' }}
+														onClick={() => setSelectedId(e.id === selectedId ? '' : e.id)}
+													>
+														<td>
+															<div className="tbl-name-cell">
+																<div className="tbl-name-text">
+																	<div className="tbl-name-line">
+																		<span className="tbl-name">{e.name}</span>
+																	</div>
+																	{e.description && <div className="tbl-sub">{e.description}</div>}
+																</div>
+															</div>
+														</td>
+														<td>{e.entity_type ? <Tag>{titleCase(e.entity_type)}</Tag> : '—'}</td>
+														<td>
+															<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+																{cc && <Flag cc={cc} />}
+																{[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}
+															</span>
+														</td>
+													</tr>
+												);
+											})}
+										</tbody>
+									</table>
+								</div>
+							)}
+
+							{totalPages > 1 && (
+								<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 24 }}>
+									<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)', marginRight: 8 }}>
+										Page {page} of {totalPages}
+									</span>
+									<button className="btn ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+										<ChevronLeft size={14} />
+									</button>
+									<button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+										<ChevronRight size={14} />
+									</button>
+								</div>
+							)}
+						</div>
+
+						{selected && <EntityDetailPanel entity={selected} onClose={() => setSelectedId('')} />}
+					</div>
+				</div>
+			</div>
+		</Page>
+	);
+}
+
+function EcoCard({ e, onClick }: { e: EcosystemEntity; onClick: () => void }) {
+	const cc = e.hq_country ? countryCode(e.hq_country) : '';
+	return (
+		<div role="button" tabIndex={0} className="card co-card" style={{ cursor: 'pointer' }} onClick={onClick}
+			onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onClick(); } }}>
+			<div className="co-card-head">
+				<div style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', background: 'var(--bg-3)' }}>
+					<Globe size={18} style={{ color: 'var(--fg-muted)' }} />
+				</div>
+				<div style={{ flex: 1, minWidth: 0 }}>
+					<div style={{ fontWeight: 700, fontSize: 15 }}>{e.name}</div>
+					<div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+						{cc && <Flag cc={cc} />}
+						{[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}
+					</div>
+				</div>
+			</div>
+			{e.description && <p className="co-sub">{e.description}</p>}
+			{e.entity_type && <div style={{ marginTop: 10 }}><Tag>{titleCase(e.entity_type)}</Tag></div>}
+		</div>
+	);
+}
+
+function EntityDetailPanel({ entity, onClose }: { entity: EcosystemEntity; onClose: () => void }) {
+	const cc = entity.hq_country ? countryCode(entity.hq_country) : '';
+	return (
+		<aside className="card" style={{ width: 320, flexShrink: 0, position: 'sticky', top: 12, padding: 0 }}>
+			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottom: '1px solid var(--border)' }}>
+				<span style={{ fontWeight: 700, fontSize: 14 }}>{entity.name}</span>
+				<button className="btn ghost" style={{ padding: 4 }} onClick={onClose} aria-label="Close">
+					<X size={14} />
+				</button>
+			</div>
+			<div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+				{entity.entity_type && <Tag>{titleCase(entity.entity_type)}</Tag>}
+				{entity.description && <p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.5 }}>{entity.description}</p>}
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+					<MapPin size={14} style={{ color: 'var(--fg-muted)' }} />
+					{cc && <Flag cc={cc} />}
+					<span>{[entity.hq_city, entity.hq_country].filter(Boolean).join(', ') || '—'}</span>
+				</div>
+				{entity.founded_year && (
+					<div style={{ fontSize: 13, color: 'var(--fg-2)' }}>Launched {entity.founded_year}</div>
+				)}
+				{entity.website && (
+					<a href={entity.website} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+						<button className="btn ghost" style={{ width: '100%', justifyContent: 'center' }}>
+							<ExternalLink size={13} /> Visit website
+						</button>
+					</a>
+				)}
+			</div>
+		</aside>
+	);
+}
+
+function titleCase(s: string): string {
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function countryCode(countryName: string): string {
+	const map: Record<string, string> = {
+		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
+		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
+		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
+		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
+		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
+	};
+	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
 }

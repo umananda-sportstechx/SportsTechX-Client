@@ -659,6 +659,27 @@
   color: var(--accent-fg);
   border-color: var(--accent);
 }
+.user-menu-section-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-muted);
+  padding: 8px 12px 5px;
+}
+
+/* ─── Persona workspace zone in the rail (ported from ui_design) ─── */
+.rail-ws-group { position: relative; padding-bottom: 8px; margin-bottom: 4px; }
+.rail-ws-group::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1px;
+  background: var(--border);
+}
+.rail-section-ws { color: var(--fg); display: flex; align-items: center; gap: 7px; }
+.app-shell:not(.rail-expanded) .rail-section-ws { color: var(--fg-muted); }
+.rail-ws-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.rail-ws-group[data-persona="founder"] .rail-ws-dot { background: oklch(62% 0.18 145); }
+.rail-ws-group[data-persona="investor"] .rail-ws-dot { background: oklch(62% 0.20 255); }
+.app-shell:not(.rail-expanded) .rail-section-ws .rail-ws-dot { display: none; }
+.rail-item-ws.active::before { background: var(--accent); }
+.rail-ws-group[data-persona="founder"] .rail-item-ws.active::before { background: oklch(62% 0.18 145); }
+.rail-ws-group[data-persona="investor"] .rail-item-ws.active::before { background: oklch(62% 0.20 255); }
 .user-menu-row {
   display: flex; align-items: center; gap: 12px;
   width: 100%; padding: 9px 10px;

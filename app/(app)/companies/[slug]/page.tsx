@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ArrowLeft, ArrowRight, ChevronRight, ExternalLink, Heart, Link2, Lock, Plus, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { openClaim } from '@/lib/claim-events';
 import { useFavorite } from '@/hooks/use-favorite';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import {
@@ -1311,7 +1312,12 @@ function VerifyFooter({ company }: { company: Company }) {
 					</div>
 				</div>
 				<div className="co-verify-actions">
-					<button className="btn ghost">Report an issue</button>
+					<button
+						className="btn ghost"
+						onClick={() => openClaim({ role: 'founder', id: company.id, name: company.name, website: company.website })}
+					>
+						Report an issue
+					</button>
 				</div>
 			</footer>
 		);
@@ -1336,7 +1342,12 @@ function VerifyFooter({ company }: { company: Company }) {
 				</div>
 			</div>
 			<div className="co-verify-actions">
-				<button className="btn">Claim &amp; verify</button>
+				<button
+					className="btn"
+					onClick={() => openClaim({ role: 'founder', id: company.id, name: company.name, website: company.website })}
+				>
+					Claim &amp; verify
+				</button>
 			</div>
 		</footer>
 	);

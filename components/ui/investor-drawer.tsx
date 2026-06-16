@@ -5,6 +5,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { ArrowRight, Send, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { openClaim } from '@/lib/claim-events';
 import { useFavorite } from '@/hooks/use-favorite';
 import { Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot } from './drawer';
 import { Flag, Tag, KV, Empty, VerifiedBadge } from './atoms';
@@ -13,6 +14,7 @@ interface Investor {
 	id: string;
 	name: string;
 	slug?: string;
+	website?: string | null;
 	description?: string | null;
 	thesis?: string | null;
 	category?: string | null;
@@ -187,6 +189,15 @@ export function InvestorDrawer({
 					</DrawerBody>
 
 					<DrawerFoot>
+						{!investor.is_verified && (
+							<button
+								className="btn ghost"
+								onClick={() => openClaim({ role: 'investor', id: investor.id, name: investor.name, website: investor.website })}
+								title="Is this your firm?"
+							>
+								Claim
+							</button>
+						)}
 						<button
 							className="btn"
 							onClick={() => {

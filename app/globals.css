@@ -16,6 +16,8 @@
 @import "./get-verified.css";
 /* Analytics — sub-tab nav + ranking helpers. */
 @import "./analytics.css";
+/* Persona Copilot workspace (founder / investor home + sub-screens). */
+@import "./copilot.css";
 
 /* ============================================================================
  * SportsTechX design system — ported from ui_design/app/styles.css

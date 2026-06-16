@@ -6,8 +6,8 @@ import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Stat, SectionHead, Empty, Flag } from '@/components/ui/atoms';
 import {
-	ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
-	type ComboPoint, type YearRange, type HBarRow,
+	PieDonut, ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
+	type PieSegment, type ComboPoint, type YearRange, type HBarRow,
 } from '@/components/ui/analytics-charts';
 
 interface MaStats {
@@ -31,6 +31,10 @@ interface SectorHeatPoint {
 	total_amount: number;
 }
 
+interface SectorHeatTreeNode extends SectorHeatPoint {
+	children: SectorHeatPoint[];
+}
+
 interface TopAcquirer {
 	acquirer_name: string;
 	acquirer_country: string | null;
@@ -47,7 +51,20 @@ interface AcquisitionRow {
 	hq_country?: string | null;
 }
 
+interface TypeBreakdownPoint {
+	acquisition_type: string;
+	deal_count: number;
+	total_amount: number;
+}
+
 interface AcqResponse { data: AcquisitionRow[]; total: number }
+
+const TYPE_LABELS: Record<string, string> = {
+	acquisition: 'Strategic',
+	merger: 'Merger',
+	asset_purchase: 'Asset purchase',
+	other: 'Other',
+};
 
 const SECTOR_COLORS = [
 	'oklch(58% 0.22 290)', 'oklch(58% 0.22 240)', 'oklch(58% 0.22 160)',
@@ -60,6 +77,7 @@ const rangeToPeriod = (r: YearRange): 'ytd' | '12m' | 'all' => (r === 'ytd' ? 'y
 export function MaDeepDiveTab() {
 	const currentYear = new Date().getFullYear();
 	const [range, setRange] = useState<YearRange>('10y');
+	const [filtersOpen, setFiltersOpen] = useState(false);
 	const yearWindow = range === '10y' ? 9 : range === '5y' ? 4 : 0;
 
 	const { data: stats } = useSWR<MaStats>(qk.analytics.maStats(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
@@ -67,8 +85,9 @@ export function MaDeepDiveTab() {
 		qk.analytics.annualMa({ from: currentYear - yearWindow, to: currentYear }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
+	const { data: sectorTree } = useSWR<SectorHeatTreeNode[]>(qk.analytics.sectorHeatTree(rangeToPeriod(range), 8), { dedupingInterval: 10 * 60_000 });
 	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
+	const { data: typeBreakdown } = useSWR<TypeBreakdownPoint[]>(qk.analytics.maTypeBreakdown(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
 	// Largest disclosed acquisitions — sorted by deal size off the real list endpoint.
 	const { data: largestResp } = useSWR<AcqResponse>(
 		qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 8 }),
@@ -80,27 +99,72 @@ export function MaDeepDiveTab() {
 		[annual],
 	);
 
-	// M&A-by-sector drilldown rows (flat — sector-heat has no hierarchy).
+	// M&A-by-sector drilldown rows: pillars with sub-sector children nested.
 	const sectorRows: HBarRow[] = useMemo(() => {
-		return (sectorHeat ?? []).map((s, i) => ({
-			id: s.sector_id,
-			label: s.sector_name,
-			value: s.total_amount,
-			formatted: formatAmtCompact(s.total_amount),
+		return (sectorTree ?? []).map((s, i) => {
+			const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+			return {
+				id: s.sector_id,
+				label: s.sector_name,
+				value: s.total_amount,
+				formatted: formatAmtCompact(s.total_amount),
+				color,
+				children: s.children.map((c) => ({
+					id: c.sector_id,
+					label: c.sector_name,
+					value: c.total_amount,
+					formatted: formatAmtCompact(c.total_amount),
+					color,
+				})),
+			};
+		});
+	}, [sectorTree]);
+
+	// Deal-type donut segments (Strategic / Merger / Asset). Sized by deal count
+	// to mirror the design's type split.
+	const typeSegments: PieSegment[] = useMemo(() => {
+		return (typeBreakdown ?? []).map((t, i) => ({
+			name: TYPE_LABELS[t.acquisition_type] ?? t.acquisition_type,
+			v: t.deal_count,
 			color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+			label: t.deal_count.toLocaleString(),
 		}));
-	}, [sectorHeat]);
+	}, [typeBreakdown]);
 
 	const largest = largestResp?.data ?? [];
 
 	const totalValue = useMemo(() => (annual ?? []).reduce((s, a) => s + a.total_amount, 0), [annual]);
 	const totalDeals = useMemo(() => (annual ?? []).reduce((s, a) => s + a.deal_count, 0), [annual]);
 
+	// KPI sparkline series, derived from the annual series (chronological).
+	const annualSorted = useMemo(() => (annual ?? []).slice().sort((a, b) => a.year - b.year), [annual]);
+	const valueSpark = useMemo(() => annualSorted.map((a) => a.total_amount), [annualSorted]);
+	const dealsSpark = useMemo(() => annualSorted.map((a) => a.deal_count), [annualSorted]);
+
 	return (
 		<>
 			<div className="an-toolbar">
 				<h2>M&amp;A Deep Dive</h2>
-				<button className="btn ghost"><Filter size={12} /> Filters</button>
+				<div style={{ position: 'relative' }}>
+					<button className="btn ghost" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen}>
+						<Filter size={12} /> Filters
+					</button>
+					{filtersOpen && (
+						<div
+							className="card"
+							style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, padding: 12, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 6 }}
+						>
+							<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-muted)', marginBottom: 2 }}>Time range</div>
+							<div className="filter-bar">
+								{(['10y', '5y', 'ytd'] as YearRange[]).map((r) => (
+									<button key={r} className={`chip ${range === r ? 'on' : ''}`} onClick={() => setRange(r)}>
+										{r === '10y' ? '10 yr' : r === '5y' ? '5 yr' : 'YTD'}
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
 			</div>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
@@ -111,6 +175,7 @@ export function MaDeepDiveTab() {
 						unit={splitAmt(totalValue).unit}
 						delta={`across ${totalDeals.toLocaleString()} deals`}
 						deltaDir="pos"
+						spark={valueSpark}
 					/>
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
@@ -119,6 +184,7 @@ export function MaDeepDiveTab() {
 						value={totalDeals.toLocaleString()}
 						delta="closed deals"
 						deltaDir="pos"
+						spark={dealsSpark}
 					/>
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
@@ -132,10 +198,10 @@ export function MaDeepDiveTab() {
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
 					<Stat
-						label="Acquisitions share"
+						label="Strategic share"
 						value={(stats?.acquisition_pct ?? 0).toString()}
 						unit="%"
-						delta={`vs ${100 - (stats?.acquisition_pct ?? 0)}% mergers`}
+						delta={`vs ${100 - (stats?.acquisition_pct ?? 0)}% other`}
 						deltaDir="pos"
 					/>
 				</div>
@@ -154,12 +220,23 @@ export function MaDeepDiveTab() {
 				</div>
 			</div>
 
-			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="M&A by Sector" action={<YearRangeToggle value={range} onChange={setRange} />} />
-				<div className="card-pad">
-					{sectorRows.length === 0
-						? <Empty msg="No sector data yet." />
-						: <HBarDrilldown rows={sectorRows} />}
+			<div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
+				<div className="card">
+					<SectionHead title="M&A by Sector" action={<YearRangeToggle value={range} onChange={setRange} />} />
+					<div className="card-pad">
+						{sectorRows.length === 0
+							? <Empty msg="No sector data yet." />
+							: <HBarDrilldown rows={sectorRows} />}
+					</div>
+				</div>
+
+				<div className="card">
+					<SectionHead title="Deal Type" meta="strategic vs merger vs asset" />
+					<div className="card-pad">
+						{typeSegments.length === 0
+							? <Empty msg="No deal-type data yet." />
+							: <PieDonut segments={typeSegments} mode="donut" />}
+					</div>
 				</div>
 			</div>
 

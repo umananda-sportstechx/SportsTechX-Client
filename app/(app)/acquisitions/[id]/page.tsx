@@ -41,7 +41,7 @@ export default function AcquisitionDetailPage() {
 		return (
 			<Page>
 				<div style={{ marginBottom: 'var(--space-4)' }}>
-					<Link href="/acquisitions" className="btn ghost"><ArrowLeft size={12} /> Back to acquisitions</Link>
+					<Link href="/ma" className="btn ghost"><ArrowLeft size={12} /> Back to M&amp;A</Link>
 				</div>
 				<Empty msg="Acquisition not found" />
 			</Page>
@@ -57,7 +57,7 @@ export default function AcquisitionDetailPage() {
 	return (
 		<Page>
 			<div style={{ marginBottom: 'var(--space-4)' }}>
-				<Link href="/acquisitions" className="btn ghost"><ArrowLeft size={12} /> Back to acquisitions</Link>
+				<Link href="/ma" className="btn ghost"><ArrowLeft size={12} /> Back to M&amp;A</Link>
 			</div>
 
 			<div style={{ marginBottom: 'var(--space-5)' }}>

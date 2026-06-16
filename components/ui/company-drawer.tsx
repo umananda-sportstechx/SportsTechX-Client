@@ -26,6 +26,7 @@ interface PrimaryContactData {
 	phone: string | null;
 	role: string | null;
 }
+import { openClaim } from '@/lib/claim-events';
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
@@ -258,6 +259,15 @@ export function CompanyDrawer({
 					</DrawerBody>
 
 					<DrawerFoot>
+						{!company.is_verified && (
+							<button
+								className="btn ghost"
+								onClick={() => openClaim({ role: 'founder', id: company.id, name: company.name, website: company.website })}
+								title="Is this your company?"
+							>
+								Claim
+							</button>
+						)}
 						<button
 							className="btn"
 							onClick={() => {

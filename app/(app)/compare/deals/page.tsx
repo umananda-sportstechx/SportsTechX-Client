@@ -93,7 +93,7 @@ function Row<T>({ label, rows, render }: { label: string; rows: T[]; render: (ro
 function BackLink() {
 	return (
 		<div style={{ marginBottom: 'var(--space-4)' }}>
-			<Link href="/deals" className="btn ghost"><ArrowLeft size={12} /> Back to deals</Link>
+			<Link href="/funding" className="btn ghost"><ArrowLeft size={12} /> Back to funding</Link>
 		</div>
 	);
 }
