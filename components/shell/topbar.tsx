@@ -6,6 +6,13 @@ import { Search, Sun, Moon, Sparkles, ChevronRight, User, Settings, CreditCard, 
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { GetVerifiedPill } from '@/components/get-verified/topbar-pill';
+import { usePersona, type Persona } from '@/contexts/persona-context';
+
+const PERSONAS: Array<{ id: Persona; label: string }> = [
+	{ id: 'founder', label: 'Founder' },
+	{ id: 'investor', label: 'Investor' },
+	{ id: 'general', label: 'General' },
+];
 
 interface TopbarProps {
 	onCmdOpen: () => void;
@@ -44,6 +51,7 @@ export function Topbar({
 }: TopbarProps) {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
+	const { persona, setPersona } = usePersona();
 	const [userOpen, setUserOpen] = useState(false);
 	const [signingOut, setSigningOut] = useState(false);
 	const userRef = useRef<HTMLDivElement>(null);
@@ -70,6 +78,14 @@ export function Topbar({
 	}, [userOpen]);
 
 	const go = (path: string) => { setUserOpen(false); router.push(path); };
+
+	// Switching persona swaps the workspace nav + home; land on the persona home.
+	const switchPersona = (p: Persona) => {
+		setPersona(p);
+		setUserOpen(false);
+		router.push('/dashboard');
+	};
+	const personaLabel = (PERSONAS.find((p) => p.id === persona) ?? PERSONAS[2]).label.toUpperCase();
 
 	const handleLogout = async () => {
 		if (signingOut) return;
@@ -156,8 +172,20 @@ export function Topbar({
 							<div style={{ minWidth: 0 }}>
 								<div className="user-menu-name">{name}</div>
 								{email && <div className="user-menu-mail">{email}</div>}
-								<div className="user-menu-plan">{planLabel}</div>
+								<div className="user-menu-plan">{personaLabel} · {planLabel}</div>
 							</div>
+						</div>
+						<div className="user-menu-section-label">Viewing as</div>
+						<div className="user-menu-plan-toggle" role="group" aria-label="Persona">
+							{PERSONAS.map((p) => (
+								<button
+									key={p.id}
+									className={`plan-pill ${persona === p.id ? 'on' : ''}`}
+									onClick={() => switchPersona(p.id)}
+								>
+									{p.label.toUpperCase()}
+								</button>
+							))}
 						</div>
 						<div className="user-menu-sep" />
 						{menu.map((item) => {

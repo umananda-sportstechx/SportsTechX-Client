@@ -11,6 +11,10 @@ import {
 	FilterRail, ActiveFiltersBar,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 
 interface EcosystemEntity {
 	id: string;
@@ -43,6 +47,14 @@ const STATUS_OPTIONS = [
 	{ value: 'closed', label: 'Closed' },
 ];
 
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
+	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
+];
+
+interface SportRef { id: string; name: string; slug: string }
+
 const FALLBACK_COLORS = [
 	'#A855F7', '#0F172A', '#22D3EE', '#94A3B8', '#0EA5E9', '#A78BFA',
 ];
@@ -54,27 +66,57 @@ export default function ProgramsPage() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 
+	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
 	const facets = useMemo<Facet[]>(() => [
+		{ key: 'entries_open', label: 'Entries open', kind: 'bool' },
 		{
 			key: 'status',
 			label: 'Application status',
 			kind: 'multi',
 			options: () => STATUS_OPTIONS,
 		},
-	], []);
+		{
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
+			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
+		},
+		...locationFacets(locFacets),
+		{
+			key: 'sport_slug', label: 'Sport', kind: 'multi', section: 'Focus',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+	], [sportList, locFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		if (params.get('entries_open') === 'true') init.entries_open = true;
 		const s = params.get('status');
 		if (s) init.status = s.split(',').filter(Boolean);
+		const c = params.get('country'); if (c) init.country = c.split(',').filter(Boolean);
+		const sp = params.get('sport_slug'); if (sp) init.sport_slug = sp.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
 		return init;
 	});
 
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
+		if (filterState.entries_open === true) sp.set('entries_open', 'true');
 		const st = filterState.status as string[] | undefined;
 		if (st?.length) sp.set('status', st.join(','));
+		const ctry = filterState.country as string[] | undefined;
+		if (ctry?.length) sp.set('country', ctry.join(','));
+		const spt = filterState.sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('sport_slug', spt.join(','));
+		setLocationUrlParams(sp, filterState);
 		if (page > 1) sp.set('page', String(page));
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -83,8 +125,14 @@ export default function ProgramsPage() {
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (filterState.search) queryParams.search = filterState.search;
+	if (filterState.entries_open === true) queryParams.entries_open = true;
 	const st = filterState.status as string[] | undefined;
 	if (st?.length === 1) queryParams.status = st[0];
+	const ctrySel = filterState.country as string[] | undefined;
+	if (ctrySel?.length) queryParams.country = ctrySel.join(',');
+	const sptSel = filterState.sport_slug as string[] | undefined;
+	if (sptSel?.length) queryParams.sport_slug = sptSel.join(',');
+	applyLocationQueryParams(queryParams, filterState);
 
 	const { data, isLoading } = useSWR<EcosystemResponse>(
 		qk.ecosystem.listByType('program', queryParams),

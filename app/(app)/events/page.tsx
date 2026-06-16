@@ -11,6 +11,10 @@ import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
+import {
+	locationFacets, setLocationUrlParams, readLocationParams, applyLocationQueryParams,
+	type LocationFacets,
+} from '@/lib/location-facets';
 import { SortHeader, applySort, type SortState } from '@/components/ui/sort-header';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -45,6 +49,14 @@ const FALLBACK_COLORS = [
 	'#1E40AF', '#DC2626', '#7C3AED', '#15803D', '#0EA5E9', '#0F172A', '#F59E0B', '#A855F7',
 ];
 
+const MODE_OPTIONS = [
+	{ value: 'in_person', label: 'In-person' },
+	{ value: 'virtual', label: 'Online' },
+	{ value: 'hybrid', label: 'Hybrid' },
+];
+
+interface SportRef { id: string; name: string; slug: string }
+
 export default function EventsPage() {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -54,31 +66,61 @@ export default function EventsPage() {
 	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
 	const [sort, setSort] = useState<SortState | null>(null);
 
+	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
+		dedupingInterval: 60 * 60_000,
+	});
+	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
+
+	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
+		dedupingInterval: 60 * 60_000,
+	});
+
 	const facets = useMemo<Facet[]>(() => [
+		{ key: 'upcoming_only', label: 'Upcoming only', kind: 'bool' },
 		{
 			key: 'start_month', label: 'Month', kind: 'multi',
 			options: () => MONTHS.map((m, i) => ({ value: String(i + 1), label: m })),
 		},
 		{
-			key: 'country', label: 'Country', kind: 'multi',
+			key: 'mode', label: 'Mode', kind: 'multi',
+			options: () => MODE_OPTIONS,
+		},
+		{
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
-	], []);
+		...locationFacets(locFacets),
+		{
+			key: 'sport_slug', label: 'Sport', kind: 'multi', section: 'Focus',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+	], [sportList, locFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		if (params.get('upcoming_only') === 'true') init.upcoming_only = true;
 		const m = params.get('start_month'); if (m) init.start_month = m.split(',').filter(Boolean);
 		const c = params.get('country'); if (c) init.country = c.split(',').filter(Boolean);
+		const md = params.get('mode'); if (md) init.mode = md.split(',').filter(Boolean);
+		const sp = params.get('sport_slug'); if (sp) init.sport_slug = sp.split(',').filter(Boolean);
+		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
 		return init;
 	});
 
 	useEffect(() => {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
+		if (filterState.upcoming_only === true) sp.set('upcoming_only', 'true');
 		const mon = filterState.start_month as string[] | undefined;
 		if (mon?.length) sp.set('start_month', mon.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
+		const md = filterState.mode as string[] | undefined;
+		if (md?.length) sp.set('mode', md.join(','));
+		const spt = filterState.sport_slug as string[] | undefined;
+		if (spt?.length) sp.set('sport_slug', spt.join(','));
+		setLocationUrlParams(sp, filterState);
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'grid') sp.set('view', view);
 		const qs = sp.toString();
@@ -88,10 +130,16 @@ export default function EventsPage() {
 
 	const queryParams: Record<string, unknown> = { page, limit: 24, sort: 'start_date' };
 	if (filterState.search) queryParams.search = filterState.search;
+	if (filterState.upcoming_only === true) queryParams.upcoming_only = true;
 	const monSel = filterState.start_month as string[] | undefined;
 	if (monSel?.length) queryParams.start_month = monSel.join(',');
 	const ctrySel = filterState.country as string[] | undefined;
 	if (ctrySel?.length) queryParams.country = ctrySel.join(',');
+	const modeSel = filterState.mode as string[] | undefined;
+	if (modeSel?.length) queryParams.mode = modeSel.join(',');
+	const sptSel = filterState.sport_slug as string[] | undefined;
+	if (sptSel?.length) queryParams.sport_slug = sptSel.join(',');
+	applyLocationQueryParams(queryParams, filterState);
 
 	const { data, isLoading } = useSWR<EventsResponse>(
 		qk.ecosystem.listByType('event', queryParams),

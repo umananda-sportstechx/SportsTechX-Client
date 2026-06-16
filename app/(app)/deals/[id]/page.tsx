@@ -49,7 +49,7 @@ export default function DealDetailPage() {
 		return (
 			<Page>
 				<div style={{ marginBottom: 'var(--space-4)' }}>
-					<Link href="/deals" className="btn ghost"><ArrowLeft size={12} /> Back to deals</Link>
+					<Link href="/funding" className="btn ghost"><ArrowLeft size={12} /> Back to funding</Link>
 				</div>
 				<Empty msg="Deal not found" />
 			</Page>
@@ -61,7 +61,7 @@ export default function DealDetailPage() {
 	return (
 		<Page>
 			<div style={{ marginBottom: 'var(--space-4)' }}>
-				<Link href="/deals" className="btn ghost"><ArrowLeft size={12} /> Back to deals</Link>
+				<Link href="/funding" className="btn ghost"><ArrowLeft size={12} /> Back to funding</Link>
 			</div>
 
 			<div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
