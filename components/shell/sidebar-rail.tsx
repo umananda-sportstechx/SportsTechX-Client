@@ -78,6 +78,7 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'dashboard', name: 'Dashboard', icon: Home, path: '/dashboard' },
 			{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
 			{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
+			{ id: 'documents', name: 'My Documents', icon: FileText, path: '/documents' },
 			{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
 			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics', slug: 'analytics_access' },
 		]

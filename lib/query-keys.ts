@@ -194,6 +194,11 @@ export const qk = {
     suggestions: () => ['/api/chat/suggestions'] as const,
   },
 
+  // ── Uploads (user RAG documents / images) ───────────────────────────────
+  uploads: {
+    list: () => ['/api/uploads'] as const,
+  },
+
   // ── Developer (admin) ───────────────────────────────────────────────────
   apiKeys: {
     list: () => ['/api/me/api-keys'] as const,
