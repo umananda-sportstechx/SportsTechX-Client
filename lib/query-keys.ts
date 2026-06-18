@@ -199,6 +199,12 @@ export const qk = {
     list: () => ['/api/uploads'] as const,
   },
 
+  // ── Pitch deck analyzer (founder-facing) ────────────────────────────────
+  deckAnalysis: {
+    list: () => ['/api/deck-analysis'] as const,
+    detail: (id: string) => [`/api/deck-analysis/${id}`] as const,
+  },
+
   // ── Developer (admin) ───────────────────────────────────────────────────
   apiKeys: {
     list: () => ['/api/me/api-keys'] as const,

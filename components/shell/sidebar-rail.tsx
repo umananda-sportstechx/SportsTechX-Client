@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code,
+	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code, Presentation,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -79,6 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
 			{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
 			{ id: 'documents', name: 'My Documents', icon: FileText, path: '/documents' },
+			{ id: 'pitch-analyzer', name: 'Pitch Analyzer', icon: Presentation, path: '/pitch-analyzer' },
 			{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
 			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics', slug: 'analytics_access' },
 		]
