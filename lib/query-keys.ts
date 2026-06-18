@@ -168,6 +168,7 @@ export const qk = {
     plans: () => ['/api/billing/plans'] as const,
     subscription: () => ['/api/billing/subscription'] as const,
     invoices: () => ['/api/billing/invoices'] as const,
+    creditPacks: () => ['/api/billing/credit-packs'] as const,
   },
 
   // ── Per-user feature overrides + inbox ─────────────────────────────────
