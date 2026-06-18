@@ -739,7 +739,7 @@ type Block =
 	| { type: 'hr' }
 	| { type: 'quote'; lines: string[] }
 	| { type: 'ul'; items: string[] }
-	| { type: 'ol'; items: string[] }
+	| { type: 'ol'; items: Array<{ n: number; text: string }> }
 	| { type: 'table'; header: string[]; rows: string[][] }
 	| { type: 'code'; text: string }
 	| { type: 'p'; text: string };
@@ -815,11 +815,15 @@ function parseBlocks(src: string): Block[] {
 			blocks.push({ type: 'ul', items });
 			continue;
 		}
-		// ordered list
+		// ordered list — keep the model's own numbers (items are often blank-line
+		// separated, so each lands in its own block; using the parsed number keeps
+		// 1, 2, 3 instead of restarting at 1 every block).
 		if (/^\d+[.)]\s+/.test(t)) {
-			const items: string[] = [];
-			while (i < lines.length && /^\d+[.)]\s+/.test((lines[i] ?? '').trim())) {
-				items.push((lines[i] ?? '').trim().replace(/^\d+[.)]\s+/, ''));
+			const items: Array<{ n: number; text: string }> = [];
+			while (i < lines.length) {
+				const om = /^(\d+)[.)]\s+(.*)$/.exec((lines[i] ?? '').trim());
+				if (!om) break;
+				items.push({ n: Number(om[1]), text: om[2]! });
 				i++;
 			}
 			blocks.push({ type: 'ol', items });
@@ -879,8 +883,8 @@ function renderBlock(b: Block, i: number, sources: CitationSource[], router: App
 				<div key={key} style={{ margin: '4px 0' }}>
 					{b.items.map((it, ii) => (
 						<div key={ii} style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-							<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{ii + 1}.</span>
-							<span>{renderInline(it, sources, router, `${key}-${ii}`)}</span>
+							<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{it.n}.</span>
+							<span>{renderInline(it.text, sources, router, `${key}-${ii}`)}</span>
 						</div>
 					))}
 				</div>
