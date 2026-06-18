@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, X, Download, Plus } from 'lucide-react';
+import { Send, X, Download, Plus, History } from 'lucide-react';
 import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -44,6 +45,12 @@ interface ChatMessage {
 	plan?: { strategy: string; steps: string[] };
 }
 
+interface ConversationListItem {
+	id: string;
+	title: string | null;
+	last_message_at: string;
+}
+
 interface AiPanelProps {
 	open: boolean;
 	onClose: () => void;
@@ -69,6 +76,9 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	const [streaming, setStreaming] = useState(false);
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [iteration, setIteration] = useState(0);
+	const [showHistory, setShowHistory] = useState(false);
+	const [conversations, setConversations] = useState<ConversationListItem[] | null>(null);
+	const [historyLoading, setHistoryLoading] = useState(false);
 	const bodyRef = useRef<HTMLDivElement>(null);
 	// Track the in-flight fetch so we can abort it on close/unmount/new-convo.
 	// Without this, closing the panel mid-stream still drains the Anthropic
@@ -105,7 +115,54 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 		setConversationId(null);
 		setMessages([GREETING]);
 		setIteration(0);
+		setShowHistory(false);
 		nextSourceIndexRef.current = 1;
+	};
+
+	// Load the list of the user's past conversations (lazily, when opened).
+	const toggleHistory = async () => {
+		const next = !showHistory;
+		setShowHistory(next);
+		if (!next) return;
+		setHistoryLoading(true);
+		try {
+			const auth = await getAuthHeaders();
+			const res = await fetch('/api/chat/conversations', { headers: { ...auth }, credentials: 'include' });
+			if (res.ok) setConversations((await res.json()) as ConversationListItem[]);
+		} catch {
+			/* best-effort */
+		} finally {
+			setHistoryLoading(false);
+		}
+	};
+
+	// Open a past conversation: replace the thread with its persisted messages.
+	const loadConversation = async (id: string) => {
+		abortRef.current?.abort();
+		setStreaming(false);
+		setShowHistory(false);
+		try {
+			const auth = await getAuthHeaders();
+			const res = await fetch(`/api/chat/conversations/${id}`, { headers: { ...auth }, credentials: 'include' });
+			if (!res.ok) return;
+			const data = (await res.json()) as {
+				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; ok: boolean; preview: string }> | null }>;
+			};
+			const msgs: ChatMessage[] = data.messages.map((m, idx) => ({
+				role: m.role,
+				content: m.content,
+				tools:
+					m.role === 'assistant' && m.tool_calls
+						? m.tool_calls.map((t, ti) => ({ id: `${idx}-${ti}`, tool: t.tool, ok: t.ok, preview: t.preview }))
+						: undefined,
+			}));
+			setMessages(msgs.length > 0 ? msgs : [GREETING]);
+			setConversationId(id);
+			setIteration(0);
+			nextSourceIndexRef.current = 1;
+		} catch {
+			/* best-effort */
+		}
 	};
 
 	const send = async (text?: string) => {
@@ -293,6 +350,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	return (
 		<aside className="ai-panel-wrap">
 			<div className="ai-panel" style={{ height: '100vh' }}>
+				<style>{AI_MD_CSS}</style>
 				<div className="ai-head">
 					<div className="ai-mark">AI</div>
 					<div style={{ flex: 1 }}>
@@ -306,6 +364,15 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 								: 'Online'}
 						</div>
 					</div>
+					<button
+						className="topbar-btn"
+						onClick={() => void toggleHistory()}
+						style={{ padding: 8, color: showHistory ? 'var(--accent)' : undefined }}
+						aria-label="Conversation history"
+						title="Conversation history"
+					>
+						<History size={14} />
+					</button>
 					{(conversationId || messages.length > 1) && (
 						<button
 							className="topbar-btn"
@@ -326,6 +393,29 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 						<X size={16} />
 					</button>
 				</div>
+
+				{showHistory && (
+					<div className="ai-history">
+						<div className="ai-history-head">Past conversations</div>
+						{historyLoading ? (
+							<div className="ai-history-empty">Loading…</div>
+						) : (conversations?.length ?? 0) === 0 ? (
+							<div className="ai-history-empty">No past conversations yet.</div>
+						) : (
+							conversations!.map((c) => (
+								<button
+									key={c.id}
+									className="ai-history-item"
+									onClick={() => void loadConversation(c.id)}
+									title={c.title ?? 'Untitled conversation'}
+								>
+									<span className="ai-history-title">{c.title || 'Untitled conversation'}</span>
+									<span className="ai-history-date">{new Date(c.last_message_at).toLocaleDateString()}</span>
+								</button>
+							))
+						)}
+					</div>
+				)}
 
 				<div className="ai-body" ref={bodyRef}>
 					{messages.map((m, i) => (
@@ -362,7 +452,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 									))}
 								</div>
 							)}
-							<MarkdownLite text={m.content} sources={m.sources ?? []} />
+							<MarkdownMessage text={m.content} sources={m.sources ?? []} router={router} />
 							{m.role === 'assistant' && (m.sources?.length ?? 0) > 0 && (
 								<div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
 									<div
@@ -402,13 +492,15 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 					)}
 				</div>
 
-				<div className="ai-quick">
-					{prompts.map((q) => (
-						<button key={q} className="qchip" onClick={() => send(q)} disabled={streaming}>
-							{q}
-						</button>
-					))}
-				</div>
+				{messages.length <= 1 && !streaming && (
+					<div className="ai-quick">
+						{prompts.map((q) => (
+							<button key={q} className="qchip" onClick={() => send(q)} disabled={streaming}>
+								{q}
+							</button>
+						))}
+					</div>
+				)}
 
 				<div className="ai-input-row">
 					<textarea
@@ -638,67 +730,264 @@ function extractCitations(parsed: unknown, startIndex: number): CitationSource[]
 	return out.length > 0 ? out : undefined;
 }
 
-/** Minimal markdown: bold, bullets, and [N] superscript citation chips. */
-function MarkdownLite({ text, sources }: { text: string; sources: CitationSource[] }) {
-	if (!text) return null;
-	const lines = text.split('\n');
-	return (
-		<div>
-			{lines.map((line, i) => {
-				if (!line.trim()) return <div key={i} style={{ height: 6 }} />;
-				if (line.startsWith('• ') || line.startsWith('- ')) {
-					return (
-						<div key={i} style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-							<span style={{ color: 'var(--accent)' }}>▸</span>
-							<RenderInline text={line.slice(2)} sources={sources} />
-						</div>
-					);
-				}
-				return <div key={i}><RenderInline text={line} sources={sources} /></div>;
-			})}
-		</div>
-	);
+/* ─── Markdown rendering ─────────────────────────────────────────────────── */
+
+type AppRouter = ReturnType<typeof useRouter>;
+
+type Block =
+	| { type: 'heading'; level: number; text: string }
+	| { type: 'hr' }
+	| { type: 'quote'; lines: string[] }
+	| { type: 'ul'; items: string[] }
+	| { type: 'ol'; items: string[] }
+	| { type: 'table'; header: string[]; rows: string[][] }
+	| { type: 'code'; text: string }
+	| { type: 'p'; text: string };
+
+/** A GFM table separator row, e.g. `|---|:--:|`. */
+function isTableSep(s: string): boolean {
+	const t = s.trim();
+	return t.includes('|') && t.includes('-') && /^\|?[\s:|-]+\|?$/.test(t);
 }
 
-function RenderInline({ text, sources }: { text: string; sources: CitationSource[] }) {
-	const sourceMap = new Map(sources.map((s) => [s.index, s]));
-	const parts: Array<{ type: 'text' | 'cite'; value: string; index?: number }> = [];
-	const re = /\[(\d+)\]/g;
-	let cursor = 0;
-	let match: RegExpExecArray | null;
-	while ((match = re.exec(text)) !== null) {
-		if (match.index > cursor) parts.push({ type: 'text', value: text.slice(cursor, match.index) });
-		parts.push({ type: 'cite', value: match[0], index: Number(match[1]) });
-		cursor = match.index + match[0].length;
+function splitRow(s: string): string[] {
+	let t = s.trim();
+	if (t.startsWith('|')) t = t.slice(1);
+	if (t.endsWith('|')) t = t.slice(0, -1);
+	return t.split('|').map((c) => c.trim());
+}
+
+/** Parse a markdown string into block-level elements (headings, tables, lists, …). */
+function parseBlocks(src: string): Block[] {
+	const lines = src.replace(/\r\n/g, '\n').split('\n');
+	const blocks: Block[] = [];
+	const isSpecial = (t: string): boolean =>
+		/^#{1,6}\s+/.test(t) || t.startsWith('>') || t.startsWith('```') || /^[-*+•▸]\s+/.test(t) || /^\d+[.)]\s+/.test(t);
+	let i = 0;
+	while (i < lines.length) {
+		const line = lines[i] ?? '';
+		const t = line.trim();
+		if (!t) { i++; continue; }
+
+		// fenced code
+		if (t.startsWith('```')) {
+			const buf: string[] = [];
+			i++;
+			while (i < lines.length && !(lines[i] ?? '').trim().startsWith('```')) { buf.push(lines[i] ?? ''); i++; }
+			i++;
+			blocks.push({ type: 'code', text: buf.join('\n') });
+			continue;
+		}
+		// horizontal rule (--- / *** / ___), no pipes
+		if (/^([-*_])\1{2,}$/.test(t.replace(/\s+/g, ''))) { blocks.push({ type: 'hr' }); i++; continue; }
+		// heading
+		const h = /^(#{1,6})\s+(.*)$/.exec(t);
+		if (h) { blocks.push({ type: 'heading', level: h[1]!.length, text: h[2]! }); i++; continue; }
+		// table: header row followed by a separator row
+		if (t.includes('|') && isTableSep(lines[i + 1] ?? '')) {
+			const header = splitRow(t);
+			i += 2;
+			const rows: string[][] = [];
+			while (i < lines.length && (lines[i] ?? '').trim().includes('|')) {
+				rows.push(splitRow((lines[i] ?? '').trim()));
+				i++;
+			}
+			blocks.push({ type: 'table', header, rows });
+			continue;
+		}
+		// blockquote
+		if (t.startsWith('>')) {
+			const buf: string[] = [];
+			while (i < lines.length && (lines[i] ?? '').trim().startsWith('>')) {
+				buf.push((lines[i] ?? '').trim().replace(/^>\s?/, ''));
+				i++;
+			}
+			blocks.push({ type: 'quote', lines: buf });
+			continue;
+		}
+		// unordered list
+		if (/^[-*+•▸]\s+/.test(t)) {
+			const items: string[] = [];
+			while (i < lines.length && /^[-*+•▸]\s+/.test((lines[i] ?? '').trim())) {
+				items.push((lines[i] ?? '').trim().replace(/^[-*+•▸]\s+/, ''));
+				i++;
+			}
+			blocks.push({ type: 'ul', items });
+			continue;
+		}
+		// ordered list
+		if (/^\d+[.)]\s+/.test(t)) {
+			const items: string[] = [];
+			while (i < lines.length && /^\d+[.)]\s+/.test((lines[i] ?? '').trim())) {
+				items.push((lines[i] ?? '').trim().replace(/^\d+[.)]\s+/, ''));
+				i++;
+			}
+			blocks.push({ type: 'ol', items });
+			continue;
+		}
+		// paragraph (gather consecutive plain lines)
+		const buf: string[] = [];
+		while (i < lines.length) {
+			const pt = (lines[i] ?? '').trim();
+			if (!pt || isSpecial(pt) || (pt.includes('|') && isTableSep(lines[i + 1] ?? ''))) break;
+			buf.push(pt);
+			i++;
+		}
+		if (buf.length) blocks.push({ type: 'p', text: buf.join('\n') });
 	}
-	if (cursor < text.length) parts.push({ type: 'text', value: text.slice(cursor) });
+	return blocks;
+}
 
-	return (
-		<>
-			{parts.map((p, i) => {
-				if (p.type === 'text') return <span key={i} dangerouslySetInnerHTML={{ __html: bold(p.value) }} />;
-				const source = p.index != null ? sourceMap.get(p.index) : null;
-				if (!source) return <sup key={i} style={{ color: 'var(--fg-muted)' }}>[{p.index}]</sup>;
-				return (
-					<a
-						key={i}
-						href={source.url}
-						target="_blank"
-						rel="noopener noreferrer"
-						title={source.title ?? source.url}
-						style={{ textDecoration: 'none' }}
-					>
-						<sup style={{ color: 'var(--accent)', fontWeight: 700, padding: '0 2px' }}>[{p.index}]</sup>
+const HEADING_SIZE: Record<number, number> = { 1: 18, 2: 16, 3: 14, 4: 13, 5: 12, 6: 12 };
+
+function MarkdownMessage({ text, sources, router }: { text: string; sources: CitationSource[]; router: AppRouter }) {
+	if (!text) return null;
+	const blocks = parseBlocks(text);
+	return <div className="ai-md">{blocks.map((b, i) => renderBlock(b, i, sources, router))}</div>;
+}
+
+function renderBlock(b: Block, i: number, sources: CitationSource[], router: AppRouter): ReactNode {
+	const key = `b${i}`;
+	switch (b.type) {
+		case 'heading':
+			return (
+				<div key={key} style={{ fontWeight: 700, fontSize: HEADING_SIZE[b.level] ?? 13, margin: '10px 0 4px', lineHeight: 1.3 }}>
+					{renderInline(b.text, sources, router, key)}
+				</div>
+			);
+		case 'hr':
+			return <hr key={key} style={{ border: 0, borderTop: '1px solid var(--border)', margin: '10px 0' }} />;
+		case 'quote':
+			return (
+				<blockquote key={key} className="ai-quote">
+					{b.lines.map((l, li) => <div key={li}>{renderInline(l, sources, router, `${key}-${li}`)}</div>)}
+				</blockquote>
+			);
+		case 'ul':
+			return (
+				<div key={key} style={{ margin: '4px 0' }}>
+					{b.items.map((it, ii) => (
+						<div key={ii} style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+							<span style={{ color: 'var(--accent)' }}>▸</span>
+							<span>{renderInline(it, sources, router, `${key}-${ii}`)}</span>
+						</div>
+					))}
+				</div>
+			);
+		case 'ol':
+			return (
+				<div key={key} style={{ margin: '4px 0' }}>
+					{b.items.map((it, ii) => (
+						<div key={ii} style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+							<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{ii + 1}.</span>
+							<span>{renderInline(it, sources, router, `${key}-${ii}`)}</span>
+						</div>
+					))}
+				</div>
+			);
+		case 'code':
+			return <pre key={key} className="ai-pre"><code>{b.text}</code></pre>;
+		case 'table':
+			return (
+				<div key={key} style={{ overflowX: 'auto', margin: '8px 0' }}>
+					<table className="ai-table">
+						<thead>
+							<tr>{b.header.map((c, ci) => <th key={ci}>{renderInline(c, sources, router, `${key}-h${ci}`)}</th>)}</tr>
+						</thead>
+						<tbody>
+							{b.rows.map((r, ri) => (
+								<tr key={ri}>{r.map((c, ci) => <td key={ci}>{renderInline(c, sources, router, `${key}-${ri}-${ci}`)}</td>)}</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			);
+		case 'p':
+		default:
+			return (
+				<div key={key} style={{ margin: '4px 0', lineHeight: 1.5 }}>
+					{b.text.split('\n').map((l, li) => <div key={li}>{renderInline(l, sources, router, `${key}-${li}`)}</div>)}
+				</div>
+			);
+	}
+}
+
+/** Inline markdown: links (in-app → router, external → new tab), **bold**, *italic*, `code`, and [N] citations. */
+function renderInline(text: string, sources: CitationSource[], router: AppRouter, keyBase: string): ReactNode[] {
+	const sourceMap = new Map(sources.map((s) => [s.index, s]));
+	const nodes: ReactNode[] = [];
+	const TOKEN = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|`([^`]+)`|\[(\d+)\]|\*([^*]+)\*|_([^_]+)_/g;
+	let last = 0;
+	let k = 0;
+	let m: RegExpExecArray | null;
+	while ((m = TOKEN.exec(text)) !== null) {
+		if (m.index > last) nodes.push(text.slice(last, m.index));
+		const kk = `${keyBase}-i${k}`;
+		if (m[1] != null && m[2] != null) {
+			nodes.push(<MdLink key={kk} href={m[2]} label={m[1]} router={router} />);
+		} else if (m[3] != null) {
+			nodes.push(<strong key={kk}>{m[3]}</strong>);
+		} else if (m[4] != null) {
+			nodes.push(<code key={kk} className="ai-code">{m[4]}</code>);
+		} else if (m[5] != null) {
+			const idx = Number(m[5]);
+			const src = sourceMap.get(idx);
+			nodes.push(
+				src && src.url ? (
+					<a key={kk} href={src.url} target="_blank" rel="noopener noreferrer" title={src.title ?? src.url} style={{ textDecoration: 'none' }}>
+						<sup style={{ color: 'var(--accent)', fontWeight: 700, padding: '0 2px' }}>[{idx}]</sup>
 					</a>
-				);
-			})}
-		</>
-	);
+				) : (
+					<sup key={kk} style={{ color: 'var(--fg-muted)' }}>[{idx}]</sup>
+				),
+			);
+		} else if (m[6] != null || m[7] != null) {
+			nodes.push(<em key={kk}>{m[6] ?? m[7]}</em>);
+		}
+		last = m.index + m[0].length;
+		k++;
+	}
+	if (last < text.length) nodes.push(text.slice(last));
+	return nodes;
 }
 
-function bold(s: string): string {
-	return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+/** A markdown link: in-app paths navigate via the router (panel stays open); external URLs open a new tab. */
+function MdLink({ href, label, router }: { href: string; label: string; router: AppRouter }) {
+	if (href.startsWith('/')) {
+		return (
+			<a
+				className="ai-link"
+				href={href}
+				onClick={(e) => { e.preventDefault(); router.push(href); }}
+			>
+				{label}
+			</a>
+		);
+	}
+	const safe = /^https?:\/\//i.test(href) ? href : undefined;
+	if (!safe) return <span>{label}</span>;
+	return <a className="ai-link" href={safe} target="_blank" rel="noopener noreferrer">{label}</a>;
 }
+
+const AI_MD_CSS = `
+.ai-md { line-height: 1.5; }
+.ai-md .ai-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.ai-md .ai-table th, .ai-md .ai-table td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; white-space: nowrap; }
+.ai-md .ai-table th { background: var(--bg-2); font-weight: 600; }
+.ai-md .ai-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; }
+.ai-md .ai-link:hover { border-bottom-color: var(--accent); }
+.ai-md .ai-code { background: var(--bg-2); padding: 0 4px; border-radius: 3px; font-family: var(--font-mono); font-size: 11px; }
+.ai-md .ai-pre { background: var(--bg-2); padding: 8px; border-radius: 6px; overflow-x: auto; font-size: 11px; margin: 6px 0; }
+.ai-md .ai-pre code { font-family: var(--font-mono); }
+.ai-md .ai-quote { border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; margin: 6px 0; color: var(--fg-2); font-style: italic; }
+.ai-history { border-bottom: 1px solid var(--border); max-height: 40%; overflow-y: auto; padding: 6px; }
+.ai-history-head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); padding: 4px 6px; }
+.ai-history-empty { font-size: 12px; color: var(--fg-muted); padding: 8px 6px; }
+.ai-history-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; padding: 7px 8px; border-radius: 6px; cursor: pointer; color: var(--fg); }
+.ai-history-item:hover { background: var(--bg-2); }
+.ai-history-title { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-history-date { font-size: 10px; color: var(--fg-muted); flex-shrink: 0; }
+`;
 
 function ThinkingDots() {
 	return (
