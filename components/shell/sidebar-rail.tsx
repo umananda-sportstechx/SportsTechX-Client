@@ -181,7 +181,7 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 				</button>
 			</div>
 
-			<nav className="rail-nav">
+			<nav className="rail-nav ai-thin-scroll">
 				{workspace && (
 					<div className="rail-ws-group" data-persona={persona}>
 						<div className="rail-section rail-section-ws"><span className="rail-ws-dot" />{workspace.label}</div>
