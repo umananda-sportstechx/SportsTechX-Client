@@ -25,6 +25,9 @@ const DeckViewer = dynamic(() => import('@/components/deck-viewer').then((m) => 
  */
 const BUCKET = 'user-uploads';
 const MAX_BYTES = 25 * 1024 * 1024;
+// PDF is analyzed natively; Office formats are converted to PDF server-side.
+const ALLOWED_EXT = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
+const ACCEPT = 'application/pdf,.pdf,.ppt,.pptx,.doc,.docx';
 
 interface Section { key: string; label: string; score: number | null; page_refs: number[]; quote: string | null }
 interface Suggestion { area: string; suggestion: string; page_ref: number | null; quote: string | null }
@@ -103,7 +106,8 @@ export default function PitchAnalyzerPage() {
 
 	const analyze = async (file: File) => {
 		if (uploading) return;
-		if (file.type !== 'application/pdf') { toast.error('Pitch decks must be PDF.'); return; }
+		const ext = (file.name.split('.').pop() ?? '').toLowerCase();
+		if (!ALLOWED_EXT.includes(ext)) { toast.error('Upload a PDF, PPT/PPTX, or DOC/DOCX.'); return; }
 		if (file.size > MAX_BYTES) { toast.error(`File too large (max 25 MB).`); return; }
 		setUploading(true);
 		try {
@@ -111,8 +115,8 @@ export default function PitchAnalyzerPage() {
 			const { data: auth } = await supabase.auth.getUser();
 			const uid = auth.user?.id;
 			if (!uid) throw new Error('Not signed in');
-			const key = `${uid}/decks/${crypto.randomUUID()}.pdf`;
-			const { error } = await supabase.storage.from(BUCKET).upload(key, file, { upsert: false, contentType: file.type });
+			const key = `${uid}/decks/${crypto.randomUUID()}.${ext}`;
+			const { error } = await supabase.storage.from(BUCKET).upload(key, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
 			if (error) throw error;
 
 			const res = await apiRequest('POST', '/api/deck-analysis', { storage_path: key, filename: file.name });
@@ -208,7 +212,7 @@ export default function PitchAnalyzerPage() {
 		<div className="mx-auto max-w-3xl p-6">
 			<h1 className="text-xl font-semibold">Pitch Deck Analyzer</h1>
 			<p className="mt-1 text-sm text-muted-foreground">
-				Upload your deck (PDF) for a streamed, investor-grade read: 8 scored dimensions, claims vs evidence,
+				Upload your deck (PDF, PPT/PPTX, or DOC/DOCX) for a streamed, investor-grade read: 8 scored dimensions, claims vs evidence,
 				risks, and how to improve — shown side-by-side with your deck. Paid feature; each analysis uses credits.
 			</p>
 
@@ -219,12 +223,12 @@ export default function PitchAnalyzerPage() {
 				className={`mt-6 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${dragOver ? 'border-primary bg-muted/50' : 'border-border'}`}
 			>
 				<Upload className="h-6 w-6 text-muted-foreground" />
-				<div className="text-sm text-muted-foreground">Drag &amp; drop your deck PDF, or</div>
+				<div className="text-sm text-muted-foreground">Drag &amp; drop your deck, or</div>
 				<Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-					{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : 'Choose PDF'}
+					{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : 'Choose file'}
 				</Button>
-				<input ref={fileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={onPick} />
-				<div className="text-xs text-muted-foreground">PDF only · up to 25 MB</div>
+				<input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />
+				<div className="text-xs text-muted-foreground">PDF, PPT/PPTX, DOC/DOCX · up to 25 MB</div>
 			</div>
 
 			<div className="mt-8">
