@@ -207,32 +207,47 @@ body {
   color: var(--accent-fg);
 }
 
-/* Scrollbars — flat, design-tokenized */
+/* Scrollbars — thin, flat, design-tokenized (incl. Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--fg-muted);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+/* Extra-thin variant for dense panels (left nav, AI/analysis panes). */
+.custom-scrollbar,
+.ai-thin-scroll {
+  scrollbar-width: thin;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar,
+.ai-thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track,
+.ai-thin-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.ai-thin-scroll::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.ai-thin-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--fg-muted);
 }
 
