@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Send, X, Download, Plus, History } from 'lucide-react';
 import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
@@ -70,6 +70,20 @@ const GREETING: ChatMessage = {
 		'I can query the SportsTechX database — companies, deals, investors, programs — and pull live web results. Try a quick prompt below or ask anything.',
 };
 
+/** Derive the page context the chat sends so the agent's page_insights tool can
+ *  describe the current page / fetch the open entity (owner-scoped server-side). */
+function pageContextFromPath(path: string | null): { path: string; entityType?: string; entityId?: string } | undefined {
+	if (!path) return undefined;
+	const segs = path.split('?')[0]!.split('/').filter(Boolean);
+	const top = segs[0];
+	const id = segs[1];
+	if (top === 'companies' && id) return { path, entityType: 'company', entityId: id };
+	if (top === 'investors' && id) return { path, entityType: 'investor', entityId: id };
+	if (top === 'ecosystem' && id) return { path, entityType: 'ecosystem_entity', entityId: id };
+	if (top === 'pitch-analyzer' && id) return { path, entityType: 'deck_analysis', entityId: id };
+	return { path };
+}
+
 export function AiPanel({ open, onClose }: AiPanelProps) {
 	const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
 	const [input, setInput] = useState('');
@@ -89,6 +103,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	// so the second web_search of a turn doesn't overwrite the first's [1].
 	const nextSourceIndexRef = useRef(1);
 	const router = useRouter();
+	const pathname = usePathname();
 
 	const { data: suggestions } = useSWR<{ prompts: string[] }>(
 		open ? qk.chat.suggestions() : null,
@@ -191,7 +206,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			const res = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...auth },
-				body: JSON.stringify({ conversation_id: conversationId, message }),
+				body: JSON.stringify({ conversation_id: conversationId, message, page: pageContextFromPath(pathname) }),
 				credentials: 'include',
 				signal: ac.signal,
 			});

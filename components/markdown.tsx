@@ -26,7 +26,7 @@ function inline(s: string): ReactNode[] {
 	return nodes;
 }
 
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, onHeadingClick }: { text: string; onHeadingClick?: (text: string) => void }) {
 	if (!text) return null;
 	const lines = text.replace(/\r\n/g, '\n').split('\n');
 	const blocks: ReactNode[] = [];
@@ -42,7 +42,16 @@ export function Markdown({ text }: { text: string }) {
 		if (h) {
 			const lvl = h[1]!.length;
 			const cls = lvl <= 1 ? 'text-lg' : lvl === 2 ? 'text-base' : 'text-sm';
-			blocks.push(<div key={key++} className={`mt-4 mb-1 font-semibold ${cls}`}>{inline(h[2]!)}</div>);
+			const htext = h[2]!;
+			blocks.push(
+				onHeadingClick ? (
+					<button key={key++} type="button" onClick={() => onHeadingClick(htext)} className={`mt-4 mb-1 block w-full cursor-pointer text-left font-semibold hover:text-primary ${cls}`}>
+						{inline(htext)}
+					</button>
+				) : (
+					<div key={key++} className={`mt-4 mb-1 font-semibold ${cls}`}>{inline(htext)}</div>
+				),
+			);
 			i++;
 			continue;
 		}
