@@ -81,7 +81,8 @@ export default function DeckAnalysisPage() {
 				if (!cancelled) { setStreaming(false); setReady(true); }
 			}
 		})();
-		return () => { cancelled = true; ac.abort(); };
+		// Abort the live controller (may have been swapped by re-analyze), plus this one.
+		return () => { cancelled = true; ac.abort(); abortRef.current?.abort(); };
 	}, [id, streamAnalysis]);
 
 	// Re-run the analysis from scratch on demand (charges credits again).
