@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -9,15 +9,15 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 // pdf.js worker (matches the bundled pdfjs-dist version).
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-/** A focus target: scroll to `page` and highlight `quote` on it. `nonce` lets the
- *  same target re-trigger (clicking the same finding twice). */
 export interface DeckHighlight { page: number; quote?: string | null; nonce: number }
 
 interface Box { left: number; top: number; width: number; height: number }
 
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ');
+/** Lowercase, strip punctuation to spaces — tolerant matching so quotes hit even
+ *  when spacing/symbols ($, =, commas) differ from the PDF's text layer. */
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight: DeckHighlight | null }) {
+function DeckViewerImpl({ fileUrl, highlight }: { fileUrl: string; highlight: DeckHighlight | null }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const pageEls = useRef<Map<number, HTMLDivElement>>(new Map());
 	const ready = useRef<Set<number>>(new Set());
@@ -25,22 +25,22 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 	const [width, setWidth] = useState(0);
 	const [boxes, setBoxes] = useState<{ page: number; rects: Box[] }>({ page: 0, rects: [] });
 
+	// Measure once on mount, then only on WINDOW resize (debounced). We avoid a
+	// ResizeObserver on the container on purpose: expanding the app's side-nav
+	// changes the container width and would otherwise re-rasterize every page
+	// (the "goes white / reloads" flicker). Page width stays put on nav toggles.
 	useEffect(() => {
-		const el = containerRef.current;
-		if (!el) return;
-		const ro = new ResizeObserver(() => setWidth(el.clientWidth));
-		ro.observe(el);
-		setWidth(el.clientWidth);
-		return () => ro.disconnect();
+		const measure = () => { const el = containerRef.current; if (el && el.clientWidth) setWidth(el.clientWidth); };
+		measure();
+		let t: ReturnType<typeof setTimeout>;
+		const onResize = () => { clearTimeout(t); t = setTimeout(measure, 250); };
+		window.addEventListener('resize', onResize);
+		return () => { window.removeEventListener('resize', onResize); clearTimeout(t); };
 	}, []);
 
-	// Match a verbatim quote against the rendered text-layer spans and compute
-	// highlight rectangles (relative to the page wrapper). Whole covering spans are
-	// highlighted — slightly generous but visually clean. No-op if the quote isn't
-	// found (e.g. an image-only page with no selectable text).
 	const computeBoxes = useCallback((page: number, quote?: string | null) => {
 		const wrap = pageEls.current.get(page);
-		const q = quote ? norm(quote).trim() : '';
+		const q = quote ? norm(quote) : '';
 		if (!wrap || !q) { setBoxes({ page: 0, rects: [] }); return; }
 		const layer = wrap.querySelector('.react-pdf__Page__textContent');
 		if (!layer) { setBoxes({ page: 0, rects: [] }); return; }
@@ -49,14 +49,20 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 		const ranges: Array<{ span: HTMLSpanElement; start: number; end: number }> = [];
 		for (const sp of spans) {
 			const txt = norm(sp.textContent ?? '');
-			if (!txt.trim()) continue;
+			if (!txt) continue;
 			const start = concat.length;
 			concat += txt + ' ';
 			ranges.push({ span: sp, start, end: concat.length });
 		}
-		const idx = concat.indexOf(q);
+		// Try the full quote; fall back to its first ~6 words (handles paraphrase/truncation).
+		let idx = concat.indexOf(q);
+		let needle = q;
+		if (idx === -1) {
+			const short = q.split(' ').slice(0, 6).join(' ');
+			if (short.length >= 8) { idx = concat.indexOf(short); needle = short; }
+		}
 		if (idx === -1) { setBoxes({ page: 0, rects: [] }); return; }
-		const end = idx + q.length;
+		const end = idx + needle.length;
 		const wrapRect = wrap.getBoundingClientRect();
 		const rects: Box[] = [];
 		for (const r of ranges) {
@@ -67,13 +73,12 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 		setBoxes({ page, rects });
 	}, []);
 
-	// On a new highlight: scroll to the page; compute boxes once its text layer is ready.
 	useEffect(() => {
 		if (!highlight) { setBoxes({ page: 0, rects: [] }); return; }
 		const wrap = pageEls.current.get(highlight.page);
 		wrap?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		if (ready.current.has(highlight.page)) {
-			const t = setTimeout(() => computeBoxes(highlight.page, highlight.quote), 200);
+			const t = setTimeout(() => computeBoxes(highlight.page, highlight.quote), 220);
 			return () => clearTimeout(t);
 		}
 		return undefined;
@@ -84,10 +89,10 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 		if (highlight && highlight.page === page) computeBoxes(page, highlight.quote);
 	};
 
-	const pageWidth = width ? Math.min(width - 24, 1000) : undefined;
+	const pageWidth = width ? Math.min(width - 24, 1100) : undefined;
 
 	return (
-		<div ref={containerRef} className="h-full overflow-y-auto bg-muted/30">
+		<div ref={containerRef} className="ai-thin-scroll h-full overflow-y-auto bg-muted/30">
 			<Document
 				file={fileUrl}
 				onLoadSuccess={(d) => setNumPages(d.numPages)}
@@ -95,18 +100,10 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 				error={<div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">Couldn&apos;t render the PDF in-app.</div>}
 			>
 				{Array.from({ length: numPages }, (_, i) => i + 1).map((n) => (
-					<div
-						key={n}
-						ref={(el) => { if (el) pageEls.current.set(n, el); }}
-						className="relative mx-auto my-2 w-fit shadow-sm"
-					>
+					<div key={n} ref={(el) => { if (el) pageEls.current.set(n, el); }} className="relative mx-auto my-2 w-fit shadow-sm">
 						<Page pageNumber={n} width={pageWidth} onRenderTextLayerSuccess={() => onTextReady(n)} />
 						{boxes.page === n && boxes.rects.map((b, bi) => (
-							<div
-								key={bi}
-								className="pointer-events-none absolute rounded-sm bg-yellow-300/40 ring-1 ring-yellow-500/70"
-								style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
-							/>
+							<div key={bi} className="pointer-events-none absolute rounded-sm bg-yellow-300/40 ring-1 ring-yellow-500/70" style={{ left: b.left, top: b.top, width: b.width, height: b.height }} />
 						))}
 					</div>
 				))}
@@ -114,3 +111,8 @@ export function DeckViewer({ fileUrl, highlight }: { fileUrl: string; highlight:
 		</div>
 	);
 }
+
+// Memoized: streaming markdown updates in the parent must NOT re-render (and
+// re-rasterize) the PDF. Only a new file or highlight target re-renders.
+export const DeckViewer = memo(DeckViewerImpl, (a, b) =>
+	a.fileUrl === b.fileUrl && a.highlight?.nonce === b.highlight?.nonce);
