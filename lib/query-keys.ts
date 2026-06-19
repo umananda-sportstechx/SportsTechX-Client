@@ -168,6 +168,7 @@ export const qk = {
     plans: () => ['/api/billing/plans'] as const,
     subscription: () => ['/api/billing/subscription'] as const,
     invoices: () => ['/api/billing/invoices'] as const,
+    creditPacks: () => ['/api/billing/credit-packs'] as const,
   },
 
   // ── Per-user feature overrides + inbox ─────────────────────────────────
@@ -192,6 +193,17 @@ export const qk = {
     conversations: () => ['/api/chat/conversations'] as const,
     conversationDetail: (id: string) => ['/api/chat/conversations', id] as const,
     suggestions: () => ['/api/chat/suggestions'] as const,
+  },
+
+  // ── Uploads (user RAG documents / images) ───────────────────────────────
+  uploads: {
+    list: () => ['/api/uploads'] as const,
+  },
+
+  // ── Pitch deck analyzer (founder-facing) ────────────────────────────────
+  deckAnalysis: {
+    list: () => ['/api/deck-analysis'] as const,
+    detail: (id: string) => [`/api/deck-analysis/${id}`] as const,
   },
 
   // ── Developer (admin) ───────────────────────────────────────────────────

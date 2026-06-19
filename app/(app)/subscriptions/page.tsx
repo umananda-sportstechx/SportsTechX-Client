@@ -129,6 +129,9 @@ export default function SubscriptionsPage() {
 				sub="Pick the plan that matches the depth of intelligence you need."
 			/>
 
+			<CreditPacks />
+
+
 			{isActive && (
 				<SubscriptionBanner
 					currentTier={currentTier}
@@ -497,4 +500,99 @@ function formatDate(d: Date): string {
 function capitalize(s: string): string {
 	if (!s) return '';
 	return s[0]!.toUpperCase() + s.slice(1);
+}
+
+// ── Credit packs (non-expiring AI credit top-ups) ───────────────────────────
+
+interface CreditPack {
+	id: string;
+	slug: string;
+	name: string;
+	description: string | null;
+	credit_type: string;
+	credit_amount: number;
+	price_amount: number; // cents
+	currency_code: string;
+}
+interface PacksResponse { data: CreditPack[] }
+interface CreditBalance { monthly_balance: number; topup_balance: number; total_available: number }
+
+/**
+ * "Buy AI credits" — lists active AI credit packs and starts a one-time Stripe
+ * checkout. Credits are granted by the webhook on payment; top-ups never expire
+ * and are consumed after the monthly plan allowance. Renders nothing if no packs
+ * are configured.
+ */
+function CreditPacks() {
+	const { data: packsResp } = useSWR<PacksResponse>(qk.billing.creditPacks(), { dedupingInterval: 30 * 60_000 });
+	const { data: balance } = useSWR<CreditBalance>(qk.credits.balance('ai'), { dedupingInterval: 30_000 });
+	const [busy, setBusy] = useState<string | null>(null);
+	const packs = (packsResp?.data ?? []).filter((p) => p.credit_type === 'ai');
+	if (packs.length === 0) return null;
+
+	const buy = async (id: string) => {
+		setBusy(id);
+		try {
+			const origin = window.location.origin;
+			const res = await apiRequest('POST', '/api/billing/credit-packs/checkout', {
+				pack_id: id,
+				success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+				cancel_url: `${origin}/subscriptions`,
+			});
+			const { url } = (await res.json()) as { url?: string };
+			if (url) window.location.href = url;
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not start checkout');
+		} finally {
+			setBusy(null);
+		}
+	};
+
+	return (
+		<div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+				<div>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16 }}>
+						<Sparkles size={16} /> Buy AI credits
+					</div>
+					<div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 4 }}>
+						Top-ups never expire and are used after your monthly plan credits run out.
+					</div>
+				</div>
+				<div style={{ textAlign: 'right' }}>
+					<div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-muted)' }}>
+						AI credit balance
+					</div>
+					<div style={{ fontSize: 22, fontWeight: 800 }}>{(balance?.total_available ?? 0).toLocaleString()}</div>
+				</div>
+			</div>
+			<div className="grid-3" style={{ gap: 'var(--space-3)' }}>
+				{packs.map((p) => (
+					<div key={p.id} className="card" style={{ padding: 'var(--space-4)' }}>
+						<div style={{ fontWeight: 700 }}>{p.name}</div>
+						<div style={{ fontSize: 24, fontWeight: 800, marginTop: 6 }}>
+							{p.credit_amount.toLocaleString()}{' '}
+							<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--fg-muted)' }}>credits</span>
+						</div>
+						{p.description && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}>{p.description}</div>}
+						<button className="btn" style={{ marginTop: 12, width: '100%' }} disabled={busy === p.id} onClick={() => void buy(p.id)}>
+							{busy === p.id ? (
+								<><Loader2 size={14} className="animate-spin" /> Redirecting…</>
+							) : (
+								`Buy · ${formatPrice(p.price_amount, p.currency_code)}`
+							)}
+						</button>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function formatPrice(cents: number, currency: string): string {
+	try {
+		return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
+	} catch {
+		return `${(cents / 100).toFixed(2)} ${currency}`;
+	}
 }
