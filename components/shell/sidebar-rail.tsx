@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code, Presentation,
+	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code, Presentation, Coins,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -105,6 +105,7 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'getverified', name: 'Get Verified', icon: BadgeCheck, path: '/get-verified' },
 			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
 			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
+			{ id: 'credits', name: 'Buy Credits', icon: Coins, path: '/credits' },
 			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
 		]
 	},
