@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, Lightbulb, ChevronRight } from 'lucide-react';
+import { Loader2, ArrowLeft, Lightbulb, ChevronRight, RefreshCw } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
 import type { DeckHighlight } from '@/components/deck-viewer';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
@@ -22,12 +22,14 @@ export default function DeckAnalysisPage() {
 
 	const abortRef = useRef<AbortController | null>(null);
 	const nonceRef = useRef(0);
+	const sugRef = useRef<HTMLDivElement>(null);
 	const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 	const [highlight, setHighlight] = useState<DeckHighlight | null>(null);
 	const [md, setMd] = useState('');
 	const [scorecard, setScorecard] = useState<DeckScorecard | null>(null);
 	const [streaming, setStreaming] = useState(true);
 	const [showSug, setShowSug] = useState(false);
+	const [ready, setReady] = useState(false);
 
 	const jump = (page?: number | null, quote?: string | null) => {
 		if (!page) return;
@@ -35,34 +37,82 @@ export default function DeckAnalysisPage() {
 		setHighlight({ page, quote, nonce: nonceRef.current });
 	};
 
+	// Open the SSE stream and consume it (used for first-run + re-analyze).
+	const streamAnalysis = useCallback(async (ac: AbortController, isCancelled: () => boolean) => {
+		const auth = await getAuthHeaders();
+		const res = await fetch(`/api/deck-analysis/${id}/stream`, {
+			method: 'POST', headers: { Accept: 'text/event-stream', ...auth }, credentials: 'include', signal: ac.signal,
+		});
+		if (!res.ok || !res.body) { if (!isCancelled()) setMd('⚠️ Failed to start analysis.'); return; }
+		await consumeDeckStream(res.body, {
+			onDelta: (t) => setMd((p) => p + t),
+			onDone: (sc) => setScorecard(sc),
+			onError: (m) => toast.error(m),
+		}, ac.signal);
+	}, [id]);
+
 	useEffect(() => {
 		const ac = new AbortController();
 		abortRef.current = ac;
 		let cancelled = false;
 		(async () => {
-			setMd(''); setScorecard(null); setStreaming(true); setHighlight(null); setPdfUrl(null);
+			setMd(''); setScorecard(null); setStreaming(true); setHighlight(null); setPdfUrl(null); setShowSug(false); setReady(false);
 			try {
 				const fileRes = await apiRequest('GET', `/api/deck-analysis/${id}/file`);
 				if (!cancelled && fileRes.ok) setPdfUrl(((await fileRes.json()) as { url?: string }).url ?? null);
 
-				const auth = await getAuthHeaders();
-				const res = await fetch(`/api/deck-analysis/${id}/stream`, {
-					method: 'POST', headers: { Accept: 'text/event-stream', ...auth }, credentials: 'include', signal: ac.signal,
-				});
-				if (!res.ok || !res.body) { if (!cancelled) setMd('⚠️ Failed to start analysis.'); return; }
-				await consumeDeckStream(res.body, {
-					onDelta: (t) => setMd((p) => p + t),
-					onDone: (sc) => setScorecard(sc),
-					onError: (m) => toast.error(m),
-				}, ac.signal);
+				// Load the stored row first. A finished analysis is rendered straight
+				// from the DB — we do NOT re-stream/re-charge on revisit or refresh.
+				const rowRes = await apiRequest('GET', `/api/deck-analysis/${id}`);
+				const row = rowRes.ok ? ((await rowRes.json()) as { status: string; analysis_md: string | null; result_json: unknown }) : null;
+				if (cancelled) return;
+
+				if (row && row.status === 'done' && row.analysis_md) {
+					setMd(row.analysis_md);
+					setScorecard((row.result_json as DeckScorecard | null) ?? null);
+					return;
+				}
+
+				// Not yet analyzed (pending / processing / failed) → run it.
+				await streamAnalysis(ac, () => cancelled);
 			} catch (e) {
 				if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Analysis failed');
 			} finally {
-				if (!cancelled) setStreaming(false);
+				if (!cancelled) { setStreaming(false); setReady(true); }
 			}
 		})();
 		return () => { cancelled = true; ac.abort(); };
-	}, [id]);
+	}, [id, streamAnalysis]);
+
+	// Re-run the analysis from scratch on demand (charges credits again).
+	const reanalyze = useCallback(async () => {
+		if (streaming) return;
+		if (!window.confirm('Re-analyze this deck from scratch? This uses credits.')) return;
+		abortRef.current?.abort();
+		const ac = new AbortController();
+		abortRef.current = ac;
+		setMd(''); setScorecard(null); setHighlight(null); setShowSug(false); setStreaming(true);
+		try {
+			const res = await apiRequest('POST', `/api/deck-analysis/${id}/reanalyze`);
+			if (!res.ok) {
+				const body = await res.json().catch(() => null) as { error?: { message?: string } } | null;
+				toast.error(body?.error?.message ?? 'Could not start re-analysis.');
+				setStreaming(false);
+				return;
+			}
+			await streamAnalysis(ac, () => false);
+		} catch (e) {
+			if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Re-analysis failed');
+		} finally {
+			setStreaming(false);
+		}
+	}, [id, streaming, streamAnalysis]);
+
+	// When the suggestions panel opens, scroll it into view (it renders at the top
+	// of the analysis column, which may be scrolled down).
+	useEffect(() => {
+		if (showSug) sugRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}, [showSug]);
 
 	// Click an analysis section heading ("Problem (5.5/10)") → scroll PDF to its
 	// cited page + highlight the quote.
@@ -83,11 +133,18 @@ export default function DeckAnalysisPage() {
 				</button>
 				{overall != null && <ScorePill value={overall} />}
 				{streaming && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyzing…</span>}
-				{canImprove && (
-					<button className="ml-auto flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground" onClick={() => setShowSug((v) => !v)}>
-						<Lightbulb className="h-4 w-4" /> How to improve ({scorecard!.suggestions.length})
-					</button>
-				)}
+				<div className="ml-auto flex items-center gap-2">
+					{canImprove && (
+						<button className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground" onClick={() => setShowSug((v) => !v)}>
+							<Lightbulb className="h-4 w-4" /> How to improve ({scorecard!.suggestions.length})
+						</button>
+					)}
+					{ready && !streaming && (
+						<button className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground" onClick={reanalyze} title="Re-run the analysis (uses credits)">
+							<RefreshCw className="h-4 w-4" /> Re-analyze
+						</button>
+					)}
+				</div>
 			</div>
 
 			<div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
@@ -113,7 +170,7 @@ export default function DeckAnalysisPage() {
 					)}
 
 					{showSug && scorecard && (
-						<div className="mb-4 rounded-md border border-primary/40 bg-primary/5 p-3">
+						<div ref={sugRef} className="mb-4 rounded-md border border-primary/40 bg-primary/5 p-3">
 							<div className="mb-2 flex items-center gap-1 text-sm font-semibold"><Lightbulb className="h-4 w-4" /> How to improve</div>
 							<ul className="space-y-2">
 								{scorecard.suggestions.map((sg, i) => (
