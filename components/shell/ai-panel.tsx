@@ -433,39 +433,51 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 				)}
 
 				<div className="ai-body" ref={bodyRef}>
-					{messages.map((m, i) => (
+					{messages.map((m, i) => {
+						const isLast = i === messages.length - 1;
+						const live = streaming && isLast; // the turn currently being generated
+						const hasPlan = !!m.plan && (m.plan.strategy !== '' || m.plan.steps.length > 0);
+						const hasTools = !!m.tools && m.tools.length > 0;
+						return (
 						<div key={i} className={`ai-msg ${m.role}`}>
-							{m.role === 'assistant' && m.plan && (m.plan.strategy !== '' || m.plan.steps.length > 0) && (
-								<details style={{ marginBottom: 6 }}>
+							{/* Plan + tools live in ONE collapsible: open while the turn streams
+							    (so the user watches progress), collapsed once done so only the
+							    final answer shows until they expand it. */}
+							{m.role === 'assistant' && (hasPlan || hasTools) && (
+								<details open={live || undefined} style={{ marginBottom: 6 }}>
 									<summary style={{ cursor: 'pointer', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-										Plan
+										Plan &amp; activity
 									</summary>
-									<div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4 }}>
-										{m.plan.strategy && <div style={{ marginBottom: 4, fontStyle: 'italic' }}>{m.plan.strategy}</div>}
-										{m.plan.steps.map((s, si) => (
-											<div key={si} style={{ display: 'flex', gap: 6 }}>
-												<span style={{ color: 'var(--accent)' }}>{si + 1}.</span>
-												<span>{s}</span>
+									<div style={{ marginTop: 4 }}>
+										{hasPlan && (
+											<div style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+												{m.plan!.strategy && <div style={{ marginBottom: 4, fontStyle: 'italic' }}>{m.plan!.strategy}</div>}
+												{m.plan!.steps.map((s, si) => (
+													<div key={si} style={{ display: 'flex', gap: 6 }}>
+														<span style={{ color: 'var(--accent)' }}>{si + 1}.</span>
+														<span>{s}</span>
+													</div>
+												))}
 											</div>
-										))}
+										)}
+										{hasTools && (
+											<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+												<SourceBadge tools={m.tools!} />
+												{m.tools!.map((t, ti) => (
+													<span
+														key={ti}
+														className="tag"
+														style={{ background: t.ok ? 'var(--bg-2)' : 'transparent', borderColor: 'var(--border)' }}
+														title={t.preview}
+													>
+														{toolIcon(t.tool)}
+														{t.tool}
+													</span>
+												))}
+											</div>
+										)}
 									</div>
 								</details>
-							)}
-							{m.role === 'assistant' && m.tools && m.tools.length > 0 && (
-								<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-									<SourceBadge tools={m.tools} />
-									{m.tools.map((t, ti) => (
-										<span
-											key={ti}
-											className="tag"
-											style={{ background: t.ok ? 'var(--bg-2)' : 'transparent', borderColor: 'var(--border)' }}
-											title={t.preview}
-										>
-											{toolIcon(t.tool)}
-											{t.tool}
-										</span>
-									))}
-								</div>
 							)}
 							<MarkdownMessage text={m.content} sources={m.sources ?? []} router={router} />
 							{m.role === 'assistant' && (m.sources?.length ?? 0) > 0 && (
@@ -499,7 +511,8 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 								</div>
 							)}
 						</div>
-					))}
+						);
+					})}
 					{streaming && messages[messages.length - 1]?.content === '' && (
 						<div className="ai-msg" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
 							<ThinkingDots />
