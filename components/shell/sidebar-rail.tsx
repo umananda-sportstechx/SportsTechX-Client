@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
 import { usePersona } from '@/contexts/persona-context';
+import { Brand } from '@/components/ui/brand';
 
 /**
  * SportsTechX rail navigation. Ported from ui_design/app/nav.jsx.
@@ -164,17 +165,10 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 					onClick={onToggleExpand}
 					title={expanded ? 'Collapse' : 'Expand'}
 				>
-					{/* Brand mark — angular X-shape SVG matching ui_design */}
-					<svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-						<path d="M4 4 L20 4 L28 12 L28 28 L12 28 L4 20 Z" fill="currentColor" />
-						<path
-							d="M10 11 L21 11 L21 14 L13 14 L13 16 L21 16 L21 22 L10 22 L10 19 L18 19 L18 17 L10 17 Z"
-							fill="var(--bg-1)"
-						/>
-					</svg>
-					<span className="brand-word">
-						SPORTS<span className="brand-x">TECH</span><b>X</b>
-					</span>
+					{/* Brand logo from /public — square mark when collapsed, full wordmark when expanded. */}
+					{expanded
+						? <Brand variant="horizontal" height={32} />
+						: <Brand variant="mark" height={34} />}
 				</button>
 				<button className="rail-toggle" onClick={onToggleExpand} title="Collapse">
 					<ChevronRight size={16} />

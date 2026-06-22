@@ -983,8 +983,30 @@ function renderInline(text: string, sources: CitationSource[], router: AppRouter
 	return nodes;
 }
 
-/** A markdown link: in-app paths navigate via the router (panel stays open); external URLs open a new tab. */
+/** A markdown link: in-app paths navigate via the router (panel stays open); external URLs open a new tab.
+ *  Company/investor links are VALIDATED against the API — the model sometimes
+ *  emits slugs for entities that aren't in our DB (especially investors). If the
+ *  detail page wouldn't resolve, we render plain text (no link styling) rather
+ *  than a dead, navigable link. */
 function MdLink({ href, label, router }: { href: string; label: string; router: AppRouter }) {
+	const path = href.split(/[?#]/)[0] ?? href;
+	const isCompany = path.startsWith('/companies/');
+	const isInvestor = path.startsWith('/investors/');
+	const slug = (isCompany || isInvestor) ? path.split('/')[2] : undefined;
+	const key = slug ? (isCompany ? qk.companies.detail(slug) : qk.investors.detail(slug)) : null;
+	// Only fetches when key != null; cached/deduped. shouldRetryOnError off so a
+	// 404 settles immediately into "doesn't exist".
+	const { data, error } = useSWR(key, { shouldRetryOnError: false, revalidateOnFocus: false, dedupingInterval: 5 * 60_000 });
+
+	if (isCompany || isInvestor) {
+		// Render as a link only once existence is confirmed. While loading or on
+		// 404, fall back to plain text — no coloured/underlined link.
+		if (data && !error) {
+			return <a className="ai-link" href={href} onClick={(e) => { e.preventDefault(); router.push(href); }}>{label}</a>;
+		}
+		return <span>{label}</span>;
+	}
+
 	if (href.startsWith('/')) {
 		return (
 			<a

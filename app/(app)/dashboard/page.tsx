@@ -58,6 +58,8 @@ interface DealRow {
 	primary_sector?: string | null;
 	primary_sector_slug?: string | null;
 	company_slug?: string | null;
+	company_website?: string | null;
+	company_custom_logo_url?: string | null;
 }
 
 interface CompanyResp { data: unknown[]; total?: number }
@@ -183,7 +185,7 @@ function GeneralDashboard() {
 								{recentDeals.map((d) => {
 									const coName = d.company?.name ?? d.company_name ?? '—';
 									const coSlug = d.company?.slug ?? d.company_slug;
-									const cc = d.country_code ?? (d.hq_country ? countryCode(d.hq_country) : '');
+									const cc = d.country_code ?? d.hq_country ?? '';
 									const round = d.round_type_name ?? d.round_type ?? '—';
 									const sectorName = d.sector_name ?? d.primary_sector ?? '';
 									const sectorSlug = d.sector_slug ?? d.primary_sector_slug ?? sectorName;
@@ -195,7 +197,7 @@ function GeneralDashboard() {
 													href={coSlug ? `/companies/${coSlug}` : '/funding'}
 													style={{ display: 'flex', alignItems: 'center', gap: 8 }}
 												>
-													<Logo co={{ name: coName }} size={24} />
+													<Logo co={{ name: coName, website: d.company_website, custom_logo_url: d.company_custom_logo_url }} size={24} />
 													<span style={{ fontWeight: 600 }}>{coName}</span>
 												</Link>
 											</td>
@@ -398,7 +400,7 @@ function GeneralDashboard() {
 						<div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
 							{upcomingEvents.map((e) => {
 								const d = splitDate(e.start_date ?? null);
-								const cc = e.hq_country ? countryCode(e.hq_country) : '';
+								const cc = e.hq_country ?? '';
 								return (
 									<Link key={e.id} href={`/events/${e.slug ?? e.id}`} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
 										<div style={{ width: 44, height: 44, background: 'var(--bg-3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>

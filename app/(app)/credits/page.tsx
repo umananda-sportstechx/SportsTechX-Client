@@ -23,6 +23,16 @@ interface CreditPack {
 	currency_code: string;
 }
 interface CreditBalance { monthly_balance: number; topup_balance: number; total_available: number }
+interface LedgerRow { id: string; transaction_type: string; amount: number; balance_after: number; description: string | null; operation_key: string | null; occurred_at: string }
+
+const OP_LABEL: Record<string, string> = {
+	'ai.chat_turn': 'Chat', 'ai.deck_analysis': 'Deck analysis', 'ai.embedding': 'Document search', 'ai.chat_summary': 'Chat memory',
+};
+function ledgerLabel(r: LedgerRow): string {
+	if (r.operation_key && OP_LABEL[r.operation_key]) return OP_LABEL[r.operation_key];
+	if (r.description) return r.description;
+	return r.transaction_type.replace(/_/g, ' ');
+}
 
 function formatPrice(cents: number, currency: string): string {
 	try {
@@ -35,6 +45,8 @@ function formatPrice(cents: number, currency: string): string {
 export default function CreditsPage() {
 	const { data: packsResp, isLoading } = useSWR<{ data: CreditPack[] }>(qk.billing.creditPacks(), { dedupingInterval: 30 * 60_000 });
 	const { data: balance } = useSWR<CreditBalance>(qk.credits.balance('ai'), { dedupingInterval: 30_000 });
+	const { data: ledger } = useSWR<{ data: LedgerRow[] }>(qk.credits.ledger('ai', undefined, 20), { dedupingInterval: 30_000 });
+	const history = ledger?.data ?? [];
 	const [busy, setBusy] = useState<string | null>(null);
 	const packs = (packsResp?.data ?? []).filter((p) => p.credit_type === 'ai');
 
@@ -101,6 +113,35 @@ export default function CreditsPage() {
 								</button>
 							</div>
 						))}
+					</div>
+				)}
+			</div>
+
+			<div className="mt-10">
+				<h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recent activity</h2>
+				{history.length === 0 ? (
+					<div className="mt-3 rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+						No credit activity yet. Usage from chat, the deck analyzer, and search will show here.
+					</div>
+				) : (
+					<div className="mt-3 divide-y divide-border rounded-lg border border-border">
+						{history.map((r) => {
+							const spent = r.amount < 0;
+							return (
+								<div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+									<div className="min-w-0">
+										<div className="font-medium">{ledgerLabel(r)}</div>
+										<div className="text-xs text-muted-foreground">{new Date(r.occurred_at).toLocaleString()}</div>
+									</div>
+									<div className="text-right">
+										<div className={`font-semibold ${spent ? 'text-destructive' : 'text-emerald-600'}`}>
+											{spent ? '' : '+'}{r.amount.toLocaleString()}
+										</div>
+										<div className="text-xs text-muted-foreground">{r.balance_after.toLocaleString()} left</div>
+									</div>
+								</div>
+							);
+						})}
 					</div>
 				)}
 			</div>

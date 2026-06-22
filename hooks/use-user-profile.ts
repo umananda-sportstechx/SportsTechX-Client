@@ -14,7 +14,9 @@ export type AccountType = 'founder' | 'investor' | 'user';
 export interface Profile {
   id: string;
   email: string | null;
+  full_name: string | null;
   display_name: string | null;
+  referral_code: string | null;
   // `user_role` is the RBAC role: 'admin' | 'user'. Gates the admin panel
   // and any @RequireRole('admin') endpoints on the server.
   user_role: string | null;
