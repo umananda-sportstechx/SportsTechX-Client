@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowRight } from 'lucide-react';
@@ -113,18 +113,21 @@ const INVESTOR_TYPE_LABELS: Record<string, string> = {
 
 export function OverviewTab() {
 	const currentYear = new Date().getFullYear();
+	// Time-range filter — drives every period-aware endpoint on this tab.
+	const [period, setPeriod] = useState<'ytd' | '12m' | 'all'>('all');
+	const annualFrom = period === 'ytd' ? currentYear : period === '12m' ? currentYear - 1 : currentYear - 9;
 
-	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard('all'), { dedupingInterval: 10 * 60_000 });
-	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals('all'), { dedupingInterval: 10 * 60_000 });
-	const { data: maStats } = useSWR<MaStats>(qk.analytics.maStats('all'), { dedupingInterval: 10 * 60_000 });
+	const { data: stats } = useSWR<DashboardStats>(qk.analytics.dashboard(period), { dedupingInterval: 10 * 60_000 });
+	const { data: totals } = useSWR<FundingTotals>(qk.analytics.fundingTotals(period), { dedupingInterval: 10 * 60_000 });
+	const { data: maStats } = useSWR<MaStats>(qk.analytics.maStats(period), { dedupingInterval: 10 * 60_000 });
 	const { data: annual } = useSWR<AnnualPoint[]>(
-		qk.analytics.annualFunding({ from: currentYear - 9, to: currentYear }),
+		qk.analytics.annualFunding({ from: annualFrom, to: currentYear }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
-	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat('all', 8), { dedupingInterval: 10 * 60_000 });
+	const { data: sectorHeat } = useSWR<SectorHeatPoint[]>(qk.analytics.sectorHeat(period, 8), { dedupingInterval: 10 * 60_000 });
 	const { data: investorTypes } = useSWR<InvestorTypePoint[]>(qk.analytics.investorsByType(), { dedupingInterval: 10 * 60_000 });
-	const { data: topFunded } = useSWR<TopCompany[]>(qk.analytics.topFunded('all', 5), { dedupingInterval: 10 * 60_000 });
-	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers('all', 5), { dedupingInterval: 10 * 60_000 });
+	const { data: topFunded } = useSWR<TopCompany[]>(qk.analytics.topFunded(period, 5), { dedupingInterval: 10 * 60_000 });
+	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers(period, 5), { dedupingInterval: 10 * 60_000 });
 
 	const annualChart: ComboPoint[] = useMemo(
 		() => (annual ?? []).map((a) => ({ year: String(a.year), amt: a.total_amount, deals: a.deal_count })),
@@ -162,7 +165,7 @@ export function OverviewTab() {
 			tab: 'funding' as const,
 			kicker: 'Funding Deep Dive',
 			value: splitAmt(totals?.total_amount ?? 0),
-			label: 'Total funding · 10y',
+			label: `Total funding · ${period === 'ytd' ? 'YTD' : period === '12m' ? '12 mo' : 'all-time'}`,
 			sub: `${(totals?.round_count ?? 0).toLocaleString()} rounds tracked`,
 		},
 		{
@@ -181,10 +184,24 @@ export function OverviewTab() {
 				? `${investorSegments[0].name.toLowerCase()} leads`
 				: 'across tracked firms',
 		},
-	], [annual, totals, maStats, stats, investorSegments]);
+	], [annual, totals, maStats, stats, investorSegments, period]);
 
 	return (
 		<>
+			{/* Time-range filter */}
+			<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 'var(--space-4)' }}>
+				{([['ytd', 'YTD'], ['12m', '12 mo'], ['all', 'All time']] as const).map(([id, lbl]) => (
+					<button
+						key={id}
+						onClick={() => setPeriod(id)}
+						className={`btn ${period === id ? '' : 'ghost'}`}
+						style={{ padding: '4px 12px', fontSize: 12 }}
+					>
+						{lbl}
+					</button>
+				))}
+			</div>
+
 			{/* Snapshot cards — link to other tabs */}
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				{snapshots.map((s) => (
