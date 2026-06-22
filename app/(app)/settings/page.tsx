@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { useUserProfile } from '@/hooks/use-user-profile';
+import { useUserProfile, type AccountType } from '@/hooks/use-user-profile';
+import { usePersona, type Persona } from '@/contexts/persona-context';
 import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import { ImageInput } from '@/components/ui/image-input';
 
@@ -108,14 +109,25 @@ export default function SettingsPage() {
 	);
 }
 
+// Persona ↔ account_type. account_type is the persisted column ('founder' |
+// 'investor' | 'user'); persona is the active workspace ('founder' | 'investor'
+// | 'general'). 'user' ↔ 'general'.
+const PERSONA_OPTIONS: Array<{ account: AccountType; persona: Persona; label: string; desc: string }> = [
+	{ account: 'founder', persona: 'founder', label: 'Founder', desc: 'Fundraising Copilot — investor matches, benchmarks, your raise.' },
+	{ account: 'investor', persona: 'investor', label: 'Investor', desc: 'Dealflow Copilot — sourcing, thesis, diligence.' },
+	{ account: 'user', persona: 'general', label: 'Just exploring', desc: 'The classic intelligence hub, no persona workspace.' },
+];
+
 function ProfileTab() {
 	const { data: profile } = useUserProfile();
 	const { mutate } = useSWRConfig();
+	const { setPersona } = usePersona();
 	const [form, setForm] = useState({
 		display_name: '',
 		job_title: '',
 		company_name: '',
 		avatar_url: '',
+		account_type: 'user' as AccountType,
 	});
 	const [saving, setSaving] = useState(false);
 
@@ -126,6 +138,7 @@ function ProfileTab() {
 				job_title: profile.job_title ?? '',
 				company_name: profile.company_name ?? '',
 				avatar_url: profile.avatar_url ?? '',
+				account_type: (profile.account_type as AccountType) ?? 'user',
 			});
 		}
 	}, [profile]);
@@ -149,6 +162,9 @@ function ProfileTab() {
 			const { avatar_url: _avatarHandledSeparately, ...rest } = form;
 			void _avatarHandledSeparately;
 			await apiRequest('PATCH', '/api/profiles/me', rest);
+			// Reflect the persona switch immediately in the topbar/sidebar workspace.
+			const opt = PERSONA_OPTIONS.find((o) => o.account === form.account_type);
+			if (opt) setPersona(opt.persona);
 			toast.success('Profile updated');
 			void mutate(qk.profile());
 		} catch (e) {
@@ -237,6 +253,28 @@ function ProfileTab() {
 				value={form.company_name}
 				onChange={(v) => setForm((s) => ({ ...s, company_name: v }))}
 			/>
+
+			<div className="co-stat-label" style={{ marginTop: 18, marginBottom: 8 }}>I am a…</div>
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+				{PERSONA_OPTIONS.map((o) => {
+					const on = form.account_type === o.account;
+					return (
+						<button
+							key={o.account}
+							onClick={() => setForm((s) => ({ ...s, account_type: o.account }))}
+							className={`btn ${on ? '' : 'ghost'}`}
+							style={{ height: 'auto', padding: '12px 14px', flexDirection: 'column', alignItems: 'flex-start', gap: 2, textAlign: 'left' }}
+						>
+							<span style={{ fontWeight: 700, fontSize: 13 }}>{o.label}</span>
+							<span style={{ fontSize: 11, opacity: 0.75, fontWeight: 400 }}>{o.desc}</span>
+						</button>
+					);
+				})}
+			</div>
+			<p style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 8 }}>
+				Sets your workspace. You can also switch temporarily from the top bar.
+			</p>
+
 			<button
 				className="btn"
 				style={{ marginTop: 16 }}
