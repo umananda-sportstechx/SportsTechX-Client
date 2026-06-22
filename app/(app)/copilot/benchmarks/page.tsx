@@ -39,6 +39,10 @@ export default function FounderBenchmarksPage() {
 				sub="Where you sit against the Series B fan-engagement cohort — and the comps investors will pull up in the room."
 			/>
 
+			<div style={{ marginBottom: 'var(--space-4)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-2)', fontSize: 12.5, color: 'var(--fg-2)' }}>
+				<b>Illustrative preview.</b> Cohort benchmarking is coming soon — the figures below are sample data, not your company&apos;s metrics.
+			</div>
+
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
 				<SectionHead title="Your metrics vs cohort" meta="Series B · fan engagement · n=34" />
 				<div style={{ padding: 'var(--space-4)' }}>

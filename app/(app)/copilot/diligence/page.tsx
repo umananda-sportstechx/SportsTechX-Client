@@ -32,6 +32,10 @@ export default function InvestorDiligencePage() {
 				sub="A diligence memo drafted from STX data — review, edit and export to your CRM or IC deck."
 			/>
 
+			<div style={{ marginBottom: 'var(--space-4)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-2)', fontSize: 12.5, color: 'var(--fg-2)' }}>
+				<b>Illustrative preview.</b> The auto-drafted diligence memo is coming soon — the scores below are sample data.
+			</div>
+
 			<div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 16 }}>
 				<div className="card" style={{ padding: 'var(--space-4)' }}>
 					<div className="cp-mini-head"><Building2 size={16} /> Subject</div>
