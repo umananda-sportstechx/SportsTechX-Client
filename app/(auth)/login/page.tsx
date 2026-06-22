@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { logoutState } from '@/lib/logout-state';
+import { Brand } from '@/components/ui/brand';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,9 +123,9 @@ export default function LoginPage() {
       {/* Left panel - branding */}
       <div className="hidden lg:flex flex-col justify-center items-center bg-sidebar-background text-sidebar-foreground w-2/5 p-12">
         <div className="max-w-sm text-center">
-          <h1 className="text-5xl font-display tracking-wider text-sidebar-primary mb-6">
-            SPORTSTECHX
-          </h1>
+          {/* Sidebar panel is dark — use the white wordmark directly. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/stx_white_horizontal.png" alt="SportsTechX" className="mx-auto mb-6 h-16 w-auto" />
           <p className="text-sidebar-foreground/80 text-lg leading-relaxed">
             The global platform for sports technology intelligence. Discover companies, investors, and deals shaping the future of sport.
           </p>
@@ -135,7 +136,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden text-center">
-            <h1 className="text-4xl font-display tracking-wider text-primary">SPORTSTECHX</h1>
+            <Brand variant="horizontal" height={44} className="mx-auto" />
           </div>
 
           <Card>

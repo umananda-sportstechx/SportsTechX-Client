@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { Search, Sun, Moon, Sparkles, ChevronRight, User, Settings, CreditCard, LogOut } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { qk } from '@/lib/query-keys';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { GetVerifiedPill } from '@/components/get-verified/topbar-pill';
 import { usePersona, type Persona } from '@/contexts/persona-context';
@@ -52,6 +54,9 @@ export function Topbar({
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const { persona, setPersona } = usePersona();
+	// Real company count for the live badge (cached 30m); falls back to the prop.
+	const { data: coPage } = useSWR<{ total?: number }>(qk.companies.list({ limit: 1 }), { dedupingInterval: 30 * 60_000, revalidateOnFocus: false });
+	const effectiveLive = coPage?.total != null ? `Live · ${coPage.total.toLocaleString()} cos` : liveLabel;
 	const [userOpen, setUserOpen] = useState(false);
 	const [signingOut, setSigningOut] = useState(false);
 	const userRef = useRef<HTMLDivElement>(null);
@@ -115,7 +120,7 @@ export function Topbar({
 
 			<GetVerifiedPill />
 
-			{liveLabel && (
+			{effectiveLive && (
 				<span
 					style={{
 						display: 'inline-flex',
@@ -129,7 +134,7 @@ export function Topbar({
 					}}
 				>
 					<span className="live-dot" />
-					{liveLabel}
+					{effectiveLive}
 				</span>
 			)}
 
