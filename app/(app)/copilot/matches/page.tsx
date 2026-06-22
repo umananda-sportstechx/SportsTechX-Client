@@ -1,93 +1,92 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Send } from 'lucide-react';
-import { Page } from '@/components/ui/atoms';
+import Link from 'next/link';
+import useSWR from 'swr';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { Page, Empty } from '@/components/ui/atoms';
 import { WorkspaceHeader, FitBar } from '@/components/copilot/workspace-ui';
+import { qk } from '@/lib/query-keys';
 
 /**
- * FounderMatches (f-matches) — ported from ui_design/app/copilot-screens.jsx.
- * Demo-grade sample data; there is no backend for investor-fit scoring yet.
+ * FounderMatches (f-matches) — investors ranked against the founder's claimed
+ * company by the live matching endpoint (GET /api/recommendations/investors).
  */
 
-type Kind = 'warm' | 'cold' | 'existing';
-
-interface Match {
+interface InvestorMatch {
+	id: string;
 	name: string;
-	type: string;
-	focus: string;
-	city: string;
-	fit: number;
-	why: string[];
-	kind: Kind;
+	slug: string | null;
+	website: string | null;
+	category: string | null;
+	description: string | null;
+	score: number;
+	match_reasons: string[];
 }
 
-const MATCHES: Match[] = [
-	{ name: 'Verance Capital', type: 'VC · Series B lead', focus: 'Fan engagement', city: 'New York', fit: 94, why: ['Fan engagement', 'Series B', 'Led 3 comps'], kind: 'warm' },
-	{ name: 'Courtside Ventures', type: 'VC · Sports specialist', focus: 'Sports-tech', city: 'New York', fit: 91, why: ['Sports-tech focus', '€5–15M checks'], kind: 'warm' },
-	{ name: 'Elysian Park', type: 'VC · Growth', focus: 'Media & fan', city: 'Los Angeles', fit: 88, why: ['Media & fan', 'US + EU'], kind: 'cold' },
-	{ name: 'Sapphire Sport', type: 'VC · Thesis fit', focus: 'Fan platforms', city: 'New York', fit: 85, why: ['Fan platforms', 'Lead or co-lead'], kind: 'cold' },
-	{ name: 'KB Partners', type: 'VC · Early growth', focus: 'Sports & fitness', city: 'Chicago', fit: 83, why: ['Sports & fitness', 'Series A–B'], kind: 'cold' },
-	{ name: 'Drive by DraftKings', type: 'CVC · Strategic', focus: 'Fan & betting', city: 'Boston', fit: 80, why: ['Strategic fit', 'Fan data'], kind: 'cold' },
-	{ name: 'Seedcamp', type: 'VC · Existing investor', focus: 'Seed → A', city: 'London', fit: 78, why: ['On cap table', 'Seed lead'], kind: 'existing' },
-	{ name: 'Speedinvest', type: 'VC · Existing investor', focus: 'Series A', city: 'Vienna', fit: 75, why: ['On cap table', 'Series A'], kind: 'existing' },
-];
-
-const TABS: Array<{ id: 'all' | Kind; label: string }> = [
-	{ id: 'all', label: 'All matches' },
-	{ id: 'warm', label: 'Warm intros' },
-	{ id: 'cold', label: 'Available' },
-	{ id: 'existing', label: 'Existing' },
-];
+interface MatchResponse {
+	company: { id: string; name: string } | null;
+	reason?: 'no_company_claim';
+	results: InvestorMatch[];
+}
 
 export default function FounderMatchesPage() {
-	const [tab, setTab] = useState<'all' | Kind>('all');
-	const count = (id: 'all' | Kind) => (id === 'all' ? MATCHES.length : MATCHES.filter((m) => m.kind === id).length);
-	const rows = tab === 'all' ? MATCHES : MATCHES.filter((m) => m.kind === tab);
+	const { data, isLoading } = useSWR<MatchResponse>(qk.investorMatches(24));
+
+	const results = data?.results ?? [];
+	const company = data?.company;
 
 	return (
 		<Page>
 			<WorkspaceHeader
 				eyebrow="Fundraising Copilot · Investors"
 				title="Investor matches"
-				sub="42 funds ranked against Hoopers's stage, sector and geography — warmest paths first."
+				sub={company
+					? `Funds ranked against ${company.name}'s stage, sector and geography — best fit first.`
+					: 'Funds ranked against your company’s stage, sector and geography.'}
 			/>
 
-			<div className="cp-tabs">
-				{TABS.map((t) => (
-					<button key={t.id} className={`cp-tab ${tab === t.id ? 'on' : ''}`} onClick={() => setTab(t.id)}>
-						{t.label}<span className="cp-tab-n">{count(t.id)}</span>
-					</button>
-				))}
-			</div>
-
-			<div className="card match-list-lg">
-				<div className="match-list">
-					{rows.map((m) => (
-						<div key={m.name} className="match-row match-row-page">
-							<div className="match-main">
-								<div className="match-name">{m.name}</div>
-								<div className="match-sub">{m.type} · {m.focus} · {m.city}</div>
-								<div className="match-why">{m.why.map((w) => <span key={w} className="match-chip">{w}</span>)}</div>
-							</div>
-							<div className="match-fit match-fit-page">
-								<div className="match-fit-num">{m.fit}<span>%</span></div>
-								<FitBar pct={m.fit} />
-								<div className="match-fit-lbl">fit</div>
-							</div>
-							<div className="match-cta">
-								{m.kind === 'existing' ? (
-									<button className="btn ghost" disabled><Check size={12} /> On your cap table</button>
-								) : m.kind === 'warm' ? (
-									<button className="btn"><Send size={12} /> Request warm intro</button>
-								) : (
-									<button className="btn ghost"><Send size={12} /> Request intro</button>
-								)}
-							</div>
-						</div>
-					))}
+			{isLoading ? (
+				<div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+					<Loader2 className="h-4 w-4 animate-spin" /> Scoring investors…
 				</div>
-			</div>
+			) : !company ? (
+				<div className="card" style={{ padding: 'var(--space-5)' }}>
+					<Empty msg="Claim and verify your company to see investor matches." />
+					<div style={{ marginTop: 12, textAlign: 'center' }}>
+						<Link href="/get-verified" className="btn">Get verified <ArrowRight size={12} /></Link>
+					</div>
+				</div>
+			) : results.length === 0 ? (
+				<div className="card" style={{ padding: 'var(--space-5)' }}>
+					<Empty msg="No strong investor matches yet. As more investor theses are added, matches will appear here." />
+				</div>
+			) : (
+				<div className="card match-list-lg">
+					<div className="match-list">
+						{results.map((m) => {
+							const href = `/investors/${m.slug ?? m.id}`;
+							const fit = Math.min(100, m.score);
+							return (
+								<div key={m.id} className="match-row match-row-page">
+									<div className="match-main">
+										<div className="match-name">{m.name}</div>
+										<div className="match-sub">{[m.category, m.description].filter(Boolean).join(' · ') || '—'}</div>
+										<div className="match-why">{m.match_reasons.map((w) => <span key={w} className="match-chip">{w}</span>)}</div>
+									</div>
+									<div className="match-fit match-fit-page">
+										<div className="match-fit-num">{fit}<span>%</span></div>
+										<FitBar pct={fit} />
+										<div className="match-fit-lbl">fit</div>
+									</div>
+									<div className="match-cta">
+										<Link href={href} className="btn ghost">View investor <ArrowRight size={12} /></Link>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			)}
 		</Page>
 	);
 }
