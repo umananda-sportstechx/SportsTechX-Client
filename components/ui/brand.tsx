@@ -17,7 +17,9 @@ export function Brand({
 }) {
 	const black = variant === 'horizontal' ? '/stx_black_horizontal.png' : '/stx_black.png';
 	const white = variant === 'horizontal' ? '/stx_white_horizontal.png' : '/stx_white.png';
-	const style = { height, width: 'auto' as const, display: 'block' };
+	// NOTE: don't set `display` inline — the .brand-black/.brand-white CSS rules
+	// (keyed on data-theme) must control visibility, and inline styles would win.
+	const style = { height, width: 'auto' as const };
 	return (
 		<span className={className} style={{ display: 'inline-flex', alignItems: 'center' }}>
 			{/* eslint-disable-next-line @next/next/no-img-element */}

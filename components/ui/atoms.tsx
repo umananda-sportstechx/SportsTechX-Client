@@ -83,7 +83,11 @@ export function countryToIso(input?: string | null): string {
 	if (!input) return '';
 	const s = input.trim();
 	if (!s) return '';
-	if (s.length === 2) return s.toUpperCase();
+	if (s.length === 2) {
+		const up = s.toUpperCase();
+		// Common non-ISO 2-letter codes that flagcdn rejects.
+		return up === 'UK' ? 'GB' : up;
+	}
 	return COUNTRY_TO_ISO[s.toLowerCase()] ?? '';
 }
 
