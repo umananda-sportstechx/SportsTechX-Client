@@ -129,6 +129,8 @@ export const qk = {
   investorMatches: (limit = 12) => ['/api/recommendations/investors', { limit }] as const,
   // Founder cohort benchmarks (computed live from the founder's claimed company).
   benchmarks: () => ['/api/recommendations/benchmarks'] as const,
+  // Underfunded / whitespace sectors (market intelligence).
+  whitespace: () => ['/api/recommendations/whitespace'] as const,
 
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {

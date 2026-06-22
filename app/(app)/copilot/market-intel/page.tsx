@@ -18,19 +18,17 @@ interface AcquisitionRow {
 interface AcqResponse { data: AcquisitionRow[] }
 
 interface SectorHeatRow { sector_id: string; sector_name: string; deal_count: number | string; total_amount: number | string | null }
+interface WhitespaceSeg { sector_id: string; name: string; deals: number; gap_pct: number; tier: string }
+interface WhitespaceResponse { segments: WhitespaceSeg[] }
 
 const MAP_HUES = [350, 290, 160, 30, 60, 140, 255, 200];
-
-const WHITESPACE = [
-	{ stat: 'Underfunded', label: 'Recovery & Wellness', detail: '−42% capital vs adjacent growth' },
-	{ stat: 'Emerging', label: 'Women’s sports media', detail: '+88% YoY rounds, few late-stage funds' },
-	{ stat: 'Whitespace', label: 'Grassroots & youth tech', detail: 'High activity, almost no specialist capital' },
-];
 
 export default function InvestorMarketPage() {
 	const { data } = useSWR<AcqResponse>(qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 6 }), { dedupingInterval: 10 * 60_000 });
 	const { data: heat } = useSWR<SectorHeatRow[]>(qk.analytics.sectorHeat('all', 8), { dedupingInterval: 10 * 60_000 });
+	const { data: ws } = useSWR<WhitespaceResponse>(qk.whitespace(), { dedupingInterval: 10 * 60_000 });
 	const exits = data?.data ?? [];
+	const whitespace = ws?.segments ?? [];
 
 	const heatRows = heat ?? [];
 	const maxCap = Math.max(1, ...heatRows.map((r) => Number(r.total_amount ?? 0)));
@@ -68,14 +66,16 @@ export default function InvestorMarketPage() {
 
 			<div className="grid-2">
 				<div className="card">
-					<SectionHead title="Whitespace" meta="illustrative" />
+					<SectionHead title="Whitespace" meta="underfunded vs market" />
 					<div style={{ padding: 'var(--space-4)' }}>
-						{WHITESPACE.map((w) => (
-							<div key={w.label} className="cp-white-row">
-								<span className="cp-white-stat">{w.stat}</span>
+						{whitespace.length === 0 ? (
+							<Empty msg="No clear whitespace right now — capital is broadly matching activity." />
+						) : whitespace.map((w) => (
+							<div key={w.sector_id} className="cp-white-row">
+								<span className="cp-white-stat">{w.tier}</span>
 								<div style={{ flex: 1, minWidth: 0 }}>
-									<div className="cp-white-label">{w.label}</div>
-									<div className="cp-white-detail">{w.detail}</div>
+									<div className="cp-white-label">{w.name}</div>
+									<div className="cp-white-detail">{w.deals} deals · {w.gap_pct}% below median capital per deal</div>
 								</div>
 							</div>
 						))}
