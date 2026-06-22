@@ -136,7 +136,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden text-center">
-            <Brand variant="horizontal" height={36} className="justify-center" />
+            <Brand variant="horizontal" height={36} className="mx-auto" />
           </div>
 
           <Card>
