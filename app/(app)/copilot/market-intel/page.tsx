@@ -17,15 +17,9 @@ interface AcquisitionRow {
 }
 interface AcqResponse { data: AcquisitionRow[] }
 
-const MAP_CELLS = [
-	{ label: 'Fan Engagement', n: 64, h: 100, color: 'oklch(58% 0.22 350)' },
-	{ label: 'Media & Streaming', n: 52, h: 84, color: 'oklch(58% 0.22 290)' },
-	{ label: 'Performance', n: 48, h: 78, color: 'oklch(58% 0.22 160)' },
-	{ label: 'Venue & Live', n: 31, h: 52, color: 'oklch(62% 0.18 30)' },
-	{ label: 'Wellness', n: 28, h: 46, color: 'oklch(62% 0.18 60)' },
-	{ label: 'Gear & Hardware', n: 22, h: 38, color: 'oklch(62% 0.14 140)' },
-	{ label: 'Esports', n: 41, h: 66, color: 'oklch(62% 0.18 255)' },
-];
+interface SectorHeatRow { sector_id: string; sector_name: string; deal_count: number | string; total_amount: number | string | null }
+
+const MAP_HUES = [350, 290, 160, 30, 60, 140, 255, 200];
 
 const WHITESPACE = [
 	{ stat: 'Underfunded', label: 'Recovery & Wellness', detail: '−42% capital vs adjacent growth' },
@@ -35,7 +29,17 @@ const WHITESPACE = [
 
 export default function InvestorMarketPage() {
 	const { data } = useSWR<AcqResponse>(qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 6 }), { dedupingInterval: 10 * 60_000 });
+	const { data: heat } = useSWR<SectorHeatRow[]>(qk.analytics.sectorHeat('all', 8), { dedupingInterval: 10 * 60_000 });
 	const exits = data?.data ?? [];
+
+	const heatRows = heat ?? [];
+	const maxCap = Math.max(1, ...heatRows.map((r) => Number(r.total_amount ?? 0)));
+	const mapCells = heatRows.map((r, i) => ({
+		label: r.sector_name,
+		n: Number(r.deal_count ?? 0),
+		h: Math.max(8, Math.round((Number(r.total_amount ?? 0) / maxCap) * 100)),
+		color: `oklch(60% 0.20 ${MAP_HUES[i % MAP_HUES.length]})`,
+	}));
 
 	return (
 		<Page>
@@ -46,21 +50,25 @@ export default function InvestorMarketPage() {
 			/>
 
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="Market map" meta="company count · capital intensity" />
-				<div className="cp-mapgrid cp-mapgrid-lg">
-					{MAP_CELLS.map((c) => (
-						<div key={c.label} className="cp-mapcell" style={{ ['--c' as string]: c.color }}>
-							<div className="cp-mapcell-bar" style={{ height: `${c.h}%` }} />
-							<div className="cp-mapcell-lbl">{c.label}</div>
-							<div className="cp-mapcell-n">{c.n} cos</div>
-						</div>
-					))}
-				</div>
+				<SectionHead title="Market map" meta="deals · capital intensity" />
+				{mapCells.length === 0 ? (
+					<div style={{ padding: 'var(--space-4)' }}><Empty msg="No sector data yet." /></div>
+				) : (
+					<div className="cp-mapgrid cp-mapgrid-lg">
+						{mapCells.map((c) => (
+							<div key={c.label} className="cp-mapcell" style={{ ['--c' as string]: c.color }}>
+								<div className="cp-mapcell-bar" style={{ height: `${c.h}%` }} />
+								<div className="cp-mapcell-lbl">{c.label}</div>
+								<div className="cp-mapcell-n">{c.n} deals</div>
+							</div>
+						))}
+					</div>
+				)}
 			</div>
 
 			<div className="grid-2">
 				<div className="card">
-					<SectionHead title="Whitespace" meta="underfunded vs growth" />
+					<SectionHead title="Whitespace" meta="illustrative" />
 					<div style={{ padding: 'var(--space-4)' }}>
 						{WHITESPACE.map((w) => (
 							<div key={w.label} className="cp-white-row">
