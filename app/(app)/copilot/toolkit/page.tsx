@@ -1,15 +1,16 @@
 'use client';
 
 import useSWR from 'swr';
-import { FileText, Upload } from 'lucide-react';
+import Link from 'next/link';
+import { FileText, Upload, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, SectionHead, Tag, Flag, Empty } from '@/components/ui/atoms';
 import { WorkspaceHeader, FitBar } from '@/components/copilot/workspace-ui';
 import { ScoreRing } from '@/components/copilot/workspace-charts';
 
 /**
- * FounderToolkit (f-toolkit) — deck evaluator (sample scoring) + accelerator /
- * grant matcher (wired to the real programs endpoint).
+ * FounderToolkit (f-toolkit) — deck evaluator (wired to the pitch-deck analyzer)
+ * + accelerator / grant matcher (wired to the real programs endpoint).
  */
 
 interface ProgramEntity {
@@ -19,19 +20,25 @@ interface ProgramEntity {
 }
 interface ProgramsResponse { data: ProgramEntity[] }
 
-const DECK_CATEGORIES = [
-	{ label: 'Problem & market', score: 88 },
-	{ label: 'Traction', score: 84 },
-	{ label: 'Team', score: 80 },
-	{ label: 'Business model', score: 72 },
-	{ label: 'Ask & use of funds', score: 66 },
-];
+interface DeckSection { label: string; score: number | null }
+interface DeckRow {
+	id: string; status: string; filename: string | null;
+	overall_score: number | null; created_at: string;
+	result_json: { sections?: DeckSection[] } | null;
+}
 
 const scoreColor = (s: number) => (s >= 80 ? 'var(--pos)' : s >= 70 ? 'oklch(70% 0.16 60)' : 'var(--neg)');
 
 export default function FounderToolkitPage() {
 	const { data } = useSWR<ProgramsResponse>(qk.ecosystem.listByType('program', { limit: 5 }), { dedupingInterval: 5 * 60_000 });
+	const { data: decks } = useSWR<DeckRow[]>(qk.deckAnalysis.list(), { dedupingInterval: 60_000 });
 	const programs = data?.data ?? [];
+
+	const latest = (decks ?? []).find((d) => d.status === 'done' && d.overall_score != null) ?? null;
+	const categories = (latest?.result_json?.sections ?? [])
+		.filter((s) => s.score != null)
+		.slice(0, 6)
+		.map((s) => ({ label: s.label, score: Math.round((s.score ?? 0) * 10) }));
 
 	return (
 		<Page>
@@ -43,25 +50,41 @@ export default function FounderToolkitPage() {
 
 			<div className="grid-2">
 				<div className="card">
-					<SectionHead title="Deck evaluator" meta="last upload · 2 days ago" />
+					<SectionHead
+						title="Deck evaluator"
+						meta={latest ? `last upload · ${new Date(latest.created_at).toLocaleDateString()}` : 'no decks yet'}
+						action={<Link className="btn ghost" href="/pitch-analyzer">Open analyzer <ArrowRight size={12} /></Link>}
+					/>
 					<div style={{ padding: 'var(--space-4)' }}>
-						<div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 16 }}>
-							<ScoreRing score={78} />
-							<div style={{ flex: 1, minWidth: 0 }}>
-								{DECK_CATEGORIES.map((c) => (
-									<div key={c.label} className="bm-row">
-										<div className="bm-metric" style={{ width: 150 }}>{c.label}</div>
-										<div className="bm-bar"><FitBar pct={c.score} color={scoreColor(c.score)} /></div>
-										<div className="bm-pct" style={{ color: scoreColor(c.score) }}>{c.score}</div>
-									</div>
-								))}
+						{!latest ? (
+							<div className="cp-upload">
+								<FileText size={18} />
+								<span>Upload a pitch deck to get an investor-grade score and section-by-section feedback.</span>
+								<Link href="/pitch-analyzer" className="btn ghost"><Upload size={12} /> Upload deck</Link>
 							</div>
-						</div>
-						<div className="cp-upload">
-							<FileText size={18} />
-							<span>Drop a new deck to re-score, or evaluate a fresh version.</span>
-							<button className="btn ghost"><Upload size={12} /> Upload deck</button>
-						</div>
+						) : (
+							<>
+								<div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 16 }}>
+									<ScoreRing score={latest.overall_score ?? 0} />
+									<div style={{ flex: 1, minWidth: 0 }}>
+										{categories.length === 0 ? (
+											<Empty msg="Open the analysis to see the section breakdown." />
+										) : categories.map((c) => (
+											<div key={c.label} className="bm-row">
+												<div className="bm-metric" style={{ width: 150 }}>{c.label}</div>
+												<div className="bm-bar"><FitBar pct={c.score} color={scoreColor(c.score)} /></div>
+												<div className="bm-pct" style={{ color: scoreColor(c.score) }}>{c.score}</div>
+											</div>
+										))}
+									</div>
+								</div>
+								<div className="cp-upload">
+									<FileText size={18} />
+									<span>{latest.filename ?? 'Latest deck'} · scored {latest.overall_score}/100.</span>
+									<Link href={`/pitch-analyzer/${latest.id}`} className="btn ghost">View analysis <ArrowRight size={12} /></Link>
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 

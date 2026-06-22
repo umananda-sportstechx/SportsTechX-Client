@@ -1,10 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import useSWR from 'swr';
 import { ArrowRight, Sparkles, Zap, Building2, Heart } from 'lucide-react';
 import { Stat, SectionHead, Tag } from '@/components/ui/atoms';
+import { qk } from '@/lib/query-keys';
 import { WorkspaceHeader, FitBar } from './workspace-ui';
 import { ScoreRing, MiniBars, genSpark } from './workspace-charts';
+
+interface InvestorMatch { id: string; name: string; slug: string | null; category: string | null; score: number; match_reasons: string[] }
+interface MatchResponse { company: { id: string; name: string } | null; results: InvestorMatch[] }
+interface DeckRow { status: string; overall_score: number | null }
 
 /**
  * FounderHome — the Fundraising Copilot home (persona = founder). Ported from
@@ -12,13 +19,6 @@ import { ScoreRing, MiniBars, genSpark } from './workspace-charts';
  * raise / match / benchmark figures are representative sample data (there is no
  * backend for investor-fit scores or raise progress yet).
  */
-
-const MATCHES = [
-	{ name: 'Verance Capital', type: 'VC · Series B lead', fit: 94, why: ['Fan engagement', 'Series B', 'Led 3 comps'], intro: 'warm', introText: 'Warm path · via Maya O.' },
-	{ name: 'Courtside Ventures', type: 'VC · Sports specialist', fit: 91, why: ['Sports-tech focus', '€5–15M checks'], intro: 'warm', introText: 'Warm path · via 2 founders' },
-	{ name: 'Elysian Park', type: 'VC · Growth', fit: 88, why: ['Media & fan', 'US + EU'], intro: 'cold', introText: 'No intro yet' },
-	{ name: 'Sapphire Sport', type: 'VC · Thesis fit', fit: 85, why: ['Fan platforms', 'Lead or co-lead'], intro: 'cold', introText: 'No intro yet' },
-];
 
 const BENCHMARKS = [
 	{ metric: 'ARR', you: '$4.2M', cohort: 'vs $3.1M median', pct: 72 },
@@ -36,6 +36,11 @@ const PROGRAMS = [
 
 export function FounderHome() {
 	const router = useRouter();
+	const { data: matchData } = useSWR<MatchResponse>(qk.investorMatches(4));
+	const { data: decks } = useSWR<DeckRow[]>(qk.deckAnalysis.list(), { dedupingInterval: 60_000 });
+	const matches = matchData?.results ?? [];
+	const hasCompany = !!matchData?.company;
+	const deckScore = (decks ?? []).find((d) => d.status === 'done' && d.overall_score != null)?.overall_score ?? null;
 	return (
 		<>
 			<WorkspaceHeader
@@ -51,7 +56,7 @@ export function FounderHome() {
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
-					<Stat label="Investor matches" value="42" delta="+6 this week" deltaDir="pos" spark={genSpark(36, 42)} />
+					<Stat label="Investor matches" value={hasCompany ? String(matches.length) : '—'} delta={hasCompany ? 'ranked by fit' : 'claim your company'} deltaDir="pos" spark={genSpark(36, 42)} />
 				</div>
 				<div className="card feature" style={{ padding: 'var(--space-4)' }}>
 					<Stat label="Warm intro paths" value="11" delta="4 not yet asked" deltaDir="pos" spark={genSpark(6, 11)} />
@@ -66,23 +71,33 @@ export function FounderHome() {
 
 			<div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16, marginBottom: 'var(--space-5)' }}>
 				<div className="card">
-					<SectionHead title="Top investor matches" meta="ranked by fit" action={<button className="btn ghost" onClick={() => router.push('/copilot/matches')}>View all 42 <ArrowRight size={12} /></button>} />
-					<div className="match-list">
-						{MATCHES.map((m) => (
-							<div key={m.name} className="match-row">
-								<div className="match-main">
-									<div className="match-name">{m.name}</div>
-									<div className="match-sub">{m.type}</div>
-									<div className="match-why">{m.why.map((w) => <span key={w} className="match-chip">{w}</span>)}</div>
-								</div>
-								<div className="match-fit">
-									<div className="match-fit-num">{m.fit}<span>%</span></div>
-									<FitBar pct={m.fit} />
-								</div>
-								<div className={`match-intro ${m.intro === 'warm' ? 'match-intro-warm' : ''}`}>{m.introText}</div>
-							</div>
-						))}
-					</div>
+					<SectionHead title="Top investor matches" meta="ranked by fit" action={<button className="btn ghost" onClick={() => router.push('/copilot/matches')}>View all <ArrowRight size={12} /></button>} />
+					{!hasCompany ? (
+						<div style={{ padding: 'var(--space-4)', fontSize: 13, color: 'var(--fg-2)' }}>
+							Claim and verify your company to see investor matches. <Link href="/get-verified" className="ai-link">Get verified</Link>
+						</div>
+					) : matches.length === 0 ? (
+						<div style={{ padding: 'var(--space-4)', fontSize: 13, color: 'var(--fg-2)' }}>No strong matches yet — check back as more investor theses are added.</div>
+					) : (
+						<div className="match-list">
+							{matches.map((m) => {
+								const fit = Math.min(100, m.score);
+								return (
+									<div key={m.id} className="match-row" role="button" tabIndex={0} onClick={() => router.push(`/investors/${m.slug ?? m.id}`)}>
+										<div className="match-main">
+											<div className="match-name">{m.name}</div>
+											<div className="match-sub">{m.category ?? '—'}</div>
+											<div className="match-why">{m.match_reasons.slice(0, 3).map((w) => <span key={w} className="match-chip">{w}</span>)}</div>
+										</div>
+										<div className="match-fit">
+											<div className="match-fit-num">{fit}<span>%</span></div>
+											<FitBar pct={fit} />
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					)}
 				</div>
 
 				<div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 'var(--space-4)' }}>
@@ -142,7 +157,7 @@ export function FounderHome() {
 			<div className="grid-3">
 				<div className="card cp-mini" role="button" tabIndex={0} onClick={() => router.push('/copilot/toolkit')}>
 					<div className="cp-mini-head"><Sparkles size={16} /> Deck evaluator</div>
-					<ScoreRing score={78} />
+					<ScoreRing score={deckScore ?? 0} />
 					<div className="cp-mini-note">Strong problem &amp; traction. <em>Tighten your use-of-funds slide</em> to lift the score.</div>
 					<button className="btn ghost" style={{ marginTop: 'auto' }}>Open toolkit <ArrowRight size={12} /></button>
 				</div>
