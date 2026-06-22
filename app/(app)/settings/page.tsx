@@ -123,6 +123,7 @@ function ProfileTab() {
 	const { mutate } = useSWRConfig();
 	const { setPersona } = usePersona();
 	const [form, setForm] = useState({
+		full_name: '',
 		display_name: '',
 		job_title: '',
 		company_name: '',
@@ -134,6 +135,7 @@ function ProfileTab() {
 	useEffect(() => {
 		if (profile) {
 			setForm({
+				full_name: profile.full_name ?? '',
 				display_name: profile.display_name ?? '',
 				job_title: profile.job_title ?? '',
 				company_name: profile.company_name ?? '',
@@ -239,6 +241,11 @@ function ProfileTab() {
 
 			<Field
 				label="Full name"
+				value={form.full_name}
+				onChange={(v) => setForm((s) => ({ ...s, full_name: v }))}
+			/>
+			<Field
+				label="Display name"
 				value={form.display_name}
 				onChange={(v) => setForm((s) => ({ ...s, display_name: v }))}
 			/>
@@ -253,6 +260,15 @@ function ProfileTab() {
 				value={form.company_name}
 				onChange={(v) => setForm((s) => ({ ...s, company_name: v }))}
 			/>
+			{profile?.referral_code && (
+				<div style={{ marginBottom: 14 }}>
+					<div className="co-stat-label" style={{ marginBottom: 6 }}>Referral code</div>
+					<div style={{ display: 'flex', gap: 8 }}>
+						<input className="search-input" style={{ flex: 1, fontFamily: 'var(--font-mono)' }} value={profile.referral_code} readOnly />
+						<button className="btn ghost" onClick={() => { void navigator.clipboard?.writeText(profile.referral_code ?? ''); toast.success('Referral code copied'); }}>Copy</button>
+					</div>
+				</div>
+			)}
 
 			<div className="co-stat-label" style={{ marginTop: 18, marginBottom: 8 }}>I am a…</div>
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -447,7 +463,7 @@ function NotificationsTab() {
 	// Design's domain-specific alert toggles (ui_design/screens-3.jsx). Each is
 	// backed by a dedicated `notification_*` profile column.
 	const items: Array<{
-		key: 'notification_newsletter' | 'notification_funding_alerts' | 'notification_ma_alerts' | 'notification_report_releases' | 'notification_programs_deadline';
+		key: 'notification_newsletter' | 'notification_funding_alerts' | 'notification_ma_alerts' | 'notification_report_releases' | 'notification_programs_deadline' | 'notification_email' | 'notification_marketing' | 'notification_updates';
 		l: string;
 		desc: string;
 	}> = [
@@ -456,6 +472,9 @@ function NotificationsTab() {
 		{ key: 'notification_ma_alerts',        l: 'M&A alerts',       desc: 'Acquisitions and mergers as they’re announced.' },
 		{ key: 'notification_report_releases',  l: 'Report releases',  desc: 'When a new market report or deep-dive is published.' },
 		{ key: 'notification_programs_deadline', l: 'Program deadlines', desc: 'Reminders before accelerator and program application deadlines.' },
+		{ key: 'notification_email',            l: 'Email notifications', desc: 'Account and activity emails, including saved-search digests.' },
+		{ key: 'notification_updates',          l: 'Product updates',  desc: 'New features and improvements to the platform.' },
+		{ key: 'notification_marketing',        l: 'Marketing',        desc: 'Occasional offers and announcements from SportsTechX.' },
 	];
 
 	const toggle = async (key: typeof items[number]['key'], next: boolean) => {
@@ -618,27 +637,22 @@ interface StripeInvoice {
 }
 
 function ApiTab() {
-	const [revealed, setRevealed] = useState(false);
-	const keyDisplay = revealed
-		? 'stx_live_3f9c8b2d4e7a1f6h9k3m5n8p2q4r6s8t'
-		: 'stx_live_••••••••••••••••••••••••';
+	const { data: keys } = useSWR<Array<{ id: string }>>(qk.apiKeys.list());
+	const count = keys?.length ?? 0;
 	return (
 		<div>
 			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
 				API & integrations
 			</h3>
-			<div className="co-stat-label" style={{ marginBottom: 8 }}>Personal API key</div>
-			<div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+			<div className="co-stat-label" style={{ marginBottom: 8 }}>Personal API keys</div>
+			<div style={{ display: 'flex', gap: 8, marginBottom: 24, alignItems: 'center' }}>
 				<input
 					className="search-input"
-					style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
-					value={keyDisplay}
+					style={{ flex: 1 }}
+					value={`${count} active key${count === 1 ? '' : 's'}`}
 					readOnly
 				/>
-				<button className="btn ghost" onClick={() => setRevealed((v) => !v)}>
-					{revealed ? 'Hide' : 'Reveal'}
-				</button>
-				<Link href="/api-keys"><button className="btn ghost">Rotate</button></Link>
+				<Link href="/api-keys"><button className="btn ghost">Manage keys</button></Link>
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Connected integrations</div>
 			{INTEGRATIONS.map((n) => (
