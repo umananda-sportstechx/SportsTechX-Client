@@ -167,8 +167,8 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 				>
 					{/* Brand logo from /public — square mark when collapsed, full wordmark when expanded. */}
 					{expanded
-						? <Brand variant="horizontal" height={24} />
-						: <Brand variant="mark" height={26} />}
+						? <Brand variant="horizontal" height={32} />
+						: <Brand variant="mark" height={34} />}
 				</button>
 				<button className="rail-toggle" onClick={onToggleExpand} title="Collapse">
 					<ChevronRight size={16} />

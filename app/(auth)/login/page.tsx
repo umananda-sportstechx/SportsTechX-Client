@@ -125,7 +125,7 @@ export default function LoginPage() {
         <div className="max-w-sm text-center">
           {/* Sidebar panel is dark — use the white wordmark directly. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/stx_white_horizontal.png" alt="SportsTechX" className="mx-auto mb-6 h-12 w-auto" />
+          <img src="/stx_white_horizontal.png" alt="SportsTechX" className="mx-auto mb-6 h-16 w-auto" />
           <p className="text-sidebar-foreground/80 text-lg leading-relaxed">
             The global platform for sports technology intelligence. Discover companies, investors, and deals shaping the future of sport.
           </p>
@@ -136,7 +136,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center p-6 bg-background">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden text-center">
-            <Brand variant="horizontal" height={36} className="mx-auto" />
+            <Brand variant="horizontal" height={44} className="mx-auto" />
           </div>
 
           <Card>
