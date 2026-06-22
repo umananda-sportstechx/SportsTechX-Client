@@ -51,7 +51,7 @@ export function TickerStrip() {
 			company_name: d.company?.name ?? d.company_name ?? '—',
 			amount_usd: d.amount_usd,
 			round_type: d.round_type_name ?? d.round_type ?? null,
-			country_code: d.country_code ?? (d.hq_country ? countryCode(d.hq_country) : null),
+			country_code: d.country_code ?? d.hq_country ?? null,
 		}))
 		// Only show rows that have meaningful content — name + something to read.
 		.filter((d) => d.company_name && d.company_name !== '—');

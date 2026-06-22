@@ -65,6 +65,29 @@ const CC_TO_COUNTRY: Record<string, string> = {
 };
 
 /**
+ * Country name → ISO-2 code. Built by inverting CC_TO_COUNTRY, plus common
+ * aliases/spellings. Lets callers pass a raw country name (or a code) to
+ * <Flag> and to country helpers without each page maintaining its own lossy map.
+ */
+const COUNTRY_TO_ISO: Record<string, string> = {
+	...Object.fromEntries(Object.entries(CC_TO_COUNTRY).map(([code, n]) => [n.toLowerCase(), code])),
+	usa: 'US', 'u.s.': 'US', 'u.s.a.': 'US', 'united states of america': 'US',
+	uk: 'GB', 'great britain': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
+	uae: 'AE', 'the netherlands': 'NL', 'holland': 'NL', 'czech republic': 'CZ',
+	'south korea': 'KR', 'korea': 'KR', 'republic of korea': 'KR', 'russia': 'RU',
+	'viet nam': 'VN', 'hong kong': 'HK', 'türkiye': 'TR', 'turkiye': 'TR',
+};
+
+/** Resolve an ISO-2 code from either a 2-letter code or a country name. '' if unknown. */
+export function countryToIso(input?: string | null): string {
+	if (!input) return '';
+	const s = input.trim();
+	if (!s) return '';
+	if (s.length === 2) return s.toUpperCase();
+	return COUNTRY_TO_ISO[s.toLowerCase()] ?? '';
+}
+
+/**
  * Flag — real country flag.
  *
  * Renders the actual flag SVG from flagcdn.com (free, no API key — same
@@ -85,15 +108,20 @@ const CC_TO_COUNTRY: Record<string, string> = {
 export function Flag({
 	cc, size = 18, name,
 }: {
+	/** A 2-letter ISO code OR a full country name (e.g. "US" or "United States"). */
 	cc: string;
 	size?: number;
 	/** Override the hover tooltip — falls back to the CC_TO_COUNTRY map. */
 	name?: string;
 }) {
-	const code = cc?.toLowerCase();
-	const label = name ?? CC_TO_COUNTRY[cc] ?? cc;
+	// Accept either an ISO-2 code or a country name. This makes flags resilient
+	// to call sites that pass raw `hq_country` (or lossy 2-letter guesses): a
+	// real country name resolves to the correct ISO code via COUNTRY_TO_ISO.
+	const iso = countryToIso(cc);
+	const code = iso.toLowerCase();
+	const label = name ?? CC_TO_COUNTRY[iso] ?? cc;
 	const [failed, setFailed] = useState(false);
-	const colors = FLAG_COLORS[cc] ?? ['#888', '#bbb', '#888'];
+	const colors = FLAG_COLORS[iso] ?? ['#888', '#bbb', '#888'];
 
 	// Custom CSS tooltip via `data-tip`; the browser default `title` is
 	// intentionally NOT set so users never see the plain yellow OS popup.
