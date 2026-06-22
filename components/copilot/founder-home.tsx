@@ -12,6 +12,20 @@ import { ScoreRing, MiniBars, genSpark } from './workspace-charts';
 interface InvestorMatch { id: string; name: string; slug: string | null; category: string | null; score: number; match_reasons: string[] }
 interface MatchResponse { company: { id: string; name: string } | null; results: InvestorMatch[] }
 interface DeckRow { status: string; overall_score: number | null }
+interface BenchMetric { key: string; label: string; unit: string; value: number | null; median: number | null; percentile: number | null }
+interface BenchResponse { company: { id: string; name: string } | null; cohort: { sector: string | null; n: number }; metrics: BenchMetric[] }
+
+function fmtBench(unit: string, v: number | null): string {
+	if (v == null) return '—';
+	if (unit === 'usd') {
+		if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`;
+		if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+		if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+		return `$${v}`;
+	}
+	if (unit === 'years') return `${v} yr`;
+	return String(v);
+}
 
 /**
  * FounderHome — the Fundraising Copilot home (persona = founder). Ported from
@@ -19,14 +33,6 @@ interface DeckRow { status: string; overall_score: number | null }
  * raise / match / benchmark figures are representative sample data (there is no
  * backend for investor-fit scores or raise progress yet).
  */
-
-const BENCHMARKS = [
-	{ metric: 'ARR', you: '$4.2M', cohort: 'vs $3.1M median', pct: 72 },
-	{ metric: 'YoY growth', you: '+148%', cohort: 'vs +96% median', pct: 81 },
-	{ metric: 'Net revenue retention', you: '124%', cohort: 'vs 111% median', pct: 76 },
-	{ metric: 'Burn multiple', you: '1.4x', cohort: 'vs 1.9x median', pct: 68 },
-	{ metric: 'Target round size', you: '$25M', cohort: 'vs $18M median', pct: 70 },
-];
 
 const PROGRAMS = [
 	{ name: 'Techstars Sports', meta: 'New York · $120K · 13 wks', color: '#A855F7' },
@@ -38,9 +44,11 @@ export function FounderHome() {
 	const router = useRouter();
 	const { data: matchData } = useSWR<MatchResponse>(qk.investorMatches(4));
 	const { data: decks } = useSWR<DeckRow[]>(qk.deckAnalysis.list(), { dedupingInterval: 60_000 });
+	const { data: bench } = useSWR<BenchResponse>(qk.benchmarks());
 	const matches = matchData?.results ?? [];
 	const hasCompany = !!matchData?.company;
 	const deckScore = (decks ?? []).find((d) => d.status === 'done' && d.overall_score != null)?.overall_score ?? null;
+	const benchMetrics = (bench?.metrics ?? []).filter((m) => m.percentile != null);
 	return (
 		<>
 			<WorkspaceHeader
@@ -122,14 +130,18 @@ export function FounderHome() {
 
 			<div className="grid-2" style={{ marginBottom: 'var(--space-5)' }}>
 				<div className="card">
-					<SectionHead title="How your raise compares" meta="Series B · fan engagement" action={<button className="btn ghost" onClick={() => router.push('/copilot/benchmarks')}>Benchmarks <ArrowRight size={12} /></button>} />
+					<SectionHead title="How you compare" meta={bench?.cohort.sector ?? 'sector cohort'} action={<button className="btn ghost" onClick={() => router.push('/copilot/benchmarks')}>Benchmarks <ArrowRight size={12} /></button>} />
 					<div style={{ padding: 'var(--space-4)' }}>
-						{BENCHMARKS.map((b) => (
-							<div key={b.metric} className="bm-row">
-								<div className="bm-metric">{b.metric}</div>
-								<div className="bm-vals"><b>{b.you}</b><span>{b.cohort}</span></div>
-								<div className="bm-bar"><FitBar pct={b.pct} /></div>
-								<div className="bm-pct">{b.pct}<small>pct</small></div>
+						{!hasCompany ? (
+							<div style={{ fontSize: 13, color: 'var(--fg-2)' }}>Claim your company to benchmark it against its cohort.</div>
+						) : benchMetrics.length === 0 ? (
+							<div style={{ fontSize: 13, color: 'var(--fg-2)' }}>Not enough cohort data to benchmark yet.</div>
+						) : benchMetrics.map((m) => (
+							<div key={m.key} className="bm-row">
+								<div className="bm-metric">{m.label}</div>
+								<div className="bm-vals"><b>{fmtBench(m.unit, m.value)}</b><span>vs {fmtBench(m.unit, m.median)} median</span></div>
+								<div className="bm-bar"><FitBar pct={m.percentile ?? 0} /></div>
+								<div className="bm-pct">{m.percentile}<small>pct</small></div>
 							</div>
 						))}
 					</div>

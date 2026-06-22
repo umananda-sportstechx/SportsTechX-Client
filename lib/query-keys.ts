@@ -127,6 +127,8 @@ export const qk = {
   recommendations: () => ['/api/recommendations'] as const,
   // Founder → investor matches (computed live from the founder's claimed company).
   investorMatches: (limit = 12) => ['/api/recommendations/investors', { limit }] as const,
+  // Founder cohort benchmarks (computed live from the founder's claimed company).
+  benchmarks: () => ['/api/recommendations/benchmarks'] as const,
 
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {
