@@ -20,11 +20,16 @@ const STORAGE_KEY = 'stx:persona';
 interface PersonaContextValue {
 	persona: Persona;
 	setPersona: (p: Persona) => void;
+	/** False until the persona has been resolved from localStorage + profile.
+	 *  Gates (e.g. /copilot route guards) must wait for this to avoid acting on
+	 *  the SSR-default 'general' before the real persona loads. */
+	ready: boolean;
 }
 
 const PersonaContext = createContext<PersonaContextValue>({
 	persona: 'general',
 	setPersona: () => {},
+	ready: false,
 });
 
 /** Map the onboarding `account_type` ('founder' | 'investor' | 'user') → persona. */
@@ -35,10 +40,11 @@ function personaFromAccountType(t: string | null | undefined): Persona {
 }
 
 export function PersonaProvider({ children }: { children: React.ReactNode }) {
-	const { data: profile } = useUserProfile();
+	const { data: profile, isLoading } = useUserProfile();
 	// SSR-safe default; the stored override / profile seed are applied on mount.
 	const [persona, setPersonaState] = useState<Persona>('general');
 	const [overridden, setOverridden] = useState(false);
+	const [mountChecked, setMountChecked] = useState(false);
 
 	// Restore an explicit user override (topbar switch) on mount.
 	useEffect(() => {
@@ -49,6 +55,7 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
 				setOverridden(true);
 			}
 		} catch { /* ignore */ }
+		setMountChecked(true);
 	}, []);
 
 	// Seed from the profile's account_type until the user explicitly overrides.
@@ -63,8 +70,12 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
 		try { localStorage.setItem(STORAGE_KEY, p); } catch { /* ignore */ }
 	}, []);
 
+	// Resolved once we've read localStorage AND either the user has an explicit
+	// override or the profile fetch has settled (data or confirmed absent).
+	const ready = mountChecked && (overridden || !isLoading);
+
 	return (
-		<PersonaContext.Provider value={{ persona, setPersona }}>
+		<PersonaContext.Provider value={{ persona, setPersona, ready }}>
 			{children}
 		</PersonaContext.Provider>
 	);

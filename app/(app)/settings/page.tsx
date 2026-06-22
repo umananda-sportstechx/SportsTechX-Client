@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { useUserProfile } from '@/hooks/use-user-profile';
+import { useUserProfile, type AccountType } from '@/hooks/use-user-profile';
+import { usePersona, type Persona } from '@/contexts/persona-context';
 import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import { ImageInput } from '@/components/ui/image-input';
 
@@ -108,24 +109,38 @@ export default function SettingsPage() {
 	);
 }
 
+// Persona ↔ account_type. account_type is the persisted column ('founder' |
+// 'investor' | 'user'); persona is the active workspace ('founder' | 'investor'
+// | 'general'). 'user' ↔ 'general'.
+const PERSONA_OPTIONS: Array<{ account: AccountType; persona: Persona; label: string; desc: string }> = [
+	{ account: 'founder', persona: 'founder', label: 'Founder', desc: 'Fundraising Copilot — investor matches, benchmarks, your raise.' },
+	{ account: 'investor', persona: 'investor', label: 'Investor', desc: 'Dealflow Copilot — sourcing, thesis, diligence.' },
+	{ account: 'user', persona: 'general', label: 'Just exploring', desc: 'The classic intelligence hub, no persona workspace.' },
+];
+
 function ProfileTab() {
 	const { data: profile } = useUserProfile();
 	const { mutate } = useSWRConfig();
+	const { setPersona } = usePersona();
 	const [form, setForm] = useState({
+		full_name: '',
 		display_name: '',
 		job_title: '',
 		company_name: '',
 		avatar_url: '',
+		account_type: 'user' as AccountType,
 	});
 	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (profile) {
 			setForm({
+				full_name: profile.full_name ?? '',
 				display_name: profile.display_name ?? '',
 				job_title: profile.job_title ?? '',
 				company_name: profile.company_name ?? '',
 				avatar_url: profile.avatar_url ?? '',
+				account_type: (profile.account_type as AccountType) ?? 'user',
 			});
 		}
 	}, [profile]);
@@ -149,6 +164,9 @@ function ProfileTab() {
 			const { avatar_url: _avatarHandledSeparately, ...rest } = form;
 			void _avatarHandledSeparately;
 			await apiRequest('PATCH', '/api/profiles/me', rest);
+			// Reflect the persona switch immediately in the topbar/sidebar workspace.
+			const opt = PERSONA_OPTIONS.find((o) => o.account === form.account_type);
+			if (opt) setPersona(opt.persona);
 			toast.success('Profile updated');
 			void mutate(qk.profile());
 		} catch (e) {
@@ -223,6 +241,11 @@ function ProfileTab() {
 
 			<Field
 				label="Full name"
+				value={form.full_name}
+				onChange={(v) => setForm((s) => ({ ...s, full_name: v }))}
+			/>
+			<Field
+				label="Display name"
 				value={form.display_name}
 				onChange={(v) => setForm((s) => ({ ...s, display_name: v }))}
 			/>
@@ -237,6 +260,37 @@ function ProfileTab() {
 				value={form.company_name}
 				onChange={(v) => setForm((s) => ({ ...s, company_name: v }))}
 			/>
+			{profile?.referral_code && (
+				<div style={{ marginBottom: 14 }}>
+					<div className="co-stat-label" style={{ marginBottom: 6 }}>Referral code</div>
+					<div style={{ display: 'flex', gap: 8 }}>
+						<input className="search-input" style={{ flex: 1, fontFamily: 'var(--font-mono)' }} value={profile.referral_code} readOnly />
+						<button className="btn ghost" onClick={() => { void navigator.clipboard?.writeText(profile.referral_code ?? ''); toast.success('Referral code copied'); }}>Copy</button>
+					</div>
+				</div>
+			)}
+
+			<div className="co-stat-label" style={{ marginTop: 18, marginBottom: 8 }}>I am a…</div>
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+				{PERSONA_OPTIONS.map((o) => {
+					const on = form.account_type === o.account;
+					return (
+						<button
+							key={o.account}
+							onClick={() => setForm((s) => ({ ...s, account_type: o.account }))}
+							className={`btn ${on ? '' : 'ghost'}`}
+							style={{ height: 'auto', padding: '12px 14px', flexDirection: 'column', alignItems: 'flex-start', gap: 2, textAlign: 'left' }}
+						>
+							<span style={{ fontWeight: 700, fontSize: 13 }}>{o.label}</span>
+							<span style={{ fontSize: 11, opacity: 0.75, fontWeight: 400 }}>{o.desc}</span>
+						</button>
+					);
+				})}
+			</div>
+			<p style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 8 }}>
+				Sets your workspace. You can also switch temporarily from the top bar.
+			</p>
+
 			<button
 				className="btn"
 				style={{ marginTop: 16 }}
@@ -409,7 +463,7 @@ function NotificationsTab() {
 	// Design's domain-specific alert toggles (ui_design/screens-3.jsx). Each is
 	// backed by a dedicated `notification_*` profile column.
 	const items: Array<{
-		key: 'notification_newsletter' | 'notification_funding_alerts' | 'notification_ma_alerts' | 'notification_report_releases' | 'notification_programs_deadline';
+		key: 'notification_newsletter' | 'notification_funding_alerts' | 'notification_ma_alerts' | 'notification_report_releases' | 'notification_programs_deadline' | 'notification_email' | 'notification_marketing' | 'notification_updates';
 		l: string;
 		desc: string;
 	}> = [
@@ -418,6 +472,9 @@ function NotificationsTab() {
 		{ key: 'notification_ma_alerts',        l: 'M&A alerts',       desc: 'Acquisitions and mergers as they’re announced.' },
 		{ key: 'notification_report_releases',  l: 'Report releases',  desc: 'When a new market report or deep-dive is published.' },
 		{ key: 'notification_programs_deadline', l: 'Program deadlines', desc: 'Reminders before accelerator and program application deadlines.' },
+		{ key: 'notification_email',            l: 'Email notifications', desc: 'Account and activity emails, including saved-search digests.' },
+		{ key: 'notification_updates',          l: 'Product updates',  desc: 'New features and improvements to the platform.' },
+		{ key: 'notification_marketing',        l: 'Marketing',        desc: 'Occasional offers and announcements from SportsTechX.' },
 	];
 
 	const toggle = async (key: typeof items[number]['key'], next: boolean) => {
@@ -580,27 +637,22 @@ interface StripeInvoice {
 }
 
 function ApiTab() {
-	const [revealed, setRevealed] = useState(false);
-	const keyDisplay = revealed
-		? 'stx_live_3f9c8b2d4e7a1f6h9k3m5n8p2q4r6s8t'
-		: 'stx_live_••••••••••••••••••••••••';
+	const { data: keys } = useSWR<Array<{ id: string }>>(qk.apiKeys.list());
+	const count = keys?.length ?? 0;
 	return (
 		<div>
 			<h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
 				API & integrations
 			</h3>
-			<div className="co-stat-label" style={{ marginBottom: 8 }}>Personal API key</div>
-			<div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+			<div className="co-stat-label" style={{ marginBottom: 8 }}>Personal API keys</div>
+			<div style={{ display: 'flex', gap: 8, marginBottom: 24, alignItems: 'center' }}>
 				<input
 					className="search-input"
-					style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
-					value={keyDisplay}
+					style={{ flex: 1 }}
+					value={`${count} active key${count === 1 ? '' : 's'}`}
 					readOnly
 				/>
-				<button className="btn ghost" onClick={() => setRevealed((v) => !v)}>
-					{revealed ? 'Hide' : 'Reveal'}
-				</button>
-				<Link href="/api-keys"><button className="btn ghost">Rotate</button></Link>
+				<Link href="/api-keys"><button className="btn ghost">Manage keys</button></Link>
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Connected integrations</div>
 			{INTEGRATIONS.map((n) => (

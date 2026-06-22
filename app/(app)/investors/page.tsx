@@ -380,7 +380,7 @@ function InvestorTable({
 				</thead>
 				<tbody>
 					{investors.map((i) => {
-						const cc = i.hq_country ? countryCode(i.hq_country) : '';
+						const cc = i.hq_country ?? '';
 						const color = TYPE_COLORS[i.category ?? 'other'] ?? 'oklch(62% 0.04 240)';
 						const initials = i.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 						const target = i.slug ?? i.id;
