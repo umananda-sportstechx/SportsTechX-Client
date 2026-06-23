@@ -537,17 +537,6 @@ function pctDelta(
 	};
 }
 
-function countryCode(countryName: string): string {
-	const map: Record<string, string> = {
-		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
-		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
-		Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE', Austria: 'AT', Poland: 'PL',
-		India: 'IN', China: 'CN', Japan: 'JP', Singapore: 'SG', Australia: 'AU',
-		Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
-	};
-	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
-}
-
 function splitDollars(n: number): { value: string; unit: string } {
 	if (!Number.isFinite(n) || n <= 0) return { value: '—', unit: '' };
 	if (n >= 1_000_000_000) return { value: `$${(n / 1_000_000_000).toFixed(2)}`, unit: 'B' };
