@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { type Region, REGION_CHIPS, regionOf } from '@/lib/regions';
 import { Stat, SectionHead, Empty, Flag } from '@/components/ui/atoms';
 import {
 	PieDonut, ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
@@ -77,6 +78,7 @@ const rangeToPeriod = (r: YearRange): 'ytd' | '12m' | 'all' => (r === 'ytd' ? 'y
 export function MaDeepDiveTab() {
 	const currentYear = new Date().getFullYear();
 	const [range, setRange] = useState<YearRange>('10y');
+	const [region, setRegion] = useState<Region>('all');
 	const [filtersOpen, setFiltersOpen] = useState(false);
 	const yearWindow = range === '10y' ? 9 : range === '5y' ? 4 : 0;
 
@@ -88,9 +90,10 @@ export function MaDeepDiveTab() {
 	const { data: sectorTree } = useSWR<SectorHeatTreeNode[]>(qk.analytics.sectorHeatTree(rangeToPeriod(range), 8), { dedupingInterval: 10 * 60_000 });
 	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
 	const { data: typeBreakdown } = useSWR<TypeBreakdownPoint[]>(qk.analytics.maTypeBreakdown(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
-	// Largest disclosed acquisitions — sorted by deal size off the real list endpoint.
+	// Largest disclosed acquisitions — fetch a wider set so the client-side region
+	// filter still has enough rows to show a meaningful top list.
 	const { data: largestResp } = useSWR<AcqResponse>(
-		qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 8 }),
+		qk.acquisitions.list({ sort: '-amount_usd', disclosed_only: true, limit: 40 }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
 
@@ -131,7 +134,12 @@ export function MaDeepDiveTab() {
 		}));
 	}, [typeBreakdown]);
 
-	const largest = largestResp?.data ?? [];
+	// Region filter (client-side, by acquiree HQ country), then top 8.
+	const largest = useMemo(() => {
+		const all = largestResp?.data ?? [];
+		const filtered = region === 'all' ? all : all.filter((d) => regionOf(d.hq_country ?? '') === region);
+		return filtered.slice(0, 8);
+	}, [largestResp, region]);
 
 	const totalValue = useMemo(() => (annual ?? []).reduce((s, a) => s + a.total_amount, 0), [annual]);
 	const totalDeals = useMemo(() => (annual ?? []).reduce((s, a) => s + a.deal_count, 0), [annual]);
@@ -160,6 +168,12 @@ export function MaDeepDiveTab() {
 									<button key={r} className={`chip ${range === r ? 'on' : ''}`} onClick={() => setRange(r)}>
 										{r === '10y' ? '10 yr' : r === '5y' ? '5 yr' : 'YTD'}
 									</button>
+								))}
+							</div>
+							<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-muted)', margin: '6px 0 2px' }}>Region · largest deals</div>
+							<div className="filter-bar">
+								{REGION_CHIPS.map(([v, l]) => (
+									<button key={v} className={`chip ${region === v ? 'on' : ''}`} onClick={() => setRegion(v)}>{l}</button>
 								))}
 							</div>
 						</div>

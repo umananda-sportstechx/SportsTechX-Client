@@ -113,16 +113,3 @@ function formatTickerAmount(value: number | string | null | undefined): string {
 	return `$${n.toFixed(0)}`;
 }
 
-function countryCode(countryName: string): string {
-	const map: Record<string, string> = {
-		'United States': 'US', USA: 'US', 'United Kingdom': 'GB', UK: 'GB',
-		Germany: 'DE', France: 'FR', Italy: 'IT', Spain: 'ES', Netherlands: 'NL',
-		'The Netherlands': 'NL', Sweden: 'SE', Switzerland: 'CH', Belgium: 'BE',
-		Austria: 'AT', Poland: 'PL', India: 'IN', China: 'CN', Japan: 'JP',
-		Singapore: 'SG', Australia: 'AU', Brazil: 'BR', Canada: 'CA', Portugal: 'PT',
-		'Saudi Arabia': 'SA', Israel: 'IL', Ireland: 'IE', Finland: 'FI',
-		Norway: 'NO', Denmark: 'DK', Mexico: 'MX', Argentina: 'AR',
-		'South Korea': 'KR', Korea: 'KR', Indonesia: 'ID', Vietnam: 'VN',
-	};
-	return map[countryName] ?? countryName.slice(0, 2).toUpperCase();
-}
