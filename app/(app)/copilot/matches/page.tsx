@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { Page, Empty } from '@/components/ui/atoms';
+import { Page, Empty, Logo } from '@/components/ui/atoms';
 import { WorkspaceHeader, FitBar } from '@/components/copilot/workspace-ui';
 import { qk } from '@/lib/query-keys';
 
@@ -68,6 +68,7 @@ export default function FounderMatchesPage() {
 							const fit = Math.min(100, m.score);
 							return (
 								<div key={m.id} className="match-row match-row-page">
+									<Logo co={{ name: m.name, website: m.website }} size={36} />
 									<div className="match-main">
 										<div className="match-name">{m.name}</div>
 										<div className="match-sub">{[m.category, m.description].filter(Boolean).join(' · ') || '—'}</div>
