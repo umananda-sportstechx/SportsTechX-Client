@@ -131,6 +131,8 @@ export const qk = {
   benchmarks: () => ['/api/recommendations/benchmarks'] as const,
   // Underfunded / whitespace sectors (market intelligence).
   whitespace: () => ['/api/recommendations/whitespace'] as const,
+  // Founder → investor warm-intro requests.
+  introRequests: () => ['/api/intro-requests'] as const,
 
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {

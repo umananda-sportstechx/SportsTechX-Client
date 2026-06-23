@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { Page, Empty } from '@/components/ui/atoms';
+import { toast } from 'sonner';
+import { ArrowRight, Loader2, Check, Send } from 'lucide-react';
+import { Page, Empty, Logo } from '@/components/ui/atoms';
 import { WorkspaceHeader, FitBar } from '@/components/copilot/workspace-ui';
 import { qk } from '@/lib/query-keys';
+import { apiRequest } from '@/lib/query-client';
 
 /**
  * FounderMatches (f-matches) — investors ranked against the founder's claimed
@@ -29,11 +32,33 @@ interface MatchResponse {
 	results: InvestorMatch[];
 }
 
+interface IntroRequest { target_investor_id: string }
+
 export default function FounderMatchesPage() {
 	const { data, isLoading } = useSWR<MatchResponse>(qk.investorMatches(24));
+	const { data: intros, mutate: mutateIntros } = useSWR<IntroRequest[]>(qk.introRequests());
+	const [busy, setBusy] = useState<string | null>(null);
 
 	const results = data?.results ?? [];
 	const company = data?.company;
+	const requested = new Set((intros ?? []).map((i) => i.target_investor_id));
+
+	const requestIntro = async (investorId: string) => {
+		setBusy(investorId);
+		// Optimistic — mark requested immediately.
+		void mutateIntros((prev) => [...(prev ?? []), { target_investor_id: investorId }], { revalidate: false });
+		try {
+			const res = await apiRequest('POST', '/api/intro-requests', { target_investor_id: investorId });
+			if (!res.ok) throw new Error(String(res.status));
+			toast.success('Intro requested — our team will follow up.');
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Could not request intro');
+			void mutateIntros(); // rollback to server truth
+		} finally {
+			setBusy(null);
+			void mutateIntros();
+		}
+	};
 
 	return (
 		<Page>
@@ -68,6 +93,7 @@ export default function FounderMatchesPage() {
 							const fit = Math.min(100, m.score);
 							return (
 								<div key={m.id} className="match-row match-row-page">
+									<Logo co={{ name: m.name, website: m.website }} size={36} />
 									<div className="match-main">
 										<div className="match-name">{m.name}</div>
 										<div className="match-sub">{[m.category, m.description].filter(Boolean).join(' · ') || '—'}</div>
@@ -78,8 +104,15 @@ export default function FounderMatchesPage() {
 										<FitBar pct={fit} />
 										<div className="match-fit-lbl">fit</div>
 									</div>
-									<div className="match-cta">
-										<Link href={href} className="btn ghost">View investor <ArrowRight size={12} /></Link>
+									<div className="match-cta" style={{ display: 'flex', gap: 6 }}>
+										{requested.has(m.id) ? (
+											<button className="btn ghost" disabled><Check size={12} /> Requested</button>
+										) : (
+											<button className="btn" disabled={busy === m.id} onClick={() => void requestIntro(m.id)}>
+												<Send size={12} /> {busy === m.id ? 'Requesting…' : 'Request intro'}
+											</button>
+										)}
+										<Link href={href} className="btn ghost">View <ArrowRight size={12} /></Link>
 									</div>
 								</div>
 							);

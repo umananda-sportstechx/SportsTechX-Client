@@ -8,13 +8,14 @@ import { qk } from '@/lib/query-keys';
 import { openClaim } from '@/lib/claim-events';
 import { useFavorite } from '@/hooks/use-favorite';
 import { Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot } from './drawer';
-import { Flag, Tag, KV, Empty, VerifiedBadge } from './atoms';
+import { Flag, Tag, KV, Empty, VerifiedBadge, Logo } from './atoms';
 
 interface Investor {
 	id: string;
 	name: string;
 	slug?: string;
 	website?: string | null;
+	logo_url?: string | null;
 	description?: string | null;
 	thesis?: string | null;
 	category?: string | null;
@@ -113,12 +114,7 @@ export function InvestorDrawer({
 			{investor && (
 				<>
 					<DrawerHead onClose={onClose}>
-						<div
-							className="co-logo"
-							style={{ width: 40, height: 40, background: color, color: '#fff', fontWeight: 800, fontSize: 13 }}
-						>
-							{initials}
-						</div>
+						<Logo co={{ name: investor.name, website: investor.website, custom_logo_url: investor.logo_url, color, logo: initials }} size={40} />
 						<div style={{ flex: 1, minWidth: 0 }}>
 							<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
 								<button

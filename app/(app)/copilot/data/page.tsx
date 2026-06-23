@@ -1,21 +1,41 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { FileText, Code, ArrowRight, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
+import { FileText, Code, ArrowRight, KeyRound, Loader2 } from 'lucide-react';
 import { Page, SectionHead, Tag } from '@/components/ui/atoms';
 import { WorkspaceHeader } from '@/components/copilot/workspace-ui';
 import { qk } from '@/lib/query-keys';
+import { apiRequest } from '@/lib/query-client';
 
 /**
  * InvestorData (i-data) — pipe matched dealflow into the user's stack. API key
- * management is wired to the real /api/me/api-keys surface; CRM sync feeds and
- * one-click exports are not built yet (clearly marked).
+ * management + CSV/JSON exports are live; CRM sync connectors (OAuth) are not
+ * built yet (clearly marked).
  */
 
 interface ApiKeyRow { id: string; name?: string | null; last_used_at?: string | null; created_at?: string }
 
-const EXPORTS = ['Matched dealflow · CSV', 'Full portfolio · XLSX', 'Market maps · JSON'];
+/** Trigger a browser download of `content` as a file. */
+function downloadFile(name: string, content: string, mime: string): void {
+	const blob = new Blob([content], { type: mime });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url; a.download = name;
+	document.body.appendChild(a); a.click(); a.remove();
+	URL.revokeObjectURL(url);
+}
+
+/** CSV-escape a value (quote if it contains comma/quote/newline). */
+function csvCell(v: unknown): string {
+	const s = v == null ? '' : String(v);
+	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function toCsv(headers: string[], rows: Array<Array<unknown>>): string {
+	return [headers.map(csvCell).join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
+}
 
 const FEEDS = [
 	{ name: 'Salesforce', desc: 'New matches → CRM as leads' },
@@ -26,6 +46,31 @@ const FEEDS = [
 export default function InvestorDataPage() {
 	const { data: keys } = useSWR<ApiKeyRow[]>(qk.apiKeys.list());
 	const count = keys?.length ?? 0;
+	const [busy, setBusy] = useState<string | null>(null);
+
+	// Export matched dealflow (companies actively raising) as CSV.
+	const exportDealflow = async () => {
+		setBusy('csv');
+		try {
+			const res = await apiRequest('GET', '/api/companies?is_actively_raising=true&sort=-created_at&limit=200');
+			const rows = ((await res.json()) as { data?: Array<Record<string, unknown>> }).data ?? [];
+			const csv = toCsv(
+				['Company', 'Website', 'Sector', 'City', 'Country', 'Last round'],
+				rows.map((r) => [r.name, r.website, r.primary_sector ?? r.sector_name, r.hq_city, r.hq_country, r.last_round_type]),
+			);
+			downloadFile(`stx-dealflow-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv');
+		} catch (e) { toast.error((e as Error).message ?? 'Export failed'); } finally { setBusy(null); }
+	};
+
+	// Export the sector market map as JSON.
+	const exportMarketMaps = async () => {
+		setBusy('json');
+		try {
+			const res = await apiRequest('GET', '/api/analytics/sector-heat?period=all&limit=30');
+			const data = await res.json();
+			downloadFile(`stx-market-maps-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), 'application/json');
+		} catch (e) { toast.error((e as Error).message ?? 'Export failed'); } finally { setBusy(null); }
+	};
 
 	return (
 		<Page>
@@ -53,11 +98,15 @@ export default function InvestorDataPage() {
 				</div>
 
 				<div className="card">
-					<SectionHead title="Exports" meta="coming soon" />
+					<SectionHead title="Exports" />
 					<div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-						{EXPORTS.map((e) => (
-							<button key={e} className="btn ghost cp-export" disabled title="Exports are coming soon"><FileText size={14} /> {e}</button>
-						))}
+						<button className="btn ghost cp-export" disabled={busy === 'csv'} onClick={() => void exportDealflow()}>
+							{busy === 'csv' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} Matched dealflow · CSV
+						</button>
+						<button className="btn ghost cp-export" disabled={busy === 'json'} onClick={() => void exportMarketMaps()}>
+							{busy === 'json' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} Market maps · JSON
+						</button>
+						<button className="btn ghost cp-export" disabled title="XLSX export is coming soon"><FileText size={14} /> Full portfolio · XLSX</button>
 					</div>
 				</div>
 			</div>

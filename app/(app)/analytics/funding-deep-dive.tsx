@@ -5,6 +5,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { Filter } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { type Region, REGION_CHIPS, regionOf } from '@/lib/regions';
 import { Stat, SectionHead, Empty, Flag, AudienceIcon, audienceColor } from '@/components/ui/atoms';
 import {
 	PieDonut, ComboBarLine, Monogram, YearRangeToggle, HBarDrilldown,
@@ -91,31 +92,6 @@ const BIZ_LABELS: Record<string, string> = {
 
 const rangeToPeriod = (r: YearRange): 'ytd' | '12m' | 'all' => (r === 'ytd' ? 'ytd' : 'all');
 
-type Region = 'all' | 'n_america' | 'europe' | 'asia_pacific' | 'row';
-
-const REGION_CHIPS: Array<[Region, string]> = [
-	['all', 'All'],
-	['n_america', 'N. America'],
-	['europe', 'Europe'],
-	['asia_pacific', 'Asia Pacific'],
-	['row', 'Rest of World'],
-];
-
-// Map a country name to one of the broad regions used by the filter chips.
-const REGION_OF: Record<string, Exclude<Region, 'all'>> = {
-	'United States': 'n_america', USA: 'n_america', Canada: 'n_america', Mexico: 'n_america',
-	'United Kingdom': 'europe', UK: 'europe', Germany: 'europe', France: 'europe', Italy: 'europe',
-	Spain: 'europe', Netherlands: 'europe', Sweden: 'europe', Switzerland: 'europe', Belgium: 'europe',
-	Austria: 'europe', Poland: 'europe', Portugal: 'europe', Ireland: 'europe', Denmark: 'europe',
-	Norway: 'europe', Finland: 'europe',
-	China: 'asia_pacific', Japan: 'asia_pacific', India: 'asia_pacific', Singapore: 'asia_pacific',
-	Australia: 'asia_pacific', 'South Korea': 'asia_pacific', 'New Zealand': 'asia_pacific',
-	Indonesia: 'asia_pacific', Thailand: 'asia_pacific', Vietnam: 'asia_pacific',
-};
-
-function regionOf(country: string): Exclude<Region, 'all'> {
-	return REGION_OF[country] ?? 'row';
-}
 
 // Audience segmented filter for the Top Funded Companies table. Audience is
 // derived server-side from each company's sector (descendant-of-root). `all`
