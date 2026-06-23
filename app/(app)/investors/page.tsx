@@ -6,7 +6,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo } from '@/components/ui/atoms';
 import { FeatureGate } from '@/components/shell/screen-lock';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -32,6 +32,8 @@ interface InvestorRow {
 	type?: string | null;
 	hq_country?: string | null;
 	hq_city?: string | null;
+	logo_url?: string | null;
+	website?: string | null;
 	total_aum_usd?: number | string | null;
 	deals_count?: number | null;
 	primary_focus?: string | null;
@@ -454,9 +456,7 @@ function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOr
 			<div className="inv-bar" style={{ background: color }} />
 			<div style={{ padding: 'var(--space-4)' }}>
 				<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-					<div className="co-logo" style={{ width: 44, height: 44, background: color, color: '#fff', fontSize: 14 }}>
-						{initials}
-					</div>
+					<Logo co={{ name: i.name, website: i.website, custom_logo_url: i.logo_url, color, logo: initials }} size={44} />
 					<div style={{ flex: 1, minWidth: 0 }}>
 						<div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>{i.name}{i.is_verified && <VerifiedBadge size={12} />}</div>
 						<div

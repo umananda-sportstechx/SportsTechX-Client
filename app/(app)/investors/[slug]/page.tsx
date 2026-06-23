@@ -8,7 +8,7 @@ import { ArrowLeft, ExternalLink, Heart, Send } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { openClaim } from '@/lib/claim-events';
 import { useFavorite } from '@/hooks/use-favorite';
-import { Page, Flag, Tag, Empty, VerifiedBadge } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, VerifiedBadge, Logo } from '@/components/ui/atoms';
 import { SortHeader, applySort, parseMoney, type SortState } from '@/components/ui/sort-header';
 import { PieDonut, type PieSegment } from '@/components/ui/analytics-charts';
 
@@ -197,17 +197,7 @@ export default function InvestorDetailPage() {
 			<div className="card inv-card" style={{ padding: 0, marginBottom: 'var(--space-5)', position: 'relative' }}>
 				<div className="inv-bar" style={{ background: color, height: 4 }} />
 				<div style={{ padding: 'var(--space-5)', display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)' }}>
-					{investor.logo_url ? (
-						/* eslint-disable-next-line @next/next/no-img-element */
-						<img src={investor.logo_url} alt="" style={{ width: 72, height: 72, objectFit: 'contain', background: 'var(--bg-2)' }} />
-					) : (
-						<div
-							className="co-logo"
-							style={{ width: 72, height: 72, background: color, color: '#fff', fontSize: 22, fontWeight: 800 }}
-						>
-							{initials}
-						</div>
-					)}
+					<Logo co={{ name: investor.name, website: investor.website, custom_logo_url: investor.logo_url, color, logo: initials }} size={72} />
 					<div style={{ flex: 1, minWidth: 0 }}>
 						<div className="co-hero-meta" style={{ marginBottom: 6 }}>
 							{cc && <Flag cc={cc} />}
