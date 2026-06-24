@@ -132,9 +132,9 @@ function GeneralDashboard() {
 		{ dedupingInterval: 10 * 60_000 },
 	);
 	const { data: dealsResp } = useSWR<DealResp>(qk.deals.list({ limit: 8, sort: '-announced_date' }), { dedupingInterval: 5 * 60_000 });
-	const { data: reports } = useSWR<ReportResp>(qk.reports.list(), { dedupingInterval: 30 * 60_000 });
-	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3, sort: 'start_date' }), { dedupingInterval: 30 * 60_000 });
-	const { data: programs } = useSWR<ProgramResp>(qk.ecosystem.listByType('program', { limit: 4, status: 'open' }), { dedupingInterval: 30 * 60_000 });
+	const { data: reports } = useSWR<ReportResp>(qk.reports.list({ show_on_dashboard: true }), { dedupingInterval: 30 * 60_000 });
+	const { data: events } = useSWR<EventResp>(qk.ecosystem.listByType('event', { limit: 3, upcoming_only: true, sort: 'start_date' }), { dedupingInterval: 30 * 60_000 });
+	const { data: programs } = useSWR<ProgramResp>(qk.ecosystem.listByType('program', { limit: 4, entries_open: true }), { dedupingInterval: 30 * 60_000 });
 	const { data: raisingResp } = useSWR<CompanyResp>(qk.companies.list({ is_actively_raising: true, limit: 1 }), { dedupingInterval: 10 * 60_000 });
 	const { data: newsletter } = useSWR<NewsletterArticle[]>(qk.newsletter.articles(), { dedupingInterval: 30 * 60_000, revalidateOnFocus: false });
 

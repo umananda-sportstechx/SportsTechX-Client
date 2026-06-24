@@ -9,18 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { Loader2, Mail, Lock, User, Building } from 'lucide-react';
-
-const COUNTRIES = [
-  'Afghanistan','Albania','Algeria','Argentina','Australia','Austria','Belgium','Brazil','Canada',
-  'Chile','China','Colombia','Czech Republic','Denmark','Egypt','Ethiopia','Finland','France',
-  'Germany','Ghana','Greece','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel',
-  'Italy','Japan','Jordan','Kenya','Malaysia','Mexico','Morocco','Netherlands','New Zealand',
-  'Nigeria','Norway','Pakistan','Peru','Philippines','Poland','Portugal','Romania','Russia',
-  'Saudi Arabia','Senegal','Singapore','South Africa','South Korea','Spain','Sri Lanka',
-  'Sweden','Switzerland','Thailand','Turkey','Uganda','Ukraine','United Arab Emirates',
-  'United Kingdom','United States','Uruguay','Venezuela','Vietnam','Zimbabwe',
-];
+import { Loader2, Mail, Lock, User } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -33,9 +22,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [company, setCompany] = useState('');
-  const [jobTitle, setJobTitle] = useState('');
-  const [country, setCountry] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,11 +48,11 @@ export default function SignupPage() {
         email,
         password,
         options: {
+          // Only full_name is persisted (the handle_new_user trigger copies it
+          // to profiles). Persona, company/role verification and other details
+          // are captured by the onboarding + claim ("verify") flow afterwards.
           data: {
             full_name: fullName,
-            company_name: company,
-            job_title: jobTitle,
-            country,
           },
           // The custom auth-hook (server/src/modules/auth-hooks) treats this
           // origin's path as the post-verify `next`, so point it straight at
@@ -140,31 +126,6 @@ export default function SignupPage() {
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input id="signup-email" type="email" placeholder="you@example.com" className="pl-9" value={email} onChange={e => setEmail(e.target.value)} required />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-company">Company</Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="signup-company" placeholder="Acme Corp" className="pl-9" value={company} onChange={e => setCompany(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-title">Job Title</Label>
-                    <Input id="signup-title" placeholder="Analyst" value={jobTitle} onChange={e => setJobTitle(e.target.value)} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="signup-country">Country</Label>
-                  <select
-                    id="signup-country"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={country}
-                    onChange={e => setCountry(e.target.value)}
-                  >
-                    <option value="">Select country</option>
-                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-password">Password</Label>

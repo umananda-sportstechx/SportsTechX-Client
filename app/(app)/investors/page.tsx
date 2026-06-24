@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { recordSearchSignal } from '@/lib/personalization';
 import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo } from '@/components/ui/atoms';
 import { FeatureGate } from '@/components/shell/screen-lock';
 import {
@@ -249,6 +250,7 @@ function InvestorsPageInner() {
 	}, [filterState, page, view, sort]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
+	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;

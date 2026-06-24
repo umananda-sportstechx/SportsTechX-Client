@@ -12,6 +12,8 @@ import { FeatureAccessProvider } from '@/contexts/feature-access-context';
 import { MobileNavProvider } from '@/contexts/mobile-nav-context';
 import { PersonaProvider } from '@/contexts/persona-context';
 import { ClaimModalHost } from '@/components/claim/claim-modal-host';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
+import { CreditExhaustionHost } from '@/components/credits/credit-exhaustion-modal';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { identify, initAnalytics, reset } from '@/lib/analytics';
 import { useEffect } from 'react';
@@ -59,10 +61,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <FeatureAccessProvider>
               <MobileNavProvider>
                 <PersonaProvider>
-                  <AppInit />
-                  {children}
-                  <ClaimModalHost />
-                  <Toaster richColors position="top-right" />
+                  <ConfirmProvider>
+                    <AppInit />
+                    {children}
+                    <ClaimModalHost />
+                    <CreditExhaustionHost />
+                    <Toaster richColors position="top-right" />
+                  </ConfirmProvider>
                 </PersonaProvider>
               </MobileNavProvider>
             </FeatureAccessProvider>

@@ -12,6 +12,7 @@ import { apiRequest } from '@/lib/query-client';
 import { useUserProfile, type AccountType } from '@/hooks/use-user-profile';
 import { usePersona, type Persona } from '@/contexts/persona-context';
 import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { CreditMeter } from '@/components/shell/credit-meter';
 import { ImageInput } from '@/components/ui/image-input';
 
 type Tab = 'profile' | 'appearance' | 'notifications' | 'workspace' | 'api' | 'billing';
@@ -778,6 +779,10 @@ function BillingTab() {
 						<Tag variant="warn">Trial</Tag> ends {new Date(profile.trial_ends_at).toLocaleDateString()}
 					</div>
 				)}
+			</div>
+			<div className="co-stat-label" style={{ marginBottom: 8 }}>Credits</div>
+			<div style={{ marginBottom: 16 }}>
+				<CreditMeter variant="card" />
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Recent invoices</div>
 			{isFree ? (

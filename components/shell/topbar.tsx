@@ -8,6 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { GetVerifiedPill } from '@/components/get-verified/topbar-pill';
+import { CreditMeter } from '@/components/shell/credit-meter';
 import { usePersona, type Persona } from '@/contexts/persona-context';
 
 const PERSONAS: Array<{ id: Persona; label: string }> = [
@@ -210,6 +211,8 @@ export function Topbar({
 								</button>
 							);
 						})}
+						<div className="user-menu-sep" />
+						<CreditMeter variant="menu" />
 						<div className="user-menu-sep" />
 						<button
 							className="user-menu-row danger"

@@ -8,6 +8,8 @@ import { Loader2, ArrowLeft, Lightbulb, ChevronRight, RefreshCw } from 'lucide-r
 import { Markdown } from '@/components/markdown';
 import type { DeckHighlight } from '@/components/deck-viewer';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 
 const DeckViewer = dynamic(() => import('@/components/deck-viewer').then((m) => m.DeckViewer), {
@@ -16,6 +18,7 @@ const DeckViewer = dynamic(() => import('@/components/deck-viewer').then((m) => 
 });
 
 export default function DeckAnalysisPage() {
+	const confirm = useConfirm();
 	const router = useRouter();
 	const params = useParams();
 	const id = String(params.id);
@@ -88,7 +91,11 @@ export default function DeckAnalysisPage() {
 	// Re-run the analysis from scratch on demand (charges credits again).
 	const reanalyze = useCallback(async () => {
 		if (streaming) return;
-		if (!window.confirm('Re-analyze this deck from scratch? This uses credits.')) return;
+		if (!(await confirm({
+			title: 'Re-analyze this deck?',
+			description: 'This runs a fresh analysis from scratch and uses credits.',
+			confirmLabel: 'Re-analyze',
+		}))) return;
 		abortRef.current?.abort();
 		const ac = new AbortController();
 		abortRef.current = ac;
@@ -103,11 +110,11 @@ export default function DeckAnalysisPage() {
 			}
 			await streamAnalysis(ac, () => false);
 		} catch (e) {
-			if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Re-analysis failed');
+			if ((e as Error).name !== 'AbortError' && !isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Re-analysis failed');
 		} finally {
 			setStreaming(false);
 		}
-	}, [id, streaming, streamAnalysis]);
+	}, [id, streaming, streamAnalysis, confirm]);
 
 	// When the suggestions panel opens, scroll it into view (it renders at the top
 	// of the analysis column, which may be scrolled down).
