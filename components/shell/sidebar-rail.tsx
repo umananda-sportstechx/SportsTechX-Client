@@ -107,7 +107,7 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'getverified', name: 'Get Verified', icon: BadgeCheck, path: '/get-verified' },
 			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
 			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
-			{ id: 'credits', name: 'Buy Credits', icon: Coins, path: '/credits' },
+			{ id: 'credits', name: 'AI Credits', icon: Coins, path: '/credits' },
 			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
 		]
 	},
