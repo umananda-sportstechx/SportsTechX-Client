@@ -46,6 +46,48 @@ function hasAuthCookie(request: NextRequest): boolean {
   return false;
 }
 
+/** Base64 decode that survives UTF-8 (names with accents etc.) on the Edge runtime. */
+function decodeBase64Utf8(b64: string): string {
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/**
+ * Whether the session cookie is present AND its access token has not expired.
+ *
+ * `hasAuthCookie` only proves a cookie exists — a long-idle tab keeps an
+ * expired one, and treating that as "logged in" used to bounce the user off
+ * /signup → /dashboard → (client clears it) → /login, wiping the form they
+ * were typing. We reassemble the (possibly chunked, possibly base64-) cookie,
+ * read `expires_at`, and return:
+ *   true  → live session
+ *   false → present but expired
+ *   null  → no cookie, or we couldn't parse it (caller should not assume live)
+ */
+function authCookieLive(request: NextRequest): boolean | null {
+  const chunks: Record<number, string> = {};
+  let whole: string | null = null;
+  for (const cookie of request.cookies.getAll()) {
+    if (!cookie.name.startsWith(AUTH_COOKIE_PREFIX) || !cookie.name.includes(AUTH_COOKIE_SUFFIX)) continue;
+    const m = cookie.name.match(/\.(\d+)$/);
+    if (m) chunks[Number(m[1])] = cookie.value;
+    else whole = cookie.value;
+  }
+  const ordered = Object.keys(chunks).map(Number).sort((a, b) => a - b);
+  let raw = ordered.length ? ordered.map((i) => chunks[i]).join('') : whole;
+  if (!raw) return null;
+  try {
+    if (raw.startsWith('base64-')) raw = decodeBase64Utf8(raw.slice('base64-'.length));
+    else { try { raw = decodeURIComponent(raw); } catch { /* already plain JSON */ } }
+    const session = JSON.parse(raw) as { expires_at?: number };
+    if (typeof session.expires_at !== 'number') return null;
+    return session.expires_at * 1000 > Date.now();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Edge proxy auth gate. This is intentionally *fast*: it only checks for the
  * presence of an `sb-*-auth-token` cookie — no Supabase round-trip, no JWT
@@ -69,7 +111,10 @@ export async function updateSession(request: NextRequest) {
   );
   const authed = hasAuthCookie(request);
 
-  if (authed && isAuthPage) {
+  // Only bounce a signed-in user OFF an auth page when the cookie is genuinely
+  // live. A present-but-expired cookie must NOT trigger this redirect, or the
+  // user gets thrown /signup → /dashboard → /login and loses their form input.
+  if (authed && isAuthPage && authCookieLive(request) === true) {
     const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
     const url = request.nextUrl.clone();
     url.pathname = redirectTo;

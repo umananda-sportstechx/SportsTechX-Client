@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { use, useEffect, useRef, useState, type ReactNode } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { Lock, ArrowRight, ExternalLink, Check, Download, Upload } from 'lucide-react';
+import { Lock, ArrowLeft, ArrowRight, ExternalLink, Check, Download, Upload } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-user-profile';
 import { ImageInput } from '@/components/ui/image-input';
 import {
@@ -81,6 +81,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ idOrSlu
 
 	return (
 		<Page>
+			<div style={{ marginBottom: 'var(--space-4)' }}>
+				<Link href="/reports" className="btn ghost"><ArrowLeft size={12} /> Back to reports</Link>
+			</div>
 			{!report.is_published && <DraftBanner />}
 			<header style={{ marginBottom: 'var(--space-5)' }}>
 				<div style={{
@@ -155,6 +158,9 @@ function PdfReportView({ idOrSlug, report }: { idOrSlug: string; report: Report 
 
 	return (
 		<Page>
+			<div style={{ marginBottom: 'var(--space-4)' }}>
+				<Link href="/reports" className="btn ghost"><ArrowLeft size={12} /> Back to reports</Link>
+			</div>
 			{!report.is_published && <DraftBanner />}
 			<header style={{ marginBottom: 'var(--space-5)' }}>
 				<div style={{
