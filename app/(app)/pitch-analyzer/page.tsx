@@ -10,6 +10,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem } from '@/lib/deck-analysis';
 
 const BUCKET = 'user-uploads';
@@ -53,7 +54,8 @@ export default function PitchAnalyzerPage() {
 			await mutate();
 			router.push(`/pitch-analyzer/${id}`);
 		} catch (e) {
-			toast.error((e as Error).message ?? 'Upload failed');
+			// Credit-exhaustion shows the global modal; don't double up with a toast.
+			if (!isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Upload failed');
 		} finally {
 			setUploading(false);
 		}

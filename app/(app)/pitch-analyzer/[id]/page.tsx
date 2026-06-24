@@ -9,6 +9,7 @@ import { Markdown } from '@/components/markdown';
 import type { DeckHighlight } from '@/components/deck-viewer';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 
 const DeckViewer = dynamic(() => import('@/components/deck-viewer').then((m) => m.DeckViewer), {
@@ -109,7 +110,7 @@ export default function DeckAnalysisPage() {
 			}
 			await streamAnalysis(ac, () => false);
 		} catch (e) {
-			if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Re-analysis failed');
+			if ((e as Error).name !== 'AbortError' && !isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Re-analysis failed');
 		} finally {
 			setStreaming(false);
 		}

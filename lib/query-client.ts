@@ -4,6 +4,7 @@ import useSWR, { mutate as globalMutate, type SWRConfiguration, type Key } from 
 import { getSupabaseBrowser } from './supabase/client';
 import { sessionRefreshLock } from './session-refresh-lock';
 import { logoutState } from './logout-state';
+import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
 //
@@ -89,6 +90,25 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
       setTimeout(() => {
         window.location.href = '/login?reason=session_expired';
       }, 1500);
+    }
+  }
+
+  // Out of credits — pop the global "get more credits" modal and throw a typed
+  // error so callers can skip their own toast (the modal carries the message).
+  if (res.status === 402) {
+    let detail: { required?: number; available?: number } = {};
+    let message = "You're out of credits.";
+    try {
+      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number } } };
+      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available };
+      if (body.error?.message) message = body.error.message;
+      if (body.error?.code === 'INSUFFICIENT_CREDITS') {
+        openCreditExhausted(detail);
+        throw new InsufficientCreditsError(message, detail);
+      }
+    } catch (e) {
+      if (e instanceof InsufficientCreditsError) throw e;
+      // not JSON / not a credits error — fall through to the generic throw
     }
   }
 

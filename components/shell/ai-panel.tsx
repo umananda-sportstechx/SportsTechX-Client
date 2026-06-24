@@ -198,8 +198,19 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 				signal: ac.signal,
 			});
 			if (!res.ok || !res.body) {
+				// Out of credits → show a friendly inline message with a link to buy
+				// more, rather than the global modal (the chat owns its surface).
+				if (res.status === 402) {
+					const body = await res.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
+					patchLastAssistant(
+						body?.error?.code === 'INSUFFICIENT_CREDITS'
+							? "_⚠️ You're out of AI credits._ Top up or upgrade on the [subscriptions page](/subscriptions) to keep chatting."
+							: `_⚠️ ${body?.error?.message ?? 'Could not start the chat.'}_`,
+					);
+					return;
+				}
 				const errText = await res.text().catch(() => 'request failed');
-				patchLastAssistant(`⚠️ ${errText}`);
+				patchLastAssistant(`_⚠️ ${errText}_`);
 				return;
 			}
 			await consumeSse(res.body, {
