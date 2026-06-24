@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 /**
  * Image picker with two modes:
@@ -42,6 +43,7 @@ export function ImageInput({
 	value, onChange, pathPrefix, bucket = BUCKET_DEFAULT,
 	placeholder = 'https://…', disabled = false,
 }: ImageInputProps) {
+	const confirm = useConfirm();
 	const initialMode: 'url' | 'upload' =
 		value && value.includes(`/storage/v1/object/public/${bucket}/`) ? 'upload' : 'url';
 	const [mode, setMode] = useState<'url' | 'upload'>(initialMode);
@@ -113,10 +115,18 @@ export function ImageInput({
 	const doReset = async () => {
 		if (disabled || resetting || !value) return;
 		const ourBucket = isOurBucketUrl(value, bucket);
-		const msg = ourBucket
-			? 'Delete this image from storage and clear the field? This cannot be undone.'
-			: 'Clear this image URL? (External link — nothing is deleted from storage.)';
-		if (!confirm(msg)) return;
+		if (!(await confirm(ourBucket
+			? {
+				title: 'Delete image?',
+				description: 'This image will be deleted from storage and the field cleared. This cannot be undone.',
+				confirmLabel: 'Delete',
+				destructive: true,
+			}
+			: {
+				title: 'Clear image URL?',
+				description: 'This only clears the field — the external link is not deleted from storage.',
+				confirmLabel: 'Clear',
+			}))) return;
 		setResetting(true);
 		try {
 			if (ourBucket) {

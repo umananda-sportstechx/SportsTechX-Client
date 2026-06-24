@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 /**
  * "My Documents" — upload PDFs / images that get embedded into the user's
@@ -32,6 +33,7 @@ interface UserUpload {
 }
 
 export default function DocumentsPage() {
+	const confirm = useConfirm();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
 	const [dragOver, setDragOver] = useState(false);
@@ -98,7 +100,12 @@ export default function DocumentsPage() {
 	};
 
 	const remove = async (id: string) => {
-		if (!confirm('Delete this document and its embeddings? This cannot be undone.')) return;
+		if (!(await confirm({
+			title: 'Delete document?',
+			description: 'This document and its embeddings will be permanently removed. This cannot be undone.',
+			confirmLabel: 'Delete',
+			destructive: true,
+		}))) return;
 		try {
 			const res = await apiRequest('DELETE', `/api/uploads/${id}`);
 			if (!res.ok) throw new Error('Delete failed');

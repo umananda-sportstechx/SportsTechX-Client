@@ -10,6 +10,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Page, Logo, Empty, PageTitle, SectorPill, Tag, VerifiedBadge, RaisingDot, Flag, AudiencePill } from '@/components/ui/atoms';
 import { WatchlistPicker } from '@/components/ui/watchlist-picker';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
 	Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -275,6 +276,7 @@ function LikedCard({ c }: { c: CompanyRow }) {
 // ─── WATCHLISTS (user-owned, editable) ────────────────────────────────────
 
 function WatchlistsTab() {
+	const confirm = useConfirm();
 	const { data, isLoading, mutate } = useSWR<WatchlistsResponse>(
 		qk.userWatchlists.list(),
 		{ dedupingInterval: 30_000 },
@@ -299,7 +301,12 @@ function WatchlistsTab() {
 	const selectedList = lists.find((l) => l.id === selected) ?? null;
 
 	const deleteList = async (id: string) => {
-		if (!confirm('Delete this watchlist?')) return;
+		if (!(await confirm({
+			title: 'Delete watchlist?',
+			description: 'This watchlist and its contents will be permanently removed.',
+			confirmLabel: 'Delete',
+			destructive: true,
+		}))) return;
 		try {
 			await apiRequest('DELETE', `/api/user-watchlists/${id}`);
 			toast.success('Watchlist deleted');
@@ -535,6 +542,7 @@ function WatchlistsTab() {
 // ─── SAVED SEARCHES ────────────────────────────────────────────────────────
 
 function SavedSearchesTab() {
+	const confirm = useConfirm();
 	const router = useRouter();
 	const { data, isLoading, mutate } = useSWR<SavedSearchesResponse>(
 		qk.savedSearches.list(),
@@ -543,7 +551,12 @@ function SavedSearchesTab() {
 	const [renameTarget, setRenameTarget] = useState<SavedSearch | null>(null);
 
 	const removeSearch = async (id: string) => {
-		if (!confirm('Remove this saved search?')) return;
+		if (!(await confirm({
+			title: 'Remove saved search?',
+			description: 'This saved search will be deleted.',
+			confirmLabel: 'Remove',
+			destructive: true,
+		}))) return;
 		try {
 			await apiRequest('DELETE', `/api/saved-searches/${id}`);
 			toast.success('Removed');
