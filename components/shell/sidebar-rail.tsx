@@ -12,6 +12,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
 import { usePersona } from '@/contexts/persona-context';
 import { Brand } from '@/components/ui/brand';
+import { CreditMeter } from '@/components/shell/credit-meter';
 
 /**
  * SportsTechX rail navigation. Ported from ui_design/app/nav.jsx.
@@ -236,6 +237,7 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 			</nav>
 
 			<div style={{ padding: 8, borderTop: '1px solid var(--border)' }}>
+				<CreditMeter variant="rail" />
 				<button
 					className="rail-item"
 					title="Logout"
