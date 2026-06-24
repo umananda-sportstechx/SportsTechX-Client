@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Plus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { recordSearchSignal } from '@/lib/personalization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
@@ -369,6 +370,9 @@ export default function CompaniesPage() {
 	}, [filterState, page, view, sort]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
+
+	// Record settled searches as a personalization signal (best-effort).
+	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
