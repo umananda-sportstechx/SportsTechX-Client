@@ -7,6 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight, Target, Building2, Handshake } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { recordSearchSignal } from '@/lib/personalization';
 import {
 	Page, Logo, Flag, Tag, AudiencePill, Stat, SectionHead, Empty, PageTitle, VerifiedBadge,
 } from '@/components/ui/atoms';
@@ -385,6 +386,7 @@ function MnaPageInner() {
 	}, [filterState, page, view, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
+	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
 	const allTimeParams = { limit: 1, sort: '-acquisition_date' };
 	const { data: allTime } = useSWR<AcquisitionsResponse>(qk.acquisitions.list(allTimeParams), { dedupingInterval: 10 * 60_000 });
