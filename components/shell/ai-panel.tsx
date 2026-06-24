@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Send, X, Download, Plus, History } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -62,18 +63,36 @@ const GREETING: ChatMessage = {
 		'I can query the SportsTechX database — companies, deals, investors, programs — and pull live web results. Try a quick prompt below or ask anything.',
 };
 
+/** Accent colour name → oklch hue, matching the Settings → Appearance picker. */
+const ACCENT_HUES: Record<string, number> = {
+	crimson: 14, orange: 40, amber: 75, green: 150, teal: 180, blue: 250, indigo: 275, violet: 300, pink: 340,
+};
+
+/** Read the current URL's query string into a plain object so the agent can see
+ *  the active list filters (drives check_visibility — "why isn't X showing"). */
+function currentFilters(): Record<string, string> | undefined {
+	if (typeof window === 'undefined' || !window.location.search) return undefined;
+	const out: Record<string, string> = {};
+	new URLSearchParams(window.location.search).forEach((v, k) => {
+		if (k === 'page' || k === 'view' || v === '') return; // pagination/view aren't filters
+		out[k] = v;
+	});
+	return Object.keys(out).length ? out : undefined;
+}
+
 /** Derive the page context the chat sends so the agent's page_insights tool can
  *  describe the current page / fetch the open entity (owner-scoped server-side). */
-function pageContextFromPath(path: string | null): { path: string; entityType?: string; entityId?: string } | undefined {
+function pageContextFromPath(path: string | null): { path: string; entityType?: string; entityId?: string; filters?: Record<string, string> } | undefined {
 	if (!path) return undefined;
 	const segs = path.split('?')[0]!.split('/').filter(Boolean);
 	const top = segs[0];
 	const id = segs[1];
+	const filters = currentFilters();
 	if (top === 'companies' && id) return { path, entityType: 'company', entityId: id };
 	if (top === 'investors' && id) return { path, entityType: 'investor', entityId: id };
 	if (top === 'ecosystem' && id) return { path, entityType: 'ecosystem_entity', entityId: id };
 	if (top === 'pitch-analyzer' && id) return { path, entityType: 'deck_analysis', entityId: id };
-	return { path };
+	return filters ? { path, filters } : { path };
 }
 
 export function AiPanel({ open, onClose }: AiPanelProps) {
@@ -98,6 +117,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	const nextSourceIndexRef = useRef(1);
 	const router = useRouter();
 	const pathname = usePathname();
+	const { setTheme } = useTheme();
 
 	useEffect(() => {
 		if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
@@ -335,9 +355,19 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 					const url = entityUrl(p.entity_type, p.id_or_slug);
 					if (url) router.push(url);
 				}
+			} else if (tool === 'set_theme') {
+				const p = input as { theme?: string };
+				if (p?.theme === 'light' || p?.theme === 'dark') setTheme(p.theme);
+			} else if (tool === 'set_accent') {
+				const p = input as { color?: string };
+				const hue = p?.color ? ACCENT_HUES[p.color] : undefined;
+				if (hue !== undefined && typeof document !== 'undefined') {
+					document.documentElement.style.setProperty('--accent-hue', String(hue));
+					try { localStorage.setItem('stx:accent-hue', String(hue)); } catch { /* ignore */ }
+				}
 			}
 		} catch {
-			/* navigation is best-effort */
+			/* UI actions are best-effort */
 		}
 	};
 
