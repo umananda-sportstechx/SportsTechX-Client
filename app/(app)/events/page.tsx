@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -128,8 +129,9 @@ export default function EventsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [filterState, page, view]);
 
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 	const queryParams: Record<string, unknown> = { page, limit: 24, sort: 'start_date' };
-	if (filterState.search) queryParams.search = filterState.search;
+	if (debouncedSearch) queryParams.search = debouncedSearch;
 	if (filterState.upcoming_only === true) queryParams.upcoming_only = true;
 	const monSel = filterState.start_month as string[] | undefined;
 	if (monSel?.length) queryParams.start_month = monSel.join(',');
