@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Send, X, Download, Plus, History } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -56,32 +57,42 @@ interface AiPanelProps {
 	onClose: () => void;
 }
 
-const FALLBACK_PROMPTS = [
-	'Show me top funded startups in 2026',
-	'Compare wearables vs analytics funding',
-	'Who invested in Teamworks?',
-	'Latest M&A in fan engagement',
-	'Map of European deals 2026',
-];
-
 const GREETING: ChatMessage = {
 	role: 'assistant',
 	content:
 		'I can query the SportsTechX database — companies, deals, investors, programs — and pull live web results. Try a quick prompt below or ask anything.',
 };
 
+/** Accent colour name → oklch hue, matching the Settings → Appearance picker. */
+const ACCENT_HUES: Record<string, number> = {
+	crimson: 14, orange: 40, amber: 75, green: 150, teal: 180, blue: 250, indigo: 275, violet: 300, pink: 340,
+};
+
+/** Read the current URL's query string into a plain object so the agent can see
+ *  the active list filters (drives check_visibility — "why isn't X showing"). */
+function currentFilters(): Record<string, string> | undefined {
+	if (typeof window === 'undefined' || !window.location.search) return undefined;
+	const out: Record<string, string> = {};
+	new URLSearchParams(window.location.search).forEach((v, k) => {
+		if (k === 'page' || k === 'view' || v === '') return; // pagination/view aren't filters
+		out[k] = v;
+	});
+	return Object.keys(out).length ? out : undefined;
+}
+
 /** Derive the page context the chat sends so the agent's page_insights tool can
  *  describe the current page / fetch the open entity (owner-scoped server-side). */
-function pageContextFromPath(path: string | null): { path: string; entityType?: string; entityId?: string } | undefined {
+function pageContextFromPath(path: string | null): { path: string; entityType?: string; entityId?: string; filters?: Record<string, string> } | undefined {
 	if (!path) return undefined;
 	const segs = path.split('?')[0]!.split('/').filter(Boolean);
 	const top = segs[0];
 	const id = segs[1];
+	const filters = currentFilters();
 	if (top === 'companies' && id) return { path, entityType: 'company', entityId: id };
 	if (top === 'investors' && id) return { path, entityType: 'investor', entityId: id };
 	if (top === 'ecosystem' && id) return { path, entityType: 'ecosystem_entity', entityId: id };
 	if (top === 'pitch-analyzer' && id) return { path, entityType: 'deck_analysis', entityId: id };
-	return { path };
+	return filters ? { path, filters } : { path };
 }
 
 export function AiPanel({ open, onClose }: AiPanelProps) {
@@ -89,7 +100,9 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	const [input, setInput] = useState('');
 	const [streaming, setStreaming] = useState(false);
 	const [conversationId, setConversationId] = useState<string | null>(null);
-	const [iteration, setIteration] = useState(0);
+	// Human-readable name of the RAG pipeline step currently running, shown as
+	// the loading indicator (we no longer expose the raw plan/tool internals).
+	const [stage, setStage] = useState('');
 	const [showHistory, setShowHistory] = useState(false);
 	const [conversations, setConversations] = useState<ConversationListItem[] | null>(null);
 	const [historyLoading, setHistoryLoading] = useState(false);
@@ -104,12 +117,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 	const nextSourceIndexRef = useRef(1);
 	const router = useRouter();
 	const pathname = usePathname();
-
-	const { data: suggestions } = useSWR<{ prompts: string[] }>(
-		open ? qk.chat.suggestions() : null,
-		{ dedupingInterval: 60 * 60_000 },
-	);
-	const prompts = suggestions?.prompts ?? FALLBACK_PROMPTS;
+	const { setTheme } = useTheme();
 
 	useEffect(() => {
 		if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
@@ -129,7 +137,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 		setStreaming(false);
 		setConversationId(null);
 		setMessages([GREETING]);
-		setIteration(0);
+		setStage('');
 		setShowHistory(false);
 		nextSourceIndexRef.current = 1;
 	};
@@ -173,7 +181,6 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			}));
 			setMessages(msgs.length > 0 ? msgs : [GREETING]);
 			setConversationId(id);
-			setIteration(0);
 			nextSourceIndexRef.current = 1;
 		} catch {
 			/* best-effort */
@@ -190,7 +197,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			{ role: 'assistant', content: '', tools: [], sources: [] },
 		]);
 		setStreaming(true);
-		setIteration(0);
+		setStage('Planning');
 		// Reset per-turn citation counter so [1] always refers to the first
 		// source surfaced in THIS turn, never one from a prior turn.
 		nextSourceIndexRef.current = 1;
@@ -211,21 +218,34 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 				signal: ac.signal,
 			});
 			if (!res.ok || !res.body) {
+				// Out of credits → show a friendly inline message with a link to buy
+				// more, rather than the global modal (the chat owns its surface).
+				if (res.status === 402) {
+					const body = await res.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
+					patchLastAssistant(
+						body?.error?.code === 'INSUFFICIENT_CREDITS'
+							? "_⚠️ You're out of AI credits._ Top up or upgrade on the [subscriptions page](/subscriptions) to keep chatting."
+							: `_⚠️ ${body?.error?.message ?? 'Could not start the chat.'}_`,
+					);
+					return;
+				}
 				const errText = await res.text().catch(() => 'request failed');
-				patchLastAssistant(`⚠️ ${errText}`);
+				patchLastAssistant(`_⚠️ ${errText}_`);
 				return;
 			}
 			await consumeSse(res.body, {
 				onConversation: (id) => setConversationId(id),
-				onThinking: (n) => setIteration(n),
+				onThinking: () => setStage((s) => (s === '' || s === 'Writing the answer' ? 'Thinking' : s)),
 				onPlan: (strategy, steps) => setPlanOnLastAssistant(strategy, steps),
-				onText: (delta) => appendToLastAssistant(delta),
+				onText: (delta) => { setStage('Writing the answer'); appendToLastAssistant(delta); },
 				onToolCall: (id, tool, input) => {
+					setStage(toolStage(tool));
 					addToolToLastAssistant({ id, tool, ok: false, preview: '…' });
 					maybeHandleAction(tool, input);
 				},
 				onToolResult: (id, ok, preview, parsed) => {
 					updateLastTool(id, ok, preview);
+					setStage('Analyzing results');
 					// Allocate globally-unique citation indices for THIS turn so
 					// the second web_search's results don't collide with the
 					// first's [1], [2]…
@@ -246,7 +266,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 		} finally {
 			setStreaming(false);
 			abortRef.current = null;
-			setIteration(0);
+			setStage('');
 		}
 	};
 
@@ -335,9 +355,19 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 					const url = entityUrl(p.entity_type, p.id_or_slug);
 					if (url) router.push(url);
 				}
+			} else if (tool === 'set_theme') {
+				const p = input as { theme?: string };
+				if (p?.theme === 'light' || p?.theme === 'dark') setTheme(p.theme);
+			} else if (tool === 'set_accent') {
+				const p = input as { color?: string };
+				const hue = p?.color ? ACCENT_HUES[p.color] : undefined;
+				if (hue !== undefined && typeof document !== 'undefined') {
+					document.documentElement.style.setProperty('--accent-hue', String(hue));
+					try { localStorage.setItem('stx:accent-hue', String(hue)); } catch { /* ignore */ }
+				}
 			}
 		} catch {
-			/* navigation is best-effort */
+			/* UI actions are best-effort */
 		}
 	};
 
@@ -372,11 +402,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 						<h3>STX Intel</h3>
 						<div className="ai-sub">
 							<span className="live-dot" style={{ marginRight: 6 }} />
-							{streaming
-								? iteration > 1
-									? `Thinking… (step ${iteration})`
-									: 'Thinking…'
-								: 'Online'}
+							{streaming ? `${stage || 'Thinking'}…` : 'Online'}
 						</div>
 					</div>
 					<button
@@ -434,51 +460,8 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 
 				<div className="ai-body" ref={bodyRef}>
 					{messages.map((m, i) => {
-						const isLast = i === messages.length - 1;
-						const live = streaming && isLast; // the turn currently being generated
-						const hasPlan = !!m.plan && (m.plan.strategy !== '' || m.plan.steps.length > 0);
-						const hasTools = !!m.tools && m.tools.length > 0;
 						return (
 						<div key={i} className={`ai-msg ${m.role}`}>
-							{/* Plan + tools live in ONE collapsible: open while the turn streams
-							    (so the user watches progress), collapsed once done so only the
-							    final answer shows until they expand it. */}
-							{m.role === 'assistant' && (hasPlan || hasTools) && (
-								<details open={live || undefined} style={{ marginBottom: 6 }}>
-									<summary style={{ cursor: 'pointer', fontSize: 10, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-										Plan &amp; activity
-									</summary>
-									<div style={{ marginTop: 4 }}>
-										{hasPlan && (
-											<div style={{ fontSize: 11, color: 'var(--fg-2)' }}>
-												{m.plan!.strategy && <div style={{ marginBottom: 4, fontStyle: 'italic' }}>{m.plan!.strategy}</div>}
-												{m.plan!.steps.map((s, si) => (
-													<div key={si} style={{ display: 'flex', gap: 6 }}>
-														<span style={{ color: 'var(--accent)' }}>{si + 1}.</span>
-														<span>{s}</span>
-													</div>
-												))}
-											</div>
-										)}
-										{hasTools && (
-											<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-												<SourceBadge tools={m.tools!} />
-												{m.tools!.map((t, ti) => (
-													<span
-														key={ti}
-														className="tag"
-														style={{ background: t.ok ? 'var(--bg-2)' : 'transparent', borderColor: 'var(--border)' }}
-														title={t.preview}
-													>
-														{toolIcon(t.tool)}
-														{t.tool}
-													</span>
-												))}
-											</div>
-										)}
-									</div>
-								</details>
-							)}
 							<MarkdownMessage text={m.content} sources={m.sources ?? []} router={router} />
 							{m.role === 'assistant' && (m.sources?.length ?? 0) > 0 && (
 								<div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
@@ -514,21 +497,14 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 						);
 					})}
 					{streaming && messages[messages.length - 1]?.content === '' && (
-						<div className="ai-msg" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+						<div className="ai-msg" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 							<ThinkingDots />
+							<span style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+								{stage || 'Thinking'}…
+							</span>
 						</div>
 					)}
 				</div>
-
-				{messages.length <= 1 && !streaming && (
-					<div className="ai-quick">
-						{prompts.map((q) => (
-							<button key={q} className="qchip" onClick={() => send(q)} disabled={streaming}>
-								{q}
-							</button>
-						))}
-					</div>
-				)}
 
 				<div className="ai-input-row">
 					<textarea
@@ -555,21 +531,18 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 }
 
 /**
- * Pill that summarises which classes of tools the agent used: web search,
- * database, or both. Renders before the per-tool chips for quick orientation.
+ * Map a tool the agent invoked to a plain-language pipeline-stage label, shown
+ * as the loading indicator while that step runs. No raw tool names / emojis.
  */
-function SourceBadge({ tools }: { tools: NonNullable<ChatMessage['tools']> }) {
-	const hasWeb = tools.some((t) => t.tool === 'web_search');
-	const hasDb = tools.some(
-		(t) => t.tool.startsWith('find_') || t.tool === 'get_entity_details' || t.tool === 'search_by_name',
-	);
-	const hasKnowledge = tools.some((t) => t.tool === 'search_knowledge');
-	const count = [hasWeb, hasDb, hasKnowledge].filter(Boolean).length;
-	if (count === 0) return null;
-	if (count > 1) return <span className="tag pos">🔀 Hybrid</span>;
-	if (hasWeb) return <span className="tag">🌐 Web</span>;
-	if (hasDb) return <span className="tag pos">📊 Database</span>;
-	return <span className="tag pos">📚 Knowledge</span>;
+function toolStage(tool: string): string {
+	if (tool === 'web_search') return 'Searching the web';
+	if (tool === 'search_knowledge') return 'Searching the knowledge base';
+	if (tool.startsWith('find_') || tool === 'get_entity_details' || tool === 'search_by_name') {
+		return 'Searching the database';
+	}
+	if (tool === 'navigate_and_filter' || tool === 'open_entity') return 'Navigating the platform';
+	if (tool === 'page_insights') return 'Reading the current page';
+	return 'Working';
 }
 
 function mergeSources(prev: CitationSource[], next: CitationSource[]): CitationSource[] {
@@ -606,16 +579,6 @@ function entityUrl(entityType: string, idOrSlug: string): string | null {
 	const seg: Record<string, string> = { company: 'companies', investor: 'investors', ecosystem_entity: 'ecosystem' };
 	const base = seg[entityType];
 	return base ? `/${base}/${encodeURIComponent(idOrSlug)}` : null;
-}
-
-/** Icon for a tool chip. */
-function toolIcon(tool: string): string {
-	if (tool === 'web_search') return '🌐';
-	if (tool === 'search_knowledge') return '📚';
-	if (tool === 'navigate_and_filter') return '🧭';
-	if (tool === 'open_entity') return '🔗';
-	if (tool.startsWith('find_') || tool === 'get_entity_details' || tool === 'search_by_name') return '📊';
-	return '🔧';
 }
 
 /* ─── SSE consumption ───────────────────────────────────────────────────── */

@@ -4,6 +4,7 @@ import useSWR, { mutate as globalMutate, type SWRConfiguration, type Key } from 
 import { getSupabaseBrowser } from './supabase/client';
 import { sessionRefreshLock } from './session-refresh-lock';
 import { logoutState } from './logout-state';
+import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
 //
@@ -70,7 +71,7 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
  * SWR fires → 401 → hard nav → … (state-wiping infinite loop every ~1.5s).
  */
 const AUTH_PATHS = new Set([
-  '/login', '/forgot-password', '/reset-password',
+  '/login', '/signup', '/forgot-password', '/reset-password',
   '/auth/callback', '/confirm',
 ]);
 
@@ -89,6 +90,25 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
       setTimeout(() => {
         window.location.href = '/login?reason=session_expired';
       }, 1500);
+    }
+  }
+
+  // Out of credits — pop the global "get more credits" modal and throw a typed
+  // error so callers can skip their own toast (the modal carries the message).
+  if (res.status === 402) {
+    let detail: { required?: number; available?: number } = {};
+    let message = "You're out of credits.";
+    try {
+      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number } } };
+      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available };
+      if (body.error?.message) message = body.error.message;
+      if (body.error?.code === 'INSUFFICIENT_CREDITS') {
+        openCreditExhausted(detail);
+        throw new InsufficientCreditsError(message, detail);
+      }
+    } catch (e) {
+      if (e instanceof InsufficientCreditsError) throw e;
+      // not JSON / not a credits error — fall through to the generic throw
     }
   }
 
@@ -197,26 +217,36 @@ export async function fetcher<T = unknown>(key: Key): Promise<T | null> {
 
   const res = await fetch(url, { credentials: 'include', headers });
 
-  if (res.status === 401 && headers.Authorization) {
-    const supabase = getSupabaseBrowser();
-    const result = await sessionRefreshLock.acquireAndRefresh(() =>
-      supabase.auth.refreshSession(),
-    );
-    const refreshed = (result as { data?: { session?: { access_token?: string } } })?.data?.session;
-    if (refreshed?.access_token) {
-      const retryRes = await fetch(url, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refreshed.access_token}` },
-      });
-      await handleResponse(retryRes, `swr ${url} retry`);
-      return (await retryRes.json()) as T;
+  // A 401 means either (a) a genuinely public/pre-auth viewer, or (b) our
+  // token wasn't ready when the request fired (the auth-init race) or expired
+  // mid-flight. Always try to (re)acquire a token and retry ONCE before giving
+  // up — even when we sent no Authorization header. Previously the retry only
+  // ran when a token was already attached, so a request that raced ahead of
+  // auth got `null` cached forever (revalidateOnFocus/Reconnect are off),
+  // which is exactly what made pages "stay stale until a manual refresh".
+  if (res.status === 401) {
+    if (!logoutState.isLoggingOut()) {
+      const supabase = getSupabaseBrowser();
+      const result = await sessionRefreshLock.acquireAndRefresh(() =>
+        supabase.auth.refreshSession(),
+      );
+      const refreshed = (result as { data?: { session?: { access_token?: string } } })?.data?.session;
+      if (refreshed?.access_token) {
+        clearAuthCache();
+        const retryRes = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refreshed.access_token}` },
+        });
+        if (retryRes.status !== 401) {
+          await handleResponse(retryRes, `swr ${url} retry`);
+          return (await retryRes.json()) as T;
+        }
+      }
     }
+    // Still unauthenticated — a logged-out viewer on a public route. Return
+    // null rather than throw so a hook in suspense doesn't render an error.
+    return null;
   }
-
-  // Unauthenticated public routes — pre-auth fetches that arrive without a
-  // bearer token end up here on first sign-in. Return null rather than throw
-  // so a hook in suspense state doesn't render an error.
-  if (res.status === 401) return null;
 
   await handleResponse(res, `swr ${url}`);
   return (await res.json()) as T;
@@ -231,7 +261,9 @@ export const swrConfig: SWRConfiguration = {
   fetcher,
   dedupingInterval: 5 * 60_000,
   revalidateOnFocus: false,
-  revalidateOnReconnect: false,
+  // Refetch when the network comes back so a request that failed/returned
+  // stale while offline recovers on its own instead of needing a reload.
+  revalidateOnReconnect: true,
   errorRetryCount: 2,
   shouldRetryOnError: (err: unknown) => {
     if (err instanceof Error && err.message.startsWith('404')) return false;

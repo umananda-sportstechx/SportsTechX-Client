@@ -80,7 +80,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		// cleared above, so the SWR queries gated on `sessionValid` won't
 		// re-fire and we won't loop. Forgot/reset/confirm flows likewise
 		// need to stay put.
-		const AUTH_PATHS = ['/login', '/forgot-password', '/reset-password', '/auth/callback', '/confirm'];
+		const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/confirm'];
 		if (typeof window !== 'undefined' && !AUTH_PATHS.includes(window.location.pathname)) {
 			window.location.href = '/login?reason=session_expired';
 		}

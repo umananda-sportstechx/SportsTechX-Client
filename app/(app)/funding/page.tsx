@@ -7,6 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight, Building2, DollarSign } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { recordSearchSignal } from '@/lib/personalization';
 import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill, VerifiedBadge } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -306,6 +307,7 @@ function FundingPageInner() {
 	}, [filterState, page, view, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
+	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
 	const { data: totals } = useSWR<FundingTotalsResponse>(qk.analytics.fundingTotals('ytd'), {
 		dedupingInterval: 10 * 60_000,

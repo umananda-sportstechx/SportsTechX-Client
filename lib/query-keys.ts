@@ -74,7 +74,10 @@ export const qk = {
 
   // ── User-owned ──────────────────────────────────────────────────────────
   favorites: {
-    list: (kind: string) => ['/api/favorites', kind] as const,
+    // kind is a PATH segment (GET /api/favorites/:kind), not a query param —
+    // it must live in the URL string, since buildUrl only serializes object
+    // parts of the key into the query string and drops bare strings.
+    list: (kind: string) => [`/api/favorites/${kind}`] as const,
   },
   savedSearches: {
     list: () => ['/api/saved-searches'] as const,
@@ -111,7 +114,7 @@ export const qk = {
   // you encounter them; don't refactor buildUrl globally because some keys
   // (e.g. credits.balance) deliberately rely on the strings-skipped behaviour.
   reports: {
-    list: () => ['/api/reports'] as const,
+    list: (params: Record<string, unknown> = {}) => ['/api/reports', params] as const,
     detail: (idOrSlug: string) => [`/api/reports/${idOrSlug}`] as const,
     sections: (idOrSlug: string, as?: 'free' | 'growth' | 'pro') =>
       [`/api/reports/${idOrSlug}/sections`, as ? { as } : {}] as const,

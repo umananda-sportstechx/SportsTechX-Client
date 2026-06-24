@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { ChevronLeft, ChevronRight, ExternalLink, X, Globe, MapPin } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { recordSearchSignal } from '@/lib/personalization';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -126,6 +127,7 @@ export default function EcosystemPage() {
 	}, [filterState, page, view, selectedId]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
+	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.q = debouncedSearch;

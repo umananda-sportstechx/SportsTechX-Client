@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem } from '@/lib/deck-analysis';
 
 const BUCKET = 'user-uploads';
@@ -17,6 +19,7 @@ const ALLOWED_EXT = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
 const ACCEPT = 'application/pdf,.pdf,.ppt,.pptx,.doc,.docx';
 
 export default function PitchAnalyzerPage() {
+	const confirm = useConfirm();
 	const router = useRouter();
 	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(), { dedupingInterval: 10_000 });
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +54,8 @@ export default function PitchAnalyzerPage() {
 			await mutate();
 			router.push(`/pitch-analyzer/${id}`);
 		} catch (e) {
-			toast.error((e as Error).message ?? 'Upload failed');
+			// Credit-exhaustion shows the global modal; don't double up with a toast.
+			if (!isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Upload failed');
 		} finally {
 			setUploading(false);
 		}
@@ -59,7 +63,12 @@ export default function PitchAnalyzerPage() {
 
 	const remove = async (e: React.MouseEvent, id: string) => {
 		e.stopPropagation();
-		if (!confirm('Delete this analysis? This cannot be undone and credits are not refunded.')) return;
+		if (!(await confirm({
+			title: 'Delete analysis?',
+			description: 'This analysis will be permanently deleted. This cannot be undone, and the credits spent on it are not refunded.',
+			confirmLabel: 'Delete',
+			destructive: true,
+		}))) return;
 		setDeleting(id);
 		try {
 			const res = await apiRequest('DELETE', `/api/deck-analysis/${id}`);
