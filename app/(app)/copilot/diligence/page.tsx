@@ -9,6 +9,7 @@ import { WorkspaceHeader, FitBar } from '@/components/copilot/workspace-ui';
 import { ScoreRing } from '@/components/copilot/workspace-charts';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 
 /**
  * InvestorDiligence (i-diligence) — pick a target company, then draft a
@@ -32,7 +33,8 @@ export default function InvestorDiligencePage() {
 	const [memo, setMemo] = useState<DiligenceMemo | null>(null);
 	const [running, setRunning] = useState(false);
 
-	const { data: search } = useSWR<SearchResponse>(q.trim().length >= 2 ? qk.search.typeahead(q.trim(), ['companies']) : null, { dedupingInterval: 30_000 });
+	const dq = useDebouncedValue(q.trim(), 300);
+	const { data: search } = useSWR<SearchResponse>(dq.length >= 2 ? qk.search.typeahead(dq, ['companies']) : null, { dedupingInterval: 30_000 });
 	const hits = search?.results?.companies ?? [];
 
 	const run = async (c: CompanyHit) => {
