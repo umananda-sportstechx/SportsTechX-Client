@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar,
@@ -123,8 +124,9 @@ export default function ProgramsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [filterState, page]);
 
+	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
-	if (filterState.search) queryParams.search = filterState.search;
+	if (debouncedSearch) queryParams.search = debouncedSearch;
 	if (filterState.entries_open === true) queryParams.entries_open = true;
 	const st = filterState.status as string[] | undefined;
 	if (st?.length === 1) queryParams.status = st[0];
