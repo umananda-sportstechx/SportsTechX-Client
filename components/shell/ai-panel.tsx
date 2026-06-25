@@ -560,7 +560,19 @@ function mergeSources(prev: CitationSource[], next: CitationSource[]): CitationS
  * the find_* plural slug keys (sector_slugs); catalog pages read singular,
  * comma-separated params (sector_slug), so we de-pluralize and join arrays.
  */
+// The agent's page enum doesn't 1:1 match routes: deal flow lives at /funding,
+// acquisitions at /ma. Analytics is the interactive charts page.
+const PAGE_ROUTES: Record<string, string> = {
+	companies: 'companies',
+	investors: 'investors',
+	deals: 'funding',
+	acquisitions: 'ma',
+	ecosystem: 'ecosystem',
+	analytics: 'analytics',
+};
+
 function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefined): string {
+	const route = PAGE_ROUTES[page] ?? page;
 	const sp = new URLSearchParams();
 	if (filters) {
 		for (const [k, v] of Object.entries(filters)) {
@@ -571,7 +583,7 @@ function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefi
 		}
 	}
 	const qs = sp.toString();
-	return `/${page}${qs ? `?${qs}` : ''}`;
+	return `/${route}${qs ? `?${qs}` : ''}`;
 }
 
 /** Map an `open_entity` intent to a detail-page URL. */
