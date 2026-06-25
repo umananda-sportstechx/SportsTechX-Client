@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Download, Loader2, Coins } from 'lucide-react';
+import { Download, Loader2, Coins, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
-import { getAuthHeaders } from '@/lib/query-client';
+import { getAuthHeaders, apiRequest } from '@/lib/query-client';
 import { openCreditExhausted } from '@/lib/credit-events';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 
@@ -26,6 +26,7 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
 type ExportFormat = 'csv' | 'xlsx';
 interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string }[] }
 interface CountResp { entity: string; matched: number; rows: number; credits: number; capped: boolean }
+interface PreviewResp { columns: { key: string; label: string }[]; rows: Record<string, string>[] }
 
 export function ExportButton({ entity, search }: { entity: string; search?: string | null }) {
 	const [open, setOpen] = useState(false);
@@ -48,11 +49,39 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const [format, setFormat] = useState<ExportFormat>('xlsx');
 	const [selected, setSelected] = useState<Set<string> | null>(null);
 	const [busy, setBusy] = useState(false);
+	const [previewOpen, setPreviewOpen] = useState(false);
+	const [preview, setPreview] = useState<PreviewResp | null>(null);
+	const [previewLoading, setPreviewLoading] = useState(false);
 
 	// Default: everything selected once columns load.
 	const cols = data?.columns ?? [];
 	const sel = selected ?? new Set(cols.map((c) => c.key));
 	const allOn = cols.length > 0 && cols.every((c) => sel.has(c.key));
+	// Stable signature of the current selection (admin order) for the preview effect.
+	const selectedKeysSig = cols.filter((c) => sel.has(c.key)).map((c) => c.key).join(',');
+
+	// When the preview is open, (re)load it as the column selection changes so it
+	// always reflects exactly what will download. No credits are charged.
+	useEffect(() => {
+		if (!previewOpen) return;
+		let cancelled = false;
+		setPreviewLoading(true);
+		(async () => {
+			try {
+				const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
+					columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
+					search: search ?? null,
+				});
+				const body = (await res.json()) as PreviewResp;
+				if (!cancelled) setPreview(body);
+			} catch {
+				if (!cancelled) setPreview(null);
+			} finally {
+				if (!cancelled) setPreviewLoading(false);
+			}
+		})();
+		return () => { cancelled = true; };
+	}, [previewOpen, selectedKeysSig, entity, search]);
 
 	const toggle = (key: string) => {
 		const next = new Set(sel);
@@ -212,6 +241,58 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 							))}
 						</div>
 					)}
+
+					{/* Data preview — exactly what will download (no credits charged) */}
+					<div style={{ marginTop: 14 }}>
+						<button
+							className="btn ghost"
+							style={{ fontSize: 12 }}
+							onClick={() => setPreviewOpen((v) => !v)}
+							disabled={cols.length === 0 || selectedCount === 0}
+						>
+							<Eye size={13} /> {previewOpen ? 'Hide preview' : 'Preview data'}
+						</button>
+
+						{previewOpen && (
+							<div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+								<div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--fg-muted)', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+									Showing the first {preview?.rows.length ?? 0} row{(preview?.rows.length ?? 0) === 1 ? '' : 's'} — sample only, no credits charged.
+								</div>
+								{previewLoading ? (
+									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>
+										<Loader2 size={13} className="animate-spin" style={{ verticalAlign: '-2px' }} /> Loading preview…
+									</div>
+								) : !preview || preview.rows.length === 0 ? (
+									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>No rows to preview.</div>
+								) : (
+									<div style={{ overflowX: 'auto', maxHeight: 240 }}>
+										<table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+											<thead>
+												<tr>
+													{preview.columns.map((c) => (
+														<th key={c.key} style={{ textAlign: 'left', padding: '6px 10px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+															{c.label}
+														</th>
+													))}
+												</tr>
+											</thead>
+											<tbody>
+												{preview.rows.map((r, i) => (
+													<tr key={i}>
+														{preview.columns.map((c) => (
+															<td key={c.key} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={r[c.key]}>
+																{r[c.key] || <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+															</td>
+														))}
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
 
 					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
 						<button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
