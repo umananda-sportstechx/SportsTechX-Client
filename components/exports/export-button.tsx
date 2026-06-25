@@ -66,21 +66,24 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 		if (!previewOpen) return;
 		let cancelled = false;
 		setPreviewLoading(true);
-		(async () => {
-			try {
-				const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
-					columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
-					search: search ?? null,
-				});
-				const body = (await res.json()) as PreviewResp;
-				if (!cancelled) setPreview(body);
-			} catch {
-				if (!cancelled) setPreview(null);
-			} finally {
-				if (!cancelled) setPreviewLoading(false);
-			}
-		})();
-		return () => { cancelled = true; };
+		// Debounce: toggling several columns quickly shouldn't fire a request per click.
+		const timer = setTimeout(() => {
+			(async () => {
+				try {
+					const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
+						columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
+						search: search ?? null,
+					});
+					const body = (await res.json()) as PreviewResp;
+					if (!cancelled) setPreview(body);
+				} catch {
+					if (!cancelled) setPreview(null);
+				} finally {
+					if (!cancelled) setPreviewLoading(false);
+				}
+			})();
+		}, 300);
+		return () => { cancelled = true; clearTimeout(timer); };
 	}, [previewOpen, selectedKeysSig, entity, search]);
 
 	const toggle = (key: string) => {

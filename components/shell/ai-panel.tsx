@@ -650,7 +650,8 @@ function actionFromTool(tool: string, input: unknown): ChatAction | null {
 	if (tool === 'navigate_and_filter') {
 		const p = input as { page?: string; filters?: Record<string, unknown> };
 		if (!p?.page) return null;
-		return { kind: 'navigate', label: navActionLabel(p.page, p.filters), href: buildCatalogUrl(p.page, p.filters) };
+		const href = buildCatalogUrl(p.page, p.filters);
+		return href ? { kind: 'navigate', label: navActionLabel(p.page, p.filters), href } : null;
 	}
 	if (tool === 'open_entity') {
 		const p = input as { entity_type?: string; id_or_slug?: string };
@@ -661,8 +662,11 @@ function actionFromTool(tool: string, input: unknown): ChatAction | null {
 	return null;
 }
 
-function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefined): string {
-	const route = PAGE_ROUTES[page] ?? page;
+function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefined): string | null {
+	// Only emit links to known, whitelisted routes — never echo an arbitrary
+	// `page` into the URL (defends against a malformed/unexpected intent).
+	const route = PAGE_ROUTES[page];
+	if (!route) return null;
 	const sp = new URLSearchParams();
 	if (filters) {
 		for (const [k, v] of Object.entries(filters)) {
