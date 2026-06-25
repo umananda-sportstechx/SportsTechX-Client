@@ -46,10 +46,13 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
 
   const enabled = sessionValid && !authLoading;
   const { data, isLoading } = useSWR<Feature[]>(enabled ? qk.features() : null, {
-    // Feature matrix barely changes — keep deduped for 30 min, no auto-revalidate.
+    // Feature matrix barely changes — keep deduped for 30 min and don't refetch
+    // on window focus. It MUST still fetch on mount though: a previous
+    // `revalidateOnMount:false` meant a cold cache (a hard load / refresh
+    // directly on a gated page like /analytics) never fetched the matrix, so
+    // every feature read as "not found" and even pro users hit a paywall.
     dedupingInterval: 30 * 60_000,
     revalidateOnFocus: false,
-    revalidateOnMount: false,
   });
   const features = data ?? [];
 
@@ -78,6 +81,12 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   const checkAccess = (slug: string): FeatureAccessResult => {
     if (isAdmin) return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false };
     if (profileLoading || isLoading) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true };
+
+    // Matrix not available yet (cold cache / in-flight / transient fetch error):
+    // treat as still-loading rather than "feature absent". Showing a paywall
+    // because we simply don't have the matrix would wrongly lock entitled users
+    // (this is exactly what broke pro access to /analytics).
+    if (features.length === 0) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true };
 
     const normalized = slug.replace(/-/g, '_');
     const feature = featureMap.get(normalized) ?? features.find(f => f.slug === normalized || f.slug.replace(/_/g, '-') === slug);
