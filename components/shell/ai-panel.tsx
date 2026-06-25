@@ -179,16 +179,26 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			const res = await fetch(`/api/chat/conversations/${id}`, { headers: { ...auth }, credentials: 'include' });
 			if (!res.ok) return;
 			const data = (await res.json()) as {
-				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; ok: boolean; preview: string }> | null }>;
+				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; input?: unknown; ok: boolean; preview: string }> | null }>;
 			};
-			const msgs: ChatMessage[] = data.messages.map((m, idx) => ({
-				role: m.role,
-				content: m.content,
-				tools:
-					m.role === 'assistant' && m.tool_calls
-						? m.tool_calls.map((t, ti) => ({ id: `${idx}-${ti}`, tool: t.tool, ok: t.ok, preview: t.preview }))
-						: undefined,
-			}));
+			const msgs: ChatMessage[] = data.messages.map((m, idx) => {
+				const calls = m.role === 'assistant' ? m.tool_calls ?? undefined : undefined;
+				// Rebuild the suggestion chips from the persisted tool-call inputs so
+				// they survive a reload / reopening a past conversation.
+				const actions: ChatAction[] = [];
+				if (calls) {
+					for (const t of calls) {
+						const a = actionFromTool(t.tool, t.input);
+						if (a && !actions.some((x) => x.href === a.href)) actions.push(a);
+					}
+				}
+				return {
+					role: m.role,
+					content: m.content,
+					tools: calls ? calls.map((t, ti) => ({ id: `${idx}-${ti}`, tool: t.tool, ok: t.ok, preview: t.preview })) : undefined,
+					actions: actions.length > 0 ? actions : undefined,
+				};
+			});
 			setMessages(msgs.length > 0 ? msgs : [GREETING]);
 			setConversationId(id);
 			nextSourceIndexRef.current = 1;
