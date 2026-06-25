@@ -203,6 +203,10 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						)}
 					</div>
 
+					<p style={{ fontSize: 11, color: 'var(--fg-muted)', margin: '8px 0 0' }}>
+						Exports match your search box. Use <b>Preview data</b> below to confirm exactly what downloads.
+					</p>
+
 					{/* Format */}
 					<div style={{ display: 'flex', gap: 8, margin: '16px 0 10px' }}>
 						{(['xlsx', 'csv'] as ExportFormat[]).map((f) => (
