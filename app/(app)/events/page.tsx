@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { ExportButton } from '@/components/exports/export-button';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
@@ -171,6 +172,7 @@ export default function EventsPage() {
 				kicker={`Calendar · ${total.toLocaleString()} upcoming`}
 				title="Events"
 				sub="Conferences, summits, and demo days across the sports-tech calendar."
+				action={<ExportButton entity="events" search={filterState.search} />}
 			/>
 
 			<div className="flt-layout">

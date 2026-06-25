@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Coins } from 'lucide-react';
+import { Coins, Download } from 'lucide-react';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 
 /**
@@ -16,7 +16,11 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
  */
 export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) {
 	const { balance } = useCreditBalance('ai');
+	const { balance: exportBalance } = useCreditBalance('integration');
 	if (!balance) return null;
+
+	// Integration credits are surfaced to users as "export credits".
+	const exportCredits = exportBalance?.total_available ?? 0;
 
 	const total = balance.total_available;
 	const grant = balance.monthly_grant;
@@ -53,18 +57,29 @@ export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) 
 
 	if (variant === 'menu') {
 		return (
-			<Link href="/subscriptions" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
-				<span className="user-menu-icon"><Coins size={15} /></span>
-				<span style={{ flex: 1, minWidth: 0 }}>
-					<span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-						<span className="user-menu-label">AI credits</span>
-						<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: low ? 'var(--neg)' : 'var(--fg)' }}>
-							{total.toLocaleString()}
+			<>
+				<Link href="/subscriptions" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
+					<span className="user-menu-icon"><Coins size={15} /></span>
+					<span style={{ flex: 1, minWidth: 0 }}>
+						<span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+							<span className="user-menu-label">AI credits</span>
+							<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: low ? 'var(--neg)' : 'var(--fg)' }}>
+								{total.toLocaleString()}
+							</span>
+						</span>
+						{grant > 0 && <span style={{ display: 'block', marginTop: 6 }}>{bar}</span>}
+					</span>
+				</Link>
+				<Link href="/subscriptions" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
+					<span className="user-menu-icon"><Download size={15} /></span>
+					<span style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+						<span className="user-menu-label">Export credits</span>
+						<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: exportCredits <= 0 ? 'var(--fg-muted)' : 'var(--fg)' }}>
+							{exportCredits.toLocaleString()}
 						</span>
 					</span>
-					{grant > 0 && <span style={{ display: 'block', marginTop: 6 }}>{bar}</span>}
-				</span>
-			</Link>
+				</Link>
+			</>
 		);
 	}
 
@@ -93,6 +108,15 @@ export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) 
 			{grant === 0 && balance.topup_balance > 0 && (
 				<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{balance.topup_balance.toLocaleString()} top-up credits (never expire)</div>
 			)}
+			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					<Download size={15} style={{ color: 'var(--fg-2)' }} />
+					<span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Export credits</span>
+				</div>
+				<span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: exportCredits <= 0 ? 'var(--fg-muted)' : 'var(--fg)' }}>
+					{exportCredits.toLocaleString()}
+				</span>
+			</div>
 		</div>
 	);
 }
