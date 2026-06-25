@@ -25,6 +25,7 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
 
 type ExportFormat = 'csv' | 'xlsx';
 interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string }[] }
+interface CountResp { entity: string; matched: number; rows: number; credits: number; capped: boolean }
 
 export function ExportButton({ entity, search }: { entity: string; search?: string | null }) {
 	const [open, setOpen] = useState(false);
@@ -40,6 +41,9 @@ export function ExportButton({ entity, search }: { entity: string; search?: stri
 
 function ExportModal({ entity, search, onClose }: { entity: string; search?: string | null; onClose: () => void }) {
 	const { data, isLoading } = useSWR<ColumnsResp>(qk.exports.columns(entity), { dedupingInterval: 60_000 });
+	const { data: count, isLoading: countLoading } = useSWR<CountResp>(
+		qk.exports.count(entity, search), { dedupingInterval: 15_000 },
+	);
 	const { balance } = useCreditBalance('integration');
 	const [format, setFormat] = useState<ExportFormat>('xlsx');
 	const [selected, setSelected] = useState<Set<string> | null>(null);
@@ -58,6 +62,8 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const toggleAll = () => setSelected(allOn ? new Set() : new Set(cols.map((c) => c.key)));
 
 	const available = balance?.total_available ?? 0;
+	const cost = count?.credits ?? 0;
+	const insufficient = !!count && cost > available;
 
 	const exportNow = async () => {
 		const columns = cols.filter((c) => sel.has(c.key)).map((c) => c.key);
@@ -135,6 +141,39 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						</span>
 					</p>
 
+					{/* Pre-flight cost: rows that will be exported + credits charged. */}
+					<div
+						style={{
+							marginTop: 12, padding: '10px 12px', borderRadius: 8,
+							border: `1px solid ${insufficient ? 'var(--neg)' : 'var(--border)'}`,
+							background: insufficient ? 'color-mix(in oklab, var(--neg) 8%, transparent)' : 'var(--bg-2)',
+							fontSize: 13,
+						}}
+					>
+						{countLoading ? (
+							<span style={{ color: 'var(--fg-muted)' }}>Calculating rows…</span>
+						) : !count ? (
+							<span style={{ color: 'var(--fg-muted)' }}>Row count unavailable — you’ll be charged 1 credit per exported row.</span>
+						) : count.rows === 0 ? (
+							<span style={{ color: 'var(--fg-muted)' }}>No rows match — nothing to export, no credits charged.</span>
+						) : (
+							<>
+								This will export <b>{count.rows.toLocaleString()}</b> row{count.rows === 1 ? '' : 's'} and cost{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{count.capped && (
+									<div style={{ color: 'var(--fg-muted)', fontSize: 11, marginTop: 4 }}>
+										Capped at {count.rows.toLocaleString()} rows per export (more match your search).
+									</div>
+								)}
+								{insufficient && (
+									<div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>
+										You’re short {(cost - available).toLocaleString()} credits. Top up or narrow your search.
+									</div>
+								)}
+							</>
+						)}
+					</div>
+
 					{/* Format */}
 					<div style={{ display: 'flex', gap: 8, margin: '16px 0 10px' }}>
 						{(['xlsx', 'csv'] as ExportFormat[]).map((f) => (
@@ -176,8 +215,8 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 
 					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
 						<button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
-						<button className="btn" onClick={() => void exportNow()} disabled={busy || selectedCount === 0}>
-							{busy ? <><Loader2 size={14} className="animate-spin" /> Exporting…</> : <><Download size={14} /> Export</>}
+						<button className="btn" onClick={() => void exportNow()} disabled={busy || selectedCount === 0 || insufficient || count?.rows === 0}>
+							{busy ? <><Loader2 size={14} className="animate-spin" /> Exporting…</> : <><Download size={14} /> {count && count.rows > 0 ? `Export · ${cost.toLocaleString()} cr` : 'Export'}</>}
 						</button>
 					</div>
 				</DialogPrimitive.Content>
