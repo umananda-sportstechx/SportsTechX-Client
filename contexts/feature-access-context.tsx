@@ -94,7 +94,9 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
     let requiredTier: UserType | null = null;
 
     if (userType === 'pro') {
-      hasAccess = feature.pro;
+      // Pro is the top tier — it inherits everything free/growth unlock too, so a
+      // feature that's only marked free/growth (not explicitly pro) stays open.
+      hasAccess = feature.free || feature.growth || feature.pro;
     } else if (userType === 'growth') {
       hasAccess = feature.free || feature.growth;
       if (!hasAccess) requiredTier = 'pro';
