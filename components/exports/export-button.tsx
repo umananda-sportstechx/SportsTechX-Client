@@ -26,7 +26,7 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
 type ExportFormat = 'csv' | 'xlsx';
 interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string }[] }
 interface CountResp { entity: string; matched: number; rows: number; credits: number; capped: boolean }
-interface PreviewResp { columns: { key: string; label: string }[]; rows: Record<string, string>[] }
+interface PreviewResp { columns: { key: string; label: string }[]; rows: Array<Record<string, string> & { __id: string }> }
 
 export function ExportButton({ entity, search }: { entity: string; search?: string | null }) {
 	const [open, setOpen] = useState(false);
@@ -52,6 +52,8 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const [previewOpen, setPreviewOpen] = useState(false);
 	const [preview, setPreview] = useState<PreviewResp | null>(null);
 	const [previewLoading, setPreviewLoading] = useState(false);
+	// Selective export: explicit row ids the user ticked. Empty = export all matching.
+	const [rowSel, setRowSel] = useState<Set<string>>(new Set());
 
 	// Default: everything selected once columns load.
 	const cols = data?.columns ?? [];
@@ -94,8 +96,21 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const toggleAll = () => setSelected(allOn ? new Set() : new Set(cols.map((c) => c.key)));
 
 	const available = balance?.total_available ?? 0;
-	const cost = count?.credits ?? 0;
-	const insufficient = !!count && cost > available;
+	// Cost = the selected rows if the user picked any, else all matching rows.
+	const selectingRows = rowSel.size > 0;
+	const cost = selectingRows ? rowSel.size : (count?.credits ?? 0);
+	const insufficient = cost > available;
+	const toggleRow = (id: string) => setRowSel((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+	const allRowsOn = (preview?.rows.length ?? 0) > 0 && (preview?.rows ?? []).every((r) => rowSel.has(r.__id));
+	const toggleAllRows = () => {
+		const ids = (preview?.rows ?? []).map((r) => r.__id);
+		setRowSel((prev) => {
+			const n = new Set(prev);
+			if (ids.every((id) => n.has(id))) ids.forEach((id) => n.delete(id));
+			else ids.forEach((id) => n.add(id));
+			return n;
+		});
+	};
 
 	const exportNow = async () => {
 		const columns = cols.filter((c) => sel.has(c.key)).map((c) => c.key);
@@ -106,7 +121,11 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 			const res = await fetch(`/api/exports/${entity}`, {
 				method: 'POST',
 				headers: { ...headers, 'Content-Type': 'application/json' },
-				body: JSON.stringify({ format, columns, search: search ?? null }),
+				body: JSON.stringify({
+					format, columns,
+					// Selected rows take precedence; otherwise export all matching the search.
+					...(selectingRows ? { ids: [...rowSel] } : { search: search ?? null }),
+				}),
 			});
 
 			if (res.status === 402) {
@@ -158,7 +177,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 					aria-describedby={undefined}
 					style={{
 						position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-						width: 'min(94vw, 540px)', maxHeight: '86vh', overflow: 'auto',
+						width: 'min(96vw, 860px)', maxHeight: '88vh', overflow: 'auto',
 						background: 'var(--surface, var(--bg-2))', border: '1px solid var(--border-strong)',
 						borderRadius: 6, padding: 'var(--space-5)', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', zIndex: 201,
 					}}
@@ -182,7 +201,15 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 							fontSize: 13,
 						}}
 					>
-						{countLoading ? (
+						{selectingRows ? (
+							<>
+								Exporting <b>{rowSel.size.toLocaleString()}</b> selected row{rowSel.size === 1 ? '' : 's'} · costs{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{insufficient && (
+									<div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>You’re short {(cost - available).toLocaleString()} credits.</div>
+								)}
+							</>
+						) : countLoading ? (
 							<span style={{ color: 'var(--fg-muted)' }}>Calculating rows…</span>
 						) : !count ? (
 							<span style={{ color: 'var(--fg-muted)' }}>Row count unavailable — you’ll be charged 1 credit per exported row.</span>
@@ -207,7 +234,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 					</div>
 
 					<p style={{ fontSize: 11, color: 'var(--fg-muted)', margin: '8px 0 0' }}>
-						Exports match your search box. Use <b>Preview data</b> below to confirm exactly what downloads.
+						Exports all rows matching your search by default. Open <b>Preview &amp; select rows</b> below to pick specific ones.
 					</p>
 
 					{/* Format */}
@@ -249,21 +276,28 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						</div>
 					)}
 
-					{/* Data preview — exactly what will download (no credits charged) */}
+					{/* Data preview + row picker — tick rows to export only those (no charge to preview) */}
 					<div style={{ marginTop: 14 }}>
-						<button
-							className="btn ghost"
-							style={{ fontSize: 12 }}
-							onClick={() => setPreviewOpen((v) => !v)}
-							disabled={cols.length === 0 || selectedCount === 0}
-						>
-							<Eye size={13} /> {previewOpen ? 'Hide preview' : 'Preview data'}
-						</button>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+							<button
+								className="btn ghost"
+								style={{ fontSize: 12 }}
+								onClick={() => setPreviewOpen((v) => !v)}
+								disabled={cols.length === 0 || selectedCount === 0}
+							>
+								<Eye size={13} /> {previewOpen ? 'Hide preview' : 'Preview & select rows'}
+							</button>
+							{rowSel.size > 0 && (
+								<button className="btn ghost" style={{ fontSize: 11 }} onClick={() => setRowSel(new Set())}>
+									Clear {rowSel.size} selected
+								</button>
+							)}
+						</div>
 
 						{previewOpen && (
 							<div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
 								<div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--fg-muted)', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-									Showing the first {preview?.rows.length ?? 0} row{(preview?.rows.length ?? 0) === 1 ? '' : 's'} — sample only, no credits charged.
+									Showing up to {preview?.rows.length ?? 0} row{(preview?.rows.length ?? 0) === 1 ? '' : 's'}. Tick rows to export only those; leave all unticked to export everything matching. Narrow the search to find more.
 								</div>
 								{previewLoading ? (
 									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>
@@ -272,10 +306,13 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 								) : !preview || preview.rows.length === 0 ? (
 									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>No rows to preview.</div>
 								) : (
-									<div style={{ overflowX: 'auto', maxHeight: 240 }}>
+									<div style={{ overflowX: 'auto', maxHeight: 320 }}>
 										<table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
 											<thead>
 												<tr>
+													<th style={{ padding: '6px 8px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', width: 28 }}>
+														<input type="checkbox" checked={allRowsOn} onChange={toggleAllRows} title="Select all shown" />
+													</th>
 													{preview.columns.map((c) => (
 														<th key={c.key} style={{ textAlign: 'left', padding: '6px 10px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', fontWeight: 600 }}>
 															{c.label}
@@ -284,15 +321,21 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 												</tr>
 											</thead>
 											<tbody>
-												{preview.rows.map((r, i) => (
-													<tr key={i}>
-														{preview.columns.map((c) => (
-															<td key={c.key} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={r[c.key]}>
-																{r[c.key] || <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+												{preview.rows.map((r) => {
+													const checked = rowSel.has(r.__id);
+													return (
+														<tr key={r.__id} style={{ background: checked ? 'color-mix(in oklab, var(--accent) 8%, transparent)' : undefined }}>
+															<td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
+																<input type="checkbox" checked={checked} onChange={() => toggleRow(r.__id)} />
 															</td>
-														))}
-													</tr>
-												))}
+															{preview.columns.map((c) => (
+																<td key={c.key} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={r[c.key]}>
+																	{r[c.key] || <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+																</td>
+															))}
+														</tr>
+													);
+												})}
 											</tbody>
 										</table>
 									</div>
@@ -303,8 +346,8 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 
 					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
 						<button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
-						<button className="btn" onClick={() => void exportNow()} disabled={busy || selectedCount === 0 || insufficient || count?.rows === 0}>
-							{busy ? <><Loader2 size={14} className="animate-spin" /> Exporting…</> : <><Download size={14} /> {count && count.rows > 0 ? `Export · ${cost.toLocaleString()} cr` : 'Export'}</>}
+						<button className="btn" onClick={() => void exportNow()} disabled={busy || selectedCount === 0 || insufficient || cost === 0}>
+							{busy ? <><Loader2 size={14} className="animate-spin" /> Exporting…</> : <><Download size={14} /> {cost > 0 ? `Export · ${cost.toLocaleString()} cr` : 'Export'}</>}
 						</button>
 					</div>
 				</DialogPrimitive.Content>
