@@ -20,7 +20,9 @@ export function CreditExhaustionHost() {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [detail, setDetail] = useState<CreditExhaustedDetail>({});
-	const { balance } = useCreditBalance('ai');
+	const isExport = detail.creditType === 'integration';
+	const { balance: aiBalance } = useCreditBalance('ai');
+	const { balance: exportBalance } = useCreditBalance('integration');
 
 	useEffect(() => {
 		const onEvent = (e: Event) => {
@@ -31,7 +33,9 @@ export function CreditExhaustionHost() {
 		return () => window.removeEventListener(CREDITS_EVENT, onEvent);
 	}, []);
 
-	const available = detail.available ?? balance?.total_available;
+	// "export credits" = the integration pool; everything else is AI credits.
+	const label = isExport ? 'export credits' : 'AI credits';
+	const available = detail.available ?? (isExport ? exportBalance?.total_available : aiBalance?.total_available);
 
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -55,13 +59,15 @@ export function CreditExhaustionHost() {
 						<Coins size={20} />
 					</div>
 					<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0, color: 'var(--fg)' }}>
-						You&apos;re out of AI credits
+						You&apos;re out of {label}
 					</DialogPrimitive.Title>
 					<p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--fg-2)', margin: '10px 0 0' }}>
 						{detail.required != null && available != null
-							? `This needs ${detail.required.toLocaleString()} credits, but you have ${available.toLocaleString()} left. `
-							: 'You don’t have enough credits for this. '}
-						Top up with a credit pack or upgrade your plan for a larger monthly allowance.
+							? `This needs ${detail.required.toLocaleString()} ${label}, but you have ${available.toLocaleString()} left. `
+							: `You don’t have enough ${label} for this. `}
+						{isExport
+							? 'Each exported row costs 1 export credit. Upgrade your plan or top up to export more.'
+							: 'Top up with a credit pack or upgrade your plan for a larger monthly allowance.'}
 					</p>
 					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
 						<button type="button" className="btn ghost" onClick={() => setOpen(false)}>Maybe later</button>

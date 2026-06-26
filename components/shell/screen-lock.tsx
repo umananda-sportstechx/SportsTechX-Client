@@ -5,7 +5,7 @@ import {
 	ArrowRight, DollarSign, Shield, Wallet, Zap, TrendingUp, Building2, FileText, Lock,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { useFeatureAccess, useFeatureAccessContext } from '@/contexts/feature-access-context';
 import type { UserType } from '@/hooks/use-user-profile';
 
 /**
@@ -195,14 +195,36 @@ export function FeatureGate({
 	children: React.ReactNode;
 }) {
 	const access = useFeatureAccess(slug);
+	const { reload } = useFeatureAccessContext();
 	// While the feature matrix loads, render nothing (brief; avoids a flash of
 	// either the locked or unlocked state).
 	if (access.isLoading) return null;
+	// Matrix failed to load — show a retry, NOT a (wrong) paywall or a blank page.
+	if (access.error) return <FeatureMatrixError onRetry={reload} />;
 	if (access.isLocked) {
 		const tier: LockTier = access.requiredTier === 'pro' ? 'pro' : 'growth';
 		return <ScreenLock screen={screen} requiredTier={tier} />;
 	}
 	return <>{children}</>;
+}
+
+/** Shown when the entitlements matrix can't be fetched — a transient network/API
+ *  issue. Avoids both a misleading upsell and a silent blank page. */
+function FeatureMatrixError({ onRetry }: { onRetry: () => void }) {
+	return (
+		<div className="page-pad">
+			<div style={{ maxWidth: 420, margin: '12vh auto 0', textAlign: 'center' }}>
+				<div style={{ display: 'inline-grid', placeItems: 'center', width: 44, height: 44, borderRadius: 10, background: 'var(--bg-3)', marginBottom: 14 }}>
+					<Lock size={20} />
+				</div>
+				<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, margin: 0 }}>Couldn’t load this page</h1>
+				<p style={{ fontSize: 14, color: 'var(--fg-2)', margin: '8px 0 18px' }}>
+					We couldn’t check your access just now. Please try again.
+				</p>
+				<button className="btn" onClick={onRetry}>Retry</button>
+			</div>
+		</div>
+	);
 }
 
 export type { LockTier, UserType };

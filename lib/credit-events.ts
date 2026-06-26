@@ -14,6 +14,8 @@ export interface CreditExhaustedDetail {
   available?: number;
   /** Optional context line, e.g. "to analyze this deck". */
   context?: string;
+  /** Which pool ran out. 'integration' is surfaced to users as "export credits". */
+  creditType?: 'ai' | 'integration';
 }
 
 export const CREDITS_EVENT = 'stx:credits-exhausted';

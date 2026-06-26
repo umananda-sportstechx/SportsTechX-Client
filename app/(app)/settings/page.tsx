@@ -617,15 +617,6 @@ function WorkspaceTab() {
 	);
 }
 
-// Integrations list — hardcoded for now (no integrations registry endpoint yet).
-// Replace with `/api/integrations/me` if/when that ships.
-const INTEGRATIONS: Array<{ name: string; connected: boolean }> = [
-	{ name: 'Intercom', connected: true },
-	{ name: 'Slack', connected: false },
-	{ name: 'Google Sheets', connected: false },
-	{ name: 'Salesforce', connected: false },
-];
-
 interface StripeInvoice {
 	id: string;
 	number: string | null;
@@ -655,43 +646,14 @@ function ApiTab() {
 				/>
 				<Link href="/api-keys"><button className="btn ghost">Manage keys</button></Link>
 			</div>
-			<div className="co-stat-label" style={{ marginBottom: 8 }}>Connected integrations</div>
-			{INTEGRATIONS.map((n) => (
-				<div
-					key={n.name}
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 12,
-						padding: '12px 0',
-						borderBottom: '1px solid var(--border)',
-					}}
-				>
-					<div
-						style={{
-							width: 32,
-							height: 32,
-							background: 'var(--bg-3)',
-							display: 'grid',
-							placeItems: 'center',
-							fontWeight: 700,
-							fontSize: 12,
-							fontFamily: 'var(--font-display)',
-						}}
-					>
-						{n.name[0]}
-					</div>
-					<div style={{ flex: 1 }}>
-						<div style={{ fontWeight: 600, fontSize: 14 }}>{n.name}</div>
-						<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
-							{n.connected ? 'Connected' : 'Not connected'}
-						</div>
-					</div>
-					<Link href="/integrations">
-						<button className="btn ghost">{n.connected ? 'Disconnect' : 'Connect'}</button>
-					</Link>
+			<div className="co-stat-label" style={{ marginBottom: 8 }}>CRM connections</div>
+			<div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+				<div style={{ fontSize: 13, color: 'var(--fg-2)', maxWidth: 360 }}>
+					Connect a CRM (Attio, HubSpot, Salesforce, Google Sheets) to sync companies,
+					deal flow, investors and more. Syncs use export credits — 1 per row.
 				</div>
-			))}
+				<Link href="/integrations"><button className="btn ghost">Manage connections</button></Link>
+			</div>
 		</div>
 	);
 }

@@ -76,7 +76,10 @@ function NavItemButton({
   const { user } = useAuthSession();
   const access = useFeatureAccess(item.featureSlug ?? '');
   const hasAccess = !item.featureSlug || access.hasAccess;
-  const locked = user ? !hasAccess : !!item.featureSlug;
+  // Only mark locked once entitlement is known — not while the matrix is loading
+  // or failed to load (avoids a brief lock flash on gated nav items).
+  const entitlementKnown = !access.isLoading && !access.error;
+  const locked = user ? (entitlementKnown && !hasAccess) : !!item.featureSlug;
 
   const hasSubItems = !!item.subItems?.length;
   const isExpanded = expanded.includes(item.id);
