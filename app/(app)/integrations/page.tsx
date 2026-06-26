@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug } from 'lucide-react';
+import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug, RefreshCw, Settings2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { PageHeader } from '@/components/ui/page-header';
+import { CrmMappingModal } from '@/components/integrations/crm-mapping-modal';
 
 /**
  * CRM connections — the user-facing surface for connecting a CRM and syncing
@@ -28,10 +29,19 @@ interface CrmConnection {
 	status: 'connected' | 'disconnected' | 'error' | 'expired' | 'pending';
 	workspace_name: string | null;
 	sync_enabled: boolean;
+	sync_frequency: 'off' | 'daily' | 'biweekly' | 'monthly';
+	next_sync_at: string | null;
 	mappings_configured: boolean;
 	last_sync_at: string | null;
+	last_sync_status: 'running' | 'success' | 'partial' | 'error' | null;
+	last_sync_error: string | null;
+	last_sync_row_count: number | null;
 	created_at: string;
 }
+
+const FREQUENCY_LABELS: Record<string, string> = {
+	off: 'Manual only', daily: 'Every day', biweekly: 'Every 15 days', monthly: 'Every month',
+};
 interface ProviderStatus {
 	provider: string;
 	label: string;
@@ -82,6 +92,7 @@ export default function IntegrationsPage() {
 
 function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => void }) {
 	const [busy, setBusy] = useState(false);
+	const [mappingOpen, setMappingOpen] = useState(false);
 	const conn = p.connection;
 	const connected = conn?.status === 'connected';
 
@@ -111,13 +122,29 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 		}
 	};
 
-	const toggleSync = async (enabled: boolean) => {
+	const setFrequency = async (frequency: string) => {
 		if (!conn) return;
 		try {
-			await apiRequest('PATCH', `/api/integrations/crm/${conn.id}`, { sync_enabled: enabled });
+			await apiRequest('PATCH', `/api/integrations/crm/${conn.id}/frequency`, { frequency });
+			toast.success(`Schedule set to ${FREQUENCY_LABELS[frequency]?.toLowerCase() ?? frequency}.`);
 			onChanged();
 		} catch (e) {
 			toast.error((e as Error).message);
+		}
+	};
+
+	const syncNow = async () => {
+		if (!conn) return;
+		setBusy(true);
+		try {
+			await apiRequest('POST', `/api/integrations/crm/${conn.id}/sync`);
+			toast.success('Sync started — this can take a moment.');
+			// Give the worker a beat, then refresh status.
+			setTimeout(onChanged, 1500);
+		} catch (e) {
+			toast.error((e as Error).message);
+		} finally {
+			setBusy(false);
 		}
 	};
 
@@ -146,21 +173,62 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 
 				{connected && conn ? (
 					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<span className="text-sm">Auto-sync</span>
-							<Button
-								variant={conn.sync_enabled ? 'default' : 'outline'}
-								size="sm"
-								className="h-7 text-xs"
-								onClick={() => void toggleSync(!conn.sync_enabled)}
+						{/* Schedule */}
+						<div className="flex items-center justify-between gap-2">
+							<span className="text-sm">Schedule</span>
+							<select
+								className="h-8 rounded-md border bg-background px-2 text-xs"
+								value={conn.sync_frequency}
+								onChange={(e) => void setFrequency(e.target.value)}
 							>
-								{conn.sync_enabled ? 'On' : 'Off'}
+								<option value="off">Manual only</option>
+								<option value="daily">Every day</option>
+								<option value="biweekly">Every 15 days</option>
+								<option value="monthly">Every month</option>
+							</select>
+						</div>
+
+						{/* Last run status */}
+						<SyncStatusLine conn={conn} />
+
+						{!conn.mappings_configured && (
+							<p className="text-xs text-amber-600 dark:text-amber-500">
+								Map your fields before syncing.
+							</p>
+						)}
+
+						<div className="flex gap-2">
+							<Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => setMappingOpen(true)}>
+								<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Fields
+							</Button>
+							<Button
+								size="sm"
+								className="flex-1 h-8 text-xs"
+								onClick={() => void syncNow()}
+								disabled={busy || !conn.mappings_configured || conn.last_sync_status === 'running'}
+							>
+								{busy || conn.last_sync_status === 'running'
+									? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+									: <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+								Sync now
 							</Button>
 						</div>
-						<Button variant="outline" size="sm" className="w-full" onClick={() => void disconnect()} disabled={busy}>
-							{busy ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
+						<button
+							className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+							onClick={() => void disconnect()}
+							disabled={busy}
+						>
 							Disconnect
-						</Button>
+						</button>
+
+						{mappingOpen && (
+							<CrmMappingModal
+								connectionId={conn.id}
+								provider={p.provider}
+								onClose={() => setMappingOpen(false)}
+								onSaved={() => { setMappingOpen(false); onChanged(); }}
+							/>
+						)}
 					</div>
 				) : (
 					<Button
@@ -177,6 +245,26 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 			</CardContent>
 		</Card>
 	);
+}
+
+/** One-line last-run summary for a connection. */
+function SyncStatusLine({ conn }: { conn: CrmConnection }) {
+	const when = conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString() : null;
+	if (conn.last_sync_status === 'running') {
+		return <p className="text-xs text-muted-foreground">Syncing…</p>;
+	}
+	if (conn.last_sync_status === 'error') {
+		return <p className="text-xs text-destructive" title={conn.last_sync_error ?? undefined}>Last sync failed{conn.last_sync_error ? `: ${conn.last_sync_error}` : ''}</p>;
+	}
+	if (conn.last_sync_status === 'success' || conn.last_sync_status === 'partial') {
+		return (
+			<p className="text-xs text-muted-foreground">
+				{conn.last_sync_status === 'partial' ? 'Partially synced' : 'Synced'} {conn.last_sync_row_count ?? 0} row(s){when ? ` · ${when}` : ''}
+				{conn.sync_frequency !== 'off' && conn.next_sync_at ? ` · next ${new Date(conn.next_sync_at).toLocaleDateString()}` : ''}
+			</p>
+		);
+	}
+	return <p className="text-xs text-muted-foreground">Not synced yet.</p>;
 }
 
 /** Intercom identity-verification hash — for users who embed Intercom on their
