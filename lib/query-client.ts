@@ -96,11 +96,11 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
   // Out of credits — pop the global "get more credits" modal and throw a typed
   // error so callers can skip their own toast (the modal carries the message).
   if (res.status === 402) {
-    let detail: { required?: number; available?: number } = {};
+    let detail: { required?: number; available?: number; creditType?: 'ai' | 'integration' } = {};
     let message = "You're out of credits.";
     try {
-      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number } } };
-      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available };
+      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number; credit_type?: 'ai' | 'integration' } } };
+      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available, creditType: body.error.details.credit_type };
       if (body.error?.message) message = body.error.message;
       if (body.error?.code === 'INSUFFICIENT_CREDITS') {
         openCreditExhausted(detail);

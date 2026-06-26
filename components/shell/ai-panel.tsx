@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Send, X, Download, Plus, History } from 'lucide-react';
+import { Send, X, Download, Plus, History, ArrowUpRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import useSWR from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
@@ -38,11 +38,21 @@ interface ToolEntry {
 	preview: string;
 }
 
+/** A suggested navigation the agent proposed (navigate_and_filter / open_entity).
+ *  Rendered as a tappable chip under the message instead of auto-navigating, so
+ *  the app view never changes underneath the user without their click. */
+interface ChatAction {
+	kind: 'navigate' | 'open_entity';
+	label: string;
+	href: string;
+}
+
 interface ChatMessage {
 	role: 'user' | 'assistant';
 	content: string;
 	tools?: ToolEntry[];
 	sources?: CitationSource[];
+	actions?: ChatAction[];
 	plan?: { strategy: string; steps: string[] };
 }
 
@@ -169,16 +179,26 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 			const res = await fetch(`/api/chat/conversations/${id}`, { headers: { ...auth }, credentials: 'include' });
 			if (!res.ok) return;
 			const data = (await res.json()) as {
-				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; ok: boolean; preview: string }> | null }>;
+				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; input?: unknown; ok: boolean; preview: string }> | null }>;
 			};
-			const msgs: ChatMessage[] = data.messages.map((m, idx) => ({
-				role: m.role,
-				content: m.content,
-				tools:
-					m.role === 'assistant' && m.tool_calls
-						? m.tool_calls.map((t, ti) => ({ id: `${idx}-${ti}`, tool: t.tool, ok: t.ok, preview: t.preview }))
-						: undefined,
-			}));
+			const msgs: ChatMessage[] = data.messages.map((m, idx) => {
+				const calls = m.role === 'assistant' ? m.tool_calls ?? undefined : undefined;
+				// Rebuild the suggestion chips from the persisted tool-call inputs so
+				// they survive a reload / reopening a past conversation.
+				const actions: ChatAction[] = [];
+				if (calls) {
+					for (const t of calls) {
+						const a = actionFromTool(t.tool, t.input);
+						if (a && !actions.some((x) => x.href === a.href)) actions.push(a);
+					}
+				}
+				return {
+					role: m.role,
+					content: m.content,
+					tools: calls ? calls.map((t, ti) => ({ id: `${idx}-${ti}`, tool: t.tool, ok: t.ok, preview: t.preview })) : undefined,
+					actions: actions.length > 0 ? actions : undefined,
+				};
+			});
 			setMessages(msgs.length > 0 ? msgs : [GREETING]);
 			setConversationId(id);
 			nextSourceIndexRef.current = 1;
@@ -241,7 +261,11 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 				onToolCall: (id, tool, input) => {
 					setStage(toolStage(tool));
 					addToolToLastAssistant({ id, tool, ok: false, preview: '…' });
-					maybeHandleAction(tool, input);
+					// Navigation/entity intents become tappable suggestion chips (no
+					// surprise auto-nav). Theme/accent still apply immediately.
+					const action = actionFromTool(tool, input);
+					if (action) addActionToLastAssistant(action);
+					else maybeHandleAction(tool, input);
 				},
 				onToolResult: (id, ok, preview, parsed) => {
 					updateLastTool(id, ok, preview);
@@ -341,21 +365,24 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 		});
 	};
 
-	// Client-side action tools: the agent dispatches a navigation/filter intent
-	// and the panel drives the Next router. The main app view updates beneath the
-	// overlay panel. Best-effort — a bad intent never breaks the chat.
+	const addActionToLastAssistant = (action: ChatAction) => {
+		setMessages((prev) => {
+			const next = [...prev];
+			const last = next[next.length - 1];
+			if (last && last.role === 'assistant') {
+				const existing = last.actions ?? [];
+				if (existing.some((a) => a.href === action.href)) return prev; // dedupe identical chips
+				next[next.length - 1] = { ...last, actions: [...existing, action] };
+			}
+			return next;
+		});
+	};
+
+	// Client-side action tools that apply immediately (not navigation): theme +
+	// accent toggles. Navigation/entity intents are surfaced as chips instead.
 	const maybeHandleAction = (tool: string, input: unknown) => {
 		try {
-			if (tool === 'navigate_and_filter') {
-				const p = input as { page?: string; filters?: Record<string, unknown> };
-				if (p?.page) router.push(buildCatalogUrl(p.page, p.filters));
-			} else if (tool === 'open_entity') {
-				const p = input as { entity_type?: string; id_or_slug?: string };
-				if (p?.entity_type && p?.id_or_slug) {
-					const url = entityUrl(p.entity_type, p.id_or_slug);
-					if (url) router.push(url);
-				}
-			} else if (tool === 'set_theme') {
+			if (tool === 'set_theme') {
 				const p = input as { theme?: string };
 				if (p?.theme === 'light' || p?.theme === 'dark') setTheme(p.theme);
 			} else if (tool === 'set_accent') {
@@ -463,6 +490,24 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 						return (
 						<div key={i} className={`ai-msg ${m.role}`}>
 							<MarkdownMessage text={m.content} sources={m.sources ?? []} router={router} />
+							{m.role === 'assistant' && (m.actions?.length ?? 0) > 0 && (
+								<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+									{m.actions!.map((a, ai) => (
+										<button
+											key={ai}
+											onClick={() => { router.push(a.href); onClose(); }}
+											title={a.href}
+											style={{
+												display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12,
+												padding: '6px 11px', borderRadius: 999, cursor: 'pointer',
+												border: '1px solid var(--border-strong)', background: 'var(--bg-2)', color: 'var(--fg)',
+											}}
+										>
+											<ArrowUpRight size={13} style={{ color: 'var(--accent)' }} /> {a.label}
+										</button>
+									))}
+								</div>
+							)}
 							{m.role === 'assistant' && (m.sources?.length ?? 0) > 0 && (
 								<div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
 									<div
@@ -560,7 +605,68 @@ function mergeSources(prev: CitationSource[], next: CitationSource[]): CitationS
  * the find_* plural slug keys (sector_slugs); catalog pages read singular,
  * comma-separated params (sector_slug), so we de-pluralize and join arrays.
  */
-function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefined): string {
+// The agent now uses canonical page names (funding, ma, analytics, …). The
+// legacy logical names (deals, acquisitions) are kept as aliases in case an
+// older message or model still emits them.
+const PAGE_ROUTES: Record<string, string> = {
+	companies: 'companies',
+	investors: 'investors',
+	funding: 'funding',
+	ma: 'ma',
+	ecosystem: 'ecosystem',
+	analytics: 'analytics',
+	// legacy aliases
+	deals: 'funding',
+	acquisitions: 'ma',
+};
+
+const PAGE_LABELS: Record<string, string> = {
+	companies: 'Companies', investors: 'Investors', funding: 'Funding', ma: 'M&A',
+	ecosystem: 'Ecosystem', analytics: 'Analytics', deals: 'Funding', acquisitions: 'M&A',
+};
+const ANALYTICS_TAB_LABELS: Record<string, string> = {
+	overview: 'Overview', monthly: 'Monthly', funding: 'Funding', mna: 'M&A', investors: 'Investors',
+};
+
+/** Friendly chip label for a navigate_and_filter intent. */
+function navActionLabel(page: string, filters?: Record<string, unknown>): string {
+	if (page === 'analytics') {
+		const tab = filters?.tab ? String(filters.tab) : '';
+		return tab && ANALYTICS_TAB_LABELS[tab] ? `View ${ANALYTICS_TAB_LABELS[tab]} charts` : 'Open Analytics';
+	}
+	const name = PAGE_LABELS[page] ?? page;
+	const hasFilters = filters && Object.keys(filters).some((k) => filters[k] != null && filters[k] !== '');
+	return `View ${name}${hasFilters ? ' (filtered)' : ''}`;
+}
+
+/** Title-case a slug for an open_entity chip ("axe-bat" → "Open Axe Bat"). */
+function openEntityLabel(idOrSlug: string): string {
+	const name = idOrSlug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	return `Open ${name}`;
+}
+
+/** Turn a client-side navigation tool call into a suggestion chip, or null. */
+function actionFromTool(tool: string, input: unknown): ChatAction | null {
+	if (tool === 'navigate_and_filter') {
+		const p = input as { page?: string; filters?: Record<string, unknown> };
+		if (!p?.page) return null;
+		const href = buildCatalogUrl(p.page, p.filters);
+		return href ? { kind: 'navigate', label: navActionLabel(p.page, p.filters), href } : null;
+	}
+	if (tool === 'open_entity') {
+		const p = input as { entity_type?: string; id_or_slug?: string };
+		if (!p?.entity_type || !p?.id_or_slug) return null;
+		const href = entityUrl(p.entity_type, p.id_or_slug);
+		return href ? { kind: 'open_entity', label: openEntityLabel(p.id_or_slug), href } : null;
+	}
+	return null;
+}
+
+function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefined): string | null {
+	// Only emit links to known, whitelisted routes — never echo an arbitrary
+	// `page` into the URL (defends against a malformed/unexpected intent).
+	const route = PAGE_ROUTES[page];
+	if (!route) return null;
 	const sp = new URLSearchParams();
 	if (filters) {
 		for (const [k, v] of Object.entries(filters)) {
@@ -571,7 +677,7 @@ function buildCatalogUrl(page: string, filters: Record<string, unknown> | undefi
 		}
 	}
 	const qs = sp.toString();
-	return `/${page}${qs ? `?${qs}` : ''}`;
+	return `/${route}${qs ? `?${qs}` : ''}`;
 }
 
 /** Map an `open_entity` intent to a detail-page URL. */

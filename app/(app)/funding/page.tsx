@@ -22,6 +22,7 @@ import { DealDrawer } from '@/components/ui/deal-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { ExportButton } from '@/components/exports/export-button';
 import { FeatureGate } from '@/components/shell/screen-lock';
 
 /**
@@ -374,7 +375,7 @@ function FundingPageInner() {
 			<PageTitle
 				kicker="Funding Tracker · YTD"
 				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
-				action={<MyListsBtn />}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="deals" search={filterState.search} /><MyListsBtn /></div>}
 			/>
 
 			{/* All four stat cards use .card.feature per design */}
