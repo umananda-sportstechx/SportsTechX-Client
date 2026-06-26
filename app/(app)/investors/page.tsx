@@ -21,6 +21,7 @@ import { SortHeader, sortToParam, paramToSort, type SortState } from '@/componen
 import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
+import { ExportButton } from '@/components/exports/export-button';
 
 interface InvestorRow {
 	id: string;
@@ -290,7 +291,7 @@ function InvestorsPageInner() {
 				kicker={`Capital · ${total.toLocaleString()} firms`}
 				title="Investors"
 				sub="The capital markets behind sports tech — VCs, corporate venture, PE and accelerators."
-				action={<button className="btn"><Plus size={12} /> Add to watchlist</button>}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="investors" search={filterState.search} /><button className="btn"><Plus size={12} /> Add to watchlist</button></div>}
 			/>
 
 			<div className="flt-layout">

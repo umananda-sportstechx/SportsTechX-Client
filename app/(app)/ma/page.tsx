@@ -21,6 +21,7 @@ import {
 } from '@/lib/location-facets';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { ExportButton } from '@/components/exports/export-button';
 import { FeatureGate } from '@/components/shell/screen-lock';
 
 /**
@@ -459,7 +460,7 @@ function MnaPageInner() {
 			<PageTitle
 				kicker="M&A Tracker · all-time"
 				title={`${totalAllTime.toLocaleString()} acquisitions tracked`}
-				action={<MyListsBtn />}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="acquisitions" search={filterState.search} /><MyListsBtn /></div>}
 			/>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>

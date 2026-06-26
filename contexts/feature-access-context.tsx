@@ -28,12 +28,17 @@ export interface FeatureAccessResult {
   userType: UserType;
   requiredTier: UserType | null;
   isLoading: boolean;
+  /** The feature matrix failed to load (and there's no cached copy). Callers
+   *  should offer a retry rather than render a paywall or blank screen. */
+  error: boolean;
 }
 
 interface FeatureAccessContextType {
   checkAccess: (slug: string) => FeatureAccessResult;
   isLoading: boolean;
   features: Feature[];
+  /** Re-fetch the feature matrix (used by the error/retry UI). */
+  reload: () => void;
 }
 
 const FeatureAccessContext = createContext<FeatureAccessContextType | null>(null);
@@ -45,13 +50,18 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   const { isAdmin, isLoading: profileLoading } = useIsAdmin();
 
   const enabled = sessionValid && !authLoading;
-  const { data, isLoading } = useSWR<Feature[]>(enabled ? qk.features() : null, {
-    // Feature matrix barely changes — keep deduped for 30 min, no auto-revalidate.
+  const { data, isLoading, error, mutate } = useSWR<Feature[]>(enabled ? qk.features() : null, {
+    // Feature matrix barely changes — keep deduped for 30 min and don't refetch
+    // on window focus. It MUST still fetch on mount though: a previous
+    // `revalidateOnMount:false` meant a cold cache (a hard load / refresh
+    // directly on a gated page like /analytics) never fetched the matrix, so
+    // every feature read as "not found" and even pro users hit a paywall.
     dedupingInterval: 30 * 60_000,
     revalidateOnFocus: false,
-    revalidateOnMount: false,
   });
   const features = data ?? [];
+  // True only when the fetch failed AND we have no cached matrix to fall back on.
+  const matrixError = !!error && features.length === 0;
 
   // Per-user overrides: admins can grant individual features outside the tier
   // matrix (e.g. give a free user CSV export). The server returns ONLY active
@@ -76,18 +86,27 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
   }, [features]);
 
   const checkAccess = (slug: string): FeatureAccessResult => {
-    if (isAdmin) return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false };
-    if (profileLoading || isLoading) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true };
+    if (isAdmin) return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false, error: false };
+    if (profileLoading || isLoading) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true, error: false };
+
+    // Matrix fetch failed and there's no cached copy → surface an error so the
+    // caller can offer a retry, rather than blanking or showing a wrong paywall.
+    if (matrixError) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false, error: true };
+
+    // Matrix not available yet (cold cache / in-flight): treat as still-loading
+    // rather than "feature absent". Showing a paywall because we simply don't
+    // have the matrix would wrongly lock entitled users (this broke pro /analytics).
+    if (features.length === 0) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true, error: false };
 
     const normalized = slug.replace(/-/g, '_');
     const feature = featureMap.get(normalized) ?? features.find(f => f.slug === normalized || f.slug.replace(/_/g, '-') === slug);
 
-    if (!feature) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false };
+    if (!feature) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false, error: false };
 
     // Per-user override wins regardless of tier. Lets admins unlock individual
     // features for specific users without bumping their whole tier.
     if (grantedSlugs.has(feature.slug)) {
-      return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false };
+      return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false, error: false };
     }
 
     let hasAccess = false;
@@ -105,11 +124,11 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
       if (!hasAccess) requiredTier = feature.growth ? 'growth' : 'pro';
     }
 
-    return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false };
+    return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false, error: false };
   };
 
   return (
-    <FeatureAccessContext.Provider value={{ checkAccess, isLoading, features }}>
+    <FeatureAccessContext.Provider value={{ checkAccess, isLoading, features, reload: () => { void mutate(); } }}>
       {children}
     </FeatureAccessContext.Provider>
   );

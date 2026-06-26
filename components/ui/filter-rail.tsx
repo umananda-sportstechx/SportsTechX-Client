@@ -487,9 +487,11 @@ function FRGroup({
 	/** Entitlement result for `facet.gate`, or null when the facet is ungated. */
 	access: FeatureAccessResult | null;
 }) {
-	// Gated facet the user can't (yet) access → lock teaser instead of the
-	// control. `isLocked` is also true while the matrix is still loading, so the
-	// real control only appears once entitlement is confirmed.
+	// Gated facet: while entitlement is unknown (matrix loading or failed to
+	// load) render nothing — showing a lock teaser then flipping it once the
+	// matrix resolves caused a brief wrong-lock flash for entitled users.
+	if (facet.gate && (access?.isLoading || access?.error)) return null;
+	// Confirmed locked → lock teaser instead of the control.
 	if (facet.gate && access?.isLocked) {
 		return <LockedGroup label={facet.label} requiredTier={access.requiredTier} />;
 	}

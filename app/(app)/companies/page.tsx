@@ -19,6 +19,7 @@ import {
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
 import { CompanyDrawer } from '@/components/ui/company-drawer';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
+import { ExportButton } from '@/components/exports/export-button';
 import { WatchlistPicker } from '@/components/ui/watchlist-picker';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
@@ -468,6 +469,7 @@ export default function CompaniesPage() {
 				title="Companies"
 				action={
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+						<ExportButton entity="companies" search={filterState.search} />
 						<MyListsBtn />
 						<button
 							className="btn"

@@ -50,6 +50,13 @@ function AnalyticsPageInner() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [tab]);
 
+	// Sync tab FROM the URL too, so a deep link (e.g. the chatbot opening
+	// ?tab=funding while the user is already on /analytics) switches the tab.
+	useEffect(() => {
+		const t = (params.get('tab') as Tab) ?? 'overview';
+		setTab((cur) => (cur === t ? cur : t));
+	}, [params]);
+
 	return (
 		<Page>
 			<PageTitle

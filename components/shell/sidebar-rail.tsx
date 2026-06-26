@@ -211,7 +211,9 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 							// Tier badge: only when the matrix has loaded and the item is
 							// locked for the current plan. Label = the tier that unlocks it.
 							const access = item.slug && !accessLoading ? checkAccess(item.slug) : null;
-							const locked = !!access?.isLocked;
+							// Only show locked once entitlement is actually known — not while
+							// the matrix is still resolving or failed to load (avoids a flash).
+							const locked = !!access && !access.isLoading && !access.error && access.isLocked;
 							const tierBadge = locked && access?.requiredTier
 								? access.requiredTier.toUpperCase()
 								: null;

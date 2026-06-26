@@ -1,66 +1,277 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Copy, Check, ExternalLink, MessageSquare, Database, Building2, FileText } from 'lucide-react';
+import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug, RefreshCw, Settings2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { apiRequest } from '@/lib/query-client';
 import { PageHeader } from '@/components/ui/page-header';
+import { CrmMappingModal } from '@/components/integrations/crm-mapping-modal';
 
-interface IntercomHashResponse {
-	hash: string;
-	user_id: string;
+/**
+ * CRM connections — the user-facing surface for connecting a CRM and syncing
+ * exportable data to it. Each exported/synced row costs 1 export credit.
+ *
+ * Providers come from GET /api/integrations/crm with a `configured` flag: until a
+ * provider's OAuth app credentials are supplied server-side, its card shows
+ * "Coming soon" and the Connect button is disabled.
+ */
+
+interface CrmConnection {
+	id: string;
+	provider: string;
+	status: 'connected' | 'disconnected' | 'error' | 'expired' | 'pending';
+	workspace_name: string | null;
+	sync_enabled: boolean;
+	sync_frequency: 'off' | 'daily' | 'biweekly' | 'monthly';
+	next_sync_at: string | null;
+	mappings_configured: boolean;
+	last_sync_at: string | null;
+	last_sync_status: 'running' | 'success' | 'partial' | 'error' | null;
+	last_sync_error: string | null;
+	last_sync_row_count: number | null;
+	created_at: string;
 }
 
-interface IntegrationCardData {
-	name: string;
-	icon: React.ComponentType<{ className?: string }>;
+const FREQUENCY_LABELS: Record<string, string> = {
+	off: 'Manual only', daily: 'Every day', biweekly: 'Every 15 days', monthly: 'Every month',
+};
+interface ProviderStatus {
+	provider: string;
+	label: string;
 	description: string;
-	docsUrl: string;
-	purpose: string;
-	/** Whether it has a user-facing token / hash to display */
-	hasUserToken?: boolean;
+	configured: boolean;
+	connection: CrmConnection | null;
 }
 
-const INTEGRATIONS: IntegrationCardData[] = [
-	{
-		name: 'Intercom',
-		icon: MessageSquare,
-		description: 'Authenticated Messenger widget — uses an HMAC of your user ID for identity verification.',
-		docsUrl: 'https://developers.intercom.com/installing-intercom/web/identity-verification/',
-		purpose: 'In-app support chat',
-		hasUserToken: true,
-	},
-	{
-		name: 'Apollo',
-		icon: Database,
-		description: 'Investor + organization enrichment. Run by background workers; no user-facing config.',
-		docsUrl: 'https://docs.apollo.io/reference/people-search',
-		purpose: 'Investor data enrichment',
-	},
-	{
-		name: 'Attio',
-		icon: Building2,
-		description: 'CRM sync — companies pushed to Attio when their data changes. Background-only.',
-		docsUrl: 'https://developers.attio.com/',
-		purpose: 'CRM sync',
-	},
-	{
-		name: 'Notion',
-		icon: FileText,
-		description: 'Pulls structured data from a Notion database into the platform.',
-		docsUrl: 'https://developers.notion.com/',
-		purpose: 'Content ingestion',
-	},
-];
+interface IntercomHashResponse { hash: string; user_id: string }
 
 export default function IntegrationsPage() {
-	const [copied, setCopied] = useState(false);
+	const params = useSearchParams();
+	const { data: providers, isLoading, mutate } = useSWR<ProviderStatus[]>(qk.integrations.crm(), {
+		dedupingInterval: 30_000,
+	});
 
-	const { data: intercom, isLoading: intercomLoading, error: intercomError } = useSWR<IntercomHashResponse>(
+	// Surface the OAuth redirect outcome (?crm=connected_x | error_x) as a toast.
+	useEffect(() => {
+		const crm = params.get('crm');
+		if (!crm) return;
+		if (crm.startsWith('connected_')) toast.success(`Connected ${crm.replace('connected_', '')}.`);
+		else if (crm.startsWith('error')) toast.error('Could not complete the connection. Please try again.');
+		void mutate();
+		// Clean the query string so the toast doesn't re-fire on refresh.
+		window.history.replaceState(null, '', '/integrations');
+	}, [params, mutate]);
+
+	return (
+		<div className="p-4 md:p-8 max-w-5xl mx-auto">
+			<PageHeader
+				title="CRM connections"
+				subtitle="Connect a CRM to sync companies, deal flow, investors and more. Each synced row costs 1 export credit."
+			/>
+
+			<div className="grid gap-4 md:grid-cols-2">
+				{isLoading && [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+				{providers?.map((p) => (
+					<ProviderCard key={p.provider} p={p} onChanged={() => void mutate()} />
+				))}
+			</div>
+
+			<div className="mt-8">
+				<IntercomSection />
+			</div>
+		</div>
+	);
+}
+
+function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => void }) {
+	const [busy, setBusy] = useState(false);
+	const [mappingOpen, setMappingOpen] = useState(false);
+	const conn = p.connection;
+	const connected = conn?.status === 'connected';
+
+	const connect = async () => {
+		setBusy(true);
+		try {
+			const res = await apiRequest('POST', `/api/integrations/crm/${p.provider}/connect`);
+			const { authorizeUrl } = (await res.json()) as { authorizeUrl: string };
+			window.location.href = authorizeUrl;
+		} catch (e) {
+			toast.error((e as Error).message || 'Could not start the connection.');
+			setBusy(false);
+		}
+	};
+
+	const disconnect = async () => {
+		if (!conn) return;
+		setBusy(true);
+		try {
+			await apiRequest('DELETE', `/api/integrations/crm/${conn.id}`);
+			toast.success(`Disconnected ${p.label}.`);
+			onChanged();
+		} catch (e) {
+			toast.error((e as Error).message);
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const setFrequency = async (frequency: string) => {
+		if (!conn) return;
+		try {
+			await apiRequest('PATCH', `/api/integrations/crm/${conn.id}/frequency`, { frequency });
+			toast.success(`Schedule set to ${FREQUENCY_LABELS[frequency]?.toLowerCase() ?? frequency}.`);
+			onChanged();
+		} catch (e) {
+			toast.error((e as Error).message);
+		}
+	};
+
+	const syncNow = async () => {
+		if (!conn) return;
+		setBusy(true);
+		try {
+			await apiRequest('POST', `/api/integrations/crm/${conn.id}/sync`);
+			toast.success('Sync started — this can take a moment.');
+			// Give the worker a beat, then refresh status.
+			setTimeout(onChanged, 1500);
+		} catch (e) {
+			toast.error((e as Error).message);
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	return (
+		<Card className="flex flex-col">
+			<CardHeader>
+				<div className="flex items-start justify-between gap-3">
+					<div className="flex items-center gap-3">
+						<div className="bg-muted rounded-lg p-2"><Plug className="h-5 w-5" /></div>
+						<div>
+							<CardTitle className="text-base">{p.label}</CardTitle>
+							<CardDescription className="text-xs">
+								{connected ? (conn?.workspace_name ?? 'Connected') : p.configured ? 'Not connected' : 'Coming soon'}
+							</CardDescription>
+						</div>
+					</div>
+					{connected
+						? <Badge variant="success" className="text-xs">Connected</Badge>
+						: p.configured
+							? <Badge variant="secondary" className="text-xs">Available</Badge>
+							: <Badge variant="outline" className="text-xs">Soon</Badge>}
+				</div>
+			</CardHeader>
+			<CardContent className="flex-1 flex flex-col">
+				<p className="text-sm text-muted-foreground mb-4 flex-1">{p.description}</p>
+
+				{connected && conn ? (
+					<div className="space-y-3">
+						{/* Schedule */}
+						<div className="flex items-center justify-between gap-2">
+							<span className="text-sm">Schedule</span>
+							<select
+								className="h-8 rounded-md border bg-background px-2 text-xs"
+								value={conn.sync_frequency}
+								onChange={(e) => void setFrequency(e.target.value)}
+							>
+								<option value="off">Manual only</option>
+								<option value="daily">Every day</option>
+								<option value="biweekly">Every 15 days</option>
+								<option value="monthly">Every month</option>
+							</select>
+						</div>
+
+						{/* Last run status */}
+						<SyncStatusLine conn={conn} />
+
+						{!conn.mappings_configured && (
+							<p className="text-xs text-amber-600 dark:text-amber-500">
+								Map your fields before syncing.
+							</p>
+						)}
+
+						<div className="flex gap-2">
+							<Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => setMappingOpen(true)}>
+								<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Fields
+							</Button>
+							<Button
+								size="sm"
+								className="flex-1 h-8 text-xs"
+								onClick={() => void syncNow()}
+								disabled={busy || !conn.mappings_configured || conn.last_sync_status === 'running'}
+							>
+								{busy || conn.last_sync_status === 'running'
+									? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+									: <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+								Sync now
+							</Button>
+						</div>
+						<button
+							className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+							onClick={() => void disconnect()}
+							disabled={busy}
+						>
+							Disconnect
+						</button>
+
+						{mappingOpen && (
+							<CrmMappingModal
+								connectionId={conn.id}
+								provider={p.provider}
+								onClose={() => setMappingOpen(false)}
+								onSaved={() => { setMappingOpen(false); onChanged(); }}
+							/>
+						)}
+					</div>
+				) : (
+					<Button
+						size="sm"
+						className="w-full"
+						onClick={() => void connect()}
+						disabled={!p.configured || busy}
+						title={p.configured ? undefined : 'Coming soon'}
+					>
+						{busy ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
+						{p.configured ? `Connect ${p.label}` : 'Coming soon'}
+					</Button>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
+/** One-line last-run summary for a connection. */
+function SyncStatusLine({ conn }: { conn: CrmConnection }) {
+	const when = conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString() : null;
+	if (conn.last_sync_status === 'running') {
+		return <p className="text-xs text-muted-foreground">Syncing…</p>;
+	}
+	if (conn.last_sync_status === 'error') {
+		return <p className="text-xs text-destructive" title={conn.last_sync_error ?? undefined}>Last sync failed{conn.last_sync_error ? `: ${conn.last_sync_error}` : ''}</p>;
+	}
+	if (conn.last_sync_status === 'success' || conn.last_sync_status === 'partial') {
+		return (
+			<p className="text-xs text-muted-foreground">
+				{conn.last_sync_status === 'partial' ? 'Partially synced' : 'Synced'} {conn.last_sync_row_count ?? 0} row(s){when ? ` · ${when}` : ''}
+				{conn.sync_frequency !== 'off' && conn.next_sync_at ? ` · next ${new Date(conn.next_sync_at).toLocaleDateString()}` : ''}
+			</p>
+		);
+	}
+	return <p className="text-xs text-muted-foreground">Not synced yet.</p>;
+}
+
+/** Intercom identity-verification hash — for users who embed Intercom on their
+ *  own site. Kept distinct from CRM connections (it's a developer helper). */
+function IntercomSection() {
+	const [copied, setCopied] = useState(false);
+	const { data: intercom, isLoading, error } = useSWR<IntercomHashResponse>(
 		qk.integrations.intercomHash(),
 		{ dedupingInterval: 30 * 60_000, shouldRetryOnError: false },
 	);
@@ -72,81 +283,45 @@ export default function IntegrationsPage() {
 	};
 
 	return (
-		<div className="p-4 md:p-8 max-w-5xl mx-auto">
-			<PageHeader
-				title="Integrations"
-				subtitle="Status and configuration for external services connected to your account"
-			/>
-
-			<div className="grid gap-4 md:grid-cols-2">
-				{INTEGRATIONS.map((integration) => {
-					const Icon = integration.icon;
-					return (
-						<Card key={integration.name} className="flex flex-col">
-							<CardHeader>
-								<div className="flex items-start justify-between gap-3">
-									<div className="flex items-center gap-3">
-										<div className="bg-muted rounded-lg p-2">
-											<Icon className="h-5 w-5" />
-										</div>
-										<div>
-											<CardTitle className="text-base">{integration.name}</CardTitle>
-											<CardDescription className="text-xs">{integration.purpose}</CardDescription>
-										</div>
-									</div>
-									<Badge variant="success" className="text-xs">Active</Badge>
-								</div>
-							</CardHeader>
-							<CardContent className="flex-1 flex flex-col">
-								<p className="text-sm text-muted-foreground mb-4 flex-1">{integration.description}</p>
-								{integration.hasUserToken && integration.name === 'Intercom' && (
-									<div className="bg-muted/50 rounded p-3 mb-4 border">
-										<p className="text-xs text-muted-foreground mb-1">Your Intercom user_hash:</p>
-										{intercomLoading ? (
-											<Skeleton className="h-4 w-full" />
-										) : intercomError ? (
-											<p className="text-xs text-muted-foreground italic">Sign in required.</p>
-										) : intercom ? (
-											<>
-												<p className="font-mono text-xs break-all mb-2">{intercom.hash}</p>
-												<Button
-													size="sm"
-													variant="outline"
-													className="gap-2 h-7 text-xs"
-													onClick={() => copyHash(intercom.hash)}
-												>
-													{copied ? <><Check className="h-3 w-3" />Copied</> : <><Copy className="h-3 w-3" />Copy hash</>}
-												</Button>
-											</>
-										) : null}
-									</div>
-								)}
-								<Button variant="outline" size="sm" asChild className="w-full">
-									<a href={integration.docsUrl} target="_blank" rel="noopener noreferrer">
-										<ExternalLink className="h-3.5 w-3.5 mr-2" />Docs
-									</a>
-								</Button>
-							</CardContent>
-						</Card>
-					);
-				})}
-			</div>
-
-			<Card className="mt-6">
-				<CardHeader>
-					<CardTitle className="text-base">Setting up Intercom</CardTitle>
-					<CardDescription>
-						If you embed the Intercom Messenger on your own site, use the user_hash above for Identity Verification.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<pre className="bg-muted rounded p-3 text-xs overflow-x-auto"><code>{`window.Intercom('boot', {
+		<Card>
+			<CardHeader>
+				<div className="flex items-center gap-3">
+					<div className="bg-muted rounded-lg p-2"><MessageSquare className="h-5 w-5" /></div>
+					<div>
+						<CardTitle className="text-base">Intercom identity verification</CardTitle>
+						<CardDescription className="text-xs">For embedding the Intercom Messenger on your own site</CardDescription>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				<div className="bg-muted/50 rounded p-3 border">
+					<p className="text-xs text-muted-foreground mb-1">Your Intercom user_hash:</p>
+					{isLoading ? (
+						<Skeleton className="h-4 w-full" />
+					) : error ? (
+						<p className="text-xs text-muted-foreground italic">Sign in required.</p>
+					) : intercom ? (
+						<>
+							<p className="font-mono text-xs break-all mb-2">{intercom.hash}</p>
+							<Button size="sm" variant="outline" className="gap-2 h-7 text-xs" onClick={() => copyHash(intercom.hash)}>
+								{copied ? <><Check className="h-3 w-3" />Copied</> : <><Copy className="h-3 w-3" />Copy hash</>}
+							</Button>
+							<pre className="bg-muted rounded p-3 text-xs overflow-x-auto mt-3"><code>{`window.Intercom('boot', {
   app_id: 'YOUR_APP_ID',
-  user_id: '${intercom?.user_id ?? '<your-user-id>'}',
-  user_hash: '${intercom?.hash?.slice(0, 24) ?? '<see hash above>'}…',
+  user_id: '${intercom.user_id}',
+  user_hash: '${intercom.hash.slice(0, 24)}…',
 });`}</code></pre>
-				</CardContent>
-			</Card>
-		</div>
+							<a
+								href="https://developers.intercom.com/installing-intercom/web/identity-verification/"
+								target="_blank" rel="noopener noreferrer"
+								className="inline-flex items-center text-xs text-muted-foreground hover:underline mt-3"
+							>
+								<ExternalLink className="h-3 w-3 mr-1" /> Intercom docs
+							</a>
+						</>
+					) : null}
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

@@ -8,6 +8,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
 import { Page, Flag, Tag, Empty, PageTitle } from '@/components/ui/atoms';
+import { ExportButton } from '@/components/exports/export-button';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
@@ -159,6 +160,13 @@ export default function EcosystemPage() {
 				kicker={`Ecosystem · ${total.toLocaleString()} entities`}
 				title="Ecosystem"
 				sub="Leagues, federations, teams, brands, media and agencies across the sports-tech landscape."
+				action={
+					// Export targets the programs dataset specifically; only offer it
+					// when the user has narrowed the page to programs.
+					(filterState.entity_type as string[] | undefined)?.join(',') === 'program'
+						? <ExportButton entity="programs" search={filterState.search} />
+						: undefined
+				}
 			/>
 
 			<div className="flt-layout">

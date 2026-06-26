@@ -217,12 +217,21 @@ export const qk = {
     detail: (id: string) => [`/api/deck-analysis/${id}`] as const,
   },
 
+  // ── Data export (CSV/XLSX + CRM) ────────────────────────────────────────
+  exports: {
+    columns: (entity: string) => [`/api/exports/${entity}/columns`] as const,
+    count: (entity: string, search?: string | null) =>
+      [`/api/exports/${entity}/count`, { search: search || undefined }] as const,
+  },
+
   // ── Developer (admin) ───────────────────────────────────────────────────
   apiKeys: {
     list: () => ['/api/me/api-keys'] as const,
   },
   integrations: {
     intercomHash: () => ['/api/integrations/intercom/hash'] as const,
+    crm: () => ['/api/integrations/crm'] as const,
+    crmMappings: (id: string) => [`/api/integrations/crm/${id}/mappings`] as const,
   },
 
   // ── Admin ───────────────────────────────────────────────────────────────
