@@ -194,7 +194,10 @@ export const qk = {
 
   // ── Credits ─────────────────────────────────────────────────────────────
   credits: {
-    balance: (type: 'ai' | 'integration' = 'ai') => ['/api/credits/balance', type] as const,
+    // type MUST go through as an object so buildUrl emits `?type=…`; a bare
+    // string is dropped by buildUrl, which made every call resolve to the
+    // default ('ai') — so integration ("export") balances never loaded.
+    balance: (type: 'ai' | 'integration' = 'ai') => ['/api/credits/balance', { type }] as const,
     ledger: (type: 'ai' | 'integration', cursor?: string, limit = 50) =>
       ['/api/credits/ledger', { type, cursor, limit }] as const,
   },
