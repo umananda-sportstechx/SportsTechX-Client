@@ -10,9 +10,9 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile, type AccountType } from '@/hooks/use-user-profile';
+import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { usePersona, type Persona } from '@/contexts/persona-context';
 import { Page, Tag, Empty, PageTitle } from '@/components/ui/atoms';
-import { CreditMeter } from '@/components/shell/credit-meter';
 import { ImageInput } from '@/components/ui/image-input';
 
 type Tab = 'profile' | 'appearance' | 'notifications' | 'workspace' | 'api' | 'billing';
@@ -658,6 +658,31 @@ function ApiTab() {
 	);
 }
 
+/** One credit pool's balance: big total + monthly-allowance / top-up breakdown. */
+function CreditBalanceCard({ type, label, hint }: { type: 'ai' | 'integration'; label: string; hint: string }) {
+	const { balance, isLoading } = useCreditBalance(type);
+	const total = balance?.total_available ?? 0;
+	const grant = balance?.monthly_grant ?? 0;
+	const topup = balance?.topup_balance ?? 0;
+	const monthly = balance?.monthly_balance ?? 0;
+	return (
+		<div className="card" style={{ padding: 'var(--space-4)', background: 'var(--bg-2)' }}>
+			<div className="co-stat-label">{label}</div>
+			<div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, lineHeight: 1.1, marginTop: 4 }}>
+				{isLoading ? '—' : total.toLocaleString()}
+			</div>
+			<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 6 }}>
+				{grant > 0
+					? <>{monthly.toLocaleString()} / {grant.toLocaleString()} monthly{topup > 0 ? ` · +${topup.toLocaleString()} top-up` : ''}</>
+					: topup > 0
+						? <>{topup.toLocaleString()} top-up (never expires)</>
+						: 'No allowance on your plan'}
+			</div>
+			<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 2 }}>{hint}</div>
+		</div>
+	);
+}
+
 function BillingTab() {
 	const { data: profile } = useUserProfile();
 	const { mutate } = useSWRConfig();
@@ -742,9 +767,10 @@ function BillingTab() {
 					</div>
 				)}
 			</div>
-			<div className="co-stat-label" style={{ marginBottom: 8 }}>Credits</div>
-			<div style={{ marginBottom: 16 }}>
-				<CreditMeter variant="card" />
+			<div className="co-stat-label" style={{ marginBottom: 8 }}>Credit balances</div>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+				<CreditBalanceCard type="ai" label="AI credits" hint="Chat, deck analysis & AI features" />
+				<CreditBalanceCard type="integration" label="Export credits" hint="Data exports & CRM syncs · 1 per row" />
 			</div>
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>Recent invoices</div>
 			{isFree ? (
