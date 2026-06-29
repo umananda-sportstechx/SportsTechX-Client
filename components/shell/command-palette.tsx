@@ -146,7 +146,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 				<div className="cmd-list">
 					{items.length === 0 && (
 						<div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-muted)', fontSize: 13 }}>
-							{q ? 'No matches' : 'Type to search across companies, investors, and pages'}
+							{!q
+								? 'Type to search across companies, investors, and pages'
+								: q.trim().length < 3
+									? 'Keep typing — search needs at least 3 characters'
+									: 'No matches'}
 						</div>
 					)}
 					{items.map((item, i) => (
