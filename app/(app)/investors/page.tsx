@@ -59,7 +59,6 @@ const COMMON_COUNTRIES = [
 interface RoundRef { id: string; name: string; slug: string }
 interface SectorRef { id: string; name: string; slug: string }
 interface SportRef { id: string; name: string; slug: string }
-interface TechTagRef { id: string; name: string; slug: string }
 
 const CATEGORY_OPTIONS = [
 	{ value: 'venture_capital', label: 'VC' },
@@ -113,11 +112,6 @@ function InvestorsPageInner() {
 	});
 	const sportList = Array.isArray(sportsResp) ? sportsResp : (sportsResp?.data ?? []);
 
-	const { data: techTagsResp } = useSWR<{ data: TechTagRef[] } | TechTagRef[]>(qk.reference.techTags(), {
-		dedupingInterval: 60 * 60_000,
-	});
-	const techTags = Array.isArray(techTagsResp) ? techTagsResp : (techTagsResp?.data ?? []);
-
 	const { data: locFacets } = useSWR<LocationFacets>(qk.reference.locationFacets(), {
 		dedupingInterval: 60 * 60_000,
 	});
@@ -165,15 +159,6 @@ function InvestorsPageInner() {
 			maxHeight: 240,
 		},
 		{
-			key: 'tech_tag_slug',
-			label: 'Tech tags',
-			kind: 'multi',
-			section: 'Thesis',
-			gate: 'advanced_filters',
-			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
-			maxHeight: 240,
-		},
-		{
 			key: 'year_launched',
 			label: 'Year launched',
 			kind: 'range',
@@ -191,7 +176,7 @@ function InvestorsPageInner() {
 			max: 50,
 			step: 1,
 		},
-	], [roundList, sectorList, sportList, techTags, locFacets, currentYear]);
+	], [roundList, sectorList, sportList, locFacets, currentYear]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });

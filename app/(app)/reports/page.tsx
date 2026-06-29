@@ -19,6 +19,7 @@ interface Report {
 	published_at?: string | null;
 	cover_url?: string | null;
 	is_free?: boolean;
+	has_pro_version?: boolean;     // true → report has a Pro edition; show a PRO badge
 	drive_link?: string | null;
 	is_published?: boolean;       // false → admin-only visibility; show DRAFT chip on the card
 }
@@ -143,6 +144,15 @@ export default function ReportsPage() {
 							className="report-cover"
 							style={{ background: coverColor(featuredApi, 0), height: 320, position: 'relative' }}
 						>
+							{featuredApi.has_pro_version && (
+								<span style={{
+									position: 'absolute', top: 12, left: 12,
+									padding: '4px 10px', background: '#d97706', color: '#fff',
+									fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+								}}>
+									PRO
+								</span>
+							)}
 							{featuredApi.is_published === false && (
 								<span style={{
 									position: 'absolute', top: 12, right: 12,
@@ -217,6 +227,15 @@ export default function ReportsPage() {
 								}}
 							>
 								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200, position: 'relative' }}>
+									{r.has_pro_version && (
+										<span style={{
+											position: 'absolute', top: 8, left: 8,
+											padding: '3px 7px', background: '#d97706', color: '#fff',
+											fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+										}}>
+											PRO
+										</span>
+									)}
 									{r.is_published === false && (
 										<span style={{
 											position: 'absolute', top: 8, right: 8,

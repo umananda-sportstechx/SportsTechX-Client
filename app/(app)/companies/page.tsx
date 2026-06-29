@@ -140,7 +140,9 @@ export default function CompaniesPage() {
 		return {
 			tops: sectorList.filter((s) => depthOf(s) === 0),
 			subs: sectorList.filter((s) => depthOf(s) === 1),
-			subSubs: sectorList.filter((s) => depthOf(s) >= 2),
+			// Exactly depth 2 — `>= 2` previously folded depth-3+ in here, so the
+			// Sub-sector and Sub-sub-sector lists overlapped (BUG-005/013).
+			subSubs: sectorList.filter((s) => depthOf(s) === 2),
 			expand,
 		};
 	}, [sectorList]);
@@ -180,7 +182,6 @@ export default function CompaniesPage() {
 		{ key: 'favorites', label: 'Favorites', kind: 'bool' },
 		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
 		{ key: 'is_actively_raising', label: 'Actively raising', kind: 'bool' },
-		{ key: 'is_unicorn', label: 'Unicorn', kind: 'bool' },
 		{
 			key: 'sector_slug',
 			label: 'Sector',
@@ -205,19 +206,6 @@ export default function CompaniesPage() {
 			gate: 'advanced_filters',
 			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 260,
-		},
-		{
-			key: 'business_model',
-			label: 'Business model',
-			kind: 'multi',
-			section: 'Business details',
-			options: () => [
-				{ value: 'b2b', label: 'B2B' },
-				{ value: 'b2c', label: 'B2C' },
-				{ value: 'b2b2c', label: 'B2B2C' },
-				{ value: 'd2c', label: 'D2C' },
-				{ value: 'b2g', label: 'B2G' },
-			],
 		},
 		{
 			key: 'last_round_type',
@@ -253,7 +241,6 @@ export default function CompaniesPage() {
 			max: 250,
 			step: 5,
 		},
-		{ key: 'unfunded', label: 'Unfunded only', kind: 'bool' },
 		{
 			key: 'country',
 			label: 'Country',
