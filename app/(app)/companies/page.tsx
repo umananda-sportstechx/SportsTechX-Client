@@ -26,6 +26,7 @@ import { CompareToggle } from '@/components/compare-toggle';
 import { VerifyBanner } from '@/components/get-verified/verify-banner';
 import { ExplorerUpgradeBanner, ExplorerLockedFooter, EXPLORER_CAP } from '@/components/ui/explorer-upgrade';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
+import { useSectorTiers, expandSectorSelection } from '@/hooks/use-sector-tiers';
 
 interface RoundType { id: string; name: string; slug: string }
 interface FavoriteCompany { company_id: string }
@@ -103,49 +104,8 @@ export default function CompaniesPage() {
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
 
-	// Split the flat sector list into its three hierarchy tiers (pillar →
-	// sub-sector → sub-sub-sector) by walking `parent_id`, and provide a
-	// `expand(slug)` that returns a slug plus all descendant slugs — so picking
-	// a pillar/sub-sector filters every leaf beneath it (the backend matches
-	// `company.sector_id` by slug, which is otherwise leaf-only).
-	const sectorTiers = useMemo(() => {
-		const byId = new Map(sectorList.map((s) => [s.id, s]));
-		const depthOf = (s: SectorRef) => {
-			let d = 0; let cur: SectorRef | undefined = s;
-			while (cur?.parent_id && d < 6) { d++; cur = byId.get(cur.parent_id); }
-			return d;
-		};
-		const childrenByParent = new Map<string, string[]>();
-		sectorList.forEach((s) => {
-			if (!s.parent_id) return;
-			const arr = childrenByParent.get(s.parent_id) ?? [];
-			arr.push(s.id);
-			childrenByParent.set(s.parent_id, arr);
-		});
-		const bySlug = new Map(sectorList.map((s) => [s.slug, s]));
-		const expand = (slug: string): string[] => {
-			const root = bySlug.get(slug);
-			if (!root) return [slug];
-			const out = [slug];
-			const stack = [root.id];
-			while (stack.length) {
-				const id = stack.pop()!;
-				for (const cid of childrenByParent.get(id) ?? []) {
-					const c = byId.get(cid);
-					if (c) { out.push(c.slug); stack.push(cid); }
-				}
-			}
-			return out;
-		};
-		return {
-			tops: sectorList.filter((s) => depthOf(s) === 0),
-			subs: sectorList.filter((s) => depthOf(s) === 1),
-			// Exactly depth 2 — `>= 2` previously folded depth-3+ in here, so the
-			// Sub-sector and Sub-sub-sector lists overlapped (BUG-005/013).
-			subSubs: sectorList.filter((s) => depthOf(s) === 2),
-			expand,
-		};
-	}, [sectorList]);
+	// Shared three-tier split (pillar → sub-sector → sub-sub-sector) + `expand`.
+	const sectorTiers = useSectorTiers(sectorList);
 
 	const { data: roundTypesResp } = useSWR<RefResponse<RoundType> | RoundType[]>(qk.reference.roundTypes(), {
 		dedupingInterval: 60 * 60_000,
@@ -366,15 +326,13 @@ export default function CompaniesPage() {
 	if (debouncedSearch) queryParams.search = debouncedSearch;
 	// Merge all three sector tiers and expand each selection to its descendant
 	// slugs so a pillar/sub-sector also matches the leaf sectors beneath it.
-	const sectorSel = [
-		...(filterState.sector_slug as string[] ?? []),
-		...(filterState.sub_sector_slug as string[] ?? []),
-		...(filterState.sub_sub_sector_slug as string[] ?? []),
-	];
-	if (sectorSel.length) {
-		const expanded = Array.from(new Set(sectorSel.flatMap((s) => sectorTiers.expand(s))));
-		queryParams.sector_slug = expanded.join(',');
-	}
+	const sectorExpanded = expandSectorSelection(
+		sectorTiers,
+		filterState.sector_slug as string[] | undefined,
+		filterState.sub_sector_slug as string[] | undefined,
+		filterState.sub_sub_sector_slug as string[] | undefined,
+	);
+	if (sectorExpanded) queryParams.sector_slug = sectorExpanded;
 	const ctry = filterState.country as string[] | undefined;
 	if (ctry?.length === 1) queryParams.country = ctry[0];
 	const cityF = filterState.city as string[] | undefined;

@@ -23,15 +23,14 @@ interface EcosystemEntity {
 	slug?: string | null;
 	description?: string | null;
 	entity_type?: string | null;
-	status?: string | null;
-	cohort_label?: string | null;
-	cohort_number?: number | null;
+	category?: string | null;
+	entries_open?: boolean | null;
+	latest_cohort_year?: number | null;
 	investment_amount?: number | string | null;
 	investment_label?: string | null;
 	duration_label?: string | null;
 	hq_city?: string | null;
 	hq_country?: string | null;
-	application_deadline?: string | null;
 	color?: string | null;
 }
 
@@ -42,10 +41,13 @@ interface EcosystemResponse {
 	totalPages: number;
 }
 
-const STATUS_OPTIONS = [
-	{ value: 'open', label: 'Open' },
-	{ value: 'closing_soon', label: 'Closing soon' },
-	{ value: 'closed', label: 'Closed' },
+// Program types live in the free-text `category` column, sometimes combined
+// (e.g. "Accelerator, Incubator"). The backend contains-matches each value, so
+// a selection hits combined labels too.
+const TYPE_OPTIONS = [
+	{ value: 'Accelerator', label: 'Accelerator' },
+	{ value: 'Incubator', label: 'Incubator' },
+	{ value: 'Challenge/Competition', label: 'Challenge / Competition' },
 ];
 
 const COMMON_COUNTRIES = [
@@ -79,10 +81,10 @@ export default function ProgramsPage() {
 	const facets = useMemo<Facet[]>(() => [
 		{ key: 'entries_open', label: 'Entries open', kind: 'bool' },
 		{
-			key: 'status',
-			label: 'Application status',
+			key: 'category',
+			label: 'Type',
 			kind: 'multi',
-			options: () => STATUS_OPTIONS,
+			options: () => TYPE_OPTIONS,
 		},
 		{
 			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
@@ -99,8 +101,8 @@ export default function ProgramsPage() {
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
 		if (params.get('entries_open') === 'true') init.entries_open = true;
-		const s = params.get('status');
-		if (s) init.status = s.split(',').filter(Boolean);
+		const cat = params.get('category');
+		if (cat) init.category = cat.split(',').filter(Boolean);
 		const c = params.get('country'); if (c) init.country = c.split(',').filter(Boolean);
 		const sp = params.get('sport_slug'); if (sp) init.sport_slug = sp.split(',').filter(Boolean);
 		Object.assign(init, readLocationParams(params as unknown as URLSearchParams));
@@ -111,8 +113,8 @@ export default function ProgramsPage() {
 		const sp = new URLSearchParams();
 		if (filterState.search) sp.set('q', filterState.search);
 		if (filterState.entries_open === true) sp.set('entries_open', 'true');
-		const st = filterState.status as string[] | undefined;
-		if (st?.length) sp.set('status', st.join(','));
+		const cat = filterState.category as string[] | undefined;
+		if (cat?.length) sp.set('category', cat.join(','));
 		const ctry = filterState.country as string[] | undefined;
 		if (ctry?.length) sp.set('country', ctry.join(','));
 		const spt = filterState.sport_slug as string[] | undefined;
@@ -128,8 +130,8 @@ export default function ProgramsPage() {
 	const queryParams: Record<string, unknown> = { page, limit: 24 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
 	if (filterState.entries_open === true) queryParams.entries_open = true;
-	const st = filterState.status as string[] | undefined;
-	if (st?.length === 1) queryParams.status = st[0];
+	const catSel = filterState.category as string[] | undefined;
+	if (catSel?.length) queryParams.category = catSel.join(',');
 	const ctrySel = filterState.country as string[] | undefined;
 	if (ctrySel?.length) queryParams.country = ctrySel.join(',');
 	const sptSel = filterState.sport_slug as string[] | undefined;
@@ -158,7 +160,7 @@ export default function ProgramsPage() {
 					facets={facets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}
-					defaultOpen={{ status: true }}
+					defaultOpen={{ category: true }}
 				/>
 
 				<div className="flt-main">
@@ -205,18 +207,19 @@ export default function ProgramsPage() {
 
 function ProgramCard({ p, i }: { p: EcosystemEntity; i: number }) {
 	const color = p.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-	const status = p.status ?? null;
-	const statusClass = status === 'open' ? 'on' : status === 'closing_soon' ? 'warn' : 'off';
+	// Application status is driven by `entries_open` (the only reliable signal —
+	// there are no application deadlines in the data).
+	const isOpen = p.entries_open === true;
 	const cc = p.hq_country ? countryCode(p.hq_country) : '';
 	const location = [p.hq_city, p.hq_country].filter(Boolean).join(', ') || null;
 	return (
 		<div className="card prog-card">
 			<div className="prog-cover" style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}aa 100%)` }}>
-				{p.cohort_label && <div className="prog-cohort">{p.cohort_label}</div>}
+				{p.category && <div className="prog-cohort">{p.category}</div>}
 				<div className="prog-name">{p.name}</div>
-				{status && (
-					<div className={`prog-status ${statusClass}`}>
-						<span className="live-dot" /> {formatStatus(status)}
+				{p.entries_open != null && (
+					<div className={`prog-status ${isOpen ? 'on' : 'off'}`}>
+						<span className="live-dot" /> {isOpen ? 'Entries open' : 'Entries closed'}
 					</div>
 				)}
 			</div>
@@ -262,32 +265,23 @@ function ProgramCard({ p, i }: { p: EcosystemEntity; i: number }) {
 						</div>
 					</div>
 					<div>
-						<div className="co-stat-label">Deadline</div>
+						<div className="co-stat-label">Latest cohort</div>
 						<div className="co-stat-val" style={{ fontSize: 12 }}>
-							{p.application_deadline ? formatShortDate(p.application_deadline) : '—'}
+							{p.latest_cohort_year ?? '—'}
 						</div>
 					</div>
 				</div>
 				<Link href={`/programs/${p.slug ?? p.id}`} style={{ textDecoration: 'none' }}>
 					<button
-						className={`btn ${status === 'open' ? '' : 'ghost'}`}
+						className={`btn ${isOpen ? '' : 'ghost'}`}
 						style={{ marginTop: 14, width: '100%', justifyContent: 'center' }}
 					>
-						{status === 'open' ? 'Apply' : 'View'} <ArrowRight size={12} />
+						{isOpen ? 'Apply' : 'View'} <ArrowRight size={12} />
 					</button>
 				</Link>
 			</div>
 		</div>
 	);
-}
-
-function formatStatus(s: string | null | undefined): string {
-	switch (s) {
-		case 'open': return 'Open';
-		case 'closing_soon': return 'Closing soon';
-		case 'closed': return 'Closed';
-		default: return s ?? '—';
-	}
 }
 
 function formatDollars(value: number | string | null | undefined): string | null {
@@ -297,13 +291,6 @@ function formatDollars(value: number | string | null | undefined): string | null
 	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
 	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
 	return `$${n.toFixed(0)}`;
-}
-
-function formatShortDate(iso: string | null | undefined): string {
-	if (!iso) return '—';
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return '—';
-	return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
 
 function countryCode(countryName: string): string {

@@ -24,6 +24,7 @@ import { CompareToggle } from '@/components/compare-toggle';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { ExportButton } from '@/components/exports/export-button';
 import { FeatureGate } from '@/components/shell/screen-lock';
+import { useSectorTiers, expandSectorSelection } from '@/hooks/use-sector-tiers';
 
 /**
  * Funding tracker — pixel-aligned to `ui_design_2/app/screens-2.jsx`
@@ -130,6 +131,7 @@ function FundingPageInner() {
 		dedupingInterval: 60 * 60_000,
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+	const sectorTiers = useSectorTiers(sectorList);
 
 	const { data: roundsResp } = useSWR<RefResponse<RoundRef> | RoundRef[]>(qk.reference.roundTypes(), {
 		dedupingInterval: 60 * 60_000,
@@ -170,7 +172,17 @@ function FundingPageInner() {
 		{ key: 'is_company_verified', label: 'Verified company only', kind: 'bool' },
 		{
 			key: 'sector_slug', label: 'Sector', kind: 'multi', section: 'Company',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'sub_sector_slug', label: 'Sub-sector', kind: 'multi', section: 'Company',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'sub_sub_sector_slug', label: 'Sub-sub-sector', kind: 'multi', section: 'Company', gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
@@ -192,7 +204,7 @@ function FundingPageInner() {
 			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
 			maxHeight: 240,
 		},
-	], [sectorList, sportList, techTags, locFacets]);
+	], [sectorTiers, sportList, techTags, locFacets]);
 
 	const dealFacets = useMemo<Facet[]>(() => [
 		{
@@ -330,8 +342,15 @@ function FundingPageInner() {
 	else tableParams.year = currentYear;
 	if (debouncedSearch) tableParams.q = debouncedSearch;
 	if (filterState.is_company_verified === true) tableParams.is_company_verified = true;
-	const sec = filterState.sector_slug as string[] | undefined;
-	if (sec?.length) tableParams.sector_slug = sec.join(',');
+	// Merge the three sector tiers and expand each to its descendant leaves so
+	// picking a pillar/sub-sector also matches the leaf sectors beneath it.
+	const sectorExpanded = expandSectorSelection(
+		sectorTiers,
+		filterState.sector_slug as string[] | undefined,
+		filterState.sub_sector_slug as string[] | undefined,
+		filterState.sub_sub_sector_slug as string[] | undefined,
+	);
+	if (sectorExpanded) tableParams.sector_slug = sectorExpanded;
 	const bm = filterState.business_model as string[] | undefined;
 	if (bm?.length) tableParams.business_model = bm.join(',');
 	const spt = filterState.sport_slug as string[] | undefined;
