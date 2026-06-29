@@ -91,14 +91,6 @@ const TYPE_OPTIONS = [
 	{ value: 'asset_purchase', label: 'Asset' },
 ];
 
-const BIZ_MODEL_OPTIONS = [
-	{ value: 'b2b', label: 'B2B' },
-	{ value: 'b2c', label: 'B2C' },
-	{ value: 'b2b2c', label: 'B2B2C' },
-	{ value: 'd2c', label: 'D2C' },
-	{ value: 'b2g', label: 'B2G' },
-];
-
 const COMMON_COUNTRIES = [
 	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
 	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
@@ -155,13 +147,6 @@ function MnaPageInner() {
 	const acquireeFacets = useMemo<Facet[]>(() => [
 		{ key: 'acquiree_is_sportstech', label: 'Target is SportsTech', kind: 'tri', section: 'Target', yesLabel: 'Yes', noLabel: 'No' },
 		{
-			key: 'acquiree_business_model',
-			label: 'Target business model',
-			kind: 'multi',
-			section: 'Target',
-			options: () => BIZ_MODEL_OPTIONS,
-		},
-		{
 			key: 'acquiree_sector_slug',
 			label: 'Target sector',
 			kind: 'multi',
@@ -207,13 +192,6 @@ function MnaPageInner() {
 	// Acquirer (buyer) side facets. Map to acquirer_* query params.
 	const acquirerFacets = useMemo<Facet[]>(() => [
 		{ key: 'acquirer_is_sportstech', label: 'Acquirer is SportsTech', kind: 'tri', section: 'Acquirer', yesLabel: 'Yes', noLabel: 'No' },
-		{
-			key: 'acquirer_business_model',
-			label: 'Acquirer business model',
-			kind: 'multi',
-			section: 'Acquirer',
-			options: () => BIZ_MODEL_OPTIONS,
-		},
 		{
 			key: 'acquirer_sector_slug',
 			label: 'Acquirer sector',
@@ -326,11 +304,6 @@ function MnaPageInner() {
 		else if (stAcq === 'false') init.acquirer_is_sportstech = 'no';
 		const t = params.get('acquisition_type');
 		if (t) init.acquisition_type = t.split(',').filter(Boolean);
-		// business_model is the legacy alias for the acquiree side.
-		const bm = params.get('acquiree_business_model') ?? params.get('business_model');
-		if (bm) init.acquiree_business_model = bm.split(',').filter(Boolean);
-		const abm = params.get('acquirer_business_model');
-		if (abm) init.acquirer_business_model = abm.split(',').filter(Boolean);
 		// sector_slug / sport_slug are legacy either-side aliases → seed acquiree.
 		const s = params.get('acquiree_sector_slug') ?? params.get('sector_slug');
 		if (s) init.acquiree_sector_slug = s.split(',').filter(Boolean);
@@ -376,10 +349,6 @@ function MnaPageInner() {
 		if (stA === 'yes' || stA === 'no') sp.set('acquirer_is_sportstech', stA === 'yes' ? 'true' : 'false');
 		const t = filterState.acquisition_type as string[] | undefined;
 		if (t?.length) sp.set('acquisition_type', t.join(','));
-		const bm = filterState.acquiree_business_model as string[] | undefined;
-		if (bm?.length) sp.set('acquiree_business_model', bm.join(','));
-		const abm = filterState.acquirer_business_model as string[] | undefined;
-		if (abm?.length) sp.set('acquirer_business_model', abm.join(','));
 		const sec = filterState.acquiree_sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('acquiree_sector_slug', sec.join(','));
 		const asec = filterState.acquirer_sector_slug as string[] | undefined;
@@ -447,10 +416,6 @@ function MnaPageInner() {
 	else if (stA === 'no') tableParams.acquirer_is_sportstech = false;
 	const t = filterState.acquisition_type as string[] | undefined;
 	if (t?.length) tableParams.acquisition_type = t.join(',');
-	const bm = filterState.acquiree_business_model as string[] | undefined;
-	if (bm?.length) tableParams.acquiree_business_model = bm.join(',');
-	const abm = filterState.acquirer_business_model as string[] | undefined;
-	if (abm?.length) tableParams.acquirer_business_model = abm.join(',');
 	// Merge each side's three sector tiers and expand to descendant leaves so a
 	// pillar/sub-sector also matches the leaf sectors beneath it.
 	const acquireeSec = expandSectorSelection(
