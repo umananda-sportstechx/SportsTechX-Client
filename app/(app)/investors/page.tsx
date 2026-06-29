@@ -22,6 +22,7 @@ import { InvestorDrawer } from '@/components/ui/investor-drawer';
 import { CompareBar } from '@/components/compare-bar';
 import { CompareToggle } from '@/components/compare-toggle';
 import { ExportButton } from '@/components/exports/export-button';
+import { useSectorTiers, expandSectorSelection } from '@/hooks/use-sector-tiers';
 
 interface InvestorRow {
 	id: string;
@@ -106,6 +107,7 @@ function InvestorsPageInner() {
 		dedupingInterval: 60 * 60_000,
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+	const sectorTiers = useSectorTiers(sectorList);
 
 	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
 		dedupingInterval: 60 * 60_000,
@@ -147,7 +149,24 @@ function InvestorsPageInner() {
 			label: 'Portfolio sector',
 			kind: 'multi',
 			section: 'Thesis',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'sub_sector_slug',
+			label: 'Portfolio sub-sector',
+			kind: 'multi',
+			section: 'Thesis',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'sub_sub_sector_slug',
+			label: 'Portfolio sub-sub-sector',
+			kind: 'multi',
+			section: 'Thesis',
+			gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
@@ -176,7 +195,7 @@ function InvestorsPageInner() {
 			max: 50,
 			step: 1,
 		},
-	], [roundList, sectorList, sportList, locFacets, currentYear]);
+	], [roundList, sectorTiers, sportList, locFacets, currentYear]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -249,8 +268,15 @@ function InvestorsPageInner() {
 	const ctSel = filterState.country as string[] | undefined;
 	if (ctSel?.length) queryParams.country = ctSel.join(',');
 	applyLocationQueryParams(queryParams, filterState);
-	const secSel = filterState.sector_slug as string[] | undefined;
-	if (secSel?.length) queryParams.sector_slug = secSel.join(',');
+	// Merge the three portfolio-sector tiers and expand each to its descendant
+	// leaves so a pillar/sub-sector also matches the leaf sectors beneath it.
+	const sectorExpanded = expandSectorSelection(
+		sectorTiers,
+		filterState.sector_slug as string[] | undefined,
+		filterState.sub_sector_slug as string[] | undefined,
+		filterState.sub_sub_sector_slug as string[] | undefined,
+	);
+	if (sectorExpanded) queryParams.sector_slug = sectorExpanded;
 	const sptSel = filterState.sport_slug as string[] | undefined;
 	if (sptSel?.length) queryParams.sport_slug = sptSel.join(',');
 	const ttSel = filterState.tech_tag_slug as string[] | undefined;

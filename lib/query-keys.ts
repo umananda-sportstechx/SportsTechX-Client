@@ -152,6 +152,7 @@ export const qk = {
     maQuarterly: (params: { from?: number; to?: number } = {}) => ['/api/analytics/ma-quarterly', params] as const,
     sectorHeat: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 12) => ['/api/analytics/sector-heat', { period, limit }] as const,
     sectorHeatTree: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 8) => ['/api/analytics/sector-heat-tree', { period, limit }] as const,
+    maSectorHeatTree: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 8) => ['/api/analytics/ma-sector-heat-tree', { period, limit }] as const,
     worldFlow: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/world-flow', { period, limit }] as const,
     topFundedCities: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 30) => ['/api/analytics/top-funded-cities', { period, limit }] as const,
     topFunded: (period: 'ytd' | '12m' | 'all' = 'ytd', limit = 10, audience?: 'athletes' | 'fans' | 'executives') =>
