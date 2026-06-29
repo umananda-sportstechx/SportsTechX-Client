@@ -92,14 +92,6 @@ interface SportRef { id: string; name: string; slug: string }
 interface TechTagRef { id: string; name: string; slug: string }
 interface RefResponse<T> { data: T[] }
 
-const BUSINESS_MODELS = [
-	{ value: 'b2b', label: 'B2B' },
-	{ value: 'b2c', label: 'B2C' },
-	{ value: 'b2b2c', label: 'B2B2C' },
-	{ value: 'd2c', label: 'D2C' },
-	{ value: 'b2g', label: 'B2G' },
-];
-
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function FundingPage() {
@@ -186,10 +178,6 @@ function FundingPageInner() {
 			maxHeight: 240,
 		},
 		{
-			key: 'business_model', label: 'Business model', kind: 'multi', section: 'Company',
-			options: () => BUSINESS_MODELS,
-		},
-		{
 			key: 'sport_slug', label: 'Sport', kind: 'multi', section: 'Company',
 			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
@@ -248,8 +236,6 @@ function FundingPageInner() {
 		const v = params.get('is_company_verified'); if (v) init.is_company_verified = v === 'true';
 		const s = params.get('sector_slug');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
-		const bm = params.get('business_model');
-		if (bm) init.business_model = bm.split(',').filter(Boolean);
 		const sp2 = params.get('sport_slug');
 		if (sp2) init.sport_slug = sp2.split(',').filter(Boolean);
 		const tt = params.get('tech_tag_slug');
@@ -282,8 +268,6 @@ function FundingPageInner() {
 		if (filterState.is_company_verified === true) sp.set('is_company_verified', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
-		const bm = filterState.business_model as string[] | undefined;
-		if (bm?.length) sp.set('business_model', bm.join(','));
 		const spt = filterState.sport_slug as string[] | undefined;
 		if (spt?.length) sp.set('sport_slug', spt.join(','));
 		const tt = filterState.tech_tag_slug as string[] | undefined;
@@ -351,8 +335,6 @@ function FundingPageInner() {
 		filterState.sub_sub_sector_slug as string[] | undefined,
 	);
 	if (sectorExpanded) tableParams.sector_slug = sectorExpanded;
-	const bm = filterState.business_model as string[] | undefined;
-	if (bm?.length) tableParams.business_model = bm.join(',');
 	const spt = filterState.sport_slug as string[] | undefined;
 	if (spt?.length) tableParams.sport_slug = spt.join(',');
 	const tt = filterState.tech_tag_slug as string[] | undefined;
