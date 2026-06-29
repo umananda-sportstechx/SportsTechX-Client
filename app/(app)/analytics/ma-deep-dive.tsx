@@ -87,7 +87,7 @@ export function MaDeepDiveTab() {
 		qk.analytics.annualMa({ from: currentYear - yearWindow, to: currentYear }),
 		{ dedupingInterval: 10 * 60_000 },
 	);
-	const { data: sectorTree } = useSWR<SectorHeatTreeNode[]>(qk.analytics.sectorHeatTree(rangeToPeriod(range), 8), { dedupingInterval: 10 * 60_000 });
+	const { data: sectorTree } = useSWR<SectorHeatTreeNode[]>(qk.analytics.maSectorHeatTree(rangeToPeriod(range), 8), { dedupingInterval: 10 * 60_000 });
 	const { data: topAcq } = useSWR<TopAcquirer[]>(qk.analytics.topAcquirers(rangeToPeriod(range), 10), { dedupingInterval: 10 * 60_000 });
 	const { data: typeBreakdown } = useSWR<TypeBreakdownPoint[]>(qk.analytics.maTypeBreakdown(rangeToPeriod(range)), { dedupingInterval: 10 * 60_000 });
 	// Largest disclosed acquisitions — fetch a wider set so the client-side region

@@ -23,6 +23,7 @@ import { SortHeader, sortToParam, paramToSort, type SortState } from '@/componen
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { ExportButton } from '@/components/exports/export-button';
 import { FeatureGate } from '@/components/shell/screen-lock';
+import { useSectorTiers, expandSectorSelection } from '@/hooks/use-sector-tiers';
 
 /**
  * M&A tracker — pixel-aligned to `ui_design_2/screens-2.jsx:MnaScreen`.
@@ -138,6 +139,7 @@ function MnaPageInner() {
 		dedupingInterval: 60 * 60_000,
 	});
 	const sectorList = Array.isArray(sectorsResp) ? sectorsResp : (sectorsResp?.data ?? []);
+	const sectorTiers = useSectorTiers(sectorList);
 
 	const { data: sportsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sports(), {
 		dedupingInterval: 60 * 60_000,
@@ -164,7 +166,24 @@ function MnaPageInner() {
 			label: 'Target sector',
 			kind: 'multi',
 			section: 'Target',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'acquiree_sub_sector_slug',
+			label: 'Target sub-sector',
+			kind: 'multi',
+			section: 'Target',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'acquiree_sub_sub_sector_slug',
+			label: 'Target sub-sub-sector',
+			kind: 'multi',
+			section: 'Target',
+			gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
@@ -183,7 +202,7 @@ function MnaPageInner() {
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
 		...locationFacets(locFacets, { section: 'Location' }),
-	], [sectorList, sportList, locFacets]);
+	], [sectorTiers, sportList, locFacets]);
 
 	// Acquirer (buyer) side facets. Map to acquirer_* query params.
 	const acquirerFacets = useMemo<Facet[]>(() => [
@@ -200,7 +219,24 @@ function MnaPageInner() {
 			label: 'Acquirer sector',
 			kind: 'multi',
 			section: 'Acquirer',
-			options: () => sectorList.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'acquirer_sub_sector_slug',
+			label: 'Acquirer sub-sector',
+			kind: 'multi',
+			section: 'Acquirer',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			maxHeight: 240,
+		},
+		{
+			key: 'acquirer_sub_sub_sector_slug',
+			label: 'Acquirer sub-sub-sector',
+			kind: 'multi',
+			section: 'Acquirer',
+			gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
@@ -231,7 +267,7 @@ function MnaPageInner() {
 			key: 'acquirer_region', label: 'Acquirer region', kind: 'multi', section: 'Acquirer location', gate: 'advanced_filters',
 			options: () => (locFacets?.regions ?? []).map((r) => ({ value: r, label: r })),
 		},
-	], [sectorList, sportList, locFacets]);
+	], [sectorTiers, sportList, locFacets]);
 
 	// Deal-level facets — shared across modes, shown in "Deal" mode.
 	const dealFacets = useMemo<Facet[]>(() => [
@@ -415,10 +451,22 @@ function MnaPageInner() {
 	if (bm?.length) tableParams.acquiree_business_model = bm.join(',');
 	const abm = filterState.acquirer_business_model as string[] | undefined;
 	if (abm?.length) tableParams.acquirer_business_model = abm.join(',');
-	const sec = filterState.acquiree_sector_slug as string[] | undefined;
-	if (sec?.length) tableParams.acquiree_sector_slug = sec.join(',');
-	const asec = filterState.acquirer_sector_slug as string[] | undefined;
-	if (asec?.length) tableParams.acquirer_sector_slug = asec.join(',');
+	// Merge each side's three sector tiers and expand to descendant leaves so a
+	// pillar/sub-sector also matches the leaf sectors beneath it.
+	const acquireeSec = expandSectorSelection(
+		sectorTiers,
+		filterState.acquiree_sector_slug as string[] | undefined,
+		filterState.acquiree_sub_sector_slug as string[] | undefined,
+		filterState.acquiree_sub_sub_sector_slug as string[] | undefined,
+	);
+	if (acquireeSec) tableParams.acquiree_sector_slug = acquireeSec;
+	const acquirerSec = expandSectorSelection(
+		sectorTiers,
+		filterState.acquirer_sector_slug as string[] | undefined,
+		filterState.acquirer_sub_sector_slug as string[] | undefined,
+		filterState.acquirer_sub_sub_sector_slug as string[] | undefined,
+	);
+	if (acquirerSec) tableParams.acquirer_sector_slug = acquirerSec;
 	const spt = filterState.acquiree_sport_slug as string[] | undefined;
 	if (spt?.length) tableParams.acquiree_sport_slug = spt.join(',');
 	const aspt = filterState.acquirer_sport_slug as string[] | undefined;
