@@ -4,7 +4,6 @@ import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { enableQueryPolling, clearAuthCache } from '@/lib/query-client';
-import { qk } from '@/lib/query-keys';
 import { sessionRefreshLock } from '@/lib/session-refresh-lock';
 import { logoutState } from '@/lib/logout-state';
 import type { User } from '@supabase/supabase-js';
@@ -193,9 +192,13 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 				if (event === 'SIGNED_IN') {
 					if (hasFiredInitialSignIn) {
 						// Real sign-in (after a SIGNED_OUT or fresh login flow).
-						// Invalidate the profile so we pick up tier/role changes.
+						// Revalidate EVERY query (not just the profile) with the fresh
+						// session so the whole page loads in one shot. Previously only
+						// the profile was refetched, so other data (companies, favorites,
+						// credits, …) stayed empty until a manual refresh — the "needs 2
+						// refreshes after login" bug (BUG-035, also BUG-028/032/004).
 						clearAuthCache();
-						void globalMutate(qk.profile());
+						void globalMutate(() => true, undefined, { revalidate: true });
 					} else {
 						// First SIGNED_IN at subscription = the existing-session
 						// synthesized event. The initial fetch is already gated
