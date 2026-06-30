@@ -46,6 +46,8 @@ interface CompanyRow {
 	id: string;
 	name: string;
 	slug?: string;
+	website?: string | null;
+	custom_logo_url?: string | null;
 	description?: string | null;
 	primary_sector?: string | null;
 	primary_sector_slug?: string | null;
@@ -251,7 +253,7 @@ function LikedCard({ c }: { c: CompanyRow }) {
 		<Link href={`/companies/${c.slug ?? c.id}`} className="card co-card" style={{ display: 'block' }}>
 			<div className="co-card-head">
 				<Heart size={14} fill="var(--accent)" stroke="var(--accent)" />
-				<Logo co={{ name: c.name }} size={44} />
+				<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={44} />
 				<div style={{ flex: 1, minWidth: 0 }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
 						<span style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</span>
@@ -474,7 +476,7 @@ function WatchlistsTab() {
 												</td>
 												<td>
 													<Link href={`/companies/${c.slug ?? c.id}`} className="tbl-name-cell">
-														<Logo co={{ name: c.name }} size={28} />
+														<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} />
 														<div className="tbl-name-text">
 															<div className="tbl-name-line">
 																<span className="co-row-name">{c.name}</span>

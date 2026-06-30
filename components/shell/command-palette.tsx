@@ -27,8 +27,8 @@ const ALL_NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 interface BackendSearchResponse {
 	q: string;
 	results: {
-		companies?: Array<{ id: string; name: string; slug?: string; sector?: string }>;
-		investors?: Array<{ id: string; name: string; slug?: string; type?: string }>;
+		companies?: Array<{ id: string; name: string; slug?: string; sector?: string; subtitle?: string; website?: string }>;
+		investors?: Array<{ id: string; name: string; slug?: string; type?: string; subtitle?: string; website?: string }>;
 	};
 }
 
@@ -40,6 +40,7 @@ interface PaletteRow {
 	kind: 'nav' | 'co' | 'inv' | 'ai';
 	href?: string;
 	icon?: LucideIcon;
+	website?: string;
 }
 
 interface CommandPaletteProps {
@@ -84,6 +85,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 		cat: 'Company',
 		kind: 'co',
 		href: `/companies/${c.slug ?? c.id}`,
+		website: c.website ?? c.subtitle,
 	}));
 
 	const invResults: PaletteRow[] = (searchData?.results.investors ?? []).slice(0, 4).map((i) => ({
@@ -160,7 +162,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 							onMouseEnter={() => setSel(i)}
 							onClick={() => handleSelect(item)}
 						>
-							{item.kind === 'co' && <Logo co={{ name: item.name }} size={22} />}
+							{item.kind === 'co' && <Logo co={{ name: item.name, website: item.website }} size={22} />}
 							{item.kind === 'inv' && <Wallet size={16} />}
 							{item.kind === 'ai' && <Sparkles size={16} />}
 							{item.kind === 'nav' && item.icon && <item.icon size={16} />}

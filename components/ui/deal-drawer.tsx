@@ -13,6 +13,8 @@ interface Deal {
 	company_id?: string | null;
 	company_name?: string | null;
 	company_slug?: string | null;
+	company_website?: string | null;
+	company_custom_logo_url?: string | null;
 	announced_date?: string | null;
 	announced_year?: number | null;
 	amount_usd?: number | string | null;
@@ -67,7 +69,7 @@ export function DealDrawer({
 			{deal && (
 				<>
 					<DrawerHead onClose={onClose}>
-						<Logo co={{ name: deal.company_name ?? '—' }} size={40} />
+						<Logo co={{ name: deal.company_name ?? '—', website: deal.company_website, custom_logo_url: deal.company_custom_logo_url }} size={40} />
 						<div style={{ flex: 1, minWidth: 0 }}>
 							<button
 								className="co-drawer-name"
