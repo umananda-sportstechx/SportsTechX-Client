@@ -9,7 +9,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Page, Flag, Empty, PageTitle } from '@/components/ui/atoms';
 import {
-	FilterRail, ActiveFiltersBar,
+	FilterRail, ActiveFiltersBar, ViewToggle,
 	emptyFilterState, type Facet, type FilterState,
 } from '@/components/ui/filter-rail';
 import {
@@ -68,6 +68,7 @@ export default function ProgramsPage() {
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 
 	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
 		dedupingInterval: 60 * 60_000,
@@ -171,6 +172,7 @@ export default function ProgramsPage() {
 						placeholder="Search programs, locations…"
 						total={total}
 						shown={programs.length}
+						viewToggle={<ViewToggle view={view} setView={setView} />}
 					/>
 
 					{isLoading && programs.length === 0 ? (
@@ -180,10 +182,12 @@ export default function ProgramsPage() {
 							<h3>No programs match</h3>
 							<p>Try clearing some filters.</p>
 						</div>
-					) : (
+					) : view === 'grid' ? (
 						<div className="prog-grid">
 							{programs.map((p, i) => <ProgramCard key={p.id} p={p} i={i} />)}
 						</div>
+					) : (
+						<ProgramTable programs={programs} />
 					)}
 
 					{totalPages > 1 && (
@@ -202,6 +206,50 @@ export default function ProgramsPage() {
 				</div>
 			</div>
 		</Page>
+	);
+}
+
+function ProgramTable({ programs }: { programs: EcosystemEntity[] }) {
+	return (
+		<div className="card">
+			<table className="data-table">
+				<thead>
+					<tr>
+						<th>Organisation</th>
+						<th>Type</th>
+						<th>Status</th>
+						<th>Location</th>
+					</tr>
+				</thead>
+				<tbody>
+					{programs.map((p) => {
+						const cc = p.hq_country ? countryCode(p.hq_country) : '';
+						const isOpen = p.entries_open === true;
+						return (
+							<tr key={p.id} style={{ cursor: 'pointer' }}>
+								<td>
+									<Link href={`/programs/${p.slug ?? p.id}`} className="tbl-name co-row-name">{p.name}</Link>
+								</td>
+								<td>{p.category ?? '—'}</td>
+								<td>
+									{p.entries_open != null ? (
+										<span className={`prog-status ${isOpen ? 'on' : 'off'}`} style={{ position: 'static', display: 'inline-flex' }}>
+											<span className="live-dot" /> {isOpen ? 'Entries open' : 'Entries closed'}
+										</span>
+									) : '—'}
+								</td>
+								<td>
+									<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+										{cc && <Flag cc={cc} />}
+										{[p.hq_city, p.hq_country].filter(Boolean).join(', ') || '—'}
+									</span>
+								</td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
+		</div>
 	);
 }
 

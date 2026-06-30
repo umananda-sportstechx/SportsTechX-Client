@@ -95,7 +95,7 @@ function InvestorsPageInner() {
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
-	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
 
 	const { data: roundsResp } = useSWR<{ data: RoundRef[] } | RoundRef[]>(qk.reference.roundTypes(), {
@@ -385,13 +385,9 @@ function InvestorTable({
 			<table className="data-table">
 				<thead>
 					<tr>
-						<SortHeader label="Firm" sortKey="name" sort={sort} setSort={setSort} />
+						<SortHeader label="Organisation" sortKey="name" sort={sort} setSort={setSort} />
 						<SortHeader label="Type" sortKey="category" sort={sort} setSort={setSort} />
-						<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
-						<SortHeader label="AUM" sortKey="aum" sort={sort} setSort={setSort} defaultDir="desc" />
-						<SortHeader label="Deals" sortKey="deals" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
-						<th>Stage focus</th>
-						<th>Recent</th>
+						<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 					</tr>
 				</thead>
 				<tbody>
@@ -412,9 +408,7 @@ function InvestorTable({
 							>
 								<td>
 									<div className="tbl-name-cell">
-										<div className="co-logo" style={{ width: 28, height: 28, background: color, color: '#fff', fontSize: 10, flexShrink: 0 }}>
-											{initials}
-										</div>
+										<Logo co={{ name: i.name, website: i.website, custom_logo_url: i.logo_url, color, logo: initials }} size={28} />
 										<div className="tbl-name-text">
 											<div className="tbl-name-line" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="tbl-name">{i.name}</span>{i.is_verified && <VerifiedBadge size={12} />}</div>
 											{(i.thesis ?? i.description) && <div className="tbl-sub">{i.thesis ?? i.description}</div>}
@@ -422,11 +416,7 @@ function InvestorTable({
 									</div>
 								</td>
 								<td><Tag>{formatType(i.category ?? i.type)}</Tag></td>
-								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {i.hq_country ?? '—'}</span></td>
-								<td className="num" style={{ fontWeight: 700 }}>{formatDollars(i.total_aum_usd) ?? '—'}</td>
-								<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>{i.deals_count ?? '—'}</td>
-								<td style={{ fontSize: 12 }}><span className="tbl-ellipsis">{i.primary_focus ?? '—'}</span></td>
-								<td style={{ fontSize: 12, color: 'var(--fg-2)' }}><span className="tbl-ellipsis">{i.recent_investment ?? '—'}</span></td>
+								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {[i.hq_city, i.hq_country].filter(Boolean).join(', ') || '—'}</span></td>
 							</tr>
 						);
 					})}
