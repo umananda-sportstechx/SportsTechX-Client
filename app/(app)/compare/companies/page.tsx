@@ -11,6 +11,8 @@ interface CompanyRow {
 	id: string;
 	name: string;
 	slug?: string;
+	website?: string | null;
+	custom_logo_url?: string | null;
 	description?: string | null;
 	primary_sector?: string | null;
 	hq_city?: string | null;
@@ -65,7 +67,7 @@ export default function CompareCompaniesPage() {
 							{rows.map((c) => (
 								<th key={c.id}>
 									<Link href={`/companies/${c.slug ?? c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-										<Logo co={{ name: c.name }} size={24} />
+										<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={24} />
 										<span style={{ fontWeight: 700 }}>{c.name}</span>
 									</Link>
 								</th>
