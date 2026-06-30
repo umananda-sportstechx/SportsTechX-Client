@@ -522,19 +522,16 @@ function FundingPageInner() {
 							<table className="data-table funding-table">
 								<thead>
 									<tr>
-										<SortHeader label="Date" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 										<SortHeader label="Company" sortKey="company_name" sort={sort} setSort={setSort} />
 										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
-										<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
-										<SortHeader label="Round" sortKey="round_type_name" sort={sort} setSort={setSort} />
-										<SortHeader label="Lead investor" sortKey="lead_investor" sort={sort} setSort={setSort} />
+										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
+										<SortHeader label="Announced" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 										<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 									</tr>
 								</thead>
 								<tbody>
 									{tableDeals.map((d) => {
 										const cc = d.hq_country ? countryCode(d.hq_country) : '';
-										const round = d.round_type_name ?? '—';
 										const sectorName = d.primary_sector ?? '';
 										const sectorSlug = d.sector_slug ?? d.primary_sector_slug ?? sectorName;
 										return (
@@ -550,7 +547,6 @@ function FundingPageInner() {
 													setDrawerTarget(d.id);
 												}}
 											>
-												<td className="num">{formatShortDate(d.announced_date)}</td>
 												<td>
 													<div className="tbl-name-cell">
 														<Logo co={{ name: d.company_name ?? '—', website: d.company_website }} size={28} />
@@ -578,11 +574,13 @@ function FundingPageInner() {
 														? <AudiencePill sectorSlug={sectorSlug} label={sectorName} size="sm" />
 														: <span style={{ color: 'var(--fg-muted)' }}>—</span>}
 												</td>
-												<td title={d.hq_country ?? ''}>{cc && <Flag cc={cc} />}</td>
-												<td>{round !== '—' ? <Tag variant="pos">{round}</Tag> : '—'}</td>
-												<td style={{ color: 'var(--fg-2)' }}>
-													<InvestorList investors={d.investors ?? (d.lead_investor ? [d.lead_investor] : [])} />
+												<td>
+													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+														{cc && <Flag cc={cc} />}
+														{[d.hq_city, d.hq_country].filter(Boolean).join(', ') || '—'}
+													</span>
 												</td>
+												<td className="num">{formatShortDate(d.announced_date)}</td>
 												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
 													{formatDealAmount(d.amount_usd)}
 												</td>
