@@ -36,6 +36,7 @@ interface EventEntity {
 	hq_city?: string | null;
 	hq_country?: string | null;
 	expected_attendees?: string | null;
+	mode?: string | null;
 	tags?: string[] | null;
 	color?: string | null;
 }
@@ -65,7 +66,7 @@ export default function EventsPage() {
 	const params = useSearchParams();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
-	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'grid');
+	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 	const [sort, setSort] = useState<SortState | null>(null);
 
 	const { data: sportsResp } = useSWR<{ data: SportRef[] } | SportRef[]>(qk.reference.sports(), {
@@ -239,10 +240,10 @@ function EventsTable({
 			<table className="data-table">
 				<thead>
 					<tr>
-						<SortHeader label="Date" sortKey="date" sort={sort} setSort={setSort} width={120} />
-						<SortHeader label="Event" sortKey="name" sort={sort} setSort={setSort} />
+						<SortHeader label="Name" sortKey="name" sort={sort} setSort={setSort} />
 						<SortHeader label="Location" sortKey="location" sort={sort} setSort={setSort} />
-						<SortHeader label="Attendees" sortKey="attendees" sort={sort} setSort={setSort} defaultDir="desc" />
+						<SortHeader label="Date" sortKey="date" sort={sort} setSort={setSort} width={140} />
+						<th>Mode</th>
 						<th style={{ width: 110 }}></th>
 					</tr>
 				</thead>
@@ -252,12 +253,12 @@ function EventsTable({
 						const cc = e.hq_country ? countryCode(e.hq_country) : '';
 						return (
 							<tr key={e.id} style={{ cursor: 'pointer' }}>
-								<td className="num" style={{ whiteSpace: 'nowrap' }}>{d.month} {d.day} {d.year}</td>
 								<td>
 									<Link href={`/events/${e.slug ?? e.id}`} className="tbl-name co-row-name">{e.name}</Link>
 								</td>
 								<td><span className="tbl-ellipsis">{cc && <Flag cc={cc} />} {[e.hq_city, e.hq_country].filter(Boolean).join(', ') || '—'}</span></td>
-								<td style={{ fontSize: 12, color: 'var(--fg-2)' }}>{e.expected_attendees ?? '—'}</td>
+								<td className="num" style={{ whiteSpace: 'nowrap' }}>{d.month} {d.day} {d.year}</td>
+								<td>{formatMode(e.mode)}</td>
 								<td>
 									<Link href={`/events/${e.slug ?? e.id}`} className="btn ghost">
 										Details <ArrowRight size={11} />
@@ -317,6 +318,15 @@ function EventCard({ e, i }: { e: EventEntity; i: number }) {
 			</div>
 		</Link>
 	);
+}
+
+function formatMode(mode: string | null | undefined): string {
+	switch ((mode ?? '').toLowerCase()) {
+		case 'in_person': case 'in-person': return 'In person';
+		case 'virtual': return 'Virtual';
+		case 'hybrid': return 'Hybrid';
+		default: return '—';
+	}
 }
 
 function splitDate(iso: string | null | undefined): { day: string; month: string; year: string } {

@@ -9,7 +9,7 @@ import { recordSearchSignal } from '@/lib/personalization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
-	Page, Logo, Flag, AudiencePill, SectorPill, Tag, Empty, PageTitle,
+	Page, Logo, Flag, AudiencePill, SectorPill, Empty, PageTitle,
 	VerifiedBadge, RaisingDot,
 } from '@/components/ui/atoms';
 import {
@@ -96,7 +96,12 @@ export default function CompaniesPage() {
 	const [view, setView] = useState<'grid' | 'table'>((params.get('view') as 'grid' | 'table') ?? 'table');
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
-	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
+	// Default ordering (BUG-036): verified-first is applied server-side; we ask for
+	// total_funding DESC (tiebroken by name), giving "top-funded verified → top-funded
+	// → alphabetical". A user clicking a column header overrides this.
+	const [sort, setSort] = useState<SortState | null>(
+		paramToSort(params.get('sort')) ?? { key: 'total_funding', dir: 'desc' },
+	);
 	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const { data: sectorsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sectors(), {
@@ -106,6 +111,20 @@ export default function CompaniesPage() {
 
 	// Shared three-tier split (pillar → sub-sector → sub-sub-sector) + `expand`.
 	const sectorTiers = useSectorTiers(sectorList);
+
+	// Resolve a company's sector slug to { pillar, sub } for the "Sector & Sub-sector"
+	// column: pillar = top ancestor, sub = the sector's own name (BUG-037).
+	const sectorPath = useMemo(() => {
+		const byId = new Map(sectorList.map((s) => [s.id, s]));
+		const bySlug = new Map(sectorList.map((s) => [s.slug, s]));
+		return (slug?: string | null, fallbackName?: string | null): { pillar: string | null; sub: string | null } => {
+			const node = slug ? bySlug.get(slug) : undefined;
+			if (!node) return { pillar: fallbackName ?? null, sub: null };
+			let top = node; let guard = 0;
+			while (top.parent_id && byId.get(top.parent_id) && guard < 6) { top = byId.get(top.parent_id)!; guard++; }
+			return top.id === node.id ? { pillar: node.name, sub: null } : { pillar: top.name, sub: node.name };
+		};
+	}, [sectorList]);
 
 	const { data: roundTypesResp } = useSWR<RefResponse<RoundType> | RoundType[]>(qk.reference.roundTypes(), {
 		dedupingInterval: 60 * 60_000,
@@ -470,12 +489,9 @@ export default function CompaniesPage() {
 									<tr>
 										<th style={{ width: 36 }} />
 										<SortHeader label="Company" sortKey="name" sort={sort} setSort={setSort} />
-										<th>Audience</th>
-										<th>Sector</th>
-										<th>Stage</th>
-										<th>HQ</th>
-										<SortHeader label="Raised" sortKey="total_funding" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
-										<SortHeader label="Founded" sortKey="founded_year" sort={sort} setSort={setSort} defaultDir="desc" />
+										<th>Sector &amp; Sub-sector</th>
+										<th>Location</th>
+										<SortHeader label="Total Funding ($)" sortKey="total_funding" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 									</tr>
 								</thead>
 								<tbody>
@@ -513,17 +529,16 @@ export default function CompaniesPage() {
 													</div>
 												</td>
 												<td>
-													{c.primary_sector_slug ? (
-														<AudiencePill sectorSlug={c.primary_sector_slug} size="sm" />
-													) : '—'}
-												</td>
-												<td>
-													{c.primary_sector ? (
-														<Tag>{c.primary_sector}</Tag>
-													) : '—'}
-												</td>
-												<td>
-													{c.last_round_type ? <Tag>{c.last_round_type}</Tag> : '—'}
+													{(() => {
+														const p = sectorPath(c.primary_sector_slug, c.primary_sector);
+														if (!p.pillar) return '—';
+														return (
+															<div className="tbl-name-text">
+																<div className="tbl-name-line">{p.pillar}</div>
+																{p.sub && <div className="tbl-sub">{p.sub}</div>}
+															</div>
+														);
+													})()}
 												</td>
 												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -534,7 +549,6 @@ export default function CompaniesPage() {
 												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
 													{formatRaised(c.total_funding_usd)}
 												</td>
-												<td className="num">{c.founded_year ?? '—'}</td>
 											</tr>
 										);
 									})}

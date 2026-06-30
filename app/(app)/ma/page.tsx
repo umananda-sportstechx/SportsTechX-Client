@@ -609,19 +609,17 @@ function MnaPageInner() {
 							<table className="data-table funding-table">
 								<thead>
 									<tr>
-										<SortHeader label="Date" sortKey="acquisition_date" sort={sort} setSort={setSort} defaultDir="desc" />
-										<SortHeader label="Target" sortKey="acquiree_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Company" sortKey="acquiree_name" sort={sort} setSort={setSort} />
 										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
-										<SortHeader label="HQ" sortKey="hq_country" sort={sort} setSort={setSort} />
-										<SortHeader label="Type" sortKey="acquisition_type" sort={sort} setSort={setSort} />
-										<SortHeader label="Value" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
+										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 										<SortHeader label="Acquirer" sortKey="acquirer_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Announced" sortKey="acquisition_date" sort={sort} setSort={setSort} defaultDir="desc" />
+										<SortHeader label="Value" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
 									</tr>
 								</thead>
 								<tbody>
 									{table.map((d) => {
 										const cc = d.hq_country ? countryCode(d.hq_country) : '';
-										const tag = typeTag(d.acquisition_type);
 										const amt = Number(d.amount_usd ?? 0);
 										const linkable = Boolean(d.acquiree_slug);
 										return (
@@ -634,7 +632,6 @@ function MnaPageInner() {
 													router.push(`/companies/${d.acquiree_slug}`);
 												}}
 											>
-												<td className="num">{formatShortDate(d.acquisition_date)}</td>
 												<td>
 													<div className="tbl-name-cell">
 														<Logo co={{ name: d.acquiree_name ?? '—', website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={28} />
@@ -668,18 +665,23 @@ function MnaPageInner() {
 															/>
 														: '—'}
 												</td>
-												<td title={d.hq_country ?? ''}>{cc && <Flag cc={cc} />}</td>
-												<td><Tag variant={tag.variant}>{tag.label}</Tag></td>
-												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
-													{Number.isFinite(amt) && amt > 0
-														? formatDealAmount(amt)
-														: <span style={{ color: 'var(--fg-muted)', fontWeight: 400, fontSize: 11 }}>undisc.</span>}
+												<td>
+													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+														{cc && <Flag cc={cc} />}
+														{[d.hq_city, d.hq_country].filter(Boolean).join(', ') || '—'}
+													</span>
 												</td>
 												<td style={{ color: 'var(--fg-2)' }}>
 													<div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
 														<ArrowRight size={11} style={{ color: 'var(--fg-muted)', flexShrink: 0 }} />
 														<span className="tbl-ellipsis">{d.acquirer_name ?? '—'}</span>
 													</div>
+												</td>
+												<td className="num">{formatShortDate(d.acquisition_date)}</td>
+												<td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+													{Number.isFinite(amt) && amt > 0
+														? formatDealAmount(amt)
+														: <span style={{ color: 'var(--fg-muted)', fontWeight: 400, fontSize: 11 }}>undisc.</span>}
 												</td>
 											</tr>
 										);
