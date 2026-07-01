@@ -210,12 +210,11 @@ export function emptyFilterState(facets: Facet[], extras: Partial<FilterState> =
 // ─── Inner controls ───────────────────────────────────────────────────────
 
 function FRMultiSelect({
-	options, value, onChange, maxHeight = 180,
+	options, value, onChange,
 }: {
 	options: FacetOption[];
 	value: string[];
 	onChange: (v: string[]) => void;
-	maxHeight?: number;
 }) {
 	const [q, setQ] = useState('');
 	const filtered = options.filter((o) => !q || o.label.toLowerCase().includes(q.toLowerCase()));
@@ -230,7 +229,10 @@ function FRMultiSelect({
 					onChange={(e) => setQ(e.target.value)}
 				/>
 			)}
-			<div className="flt-multi-list" style={{ maxHeight }}>
+			{/* No inner max-height/scroll — the option list flows within the single
+			    rail scroll so users aren't fighting three nested scrollbars. Long
+			    lists stay manageable via the search box above. */}
+			<div className="flt-multi-list">
 				{filtered.map((o) => {
 					const on = value.includes(o.value);
 					return (
@@ -548,7 +550,6 @@ function FRGroup({
 							options={facet.options()}
 							value={(val as string[]) ?? []}
 							onChange={(v) => onChange(v)}
-							maxHeight={facet.maxHeight}
 						/>
 					)}
 					{facet.kind === 'range' && (
