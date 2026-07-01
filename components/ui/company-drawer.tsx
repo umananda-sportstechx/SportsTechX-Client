@@ -497,7 +497,7 @@ function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal
 							{r.investor_links && r.investor_links.length > 0 && (
 								<div style={{ fontSize: 11, marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 4, color: 'var(--fg-2)' }}>
 									{r.investor_links.map((iv, i) => (
-										<span key={iv.name + i}>
+										<span key={(iv.slug ?? iv.name) + i}>
 											{iv.slug ? (
 												<Link
 													href={`/investors/${iv.slug}`}

@@ -307,8 +307,16 @@ function MnaPageInner() {
 		// sector_slug / sport_slug are legacy either-side aliases → seed acquiree.
 		const s = params.get('acquiree_sector_slug') ?? params.get('sector_slug');
 		if (s) init.acquiree_sector_slug = s.split(',').filter(Boolean);
+		const ass = params.get('acquiree_sub_sector_slug');
+		if (ass) init.acquiree_sub_sector_slug = ass.split(',').filter(Boolean);
+		const asss = params.get('acquiree_sub_sub_sector_slug');
+		if (asss) init.acquiree_sub_sub_sector_slug = asss.split(',').filter(Boolean);
 		const asec = params.get('acquirer_sector_slug');
 		if (asec) init.acquirer_sector_slug = asec.split(',').filter(Boolean);
+		const arss = params.get('acquirer_sub_sector_slug');
+		if (arss) init.acquirer_sub_sector_slug = arss.split(',').filter(Boolean);
+		const arsss = params.get('acquirer_sub_sub_sector_slug');
+		if (arsss) init.acquirer_sub_sub_sector_slug = arsss.split(',').filter(Boolean);
 		const sp = params.get('acquiree_sport_slug') ?? params.get('sport_slug');
 		if (sp) init.acquiree_sport_slug = sp.split(',').filter(Boolean);
 		const asp = params.get('acquirer_sport_slug');
@@ -351,8 +359,16 @@ function MnaPageInner() {
 		if (t?.length) sp.set('acquisition_type', t.join(','));
 		const sec = filterState.acquiree_sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('acquiree_sector_slug', sec.join(','));
+		const secSub = filterState.acquiree_sub_sector_slug as string[] | undefined;
+		if (secSub?.length) sp.set('acquiree_sub_sector_slug', secSub.join(','));
+		const secSubSub = filterState.acquiree_sub_sub_sector_slug as string[] | undefined;
+		if (secSubSub?.length) sp.set('acquiree_sub_sub_sector_slug', secSubSub.join(','));
 		const asec = filterState.acquirer_sector_slug as string[] | undefined;
 		if (asec?.length) sp.set('acquirer_sector_slug', asec.join(','));
+		const asecSub = filterState.acquirer_sub_sector_slug as string[] | undefined;
+		if (asecSub?.length) sp.set('acquirer_sub_sector_slug', asecSub.join(','));
+		const asecSubSub = filterState.acquirer_sub_sub_sector_slug as string[] | undefined;
+		if (asecSubSub?.length) sp.set('acquirer_sub_sub_sector_slug', asecSubSub.join(','));
 		const spt = filterState.acquiree_sport_slug as string[] | undefined;
 		if (spt?.length) sp.set('acquiree_sport_slug', spt.join(','));
 		const aspt = filterState.acquirer_sport_slug as string[] | undefined;
