@@ -6,9 +6,10 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, LogOut } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { useUserProfile, type AccountType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { usePersona, type Persona } from '@/contexts/persona-context';
@@ -70,6 +71,19 @@ export default function SettingsPage() {
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 	};
 
+	// Sign-out lives here now (moved off the sidebar).
+	const [signingOut, setSigningOut] = useState(false);
+	const handleLogout = async () => {
+		if (signingOut) return;
+		setSigningOut(true);
+		try {
+			await getSupabaseBrowser().auth.signOut();
+			router.push('/login');
+		} catch {
+			setSigningOut(false);
+		}
+	};
+
 	// Keep state in sync when the user navigates via back/forward — Next's
 	// `router.replace` doesn't fire an effect on the same component, but
 	// URL changes from anywhere else (back button, manual paste) re-render
@@ -95,6 +109,14 @@ export default function SettingsPage() {
 							{t.label}
 						</button>
 					))}
+					<button
+						onClick={handleLogout}
+						disabled={signingOut}
+						className="set-tab"
+						style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--danger, #dc2626)' }}
+					>
+						<LogOut size={15} /> {signingOut ? 'Signing out…' : 'Sign out'}
+					</button>
 				</nav>
 
 				<div className="card" style={{ padding: 'var(--space-5)' }}>

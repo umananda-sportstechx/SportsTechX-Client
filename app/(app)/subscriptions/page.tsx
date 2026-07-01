@@ -130,6 +130,7 @@ export default function SubscriptionsPage() {
 			/>
 
 			<CreditPacks />
+			<CreditActivity />
 
 
 			{isActive && (
@@ -584,6 +585,57 @@ function CreditPacks() {
 						</button>
 					</div>
 				))}
+			</div>
+		</div>
+	);
+}
+
+// ── Credit activity (ledger) — folded in from the former standalone /credits page ──
+
+interface LedgerRow {
+	id: string;
+	transaction_type: string;
+	amount: number;
+	balance_after: number;
+	description: string | null;
+	operation_key: string | null;
+	occurred_at: string;
+}
+
+const OP_LABEL: Record<string, string> = {
+	'ai.chat_turn': 'Chat', 'ai.deck_analysis': 'Deck analysis', 'ai.embedding': 'Document search', 'ai.chat_summary': 'Chat memory',
+};
+function ledgerLabel(r: LedgerRow): string {
+	if (r.operation_key && OP_LABEL[r.operation_key]) return OP_LABEL[r.operation_key];
+	if (r.description) return r.description;
+	return r.transaction_type.replace(/_/g, ' ');
+}
+
+function CreditActivity() {
+	const { data: ledger } = useSWR<{ data: LedgerRow[] }>(qk.credits.ledger('ai', undefined, 20), { dedupingInterval: 30_000 });
+	const history = ledger?.data ?? [];
+	if (history.length === 0) return null;
+	return (
+		<div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+			<SectionHead title="Credit activity" />
+			<div style={{ marginTop: 8, borderTop: '1px solid var(--border)' }}>
+				{history.map((r) => {
+					const spent = r.amount < 0;
+					return (
+						<div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+							<div style={{ minWidth: 0 }}>
+								<div style={{ fontWeight: 600, fontSize: 13 }}>{ledgerLabel(r)}</div>
+								<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{new Date(r.occurred_at).toLocaleString()}</div>
+							</div>
+							<div style={{ textAlign: 'right' }}>
+								<div style={{ fontWeight: 700, fontSize: 13, color: spent ? 'var(--danger, #dc2626)' : 'var(--pos, #059669)' }}>
+									{spent ? '' : '+'}{r.amount.toLocaleString()}
+								</div>
+								<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{r.balance_after.toLocaleString()} left</div>
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);
