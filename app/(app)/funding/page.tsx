@@ -236,6 +236,10 @@ function FundingPageInner() {
 		const v = params.get('is_company_verified'); if (v) init.is_company_verified = v === 'true';
 		const s = params.get('sector_slug');
 		if (s) init.sector_slug = s.split(',').filter(Boolean);
+		const ss = params.get('sub_sector_slug');
+		if (ss) init.sub_sector_slug = ss.split(',').filter(Boolean);
+		const sss = params.get('sub_sub_sector_slug');
+		if (sss) init.sub_sub_sector_slug = sss.split(',').filter(Boolean);
 		const sp2 = params.get('sport_slug');
 		if (sp2) init.sport_slug = sp2.split(',').filter(Boolean);
 		const tt = params.get('tech_tag_slug');
@@ -268,6 +272,10 @@ function FundingPageInner() {
 		if (filterState.is_company_verified === true) sp.set('is_company_verified', 'true');
 		const sec = filterState.sector_slug as string[] | undefined;
 		if (sec?.length) sp.set('sector_slug', sec.join(','));
+		const subSec = filterState.sub_sector_slug as string[] | undefined;
+		if (subSec?.length) sp.set('sub_sector_slug', subSec.join(','));
+		const subSubSec = filterState.sub_sub_sector_slug as string[] | undefined;
+		if (subSubSec?.length) sp.set('sub_sub_sector_slug', subSubSec.join(','));
 		const spt = filterState.sport_slug as string[] | undefined;
 		if (spt?.length) sp.set('sport_slug', spt.join(','));
 		const tt = filterState.tech_tag_slug as string[] | undefined;
