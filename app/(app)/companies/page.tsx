@@ -28,7 +28,6 @@ import { ExplorerUpgradeBanner, ExplorerLockedFooter, EXPLORER_CAP } from '@/com
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useSectorTiers, expandSectorSelection } from '@/hooks/use-sector-tiers';
 
-interface RoundType { id: string; name: string; slug: string }
 interface FavoriteCompany { company_id: string }
 interface FavoritesResponse { data: FavoriteCompany[] }
 
@@ -69,14 +68,13 @@ interface CompaniesResponse {
 
 interface SectorRef { id: string; name: string; slug: string; parent_id?: string | null }
 interface TechTagRef { id: string; name: string; slug: string }
-interface LocationFacets { cities: string[]; continents: string[]; regions: string[] }
+interface LocationFacets { cities: string[]; countries: string[]; continents: string[]; regions: string[] }
 interface RefResponse<T> { data: T[] }
 
-const COMMON_COUNTRIES = [
-	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
-	'Netherlands', 'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India',
-	'China', 'Japan', 'Singapore', 'Australia', 'Brazil', 'Canada',
-];
+// Total-funding slider ceiling (USD millions). The largest company (Fanatics)
+// is ~$5.24B, so 6,000M keeps the biggest players in range instead of the old
+// 250M cap that silently hid everything above it.
+const FUNDING_MAX_M = 6000;
 
 /** Safe id-or-slug resolver — never falls back to the literal string "undefined". */
 function resolveTarget(c: { id?: string; slug?: string | null }): string | null {
@@ -125,11 +123,6 @@ export default function CompaniesPage() {
 			return top.id === node.id ? { pillar: node.name, sub: null } : { pillar: top.name, sub: node.name };
 		};
 	}, [sectorList]);
-
-	const { data: roundTypesResp } = useSWR<RefResponse<RoundType> | RoundType[]>(qk.reference.roundTypes(), {
-		dedupingInterval: 60 * 60_000,
-	});
-	const roundTypes = Array.isArray(roundTypesResp) ? roundTypesResp : (roundTypesResp?.data ?? []);
 
 	const { data: sportsResp } = useSWR<RefResponse<SectorRef> | SectorRef[]>(qk.reference.sports(), {
 		dedupingInterval: 60 * 60_000,
@@ -187,14 +180,6 @@ export default function CompaniesPage() {
 			maxHeight: 260,
 		},
 		{
-			key: 'last_round_type',
-			label: 'Stage',
-			kind: 'multi',
-			section: 'Business details',
-			options: () => roundTypes.map((r) => ({ value: r.slug, label: r.name })),
-			maxHeight: 240,
-		},
-		{
 			key: 'sport_slug',
 			label: 'Sport',
 			kind: 'multi',
@@ -203,13 +188,22 @@ export default function CompaniesPage() {
 			maxHeight: 240,
 		},
 		{
-			key: 'founded',
+			key: 'exclude_unfunded',
+			label: 'Exclude unfunded',
+			kind: 'bool',
+		},
+		{
+			key: 'founded_years',
 			label: 'Founded year',
-			kind: 'range',
+			kind: 'multi',
 			section: 'Business details',
-			min: 1990,
-			max: new Date().getFullYear(),
-			step: 1,
+			options: () => {
+				const now = new Date().getFullYear();
+				const ys: { value: string; label: string }[] = [];
+				for (let y = now; y >= 1990; y--) ys.push({ value: String(y), label: String(y) });
+				return ys;
+			},
+			maxHeight: 240,
 		},
 		{
 			key: 'raised',
@@ -217,24 +211,22 @@ export default function CompaniesPage() {
 			kind: 'range',
 			section: 'Business details',
 			min: 0,
-			max: 250,
-			step: 5,
+			max: FUNDING_MAX_M,
+			step: 25,
 		},
-		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			section: 'Location',
-			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
-		},
-		// Advanced location facets — gated on `advanced_filters` (Growth+). The
-		// FilterRail renders a working Upgrade teaser for users without access and
-		// the real multi-select for entitled users. Options come from the live
-		// /api/locations/facets reference list, so they reflect actual data.
+		// Location facets in the order City → Country → Continent → Region.
+		// Country/city/continent/region options come from the live locations
+		// master (/api/locations/facets), so they reflect all data — not a
+		// hardcoded shortlist. City/continent/region stay gated on advanced_filters.
 		{
 			key: 'city', label: 'City', kind: 'multi', section: 'Location', gate: 'advanced_filters',
 			options: () => (locationFacets?.cities ?? []).map((c) => ({ value: c, label: c })),
 			maxHeight: 220,
+		},
+		{
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
+			options: () => (locationFacets?.countries ?? []).map((c) => ({ value: c, label: c })),
+			maxHeight: 240,
 		},
 		{
 			key: 'continent', label: 'Continent', kind: 'multi', section: 'Location', gate: 'advanced_filters',
@@ -251,7 +243,7 @@ export default function CompaniesPage() {
 			options: () => techTags.map((t) => ({ value: t.slug, label: t.name })),
 			maxHeight: 240,
 		},
-	], [sectorTiers, roundTypes, sportList, techTags, locationFacets]);
+	], [sectorTiers, sportList, techTags, locationFacets]);
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
 		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
@@ -278,11 +270,9 @@ export default function CompaniesPage() {
 		if (tech) init.tech_tag_slug = tech.split(',').filter(Boolean);
 		const bm = params.get('business_model');
 		if (bm) init.business_model = bm.split(',').filter(Boolean);
-		const stage = params.get('last_round_type');
-		if (stage) init.last_round_type = stage.split(',').filter(Boolean);
-		const fMin = params.get('founded_year_min');
-		const fMax = params.get('founded_year_max');
-		if (fMin && fMax) init.founded = [Number(fMin), Number(fMax)] as [number, number];
+		const exUnf = params.get('exclude_unfunded'); if (exUnf) init.exclude_unfunded = exUnf === 'true';
+		const fy = params.get('founded_years');
+		if (fy) init.founded_years = fy.split(',').filter(Boolean);
 		const rMin = params.get('min_funding');
 		const rMax = params.get('max_funding');
 		if (rMin && rMax) init.raised = [Number(rMin) / 1_000_000, Number(rMax) / 1_000_000] as [number, number];
@@ -315,15 +305,11 @@ export default function CompaniesPage() {
 		if (techF?.length) sp.set('tech_tag_slug', techF.join(','));
 		const bm = filterState.business_model as string[] | undefined;
 		if (bm?.length) sp.set('business_model', bm.join(','));
-		const stage = filterState.last_round_type as string[] | undefined;
-		if (stage?.length) sp.set('last_round_type', stage.join(','));
-		const f = filterState.founded as [number, number] | undefined;
-		if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
-			sp.set('founded_year_min', String(f[0]));
-			sp.set('founded_year_max', String(f[1]));
-		}
+		if (filterState.exclude_unfunded === true) sp.set('exclude_unfunded', 'true');
+		const fy = filterState.founded_years as string[] | undefined;
+		if (fy?.length) sp.set('founded_years', fy.join(','));
 		const raised = filterState.raised as [number, number] | undefined;
-		if (raised && (raised[0] !== 0 || raised[1] !== 250)) {
+		if (raised && (raised[0] !== 0 || raised[1] !== FUNDING_MAX_M)) {
 			sp.set('min_funding', String(raised[0] * 1_000_000));
 			sp.set('max_funding', String(raised[1] * 1_000_000));
 		}
@@ -366,8 +352,6 @@ export default function CompaniesPage() {
 	if (sportF?.length) queryParams.sport_slug = sportF.join(',');
 	const bm = filterState.business_model as string[] | undefined;
 	if (bm?.length) queryParams.business_model = bm.join(',');
-	const stage = filterState.last_round_type as string[] | undefined;
-	if (stage?.length) queryParams.last_round_type = stage.join(',');
 	if (filterState.is_verified === true) queryParams.is_verified = true;
 	if (filterState.is_actively_raising === true) queryParams.is_actively_raising = true;
 	if (filterState.is_unicorn === true) queryParams.is_unicorn = true;
@@ -377,13 +361,11 @@ export default function CompaniesPage() {
 		// that won't match anything.
 		queryParams.ids = favoriteIds.length ? favoriteIds.join(',') : '00000000-0000-0000-0000-000000000000';
 	}
-	const f = filterState.founded as [number, number] | undefined;
-	if (f && (f[0] !== 1990 || f[1] !== new Date().getFullYear())) {
-		queryParams.founded_year_min = f[0];
-		queryParams.founded_year_max = f[1];
-	}
+	const foundedYears = filterState.founded_years as string[] | undefined;
+	if (foundedYears?.length) queryParams.founded_years = foundedYears.join(',');
+	if (filterState.exclude_unfunded === true) queryParams.exclude_unfunded = true;
 	const raised = filterState.raised as [number, number] | undefined;
-	if (raised && (raised[0] !== 0 || raised[1] !== 250)) {
+	if (raised && (raised[0] !== 0 || raised[1] !== FUNDING_MAX_M)) {
 		queryParams.min_funding = raised[0] * 1_000_000;
 		queryParams.max_funding = raised[1] * 1_000_000;
 	}

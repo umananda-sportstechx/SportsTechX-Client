@@ -275,7 +275,6 @@
 
 .flt-multi-list {
   display: flex; flex-direction: column;
-  overflow-y: auto;
 }
 .flt-multi-row {
   display: flex; align-items: center; gap: 9px;
