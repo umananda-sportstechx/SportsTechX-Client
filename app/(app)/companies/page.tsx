@@ -213,6 +213,8 @@ export default function CompaniesPage() {
 			min: 0,
 			max: FUNDING_MAX_M,
 			step: 25,
+			logScale: true,
+			prefix: '$',
 		},
 		// Location facets in the order City → Country → Continent → Region.
 		// Country/city/continent/region options come from the live locations
