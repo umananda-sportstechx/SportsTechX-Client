@@ -171,7 +171,7 @@ export function CompanyDrawer({
 							</div>
 							{company.website && (
 								<a
-									href={company.website}
+									href={/^https?:\/\//i.test(company.website) ? company.website : `https://${company.website}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="co-drawer-url"
@@ -324,9 +324,6 @@ function General({ company }: { company: Company }) {
 				{company.primary_sport && (
 					<KV label="Sport" value={<Tag>{company.primary_sport}</Tag>} />
 				)}
-				{company.last_round_type && (
-					<KV label="Last round" value={<Tag variant="pos">{company.last_round_type}</Tag>} />
-				)}
 				{company.founded_year && <KV label="Founded" value={company.founded_year} />}
 				{company.business_model && (
 					<KV label="Business model" value={company.business_model.toUpperCase()} />
@@ -370,23 +367,18 @@ function ConnectBlock({ company }: { company: Company }) {
 	if (company.facebook_url) socials.push({ kind: 'facebook', url: company.facebook_url });
 	if (company.linkedin_url) socials.push({ kind: 'linkedin', url: company.linkedin_url });
 
-	if (!company.contact_email && !company.website && socials.length === 0) return null;
+	if (!company.contact_email && socials.length === 0) return null;
 
 	return (
 		<>
 			<h4 className="co-drawer-h4">Connect</h4>
 			<div className="co-social-row">
-				{company.contact_email ? (
+				{company.contact_email && (
 					<a className="co-social co-social-mail" href={`mailto:${company.contact_email}`} title={company.contact_email}>
 						<SocialIcon kind="mail" size={14} />
 						<span>{company.contact_email}</span>
 					</a>
-				) : company.website ? (
-					<a className="co-social co-social-mail" href={company.website} target="_blank" rel="noopener noreferrer" title={company.website}>
-						<Link2 size={14} />
-						<span>{company.website.replace(/^https?:\/\//, '')}</span>
-					</a>
-				) : null}
+				)}
 				{socials.length > 0 && (
 					<div className="co-social-icons">
 						{socials.map((s) => (
@@ -440,22 +432,24 @@ function PrimaryContact({ company }: { company: Company }) {
 				<h4 className="co-drawer-h4" style={{ margin: 0 }}>Primary contact</h4>
 			</div>
 			{contact ? (
-				<div style={{ padding: '4px 2px' }}>
-					<div style={{ fontWeight: 700 }}>{contact.full_name ?? '—'}</div>
-					{(contact.role || contact.job_position) && (
-						<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
-							{contact.role ?? contact.job_position}
-						</div>
-					)}
-					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-						{contact.email && (
-							<a href={`mailto:${contact.email}`} className="co-social-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-								<Send size={12} /> {contact.email}
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '4px 2px' }}>
+					<div style={{ minWidth: 0 }}>
+						<div style={{ fontWeight: 700 }}>{contact.full_name ?? '—'}</div>
+						{(contact.role || contact.job_position) && (
+							<div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
+								{contact.role ?? contact.job_position}
+							</div>
+						)}
+					</div>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+						{contact.linkedin_url && (
+							<a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="icon-btn" title="LinkedIn" aria-label="LinkedIn">
+								<Link2 size={16} />
 							</a>
 						)}
-						{contact.linkedin_url && (
-							<a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="co-social-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-								<Link2 size={12} /> LinkedIn
+						{contact.email && (
+							<a href={`mailto:${contact.email}`} className="icon-btn" title={contact.email} aria-label="Email">
+								<Send size={16} />
 							</a>
 						)}
 					</div>
