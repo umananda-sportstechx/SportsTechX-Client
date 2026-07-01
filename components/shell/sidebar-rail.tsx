@@ -3,12 +3,10 @@
 import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
-	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings, LogOut,
-	ChevronRight, Heart, BadgeCheck, Globe, Search, Grid3x3, Code, Presentation, Coins,
+	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings,
+	ChevronRight, Heart, Globe, Search, Grid3x3, Code,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
-import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
 import { usePersona } from '@/contexts/persona-context';
 import { Brand } from '@/components/ui/brand';
@@ -80,8 +78,6 @@ const NAV_GROUPS: NavGroup[] = [
 			{ id: 'dashboard', name: 'Dashboard', icon: Home, path: '/dashboard' },
 			{ id: 'framework', name: 'Framework', icon: Network, path: '/framework' },
 			{ id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
-			{ id: 'documents', name: 'My Documents', icon: FileText, path: '/documents' },
-			{ id: 'pitch-analyzer', name: 'Pitch Analyzer', icon: Presentation, path: '/pitch-analyzer' },
 			{ id: 'newsletter', name: 'Newsletter', icon: Mail, path: '/newsletter' },
 			{ id: 'analytics', name: 'Analytics', icon: TrendingUp, path: '/analytics', slug: 'analytics_access' },
 		]
@@ -104,10 +100,8 @@ const NAV_GROUPS: NavGroup[] = [
 		// `lists` (My lists) is a client addition retained per the keep-behavior
 		// rule — the prototype reaches lists via the "My Lists" button instead.
 		label: 'Account', items: [
-			{ id: 'getverified', name: 'Get Verified', icon: BadgeCheck, path: '/get-verified' },
 			{ id: 'lists', name: 'My lists', icon: Heart, path: '/lists' },
-			{ id: 'subscriptions', name: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
-			{ id: 'credits', name: 'AI Credits', icon: Coins, path: '/credits' },
+			{ id: 'subscriptions', name: 'Subscriptions & Purchases', icon: CreditCard, path: '/subscriptions' },
 			{ id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
 		]
 	},
@@ -127,7 +121,6 @@ interface SidebarRailProps {
 export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: SidebarRailProps) {
 	const router = useRouter();
 	const pathname = usePathname();
-	const [signingOut, setSigningOut] = useState(false);
 	// Server-driven tier matrix — drives the PRO/GROWTH badge + locked state on
 	// gated nav items. `checkAccess` is a plain function (not a hook), safe to
 	// call per item inside the render loop.
@@ -139,18 +132,6 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 
 	const handleNav = (path: string) => {
 		router.push(path);
-	};
-
-	const handleLogout = async () => {
-		if (signingOut) return;
-		setSigningOut(true);
-		try {
-			const supabase = getSupabaseBrowser();
-			await supabase.auth.signOut();
-			router.push('/login');
-		} catch {
-			setSigningOut(false);
-		}
 	};
 
 	return (
@@ -240,16 +221,6 @@ export function SidebarRail({ expanded, onToggleExpand, onHoverChange }: Sidebar
 
 			<div style={{ padding: 8, borderTop: '1px solid var(--border)' }}>
 				<CreditMeter variant="rail" />
-				<button
-					className="rail-item"
-					title="Logout"
-					onClick={handleLogout}
-					disabled={signingOut}
-				>
-					<LogOut size={18} />
-					<span className="rail-label">Logout</span>
-					<span className="rail-tip">Logout</span>
-				</button>
 			</div>
 		</aside>
 	);
