@@ -94,6 +94,11 @@ export interface RangeFacet {
 	suffix?: string;
 	section?: string;
 	gate?: string;
+	/** Move the slider handles in log space (for heavily skewed ranges like
+	 *  funding, where most values cluster near the low end). The emitted value
+	 *  is still the real number; only the handle-to-value mapping is logarithmic.
+	 *  Requires min ≥ 0 and max > 1. */
+	logScale?: boolean;
 }
 
 /** Inline Q1–Q4 multi-pick. Value is a `string[]` of selected quarter labels. */
@@ -263,34 +268,57 @@ function FRRangeControl({
 	const step = facet.step ?? 1;
 	const [lo, hi] = value || [facet.min, facet.max];
 	const fmt = (v: number) => `${facet.prefix || ''}${v}${facet.suffix || ''}`;
+
+	// Log-scale mode: the <input type=range> operates in position space [0..LOG_POS]
+	// and we map positions to/from real values logarithmically. Position 0 maps to
+	// facet.min (which may be 0); positions above map exponentially up to facet.max.
+	const log = facet.logScale === true && facet.min >= 0 && facet.max > 1;
+	const LOG_POS = 1000;
+	const toPos = (v: number) => (v <= 0 ? 0 : Math.round((LOG_POS * Math.log(v)) / Math.log(facet.max)));
+	const toVal = (p: number) => (p <= 0 ? facet.min : Math.round(Math.pow(facet.max, p / LOG_POS)));
+
+	const sliderMin = log ? 0 : facet.min;
+	const sliderMax = log ? LOG_POS : facet.max;
+	const sliderStep = log ? 1 : step;
+	const loPos = log ? toPos(lo) : lo;
+	const hiPos = log ? toPos(hi) : hi;
+	const onLo = (raw: number) => {
+		const v = log ? toVal(raw) : raw;
+		onChange([Math.min(v, hi - (log ? 1 : step)), hi]);
+	};
+	const onHi = (raw: number) => {
+		const v = log ? toVal(raw) : raw;
+		onChange([lo, Math.max(v, lo + (log ? 1 : step))]);
+	};
+
 	return (
 		<div className="flt-range">
 			<div className="flt-range-vals">
 				<span>{fmt(lo)}</span>
 				<span className="flt-range-dash">–</span>
-				<span>{fmt(hi)}</span>
+				<span>{fmt(hi)}{log && hi >= facet.max ? '+' : ''}</span>
 			</div>
 			<div className="flt-range-inputs">
 				<input
 					type="range"
-					min={facet.min}
-					max={facet.max}
-					step={step}
-					value={lo}
-					onChange={(e) => onChange([Math.min(+e.target.value, hi - step), hi])}
+					min={sliderMin}
+					max={sliderMax}
+					step={sliderStep}
+					value={loPos}
+					onChange={(e) => onLo(+e.target.value)}
 				/>
 				<input
 					type="range"
-					min={facet.min}
-					max={facet.max}
-					step={step}
-					value={hi}
-					onChange={(e) => onChange([lo, Math.max(+e.target.value, lo + step)])}
+					min={sliderMin}
+					max={sliderMax}
+					step={sliderStep}
+					value={hiPos}
+					onChange={(e) => onHi(+e.target.value)}
 				/>
 			</div>
 			<div className="flt-range-labels">
 				<span>{fmt(facet.min)}</span>
-				<span>{fmt(facet.max)}</span>
+				<span>{fmt(facet.max)}{log ? '+' : ''}</span>
 			</div>
 		</div>
 	);
