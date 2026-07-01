@@ -482,7 +482,7 @@ const SECTOR_META: Record<string, { color: string; icon: string }> = {
 	'management-organisation':{ color: 'oklch(62% 0.16 0)',   icon: 'M' },
 };
 
-function sectorMetaFor(slug: string | null | undefined, name: string): { color: string; icon: string } {
+export function sectorMetaFor(slug: string | null | undefined, name: string): { color: string; icon: string } {
 	if (slug) {
 		const hit = SECTOR_META[slug.toLowerCase()];
 		if (hit) return hit;

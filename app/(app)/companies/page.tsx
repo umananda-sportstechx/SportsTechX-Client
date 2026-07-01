@@ -10,7 +10,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useFavorite } from '@/hooks/use-favorite';
 import {
 	Page, Logo, Flag, AudiencePill, SectorPill, Empty, PageTitle,
-	VerifiedBadge, RaisingDot,
+	VerifiedBadge, RaisingDot, sectorMetaFor,
 } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -159,7 +159,7 @@ export default function CompaniesPage() {
 			label: 'Sector',
 			kind: 'multi',
 			section: 'Sector',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 260,
 		},
 		{
@@ -167,7 +167,7 @@ export default function CompaniesPage() {
 			label: 'Sub-sector',
 			kind: 'multi',
 			section: 'Sector',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 260,
 		},
 		{
@@ -176,7 +176,7 @@ export default function CompaniesPage() {
 			kind: 'multi',
 			section: 'Sector',
 			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 260,
 		},
 		{

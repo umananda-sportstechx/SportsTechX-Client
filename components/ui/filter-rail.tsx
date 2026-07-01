@@ -34,6 +34,8 @@ export interface FacetOption {
 	value: string;
 	label: string;
 	count?: number;
+	/** Optional colored icon block shown before the label (e.g. sector swatch). */
+	swatch?: { color: string; icon: string };
 }
 
 export type FacetKind = 'bool' | 'multi' | 'range' | 'quarter' | 'tri' | 'amount';
@@ -247,6 +249,18 @@ function FRMultiSelect({
 							onClick={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])}
 						>
 							<span className={`flt-check ${on ? 'on' : ''}`}>{on && <Check size={10} />}</span>
+							{o.swatch && (
+								<span
+									aria-hidden
+									style={{
+										width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+										display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+										background: o.swatch.color, color: '#fff', fontSize: 9, fontWeight: 700,
+									}}
+								>
+									{o.swatch.icon}
+								</span>
+							)}
 							<span className="flt-multi-label">{o.label}</span>
 							{o.count != null && <span className="flt-multi-count">{o.count}</span>}
 						</button>
