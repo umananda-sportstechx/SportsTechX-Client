@@ -65,6 +65,8 @@ interface Company {
 	linkedin_url?: string | null;
 }
 
+interface InvestorLink { name: string; slug?: string | null; is_lead?: boolean | null }
+
 interface Deal {
 	id: string;
 	announced_date?: string | null;
@@ -72,6 +74,8 @@ interface Deal {
 	round_type_name?: string | null;
 	round_type?: string | null;
 	lead_investor?: string | null;
+	investors?: string[] | null;
+	investor_links?: InvestorLink[] | null;
 }
 
 interface DealsResponse { data: Deal[] }
@@ -472,6 +476,7 @@ function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal
 				<MiniStat label="Last round" value={company.last_round_type ?? '—'} />
 				<MiniStat label="Rounds" value={deals.length} />
 			</div>
+			<FundingByYearChart deals={deals} />
 			<h4 className="co-drawer-h4">Round history</h4>
 			<div className="co-rounds">
 				{deals.map((r) => (
@@ -486,17 +491,29 @@ function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal
 									{formatDollars(r.amount_usd)}
 								</span>
 							</div>
-							<div
-								style={{
-									fontSize: 11,
-									color: 'var(--fg-muted)',
-									display: 'flex',
-									justifyContent: 'space-between',
-								}}
-							>
-								<span>{r.announced_date ? formatShortDate(r.announced_date) : '—'}</span>
-								{r.lead_investor && <span>Lead · {r.lead_investor}</span>}
+							<div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+								{r.announced_date ? formatShortDate(r.announced_date) : '—'}
 							</div>
+							{r.investor_links && r.investor_links.length > 0 && (
+								<div style={{ fontSize: 11, marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 4, color: 'var(--fg-2)' }}>
+									{r.investor_links.map((iv, i) => (
+										<span key={iv.name + i}>
+											{iv.slug ? (
+												<Link
+													href={`/investors/${iv.slug}`}
+													onClick={(e) => e.stopPropagation()}
+													style={{ color: 'var(--accent)', textDecoration: 'none' }}
+												>
+													{iv.name}
+												</Link>
+											) : (
+												<span>{iv.name}</span>
+											)}
+											{iv.is_lead ? ' (lead)' : ''}{i < r.investor_links!.length - 1 ? ',' : ''}
+										</span>
+									))}
+								</div>
+							)}
 						</div>
 					</div>
 				))}
@@ -506,6 +523,44 @@ function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal
 					View all analytics <ArrowRight size={12} />
 				</button>
 			)}
+		</div>
+	);
+}
+
+/** Funding raised per year — compact SVG bar chart (x = year, y = amount). */
+function FundingByYearChart({ deals }: { deals: Deal[] }) {
+	const byYear = new Map<number, number>();
+	for (const d of deals) {
+		if (!d.announced_date) continue;
+		const y = new Date(d.announced_date).getUTCFullYear();
+		if (!Number.isFinite(y)) continue;
+		const amt = Number(d.amount_usd ?? 0);
+		byYear.set(y, (byYear.get(y) ?? 0) + (Number.isFinite(amt) ? amt : 0));
+	}
+	if (byYear.size < 2) return null; // need at least two years to be worth a chart
+	const years = [...byYear.keys()].sort((a, b) => a - b);
+	const max = Math.max(...years.map((y) => byYear.get(y) ?? 0), 1);
+	const W = 320, H = 90, pad = 18, bw = (W - pad) / years.length;
+	return (
+		<div style={{ marginBottom: 16 }}>
+			<h4 className="co-drawer-h4">Funding by year</h4>
+			<svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Funding raised per year">
+				{years.map((y, i) => {
+					const v = byYear.get(y) ?? 0;
+					const h = Math.max(1, (v / max) * (H - pad - 14));
+					const x = pad + i * bw;
+					return (
+						<g key={y}>
+							<rect x={x} y={H - pad - h} width={Math.max(2, bw - 4)} height={h} rx={2} fill="var(--accent)">
+								<title>{`${y}: ${formatDollars(v)}`}</title>
+							</rect>
+							<text x={x + (bw - 4) / 2} y={H - pad + 10} textAnchor="middle" fontSize={8} fill="var(--fg-muted)">
+								{`'${String(y).slice(2)}`}
+							</text>
+						</g>
+					);
+				})}
+			</svg>
 		</div>
 	);
 }
@@ -540,44 +595,61 @@ function Mna({ acquisitions }: { acquisitions: Acquisition[] }) {
 	);
 }
 
-interface InvestorRow { name: string; rounds: number }
+interface InvestorRow { name: string; slug?: string | null; rounds: number }
 
-/** Lead-investor roster built from real `deal.lead_investor`, aggregated. */
+/** Investor roster across all rounds, aggregated by name. Prefers the linked
+ *  slug (from the investors DB) so each row can deep-link to a profile. Falls
+ *  back to the flat `investors`/`lead_investor` names when links are absent. */
 function buildInvestorRoster(deals: Deal[]): InvestorRow[] {
-	const byName: Record<string, number> = {};
+	const byName = new Map<string, { slug?: string | null; rounds: number }>();
 	deals.forEach((d) => {
-		const name = (d.lead_investor ?? '').trim();
-		if (!name) return;
-		byName[name] = (byName[name] || 0) + 1;
+		const links = d.investor_links?.length
+			? d.investor_links
+			: (d.investors ?? (d.lead_investor ? [d.lead_investor] : [])).map((n) => ({ name: n, slug: null }));
+		for (const l of links) {
+			const name = (l.name ?? '').trim();
+			if (!name) continue;
+			const prev = byName.get(name);
+			byName.set(name, { slug: l.slug ?? prev?.slug ?? null, rounds: (prev?.rounds ?? 0) + 1 });
+		}
 	});
-	return Object.entries(byName)
-		.map(([name, rounds]) => ({ name, rounds }))
+	return [...byName.entries()]
+		.map(([name, v]) => ({ name, slug: v.slug, rounds: v.rounds }))
 		.sort((a, b) => b.rounds - a.rounds || a.name.localeCompare(b.name));
 }
 
 function Investors({ investors, roundCount }: { investors: InvestorRow[]; roundCount: number }) {
 	if (investors.length === 0) {
-		return <div className="co-empty">No disclosed lead investors yet.</div>;
+		return <div className="co-empty">No disclosed investors yet.</div>;
 	}
 	return (
 		<div>
 			<div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-				<MiniStat label="Lead investors" value={investors.length} />
+				<MiniStat label="Investors" value={investors.length} />
 				<MiniStat label="Rounds" value={roundCount} />
 			</div>
 			<h4 className="co-drawer-h4">Investor roster</h4>
 			<div className="co-inv-list">
 				{investors.map((inv) => {
 					const initials = inv.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-					return (
-						<div key={inv.name} className="co-inv-row" style={{ cursor: 'default' }}>
+					const inner = (
+						<>
 							<span className="co-inv-logo">{initials}</span>
 							<span className="co-inv-text">
 								<span className="co-inv-name">{inv.name}</span>
 								<span className="co-inv-meta">
-									{inv.rounds} round{inv.rounds === 1 ? '' : 's'} led
+									{inv.rounds} round{inv.rounds === 1 ? '' : 's'}
 								</span>
 							</span>
+						</>
+					);
+					return inv.slug ? (
+						<Link key={inv.name} href={`/investors/${inv.slug}`} className="co-inv-row" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+							{inner}
+						</Link>
+					) : (
+						<div key={inv.name} className="co-inv-row" style={{ cursor: 'default' }}>
+							{inner}
 						</div>
 					);
 				})}
