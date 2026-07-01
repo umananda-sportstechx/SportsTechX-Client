@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { ArrowRight, Lock, Sparkles } from 'lucide-react';
+import { ArrowRight, Lock, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Page, Tag, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
@@ -104,11 +105,20 @@ export default function ReportsPage() {
 		dedupingInterval: 10 * 60_000,
 	});
 
-	const reportsApi = data?.data ?? [];
+	const reportsApiRaw = data?.data ?? [];
+	// Sort newest-first by publication date (fallback to id so it's stable).
+	const reportsApi = useMemo(() => {
+		const ts = (r: Report) => (r.published_at ? new Date(r.published_at).getTime() : 0);
+		return [...reportsApiRaw].sort((a, b) => ts(b) - ts(a));
+	}, [reportsApiRaw]);
 	const useMock = !isLoading && reportsApi.length === 0;
 	const total = useMock ? MOCK_REPORTS.length : (data?.total ?? reportsApi.length);
-	const featuredApi = reportsApi[0];
-	const restApi = reportsApi.slice(1);
+	// Featured = the 3 most recent reports, shown in a carousel; the rest below.
+	const featured = reportsApi.slice(0, 3);
+	const restApi = reportsApi.slice(3);
+	const [fIdx, setFIdx] = useState(0);
+	const featuredIdx = Math.min(fIdx, Math.max(0, featured.length - 1));
+	const featuredApi = featured[featuredIdx];
 
 	return (
 		<Page>
@@ -131,10 +141,20 @@ export default function ReportsPage() {
 				</>
 			) : featuredApi ? (
 				<>
+					<div style={{ position: 'relative', marginBottom: 'var(--space-5)' }}>
+					{featured.length > 1 && (
+						<button
+							aria-label="Previous featured report"
+							onClick={() => setFIdx((i) => (i - 1 + featured.length) % featured.length)}
+							className="btn ghost"
+							style={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)', zIndex: 2, padding: 6 }}
+						>
+							<ChevronLeft size={18} />
+						</button>
+					)}
 					<div
 						className="card"
 						style={{
-							marginBottom: 'var(--space-5)',
 							overflow: 'hidden',
 							display: 'grid',
 							gridTemplateColumns: '380px 1fr',
@@ -197,18 +217,48 @@ export default function ReportsPage() {
 										<button className="btn">Download PDF <ArrowRight size={12} /></button>
 									</a>
 								) : (
-									<Link href={reportsAccess.hasAccess ? `/reports/${featuredApi.slug ?? featuredApi.id}` : '/subscriptions'}>
+									<Link
+										href={reportsAccess.hasAccess ? `/reports/${featuredApi.slug ?? featuredApi.id}` : '/subscriptions'}
+										target={reportsAccess.hasAccess ? '_blank' : undefined}
+										rel={reportsAccess.hasAccess ? 'noopener noreferrer' : undefined}
+									>
 										<button className="btn">
 											{reportsAccess.hasAccess ? 'Open report' : (<><Lock size={12} /> Unlock</>)}
 											<ArrowRight size={12} />
 										</button>
 									</Link>
 								)}
-								<Link href={`/reports/${featuredApi.slug ?? featuredApi.id}`}>
+								<Link href={`/reports/${featuredApi.slug ?? featuredApi.id}`} target="_blank" rel="noopener noreferrer">
 									<button className="btn ghost">Read summary</button>
 								</Link>
 							</div>
 						</div>
+					</div>
+					{featured.length > 1 && (
+						<button
+							aria-label="Next featured report"
+							onClick={() => setFIdx((i) => (i + 1) % featured.length)}
+							className="btn ghost"
+							style={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)', zIndex: 2, padding: 6 }}
+						>
+							<ChevronRight size={18} />
+						</button>
+					)}
+					{featured.length > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+							{featured.map((f, i) => (
+								<button
+									key={f.id}
+									aria-label={`Featured report ${i + 1}`}
+									onClick={() => setFIdx(i)}
+									style={{
+										width: i === featuredIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', cursor: 'pointer',
+										background: i === featuredIdx ? 'var(--accent)' : 'var(--border)', transition: 'width 0.2s',
+									}}
+								/>
+							))}
+						</div>
+					)}
 					</div>
 
 					<SectionHead title="All Reports" meta={`${total.toLocaleString()} published`} />
@@ -218,6 +268,8 @@ export default function ReportsPage() {
 							<Link
 								key={r.id}
 								href={`/reports/${r.slug ?? r.id}`}
+								target="_blank"
+								rel="noopener noreferrer"
 								className="card rep-card"
 								style={{
 									display: 'flex',
