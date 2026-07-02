@@ -62,8 +62,8 @@ interface SectorRef { id: string; name: string; slug: string }
 interface SportRef { id: string; name: string; slug: string }
 
 const CATEGORY_OPTIONS = [
-	{ value: 'venture_capital', label: 'VC' },
-	{ value: 'financial_services', label: 'CVC' },
+	{ value: 'venture_capital', label: 'Venture Capital' },
+	{ value: 'financial_services', label: 'Corporate VC' },
 	{ value: 'private_equity', label: 'PE' },
 	{ value: 'family_investment_office', label: 'Family Office' },
 	{ value: 'sovereign_wealth_fund', label: 'SWF' },
@@ -539,9 +539,9 @@ function InvestorCard({ i, onOpenDrawer }: { i: InvestorRow; onOpenDrawer: (idOr
 function formatType(t: string | null | undefined): string {
 	if (!t) return '—';
 	switch (t) {
-		case 'venture_capital': return 'VC';
+		case 'venture_capital': return 'Venture Capital';
 		case 'private_equity': return 'PE';
-		case 'financial_services': return 'CVC';
+		case 'financial_services': return 'Corporate VC';
 		case 'family_investment_office': return 'Family Office';
 		case 'sovereign_wealth_fund': return 'SWF';
 		case 'angel': return 'Angel';

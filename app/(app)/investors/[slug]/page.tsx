@@ -580,9 +580,9 @@ function buildTimeline(deals: Deal[]): Array<{ year: number; count: number; amou
 function formatCategory(c: string | null | undefined): string {
 	if (!c) return '';
 	switch (c) {
-		case 'venture_capital': return 'VC';
+		case 'venture_capital': return 'Venture Capital';
 		case 'private_equity': return 'PE';
-		case 'financial_services': return 'CVC';
+		case 'financial_services': return 'Corporate VC';
 		case 'family_investment_office': return 'Family Office';
 		case 'sovereign_wealth_fund': return 'SWF';
 		case 'angel': return 'Angel';
