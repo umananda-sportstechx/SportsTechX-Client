@@ -308,19 +308,33 @@ const inputStyle: React.CSSProperties = {
 };
 
 function PdfVersionCard({ version: v, reportIdOrSlug }: { version: ReportVersion; reportIdOrSlug: string }) {
-	const previewUrl = embedUrl(v.pdf_url ?? v.drive_link);
-	const downloadUrl = v.pdf_url ?? v.drive_link;
+	// The PDF is served through a tier-gated endpoint that mints a fresh signed
+	// URL per request (so nothing the client holds can expire). We fetch a view
+	// URL (multi-hour TTL) for the inline preview, and fetch a fresh download URL
+	// on click. `hasPdf` gates the UI when neither pdf_url nor drive_link exists.
+	const hasPdf = !!(v.pdf_url || v.drive_link);
+	const { data: pdf } = useSWR<{ url: string }>(hasPdf ? qk.reports.pdfUrl(v.id) : null, { shouldRetryOnError: false });
+	const previewUrl = embedUrl(pdf?.url ?? null);
 	const tierTint = v.access_tier === 'pro' ? '#d97706'
 		: v.access_tier === 'growth' ? '#0284c7'
 			: 'var(--fg-muted)';
 
-	const handleDownload = (e: React.MouseEvent) => {
-		if (!downloadUrl) {
-			e.preventDefault();
-			return;
-		}
-		// Fire-and-forget download log (server expects a Bearer token; ignore failures).
-		apiRequest('POST', `/api/reports/${reportIdOrSlug}/downloads`, {}).catch(() => undefined);
+	const handleDownload = async (e: React.MouseEvent) => {
+		e.preventDefault();
+		try {
+			const res = await apiRequest('GET', `/api/reports/versions/${v.id}/pdf-url?download=1`);
+			const { url } = (await res.json()) as { url?: string };
+			if (url) {
+				const a = document.createElement('a');
+				a.href = url;
+				a.rel = 'noopener';
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				// Fire-and-forget download log.
+				apiRequest('POST', `/api/reports/${reportIdOrSlug}/downloads`, {}).catch(() => undefined);
+			}
+		} catch { /* surfaced by the global fetcher toast */ }
 	};
 
 	return (
@@ -343,17 +357,10 @@ function PdfVersionCard({ version: v, reportIdOrSlug }: { version: ReportVersion
 						{v.language_code.toUpperCase()}{v.title ? ` · ${v.title}` : ''}
 					</span>
 				</div>
-				{downloadUrl ? (
-					<a
-						href={downloadUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						onClick={handleDownload}
-					>
-						<button className="btn">
-							<Download size={12} /> Download PDF
-						</button>
-					</a>
+				{hasPdf ? (
+					<button className="btn" onClick={handleDownload}>
+						<Download size={12} /> Download PDF
+					</button>
 				) : (
 					<span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>PDF link missing</span>
 				)}

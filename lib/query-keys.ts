@@ -120,6 +120,10 @@ export const qk = {
       [`/api/reports/${idOrSlug}/sections`, as ? { as } : {}] as const,
     sectionData: (sectionId: string) => [`/api/reports/sections/${sectionId}/data`] as const,
     pollResults: (pollId: string) => [`/api/reports/polls/${pollId}/results`] as const,
+    // Fresh (tier-gated) PDF URL for a version. `download` uses a short TTL +
+    // Content-Disposition; inline view uses a multi-hour TTL.
+    pdfUrl: (versionId: string, download = false) =>
+      [`/api/reports/versions/${versionId}/pdf-url`, download ? { download: 1 } : {}] as const,
   },
   verifiedReports: {
     mine: () => ['/api/verified-reports/mine'] as const,
