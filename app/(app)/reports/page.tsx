@@ -164,23 +164,25 @@ export default function ReportsPage() {
 							className="report-cover"
 							style={{ background: coverColor(featuredApi, 0), height: 320, position: 'relative' }}
 						>
-							{featuredApi.has_pro_version && (
-								<span style={{
-									position: 'absolute', top: 12, left: 12,
-									padding: '4px 10px', background: '#d97706', color: '#fff',
-									fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
-								}}>
-									PRO
-								</span>
-							)}
-							{featuredApi.is_published === false && (
-								<span style={{
-									position: 'absolute', top: 12, right: 12,
-									padding: '4px 10px', background: '#fbbf24', color: '#7c2d12',
-									fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
-								}}>
-									DRAFT
-								</span>
+							{(featuredApi.has_pro_version || featuredApi.is_published === false) && (
+								<div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, zIndex: 2 }}>
+									{featuredApi.has_pro_version && (
+										<span style={{
+											padding: '4px 10px', background: '#d97706', color: '#fff',
+											fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+										}}>
+											PRO
+										</span>
+									)}
+									{featuredApi.is_published === false && (
+										<span style={{
+											padding: '4px 10px', background: '#fbbf24', color: '#7c2d12',
+											fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+										}}>
+											DRAFT
+										</span>
+									)}
+								</div>
 							)}
 							<span className="rc-meta">
 								{splitYear(featuredApi.published_at, featuredApi.id)}{featuredApi.pages ? ` · ${featuredApi.pages}p` : ` · 124p`}
@@ -279,23 +281,25 @@ export default function ReportsPage() {
 								}}
 							>
 								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200, position: 'relative' }}>
-									{r.has_pro_version && (
-										<span style={{
-											position: 'absolute', top: 8, left: 8,
-											padding: '3px 7px', background: '#d97706', color: '#fff',
-											fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
-										}}>
-											PRO
-										</span>
-									)}
-									{r.is_published === false && (
-										<span style={{
-											position: 'absolute', top: 8, right: 8,
-											padding: '3px 7px', background: '#fbbf24', color: '#7c2d12',
-											fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
-										}}>
-											DRAFT
-										</span>
+									{(r.has_pro_version || r.is_published === false) && (
+										<div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 5, zIndex: 2 }}>
+											{r.has_pro_version && (
+												<span style={{
+													padding: '3px 7px', background: '#d97706', color: '#fff',
+													fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+												}}>
+													PRO
+												</span>
+											)}
+											{r.is_published === false && (
+												<span style={{
+													padding: '3px 7px', background: '#fbbf24', color: '#7c2d12',
+													fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+												}}>
+													DRAFT
+												</span>
+											)}
+										</div>
 									)}
 									<span className="rc-meta">
 										{splitYear(r.published_at, r.id)}{r.pages ? ` · ${r.pages}p` : ` · ${pickFallbackPages(r.id)}p`}
