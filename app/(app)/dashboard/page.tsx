@@ -325,7 +325,9 @@ function GeneralDashboard() {
 						</div>
 					) : (
 						featuredReports.map((r) => {
-							const slug = r.slug ?? r.short_title ?? r.id;
+							// Link by slug or UUID id only — NOT short_title, which is a
+							// display code (e.g. "GSTVCR25") that the detail lookup can't resolve.
+							const slug = r.slug ?? r.id;
 							const coverBg = r.cover_url
 								? `url(${r.cover_url}) center/cover`
 								: (r.cover_color ?? 'oklch(58% 0.22 240)');
