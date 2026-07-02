@@ -313,7 +313,17 @@ function PdfVersionCard({ version: v, reportIdOrSlug }: { version: ReportVersion
 	// URL (multi-hour TTL) for the inline preview, and fetch a fresh download URL
 	// on click. `hasPdf` gates the UI when neither pdf_url nor drive_link exists.
 	const hasPdf = !!(v.pdf_url || v.drive_link);
-	const { data: pdf } = useSWR<{ url: string }>(hasPdf ? qk.reports.pdfUrl(v.id) : null, { shouldRetryOnError: false });
+	// Fetch the signed view URL ONCE and never revalidate: the endpoint mints a
+	// fresh signed URL on every call, so any revalidation (focus/reconnect/stale)
+	// would swap the iframe `src` and force the whole PDF to reload (blank →
+	// reload) mid-scroll. The URL has a multi-hour TTL, so a stable value is safe.
+	const { data: pdf } = useSWR<{ url: string }>(hasPdf ? qk.reports.pdfUrl(v.id) : null, {
+		shouldRetryOnError: false,
+		revalidateOnFocus: false,
+		revalidateOnReconnect: false,
+		revalidateIfStale: false,
+		dedupingInterval: 3 * 60 * 60 * 1000,
+	});
 	const previewUrl = embedUrl(pdf?.url ?? null);
 	const tierTint = v.access_tier === 'pro' ? '#d97706'
 		: v.access_tier === 'growth' ? '#0284c7'
