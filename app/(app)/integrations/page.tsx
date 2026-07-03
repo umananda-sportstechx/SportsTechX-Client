@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -75,6 +76,11 @@ export default function IntegrationsPage() {
 				title="CRM connections"
 				subtitle="Connect a CRM to sync companies, deal flow, investors and more. Each synced row costs 1 export credit."
 			/>
+			<div className="-mt-2 mb-4">
+				<Link href="/docs/integrations" target="_blank" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+					How integrations work & what data syncs <ExternalLink className="h-3 w-3" />
+				</Link>
+			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">
 				{isLoading && [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
