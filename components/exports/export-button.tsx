@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Download, Loader2, Coins, Eye } from 'lucide-react';
@@ -19,8 +19,9 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
  * pops the global out-of-credits modal.
  *
  * `search` mirrors the page's active name search so the export matches roughly
- * what the user is looking at. (Row cap server-side keeps a single export
- * bounded.)
+ * what the user is looking at. `filters` (companies) carries the page's active
+ * facets so "export what I'm filtering" returns exactly the list view. (Row cap
+ * server-side keeps a single export bounded.)
  */
 
 type ExportFormat = 'csv' | 'xlsx';
@@ -28,19 +29,23 @@ interface ColumnsResp { entity: string; label: string; columns: { key: string; l
 interface CountResp { entity: string; matched: number; rows: number; credits: number; credits_per_row: number; capped: boolean }
 interface PreviewResp { columns: { key: string; label: string }[]; rows: Array<Record<string, string> & { __id: string }> }
 
-export function ExportButton({ entity, search }: { entity: string; search?: string | null }) {
+// Keys that the modal owns itself (search) or that are pagination/sort noise —
+// stripped from the page filter payload so the export WHERE is purely facets.
+const NON_FACET_KEYS = new Set(['search', 'q', 'page', 'limit', 'sort', 'ids']);
+
+export function ExportButton({ entity, search, filters }: { entity: string; search?: string | null; filters?: Record<string, unknown> | null }) {
 	const [open, setOpen] = useState(false);
 	return (
 		<>
 			<button className="btn ghost" onClick={() => setOpen(true)} title="Export to CSV / Excel">
 				<Download size={12} /> Export
 			</button>
-			{open && <ExportModal entity={entity} search={search} onClose={() => setOpen(false)} />}
+			{open && <ExportModal entity={entity} search={search} filters={filters} onClose={() => setOpen(false)} />}
 		</>
 	);
 }
 
-function ExportModal({ entity, search, onClose }: { entity: string; search?: string | null; onClose: () => void }) {
+function ExportModal({ entity, search, filters, onClose }: { entity: string; search?: string | null; filters?: Record<string, unknown> | null; onClose: () => void }) {
 	const { data, isLoading } = useSWR<ColumnsResp>(qk.exports.columns(entity), { dedupingInterval: 60_000 });
 	const { balance } = useCreditBalance('integration');
 	const [format, setFormat] = useState<ExportFormat>('xlsx');
@@ -54,6 +59,22 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	// In-modal search — seeded from the page's active search, editable here.
 	const [q, setQ] = useState(search ?? '');
 	const qTrim = q.trim() || null;
+	// The page's active facet filters, minus search/pagination — stable across
+	// renders (keyed on contents) so the count SWR doesn't thrash. Empty → the
+	// export just honours the in-modal search (unchanged behaviour).
+	const filtersSig = JSON.stringify(filters ?? {});
+	const cleanFilters = useMemo(() => {
+		const src = (filters ?? {}) as Record<string, unknown>;
+		const out: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(src)) {
+			if (NON_FACET_KEYS.has(k)) continue;
+			if (v === undefined || v === null || v === '') continue;
+			out[k] = v;
+		}
+		return out;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filtersSig]);
+	const hasFilters = Object.keys(cleanFilters).length > 0;
 	// Row range (1-indexed, inclusive). Empty = all matching rows.
 	const [fromRow, setFromRow] = useState('');
 	const [toRow, setToRow] = useState('');
@@ -68,7 +89,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 
 	// Cost preview reflects the ACTUAL selected columns (× per-column credit cost).
 	const { data: count, isLoading: countLoading } = useSWR<CountResp>(
-		selectedKeys.length ? qk.exports.count(entity, qTrim, selectedKeys) : null,
+		selectedKeys.length ? qk.exports.count(entity, qTrim, selectedKeys, cleanFilters) : null,
 		{ dedupingInterval: 15_000, keepPreviousData: true },
 	);
 	// Per-row cost from the server (authoritative); fall back to summing locally.
@@ -87,6 +108,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 					const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
 						columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
 						search: qTrim,
+						...(hasFilters ? { filters: cleanFilters } : {}),
 					});
 					const body = (await res.json()) as PreviewResp;
 					if (!cancelled) setPreview(body);
@@ -98,7 +120,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 			})();
 		}, 300);
 		return () => { cancelled = true; clearTimeout(timer); };
-	}, [previewOpen, selectedKeysSig, entity, qTrim]);
+	}, [previewOpen, selectedKeysSig, entity, qTrim, filtersSig, hasFilters, cleanFilters]);
 
 	const toggle = (key: string) => {
 		const next = new Set(sel);
@@ -141,10 +163,14 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 				headers: { ...headers, 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					format, columns,
-					// Precedence: ticked rows > row range > all matching the search.
+					// Precedence: ticked rows > row range > all matching the search+filters.
 					...(selectingRows
 						? { ids: [...rowSel] }
-						: { search: qTrim, ...(rangeActive ? { offset: rFrom - 1, range_limit: rangeRows } : {}) }),
+						: {
+							search: qTrim,
+							...(hasFilters ? { filters: cleanFilters } : {}),
+							...(rangeActive ? { offset: rFrom - 1, range_limit: rangeRows } : {}),
+						}),
 				}),
 			});
 
@@ -287,7 +313,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 					</div>
 
 					<p style={{ fontSize: 11, color: 'var(--fg-muted)', margin: '8px 0 0' }}>
-						Exports all rows matching your search by default. Open <b>Preview &amp; select rows</b> below to pick specific ones.
+						Exports all rows matching your {hasFilters ? <b>current filters</b> : 'search'} by default. Open <b>Preview &amp; select rows</b> below to pick specific ones.
 					</p>
 
 					{/* Format */}

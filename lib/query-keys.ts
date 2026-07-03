@@ -228,8 +228,13 @@ export const qk = {
   // ── Data export (CSV/XLSX + CRM) ────────────────────────────────────────
   exports: {
     columns: (entity: string) => [`/api/exports/${entity}/columns`] as const,
-    count: (entity: string, search?: string | null, columns?: string[]) =>
-      [`/api/exports/${entity}/count`, { search: search || undefined, columns: columns && columns.length ? columns.join(',') : undefined }] as const,
+    count: (entity: string, search?: string | null, columns?: string[], filters?: Record<string, unknown> | null) =>
+      [
+        `/api/exports/${entity}/count`,
+        { search: search || undefined, columns: columns && columns.length ? columns.join(',') : undefined },
+        // Current-page facet filters (companies) — serialized as extra query params.
+        filters && Object.keys(filters).length ? filters : undefined,
+      ] as const,
   },
 
   // ── Developer (admin) ───────────────────────────────────────────────────
