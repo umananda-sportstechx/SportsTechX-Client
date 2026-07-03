@@ -24,8 +24,8 @@ import { useCreditBalance } from '@/hooks/use-credit-balance';
  */
 
 type ExportFormat = 'csv' | 'xlsx';
-interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string }[] }
-interface CountResp { entity: string; matched: number; rows: number; credits: number; capped: boolean }
+interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string; credit_cost: number }[] }
+interface CountResp { entity: string; matched: number; rows: number; credits: number; credits_per_row: number; capped: boolean }
 interface PreviewResp { columns: { key: string; label: string }[]; rows: Array<Record<string, string> & { __id: string }> }
 
 export function ExportButton({ entity, search }: { entity: string; search?: string | null }) {
@@ -42,9 +42,6 @@ export function ExportButton({ entity, search }: { entity: string; search?: stri
 
 function ExportModal({ entity, search, onClose }: { entity: string; search?: string | null; onClose: () => void }) {
 	const { data, isLoading } = useSWR<ColumnsResp>(qk.exports.columns(entity), { dedupingInterval: 60_000 });
-	const { data: count, isLoading: countLoading } = useSWR<CountResp>(
-		qk.exports.count(entity, search), { dedupingInterval: 15_000 },
-	);
 	const { balance } = useCreditBalance('integration');
 	const [format, setFormat] = useState<ExportFormat>('xlsx');
 	const [selected, setSelected] = useState<Set<string> | null>(null);
@@ -54,13 +51,25 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const [previewLoading, setPreviewLoading] = useState(false);
 	// Selective export: explicit row ids the user ticked. Empty = export all matching.
 	const [rowSel, setRowSel] = useState<Set<string>>(new Set());
+	// In-modal search — seeded from the page's active search, editable here.
+	const [q, setQ] = useState(search ?? '');
+	const qTrim = q.trim() || null;
 
 	// Default: everything selected once columns load.
 	const cols = data?.columns ?? [];
 	const sel = selected ?? new Set(cols.map((c) => c.key));
 	const allOn = cols.length > 0 && cols.every((c) => sel.has(c.key));
+	const selectedKeys = cols.filter((c) => sel.has(c.key)).map((c) => c.key);
 	// Stable signature of the current selection (admin order) for the preview effect.
-	const selectedKeysSig = cols.filter((c) => sel.has(c.key)).map((c) => c.key).join(',');
+	const selectedKeysSig = selectedKeys.join(',');
+
+	// Cost preview reflects the ACTUAL selected columns (× per-column credit cost).
+	const { data: count, isLoading: countLoading } = useSWR<CountResp>(
+		selectedKeys.length ? qk.exports.count(entity, qTrim, selectedKeys) : null,
+		{ dedupingInterval: 15_000, keepPreviousData: true },
+	);
+	// Per-row cost from the server (authoritative); fall back to summing locally.
+	const perRowCost = count?.credits_per_row ?? cols.filter((c) => sel.has(c.key)).reduce((s, c) => s + c.credit_cost, 0);
 
 	// When the preview is open, (re)load it as the column selection changes so it
 	// always reflects exactly what will download. No credits are charged.
@@ -74,7 +83,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 				try {
 					const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
 						columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
-						search: search ?? null,
+						search: qTrim,
 					});
 					const body = (await res.json()) as PreviewResp;
 					if (!cancelled) setPreview(body);
@@ -86,7 +95,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 			})();
 		}, 300);
 		return () => { cancelled = true; clearTimeout(timer); };
-	}, [previewOpen, selectedKeysSig, entity, search]);
+	}, [previewOpen, selectedKeysSig, entity, qTrim]);
 
 	const toggle = (key: string) => {
 		const next = new Set(sel);
@@ -96,9 +105,9 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const toggleAll = () => setSelected(allOn ? new Set() : new Set(cols.map((c) => c.key)));
 
 	const available = balance?.total_available ?? 0;
-	// Cost = the selected rows if the user picked any, else all matching rows.
+	// Cost = ceil(rows × per-row column cost). Selected rows take precedence.
 	const selectingRows = rowSel.size > 0;
-	const cost = selectingRows ? rowSel.size : (count?.credits ?? 0);
+	const cost = selectingRows ? Math.ceil(rowSel.size * perRowCost) : (count?.credits ?? 0);
 	const insufficient = cost > available;
 	const toggleRow = (id: string) => setRowSel((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 	const allRowsOn = (preview?.rows.length ?? 0) > 0 && (preview?.rows ?? []).every((r) => rowSel.has(r.__id));
@@ -124,7 +133,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 				body: JSON.stringify({
 					format, columns,
 					// Selected rows take precedence; otherwise export all matching the search.
-					...(selectingRows ? { ids: [...rowSel] } : { search: search ?? null }),
+					...(selectingRows ? { ids: [...rowSel] } : { search: qTrim }),
 				}),
 			});
 
@@ -186,11 +195,20 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						Export {data?.label ?? entity}
 					</DialogPrimitive.Title>
 					<p style={{ fontSize: 13, color: 'var(--fg-2)', margin: '8px 0 0' }}>
-						Choose columns and a format. <b>1 export credit per row.</b>{' '}
+						Pick columns and a format — you pay <b>{perRowCost} credit{perRowCost === 1 ? '' : 's'}/row</b> for this selection.{' '}
 						<span style={{ color: 'var(--fg-muted)' }}>
 							You have <Coins size={11} style={{ verticalAlign: '-1px' }} /> {available.toLocaleString()} export credits.
 						</span>
 					</p>
+
+					{/* In-modal search — narrow the export set. */}
+					<input
+						className="search-input"
+						placeholder={`Search ${data?.label ?? entity}…`}
+						value={q}
+						onChange={(e) => setQ(e.target.value)}
+						style={{ width: '100%', marginTop: 12, height: 34 }}
+					/>
 
 					{/* Pre-flight cost: rows that will be exported + credits charged. */}
 					<div
@@ -212,7 +230,7 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						) : countLoading ? (
 							<span style={{ color: 'var(--fg-muted)' }}>Calculating rows…</span>
 						) : !count ? (
-							<span style={{ color: 'var(--fg-muted)' }}>Row count unavailable — you’ll be charged 1 credit per exported row.</span>
+							<span style={{ color: 'var(--fg-muted)' }}>Row count unavailable — you’ll be charged {perRowCost} credit{perRowCost === 1 ? '' : 's'} per exported row.</span>
 						) : count.rows === 0 ? (
 							<span style={{ color: 'var(--fg-muted)' }}>No rows match — nothing to export, no credits charged.</span>
 						) : (
@@ -270,7 +288,8 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 							{cols.map((c) => (
 								<label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)' }}>
 									<input type="checkbox" checked={sel.has(c.key)} onChange={() => toggle(c.key)} />
-									<span style={{ fontSize: 13 }}>{c.label}</span>
+									<span style={{ fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+									<span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)', flexShrink: 0 }} title="Per-row credit cost">{c.credit_cost}cr</span>
 								</label>
 							))}
 						</div>
