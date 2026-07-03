@@ -417,7 +417,7 @@ export default function CompaniesPage() {
 				title="Companies"
 				action={
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-						<ExportButton entity="companies" search={filterState.search} />
+						<ExportButton entity="companies" search={filterState.search} filters={queryParams} />
 						<MyListsBtn />
 						<button
 							className="btn"
