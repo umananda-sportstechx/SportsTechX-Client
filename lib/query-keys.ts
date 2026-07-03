@@ -228,8 +228,8 @@ export const qk = {
   // ── Data export (CSV/XLSX + CRM) ────────────────────────────────────────
   exports: {
     columns: (entity: string) => [`/api/exports/${entity}/columns`] as const,
-    count: (entity: string, search?: string | null) =>
-      [`/api/exports/${entity}/count`, { search: search || undefined }] as const,
+    count: (entity: string, search?: string | null, columns?: string[]) =>
+      [`/api/exports/${entity}/count`, { search: search || undefined, columns: columns && columns.length ? columns.join(',') : undefined }] as const,
   },
 
   // ── Developer (admin) ───────────────────────────────────────────────────
