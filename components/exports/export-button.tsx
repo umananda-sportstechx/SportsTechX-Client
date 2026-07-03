@@ -54,6 +54,9 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	// In-modal search — seeded from the page's active search, editable here.
 	const [q, setQ] = useState(search ?? '');
 	const qTrim = q.trim() || null;
+	// Row range (1-indexed, inclusive). Empty = all matching rows.
+	const [fromRow, setFromRow] = useState('');
+	const [toRow, setToRow] = useState('');
 
 	// Default: everything selected once columns load.
 	const cols = data?.columns ?? [];
@@ -105,9 +108,15 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 	const toggleAll = () => setSelected(allOn ? new Set() : new Set(cols.map((c) => c.key)));
 
 	const available = balance?.total_available ?? 0;
-	// Cost = ceil(rows × per-row column cost). Selected rows take precedence.
+	const matched = count?.matched ?? 0;
+	// Cost = ceil(rows × per-row column cost). Precedence: ticked rows > range > all.
 	const selectingRows = rowSel.size > 0;
-	const cost = selectingRows ? Math.ceil(rowSel.size * perRowCost) : (count?.credits ?? 0);
+	const rangeActive = !selectingRows && (fromRow.trim() !== '' || toRow.trim() !== '');
+	const rFrom = Math.max(1, parseInt(fromRow, 10) || 1);
+	const rTo = Math.min(matched || 0, parseInt(toRow, 10) || matched || 0);
+	const rangeRows = rangeActive ? Math.max(0, Math.min(5000, rTo - rFrom + 1)) : 0;
+	const effRows = selectingRows ? rowSel.size : (rangeActive ? rangeRows : (count?.rows ?? 0));
+	const cost = Math.ceil(effRows * perRowCost);
 	const insufficient = cost > available;
 	const toggleRow = (id: string) => setRowSel((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 	const allRowsOn = (preview?.rows.length ?? 0) > 0 && (preview?.rows ?? []).every((r) => rowSel.has(r.__id));
@@ -132,8 +141,10 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 				headers: { ...headers, 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					format, columns,
-					// Selected rows take precedence; otherwise export all matching the search.
-					...(selectingRows ? { ids: [...rowSel] } : { search: qTrim }),
+					// Precedence: ticked rows > row range > all matching the search.
+					...(selectingRows
+						? { ids: [...rowSel] }
+						: { search: qTrim, ...(rangeActive ? { offset: rFrom - 1, range_limit: rangeRows } : {}) }),
 				}),
 			});
 
@@ -210,6 +221,23 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 						style={{ width: '100%', marginTop: 12, height: 34 }}
 					/>
 
+					{/* Row range — export a slice, e.g. rows 101–200. Empty = all matching. */}
+					<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--fg-2)', flexWrap: 'wrap' }}>
+						<span style={{ fontWeight: 600 }}>Rows</span>
+						<input type="number" min={1} placeholder="1" value={fromRow} disabled={selectingRows}
+							onChange={(e) => setFromRow(e.target.value)}
+							style={{ width: 76, height: 30, padding: '0 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-1)', fontFamily: 'var(--font-mono)' }} />
+						<span>to</span>
+						<input type="number" min={1} placeholder={matched ? String(matched) : 'end'} value={toRow} disabled={selectingRows}
+							onChange={(e) => setToRow(e.target.value)}
+							style={{ width: 76, height: 30, padding: '0 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-1)', fontFamily: 'var(--font-mono)' }} />
+						{matched > 0 && <span style={{ color: 'var(--fg-muted)' }}>of {matched.toLocaleString()} matching</span>}
+						{(fromRow || toRow) && (
+							<button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setFromRow(''); setToRow(''); }}>All rows</button>
+						)}
+						{rangeActive && rangeRows > 5000 && <span style={{ color: 'var(--fg-muted)' }}>(max 5,000/export)</span>}
+					</div>
+
 					{/* Pre-flight cost: rows that will be exported + credits charged. */}
 					<div
 						style={{
@@ -226,6 +254,13 @@ function ExportModal({ entity, search, onClose }: { entity: string; search?: str
 								{insufficient && (
 									<div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>You’re short {(cost - available).toLocaleString()} credits.</div>
 								)}
+							</>
+						) : rangeActive ? (
+							<>
+								Exporting rows <b>{rFrom.toLocaleString()}</b>–<b>{Math.max(rFrom, rFrom + rangeRows - 1).toLocaleString()}</b>{' '}
+								({rangeRows.toLocaleString()} row{rangeRows === 1 ? '' : 's'}) · costs{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{insufficient && <div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>You’re short {(cost - available).toLocaleString()} credits.</div>}
 							</>
 						) : countLoading ? (
 							<span style={{ color: 'var(--fg-muted)' }}>Calculating rows…</span>
