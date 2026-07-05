@@ -54,6 +54,7 @@ export function CrmSubscriptionWizard({
 	const [companies, setCompanies] = useState<CompanyRow[]>([]);
 	const [companyQuery, setCompanyQuery] = useState('');
 	const [includeRelated, setIncludeRelated] = useState(false);
+	const [autoSync, setAutoSync] = useState(false);
 	const [rowLimit, setRowLimit] = useState(100);
 	// Minimal filter facets. `fSearch` (name search) applies to every dataset;
 	// the rest are companies-specific. Full facet parity comes later.
@@ -197,6 +198,7 @@ export function CrmSubscriptionWizard({
 				mode,
 				...(mode === 'list' ? { company_ids: companies.map((c) => c.id) } : { filter: filterObj }),
 				include_related: entity === 'companies' ? includeRelated : false,
+				auto_sync: mode === 'filter' ? autoSync : false,
 				row_limit: rowLimit,
 				target_id: target.id,
 				mappings,
@@ -356,6 +358,12 @@ export function CrmSubscriptionWizard({
 									<input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} /> Flatten related deals / M&A onto each row
 								</label>
 							)}
+							{mode === 'filter' && (
+								<label style={{ ...toggleRow, marginTop: 10 }}>
+									<input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} /> Auto-sync new matches
+									<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>— push new/updated rows automatically (uses credits)</span>
+								</label>
+							)}
 
 							<Field label="Row limit">
 								<input type="number" min={1} max={1000} className="search-input" style={{ ...selectStyle, width: 120 }}
@@ -382,7 +390,7 @@ export function CrmSubscriptionWizard({
 							<ReviewLine k="Dataset" v={ENTITIES.find((e) => e.key === entity)?.label ?? entity} />
 							<ReviewLine k="Destination" v={objectsResp?.objects.find((o) => o.slug === object)?.label ?? object} />
 							<ReviewLine k="Mapped fields" v={`${mapped.length} column${mapped.length === 1 ? '' : 's'}${matchKeySet ? ' · match key set' : ' · no match key'}`} />
-							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})`} />
+							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})${autoSync ? ' · auto-sync on' : ''}`} />
 							<ReviewLine k="Row limit" v={String(rowLimit)} />
 							<ReviewLine k="Per sync" v={`~${quoteRows.toLocaleString()} rows · ${quoteCredits.toLocaleString()} credits`} />
 							<p style={{ ...hint, marginTop: 10 }}>Nothing syncs until you save. You can sync immediately or later from the subscriptions list.</p>
