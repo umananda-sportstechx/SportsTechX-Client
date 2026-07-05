@@ -384,7 +384,7 @@ function FundingPageInner() {
 			<PageTitle
 				kicker="Funding Tracker · YTD"
 				title={`${headlineDeployed} deployed across ${headlineRounds} rounds`}
-				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="deals" search={filterState.search} /><MyListsBtn /></div>}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="deals" search={filterState.search} filters={tableParams} /><MyListsBtn /></div>}
 			/>
 
 			{/* All four stat cards use .card.feature per design */}

@@ -489,7 +489,7 @@ function MnaPageInner() {
 			<PageTitle
 				kicker="M&A Tracker · all-time"
 				title={`${totalAllTime.toLocaleString()} acquisitions tracked`}
-				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="acquisitions" search={filterState.search} /><MyListsBtn /></div>}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="acquisitions" search={filterState.search} filters={tableParams} /><MyListsBtn /></div>}
 			/>
 
 			<div className="grid-4" style={{ marginBottom: 'var(--space-5)' }}>

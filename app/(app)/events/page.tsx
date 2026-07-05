@@ -173,7 +173,7 @@ export default function EventsPage() {
 				kicker={`Calendar · ${total.toLocaleString()} upcoming`}
 				title="Events"
 				sub="Conferences, summits, and demo days across the sports-tech calendar."
-				action={<ExportButton entity="events" search={filterState.search} />}
+				action={<ExportButton entity="events" search={filterState.search} filters={queryParams} />}
 			/>
 
 			<div className="flt-layout">
