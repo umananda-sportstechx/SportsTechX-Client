@@ -127,6 +127,12 @@ export function CrmSubscriptionWizard({
 	const [entity, setEntity] = useState<string>('companies');
 	const [object, setObject] = useState('');
 	const [saving, setSaving] = useState(false);
+	// Google Sheets: the user creates a spreadsheet from Atlas (drive.file scope
+	// can't list their existing ones), which we add to the object dropdown.
+	const canCreateObject = provider === 'google_sheets';
+	const [createdObjects, setCreatedObjects] = useState<ProviderObject[]>([]);
+	const [newObjName, setNewObjName] = useState('');
+	const [creatingObj, setCreatingObj] = useState(false);
 
 	// Mapping state (col key → row).
 	const [rows, setRows] = useState<Record<string, MapRow>>({});
@@ -235,6 +241,23 @@ export function CrmSubscriptionWizard({
 			toast.success(`Created “${field.label}” in ${provider}.`);
 		} catch (e) {
 			toast.error((e as Error).message);
+		}
+	};
+
+	const createObject = async () => {
+		const name = newObjName.trim();
+		if (!name) { toast.error('Name the spreadsheet first.'); return; }
+		setCreatingObj(true);
+		try {
+			const res = await apiRequest('POST', `/api/integrations/crm/${connectionId}/provider/objects`, { name });
+			const { object: obj } = (await res.json()) as { object: ProviderObject };
+			setCreatedObjects((prev) => [obj, ...prev.filter((o) => o.slug !== obj.slug)]);
+			setObject(obj.slug); setRows({}); setFields([]); setNewObjName('');
+			toast.success(`Created spreadsheet “${obj.label}”.`);
+		} catch (e) {
+			toast.error((e as Error).message);
+		} finally {
+			setCreatingObj(false);
 		}
 	};
 
@@ -349,18 +372,31 @@ export function CrmSubscriptionWizard({
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
 								</select>
 							</Field>
-							<Field label="Destination object">
+							<Field label={canCreateObject ? 'Destination spreadsheet' : 'Destination object'}>
 								{objectsLoading ? (
-									<Spinner text="Loading objects…" />
-								) : objectsErr ? (
-									<p style={hint}>Couldn’t load objects from {provider}. Reconnect the provider and retry.</p>
+									<Spinner text="Loading…" />
 								) : (
 									<select className="search-input" style={selectStyle} value={object} onChange={(e) => { setObject(e.target.value); setRows({}); setFields([]); }}>
-										<option value="">Select an object…</option>
-										{(objectsResp?.objects ?? []).map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)}
+										<option value="">Select…</option>
+										{[...createdObjects, ...(objectsResp?.objects ?? [])].map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)}
 									</select>
 								)}
-								<p style={hint}>Rows land in this {provider} object. Create custom fields on it in the next step.</p>
+								{objectsErr && !canCreateObject && (
+									<p style={hint}>Couldn’t load objects from {provider}. Reconnect the provider and retry.</p>
+								)}
+								{canCreateObject && (
+									<div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+										<input className="search-input" style={{ flex: 1, height: 32 }} placeholder="…or create a new spreadsheet" value={newObjName} onChange={(e) => setNewObjName(e.target.value)} />
+										<button className="btn" style={{ fontSize: 12 }} onClick={() => void createObject()} disabled={creatingObj || !newObjName.trim()}>
+											{creatingObj ? <Loader2 size={13} className="animate-spin" /> : <><Plus size={13} /> Create</>}
+										</button>
+									</div>
+								)}
+								<p style={hint}>
+									{canCreateObject
+										? 'Rows are appended to this spreadsheet’s first tab. Map columns next — new column names create headers.'
+										: `Rows land in this ${provider} object. Create custom fields on it in the next step.`}
+								</p>
 							</Field>
 						</div>
 					)}
