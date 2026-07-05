@@ -14,6 +14,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { PageHeader } from '@/components/ui/page-header';
 import { CrmMappingModal } from '@/components/integrations/crm-mapping-modal';
+import { CrmSubscriptionsPanel } from '@/components/integrations/crm-subscription-wizard';
 
 /**
  * CRM connections — the user-facing surface for connecting a CRM and syncing
@@ -99,6 +100,7 @@ export default function IntegrationsPage() {
 function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => void }) {
 	const [busy, setBusy] = useState(false);
 	const [mappingOpen, setMappingOpen] = useState(false);
+	const [subsOpen, setSubsOpen] = useState(false);
 	const conn = p.connection;
 	const connected = conn?.status === 'connected';
 
@@ -203,6 +205,11 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 							</p>
 						)}
 
+						{/* Phase 3: scoped, column-priced subscriptions — the primary flow. */}
+						<Button variant="secondary" size="sm" className="w-full h-8 text-xs" onClick={() => setSubsOpen(true)}>
+							<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Manage subscriptions
+						</Button>
+
 						<div className="flex gap-2">
 							<Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => setMappingOpen(true)}>
 								<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Fields
@@ -233,6 +240,13 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 								provider={p.provider}
 								onClose={() => setMappingOpen(false)}
 								onSaved={() => { setMappingOpen(false); onChanged(); }}
+							/>
+						)}
+						{subsOpen && (
+							<CrmSubscriptionsPanel
+								connectionId={conn.id}
+								provider={p.provider}
+								onClose={() => { setSubsOpen(false); onChanged(); }}
 							/>
 						)}
 					</div>
