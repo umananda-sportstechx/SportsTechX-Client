@@ -310,7 +310,7 @@ function InvestorsPageInner() {
 				kicker={`Capital · ${total.toLocaleString()} firms`}
 				title="Investors"
 				sub="The capital markets behind sports tech — VCs, corporate venture, PE and accelerators."
-				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="investors" search={filterState.search} /><button className="btn"><Plus size={12} /> Add to watchlist</button></div>}
+				action={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ExportButton entity="investors" search={filterState.search} filters={queryParams} /><button className="btn"><Plus size={12} /> Add to watchlist</button></div>}
 			/>
 
 			<div className="flt-layout">

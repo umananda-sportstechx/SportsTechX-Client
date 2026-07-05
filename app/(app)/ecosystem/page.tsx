@@ -164,7 +164,7 @@ export default function EcosystemPage() {
 					// Export targets the programs dataset specifically; only offer it
 					// when the user has narrowed the page to programs.
 					(filterState.entity_type as string[] | undefined)?.join(',') === 'program'
-						? <ExportButton entity="programs" search={filterState.search} />
+						? <ExportButton entity="programs" search={filterState.search} filters={queryParams} />
 						: undefined
 				}
 			/>
