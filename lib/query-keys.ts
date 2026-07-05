@@ -245,6 +245,10 @@ export const qk = {
     intercomHash: () => ['/api/integrations/intercom/hash'] as const,
     crm: () => ['/api/integrations/crm'] as const,
     crmMappings: (id: string) => [`/api/integrations/crm/${id}/mappings`] as const,
+    // Phase 3 — provider-subscription wizard.
+    crmProviderObjects: (id: string) => [`/api/integrations/crm/${id}/provider/objects`] as const,
+    crmProviderFields: (id: string, object: string) => [`/api/integrations/crm/${id}/provider/objects/${object}/fields`] as const,
+    crmSubscriptions: (id: string) => [`/api/integrations/crm/${id}/subscriptions`] as const,
   },
 
   // ── Admin ───────────────────────────────────────────────────────────────
