@@ -41,9 +41,6 @@ interface CrmConnection {
 	created_at: string;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-	off: 'Manual only', daily: 'Every day', biweekly: 'Every 15 days', monthly: 'Every month',
-};
 interface ProviderStatus {
 	provider: string;
 	label: string;
@@ -130,17 +127,6 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 		}
 	};
 
-	const setFrequency = async (frequency: string) => {
-		if (!conn) return;
-		try {
-			await apiRequest('PATCH', `/api/integrations/crm/${conn.id}/frequency`, { frequency });
-			toast.success(`Schedule set to ${FREQUENCY_LABELS[frequency]?.toLowerCase() ?? frequency}.`);
-			onChanged();
-		} catch (e) {
-			toast.error((e as Error).message);
-		}
-	};
-
 	const syncNow = async () => {
 		if (!conn) return;
 		setBusy(true);
@@ -181,22 +167,8 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 
 				{connected && conn ? (
 					<div className="space-y-3">
-						{/* Schedule */}
-						<div className="flex items-center justify-between gap-2">
-							<span className="text-sm">Schedule</span>
-							<select
-								className="h-8 rounded-md border bg-background px-2 text-xs"
-								value={conn.sync_frequency}
-								onChange={(e) => void setFrequency(e.target.value)}
-							>
-								<option value="off">Manual only</option>
-								<option value="daily">Every day</option>
-								<option value="biweekly">Every 15 days</option>
-								<option value="monthly">Every month</option>
-							</select>
-						</div>
-
-						{/* Last run status */}
+						{/* Last run status. Scheduled connection sync was retired — recurring
+						    sync now lives on subscriptions (event-driven auto-sync). */}
 						<SyncStatusLine conn={conn} />
 
 						{!conn.mappings_configured && (
