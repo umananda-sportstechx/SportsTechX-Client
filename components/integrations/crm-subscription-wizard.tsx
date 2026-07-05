@@ -34,6 +34,90 @@ interface CountResp { matched: number; rows: number; credits: number; credits_pe
 const CREATE_SENTINEL = '__create__';
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// Declarative filter facets per dataset. Values map 1:1 to the server list
+// schemas (CSV slugs, coerced numbers/booleans) — enum `select`s only use values
+// known to be valid so a bad value can't collapse the whole filter server-side.
+type Facet =
+	| { k: 'text'; key: string; label: string; ph?: string }
+	| { k: 'num'; key: string; label: string; ph?: string }
+	| { k: 'bool'; key: string; label: string }
+	| { k: 'select'; key: string; label: string; opts: [string, string][] }
+	| { k: 'rangeM'; keyMin: string; keyMax: string; label: string }
+	| { k: 'rangeYear'; keyMin: string; keyMax: string; label: string };
+
+const ENTITY_FACETS: Record<string, Facet[]> = {
+	companies: [
+		{ k: 'text', key: 'sector_slug', label: 'Sector slug(s)', ph: 'e.g. tracking-analytics' },
+		{ k: 'text', key: 'tech_tag_slug', label: 'Tech tag slug(s)' },
+		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'text', key: 'country', label: 'Country' },
+		{ k: 'select', key: 'business_model', label: 'Business model', opts: [['', 'Any'], ['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C']] },
+		{ k: 'rangeM', keyMin: 'min_funding', keyMax: 'max_funding', label: 'Total funding ($M)' },
+		{ k: 'rangeYear', keyMin: 'founded_year_min', keyMax: 'founded_year_max', label: 'Founded year' },
+		{ k: 'bool', key: 'is_verified', label: 'Verified only' },
+		{ k: 'bool', key: 'is_actively_raising', label: 'Actively raising' },
+		{ k: 'bool', key: 'is_unicorn', label: 'Unicorns only' },
+		{ k: 'bool', key: 'exclude_unfunded', label: 'Funded only' },
+	],
+	deals: [
+		{ k: 'text', key: 'sector_slug', label: 'Sector slug(s)' },
+		{ k: 'text', key: 'round_type_slug', label: 'Round type slug(s)' },
+		{ k: 'num', key: 'year', label: 'Year', ph: 'e.g. 2024' },
+		{ k: 'rangeM', keyMin: 'amount_usd_min', keyMax: 'amount_usd_max', label: 'Amount ($M)' },
+		{ k: 'bool', key: 'disclosed_only', label: 'Disclosed only' },
+	],
+	investors: [
+		{ k: 'text', key: 'sector_slug', label: 'Thesis sector slug(s)' },
+		{ k: 'text', key: 'country', label: 'Country' },
+		{ k: 'bool', key: 'is_verified', label: 'Verified only' },
+		{ k: 'bool', key: 'actively_investing', label: 'Actively investing' },
+	],
+	acquisitions: [
+		{ k: 'select', key: 'acquisition_type', label: 'Type', opts: [['', 'Any'], ['acquisition', 'Acquisition'], ['merger', 'Merger'], ['asset_purchase', 'Asset purchase']] },
+		{ k: 'rangeYear', keyMin: 'year_min', keyMax: 'year_max', label: 'Year' },
+		{ k: 'rangeM', keyMin: 'amount_usd_min', keyMax: 'amount_usd_max', label: 'Amount ($M)' },
+		{ k: 'bool', key: 'disclosed_only', label: 'Disclosed only' },
+	],
+	programs: [
+		{ k: 'text', key: 'country', label: 'Country' },
+		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'text', key: 'category', label: 'Category' },
+	],
+	events: [
+		{ k: 'text', key: 'country', label: 'Country' },
+		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'bool', key: 'upcoming_only', label: 'Upcoming only' },
+	],
+};
+
+/** Turn the facet UI state into the server filter payload — only setting keys the
+ *  user actually filled, and NEVER sending `false` (the server coerces any
+ *  present boolean to true). Ranges in $M are scaled to raw USD. */
+function buildFacetFilters(entity: string, facets: Record<string, unknown>): Record<string, unknown> {
+	const f: Record<string, unknown> = {};
+	const num = (v: unknown) => (v === '' || v == null ? null : Number(v));
+	for (const facet of ENTITY_FACETS[entity] ?? []) {
+		if (facet.k === 'text' || facet.k === 'select') {
+			const v = String(facets[facet.key] ?? '').trim();
+			if (v) f[facet.key] = v;
+		} else if (facet.k === 'num') {
+			const v = num(facets[facet.key]);
+			if (v != null && Number.isFinite(v)) f[facet.key] = v;
+		} else if (facet.k === 'bool') {
+			if (facets[facet.key] === true) f[facet.key] = true;
+		} else if (facet.k === 'rangeM') {
+			const mn = num(facets[facet.keyMin]); const mx = num(facets[facet.keyMax]);
+			if (mn != null) f[facet.keyMin] = mn * 1_000_000;
+			if (mx != null) f[facet.keyMax] = mx * 1_000_000;
+		} else if (facet.k === 'rangeYear') {
+			const mn = num(facets[facet.keyMin]); const mx = num(facets[facet.keyMax]);
+			if (mn != null) f[facet.keyMin] = mn;
+			if (mx != null) f[facet.keyMax] = mx;
+		}
+	}
+	return f;
+}
+
 type MapRow = { include: boolean; remoteField: string; isMatch: boolean; creating: boolean; newName: string; type: string };
 
 export function CrmSubscriptionWizard({
@@ -56,13 +140,10 @@ export function CrmSubscriptionWizard({
 	const [includeRelated, setIncludeRelated] = useState(false);
 	const [autoSync, setAutoSync] = useState(false);
 	const [rowLimit, setRowLimit] = useState(100);
-	// Minimal filter facets. `fSearch` (name search) applies to every dataset;
-	// the rest are companies-specific. Full facet parity comes later.
+	// Filter facets: `fSearch` (name search, every dataset) + a per-entity facet
+	// map driven by ENTITY_FACETS.
 	const [fSearch, setFSearch] = useState('');
-	const [fSector, setFSector] = useState('');
-	const [fCountry, setFCountry] = useState('');
-	const [fVerified, setFVerified] = useState(false);
-	const [fRaising, setFRaising] = useState(false);
+	const [facets, setFacets] = useState<Record<string, unknown>>({});
 
 	// ── Data fetches ──────────────────────────────────────────────────────────
 	const { data: objectsResp, isLoading: objectsLoading, error: objectsErr } =
@@ -118,14 +199,9 @@ export function CrmSubscriptionWizard({
 		const f: Record<string, unknown> = {};
 		// `q` is read by every entity's filter builder (companies also honours it).
 		if (fSearch.trim()) f.q = fSearch.trim();
-		if (entity === 'companies') {
-			if (fSector.trim()) f.sector_slug = fSector.trim();
-			if (fCountry.trim()) f.country = fCountry.trim();
-			if (fVerified) f.is_verified = true;
-			if (fRaising) f.is_actively_raising = true;
-		}
+		Object.assign(f, buildFacetFilters(entity, facets));
 		return f;
-	}, [entity, fSearch, fSector, fCountry, fVerified, fRaising]);
+	}, [entity, fSearch, facets]);
 
 	// Live quote. Filter mode → count endpoint; list mode → local (ids length).
 	const { data: count } = useSWR<CountResp>(
@@ -268,7 +344,7 @@ export function CrmSubscriptionWizard({
 									setCompanyQuery('');
 									setIncludeRelated(false);
 									setAutoSync(false);
-									setFSearch(''); setFSector(''); setFCountry(''); setFVerified(false); setFRaising(false);
+									setFSearch(''); setFacets({});
 								}}>
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
 								</select>
@@ -358,14 +434,7 @@ export function CrmSubscriptionWizard({
 									<Field label="Name search">
 										<input className="search-input" style={selectStyle} placeholder={`Filter ${entity} by name…`} value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
 									</Field>
-									{entity === 'companies' && (
-										<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-											<Field label="Sector slug"><input className="search-input" style={selectStyle} placeholder="e.g. tracking-analytics" value={fSector} onChange={(e) => setFSector(e.target.value)} /></Field>
-											<Field label="Country"><input className="search-input" style={selectStyle} placeholder="e.g. USA" value={fCountry} onChange={(e) => setFCountry(e.target.value)} /></Field>
-											<label style={toggleRow}><input type="checkbox" checked={fVerified} onChange={(e) => setFVerified(e.target.checked)} /> Verified only</label>
-											<label style={toggleRow}><input type="checkbox" checked={fRaising} onChange={(e) => setFRaising(e.target.checked)} /> Actively raising</label>
-										</div>
-									)}
+									<FacetInputs entity={entity} facets={facets} setFacets={setFacets} />
 									<p style={hint}>Future matching {entity} auto-enter this subscription (up to the row limit).</p>
 								</div>
 							)}
@@ -449,6 +518,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 		<div style={{ marginBottom: 14 }}>
 			<div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', marginBottom: 6 }}>{label}</div>
 			{children}
+		</div>
+	);
+}
+
+/** Renders the per-dataset filter facets from ENTITY_FACETS into a 2-col grid. */
+function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Record<string, unknown>; setFacets: (f: Record<string, unknown>) => void }) {
+	const list = ENTITY_FACETS[entity] ?? [];
+	if (list.length === 0) return null;
+	const set = (key: string, v: unknown) => setFacets({ ...facets, [key]: v });
+	const str = (k: string) => (facets[k] as string) ?? '';
+	return (
+		<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+			{list.map((f) => {
+				if (f.k === 'text' || f.k === 'num') {
+					return <Field key={f.key} label={f.label}><input type={f.k === 'num' ? 'number' : 'text'} className="search-input" style={selectStyle} placeholder={f.ph} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)} /></Field>;
+				}
+				if (f.k === 'select') {
+					return <Field key={f.key} label={f.label}><select className="search-input" style={selectStyle} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)}>{f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>;
+				}
+				if (f.k === 'bool') {
+					return <label key={f.key} style={{ ...toggleRow, alignSelf: 'end', paddingBottom: 8 }}><input type="checkbox" checked={facets[f.key] === true} onChange={(e) => set(f.key, e.target.checked)} /> {f.label}</label>;
+				}
+				return (
+					<Field key={f.keyMin} label={f.label}>
+						<div style={{ display: 'flex', gap: 6 }}>
+							<input type="number" className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="min" value={str(f.keyMin)} onChange={(e) => set(f.keyMin, e.target.value)} />
+							<input type="number" className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="max" value={str(f.keyMax)} onChange={(e) => set(f.keyMax, e.target.value)} />
+						</div>
+					</Field>
+				);
+			})}
 		</div>
 	);
 }
