@@ -102,8 +102,11 @@ export function CrmSubscriptionWizard({
 	);
 
 	// ── Derived: mapped columns, per-row cost, quote ────────────────────────────
+	// A column counts as mapped only once it has a resolved remote field — a row
+	// left open in "create new field" (no field yet) doesn't count, so it can't
+	// soft-lock the Next button.
 	const mapped = useMemo(
-		() => columns.filter((c) => rows[c.key]?.include && (rows[c.key]?.remoteField || rows[c.key]?.creating)),
+		() => columns.filter((c) => rows[c.key]?.include && rows[c.key]?.remoteField),
 		[columns, rows],
 	);
 	const mappedKeys = mapped.map((c) => c.key);
@@ -252,7 +255,21 @@ export function CrmSubscriptionWizard({
 					{step === 0 && (
 						<div>
 							<Field label="Dataset">
-								<select className="search-input" style={selectStyle} value={entity} onChange={(e) => { setEntity(e.target.value); setRows({}); }}>
+								<select className="search-input" style={selectStyle} value={entity} onChange={(e) => {
+									// Changing the dataset invalidates the mapping AND the scope — reset
+									// everything downstream so a stale `list` set / facets / object
+									// can't leak into a different entity and save a broken subscription.
+									setEntity(e.target.value);
+									setRows({});
+									setObject('');
+									setFields([]);
+									setMode('filter');
+									setCompanies([]);
+									setCompanyQuery('');
+									setIncludeRelated(false);
+									setAutoSync(false);
+									setFSearch(''); setFSector(''); setFCountry(''); setFVerified(false); setFRaising(false);
+								}}>
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
 								</select>
 							</Field>
