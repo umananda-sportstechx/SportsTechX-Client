@@ -95,22 +95,29 @@ const ENTITY_FACETS: Record<string, Facet[]> = {
  *  present boolean to true). Ranges in $M are scaled to raw USD. */
 function buildFacetFilters(entity: string, facets: Record<string, unknown>): Record<string, unknown> {
 	const f: Record<string, unknown> = {};
-	const num = (v: unknown) => (v === '' || v == null ? null : Number(v));
+	const num = (v: unknown) => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+	// Server schemas bound these (funding int ≥ 0, years 1800–2200). Silently DROP
+	// an out-of-range value rather than send it — a value the schema rejects makes
+	// the server's whole-object safeParse fail and collapse the ENTIRE filter
+	// (incl. the name search) → an unintended whole-table sync.
+	const year = (v: number | null) => (v != null && v >= 1800 && v <= 2200 ? Math.round(v) : null);
+	const usd = (v: number | null) => (v != null && v >= 0 ? Math.round(v) : null);
 	for (const facet of ENTITY_FACETS[entity] ?? []) {
 		if (facet.k === 'text' || facet.k === 'select') {
 			const v = String(facets[facet.key] ?? '').trim();
 			if (v) f[facet.key] = v;
 		} else if (facet.k === 'num') {
-			const v = num(facets[facet.key]);
-			if (v != null && Number.isFinite(v)) f[facet.key] = v;
+			const v = /year/i.test(facet.key) ? year(num(facets[facet.key])) : num(facets[facet.key]);
+			if (v != null) f[facet.key] = v;
 		} else if (facet.k === 'bool') {
 			if (facets[facet.key] === true) f[facet.key] = true;
 		} else if (facet.k === 'rangeM') {
-			const mn = num(facets[facet.keyMin]); const mx = num(facets[facet.keyMax]);
-			if (mn != null) f[facet.keyMin] = mn * 1_000_000;
-			if (mx != null) f[facet.keyMax] = mx * 1_000_000;
+			const mn = usd(num(facets[facet.keyMin]) !== null ? (num(facets[facet.keyMin])! * 1_000_000) : null);
+			const mx = usd(num(facets[facet.keyMax]) !== null ? (num(facets[facet.keyMax])! * 1_000_000) : null);
+			if (mn != null) f[facet.keyMin] = mn;
+			if (mx != null) f[facet.keyMax] = mx;
 		} else if (facet.k === 'rangeYear') {
-			const mn = num(facets[facet.keyMin]); const mx = num(facets[facet.keyMax]);
+			const mn = year(num(facets[facet.keyMin])); const mx = year(num(facets[facet.keyMax]));
 			if (mn != null) f[facet.keyMin] = mn;
 			if (mx != null) f[facet.keyMax] = mx;
 		}
@@ -362,6 +369,8 @@ export function CrmSubscriptionWizard({
 									setRows({});
 									setObject('');
 									setFields([]);
+									setCreatedObjects([]);
+									setNewObjName('');
 									setMode('filter');
 									setCompanies([]);
 									setCompanyQuery('');
@@ -559,16 +568,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Renders the per-dataset filter facets from ENTITY_FACETS into a 2-col grid. */
-function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Record<string, unknown>; setFacets: (f: Record<string, unknown>) => void }) {
+function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Record<string, unknown>; setFacets: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void }) {
 	const list = ENTITY_FACETS[entity] ?? [];
 	if (list.length === 0) return null;
-	const set = (key: string, v: unknown) => setFacets({ ...facets, [key]: v });
+	const set = (key: string, v: unknown) => setFacets((prev) => ({ ...prev, [key]: v }));
 	const str = (k: string) => (facets[k] as string) ?? '';
+	// Bound number inputs so a typo can't send an out-of-range value (which the
+	// server would reject, collapsing the whole filter). Years 1800–2200; $M ≥ 0.
+	const yearBounds = { min: 1800, max: 2200 };
 	return (
 		<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
 			{list.map((f) => {
-				if (f.k === 'text' || f.k === 'num') {
-					return <Field key={f.key} label={f.label}><input type={f.k === 'num' ? 'number' : 'text'} className="search-input" style={selectStyle} placeholder={f.ph} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)} /></Field>;
+				if (f.k === 'text') {
+					return <Field key={f.key} label={f.label}><input type="text" className="search-input" style={selectStyle} placeholder={f.ph} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)} /></Field>;
+				}
+				if (f.k === 'num') {
+					const yr = /year/i.test(f.key);
+					return <Field key={f.key} label={f.label}><input type="number" {...(yr ? yearBounds : { min: 0 })} className="search-input" style={selectStyle} placeholder={f.ph} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)} /></Field>;
 				}
 				if (f.k === 'select') {
 					return <Field key={f.key} label={f.label}><select className="search-input" style={selectStyle} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)}>{f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>;
@@ -576,11 +592,12 @@ function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Re
 				if (f.k === 'bool') {
 					return <label key={f.key} style={{ ...toggleRow, alignSelf: 'end', paddingBottom: 8 }}><input type="checkbox" checked={facets[f.key] === true} onChange={(e) => set(f.key, e.target.checked)} /> {f.label}</label>;
 				}
+				const bounds = f.k === 'rangeYear' ? yearBounds : { min: 0 };
 				return (
 					<Field key={f.keyMin} label={f.label}>
 						<div style={{ display: 'flex', gap: 6 }}>
-							<input type="number" className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="min" value={str(f.keyMin)} onChange={(e) => set(f.keyMin, e.target.value)} />
-							<input type="number" className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="max" value={str(f.keyMax)} onChange={(e) => set(f.keyMax, e.target.value)} />
+							<input type="number" {...bounds} className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="min" value={str(f.keyMin)} onChange={(e) => set(f.keyMin, e.target.value)} />
+							<input type="number" {...bounds} className="search-input" style={{ ...selectStyle, width: '50%' }} placeholder="max" value={str(f.keyMax)} onChange={(e) => set(f.keyMax, e.target.value)} />
 						</div>
 					</Field>
 				);
