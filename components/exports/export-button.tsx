@@ -136,7 +136,9 @@ function ExportModal({ entity, search, filters, onClose }: { entity: string; sea
 	const rangeActive = !selectingRows && (fromRow.trim() !== '' || toRow.trim() !== '');
 	const rFrom = Math.max(1, parseInt(fromRow, 10) || 1);
 	const rTo = Math.min(matched || 0, parseInt(toRow, 10) || matched || 0);
-	const rangeRows = rangeActive ? Math.max(0, Math.min(5000, rTo - rFrom + 1)) : 0;
+	// Bound the range by `count.rows` (the server-side per-run cap = min(matched,
+	// plan cap)) so the quoted rows/credits match what the export actually delivers.
+	const rangeRows = rangeActive ? Math.min(count?.rows ?? Infinity, Math.max(0, Math.min(5000, rTo - rFrom + 1))) : 0;
 	const effRows = selectingRows ? rowSel.size : (rangeActive ? rangeRows : (count?.rows ?? 0));
 	const cost = Math.ceil(effRows * perRowCost);
 	const insufficient = cost > available;
