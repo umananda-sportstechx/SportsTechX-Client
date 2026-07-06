@@ -206,7 +206,8 @@ export const qk = {
     // string is dropped by buildUrl, which made every call resolve to the
     // default ('ai') — so integration ("export") balances never loaded.
     balance: (type: 'ai' | 'integration' = 'ai') => ['/api/credits/balance', { type }] as const,
-    ledger: (type: 'ai' | 'integration', cursor?: string, limit = 50) =>
+    // `all` merges both pools into one time-ordered feed (credit history page).
+    ledger: (type: 'ai' | 'integration' | 'all', cursor?: string, limit = 50) =>
       ['/api/credits/ledger', { type, cursor, limit }] as const,
   },
 

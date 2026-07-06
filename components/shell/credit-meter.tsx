@@ -37,7 +37,7 @@ export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) 
 	if (variant === 'rail') {
 		return (
 			<Link
-				href="/subscriptions"
+				href="/credits"
 				className="rail-item"
 				title={`${total.toLocaleString()} AI credits left`}
 				style={{ textDecoration: 'none' }}
@@ -58,7 +58,7 @@ export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) 
 	if (variant === 'menu') {
 		return (
 			<>
-				<Link href="/subscriptions" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
+				<Link href="/credits" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
 					<span className="user-menu-icon"><Coins size={15} /></span>
 					<span style={{ flex: 1, minWidth: 0 }}>
 						<span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -70,7 +70,7 @@ export function CreditMeter({ variant }: { variant: 'rail' | 'menu' | 'card' }) 
 						{grant > 0 && <span style={{ display: 'block', marginTop: 6 }}>{bar}</span>}
 					</span>
 				</Link>
-				<Link href="/subscriptions" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
+				<Link href="/credits" className="user-menu-row" role="menuitem" style={{ textDecoration: 'none' }}>
 					<span className="user-menu-icon"><Download size={15} /></span>
 					<span style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
 						<span className="user-menu-label">Export credits</span>
