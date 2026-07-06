@@ -954,6 +954,18 @@ export function AudienceIcon({ audience, size = 14, style }: { audience: Audienc
 }
 
 /**
+ * The audience's lucide glyph in its brand color (Zap=Athletes, Users=Fans,
+ * Briefcase=Executives) — used as the sector icon on filter options. Renders
+ * nothing when the audience is unknown. Same icon set as the legacy hub.
+ */
+export function AudienceGlyph({ audience, size = 13 }: { audience: Audience | null; size?: number }) {
+	const meta = audience ? AUDIENCE_META[audience] : null;
+	if (!meta) return null;
+	const { Icon, color } = meta;
+	return <span style={{ color, display: 'inline-flex' }}><Icon size={size} /></span>;
+}
+
+/**
  * Sector slug → audience map. The backend stores `primary_sector_slug` as
  * the sub-sector (e.g. "performance", "fan_engagement") — this maps those
  * to the FOR-audience taxonomy from ui_design_2/data.jsx SECTORS.

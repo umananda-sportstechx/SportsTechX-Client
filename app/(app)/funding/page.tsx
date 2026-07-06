@@ -8,9 +8,9 @@ import { ChevronLeft, ChevronRight, ArrowRight, Building2, DollarSign } from 'lu
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
-import { Page, Logo, Flag, Stat, Tag, SectionHead, Empty, PageTitle, AudiencePill, VerifiedBadge } from '@/components/ui/atoms';
+import { Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, AudienceGlyph } from '@/components/ui/atoms';
 import {
-	FilterRail, ActiveFiltersBar, ViewToggle,
+	FilterRail, ActiveFiltersBar,
 	emptyFilterState, type Facet, type FilterState, type AmountValue,
 } from '@/components/ui/filter-rail';
 import {
@@ -18,9 +18,8 @@ import {
 	type LocationFacets,
 } from '@/lib/location-facets';
 import { SortHeader, sortToParam, paramToSort, type SortState } from '@/components/ui/sort-header';
-import { DealDrawer } from '@/components/ui/deal-drawer';
+import { CompanyDrawer } from '@/components/ui/company-drawer';
 import { CompareBar } from '@/components/compare-bar';
-import { CompareToggle } from '@/components/compare-toggle';
 import { MyListsBtn } from '@/components/ui/my-lists-btn';
 import { ExportButton } from '@/components/exports/export-button';
 import { FeatureGate } from '@/components/shell/screen-lock';
@@ -109,7 +108,6 @@ function FundingPageInner() {
 	const currentYear = new Date().getFullYear();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
-	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 	// Filter-rail mode (ui_design_3 FundingFilterRail): Startup = company facets,
 	// Deal info = round-level facets. Filters from both modes stay applied; mode
 	// only controls which facet group the rail shows.
@@ -146,7 +144,10 @@ function FundingPageInner() {
 
 	// Investor options for the (gated) investor picker. Pulled once, cached long
 	// — the selected ids map to the backend `investor_id` filter.
-	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.investors.list({ limit: 200 }), {
+	// Only investors that actually appear in funding deals (ranked by deal count),
+	// so every option returns results — mirrors the legacy investor_split_master
+	// dropdown. (Was /api/investors, which included investors with zero deals.)
+	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.deals.investorOptions(300), {
 		dedupingInterval: 60 * 60_000,
 	});
 	const investorList = investorsResp?.data ?? [];
@@ -164,17 +165,17 @@ function FundingPageInner() {
 		{ key: 'is_company_verified', label: 'Verified company only', kind: 'bool' },
 		{
 			key: 'sector_slug', label: 'Sector', kind: 'multi', section: 'Company',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sector_slug', label: 'Sub-sector', kind: 'multi', section: 'Company',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sub_sector_slug', label: 'Sub-sub-sector', kind: 'multi', section: 'Company', gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -212,7 +213,7 @@ function FundingPageInner() {
 		},
 		{
 			key: 'amount', label: 'Round amount', kind: 'amount', section: 'Round details',
-			min: 0, max: 250, step: 5,
+			min: 0, max: 3000, step: 25,
 			undisclosedLabel: 'Exclude undisclosed rounds',
 			undisclosedSubtext: 'Hide deals with no stated amount',
 			undisclosedDefault: false,
@@ -259,7 +260,7 @@ function FundingPageInner() {
 		if (aMin || aMax || disc) {
 			init.amount = {
 				min: aMin ? Number(aMin) / 1_000_000 : 0,
-				max: aMax ? Number(aMax) / 1_000_000 : 250,
+				max: aMax ? Number(aMax) / 1_000_000 : 3000,
 				undisclosed: disc,
 			};
 		}
@@ -295,21 +296,20 @@ function FundingPageInner() {
 		if (inv?.length) sp.set('investors', inv.join(','));
 		const amt = filterState.amount as AmountValue | undefined;
 		if (amt) {
-			if (amt.min !== 0 || amt.max !== 250) {
+			if (amt.min !== 0 || amt.max !== 3000) {
 				sp.set('amount_usd_min', String(amt.min * 1_000_000));
 				sp.set('amount_usd_max', String(amt.max * 1_000_000));
 			}
 			if (amt.undisclosed) sp.set('disclosed_only', 'true');
 		}
 		if (page > 1) sp.set('page', String(page));
-		if (view !== 'table') sp.set('view', view);
 		if (mode === 'deal') sp.set('mode', 'deal');
 		const sortParam = sortToParam(sort);
 		if (sortParam && sortParam !== '-announced_date') sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view, sort, mode]);
+	}, [filterState, page, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
@@ -325,7 +325,7 @@ function FundingPageInner() {
 	const yrs = filterState.years as string[] | undefined;
 	const tableParams: Record<string, unknown> = {
 		page,
-		limit: view === 'grid' ? 36 : 30,
+		limit: 50,
 		sort: sortToParam(sort) ?? '-announced_date',
 	};
 	// Default to the current year for relevance/volume, UNLESS the Deal-info
@@ -361,7 +361,7 @@ function FundingPageInner() {
 	if (inv?.length) tableParams.investor_id = inv.join(',');
 	const amt = filterState.amount as AmountValue | undefined;
 	if (amt) {
-		if (amt.min !== 0 || amt.max !== 250) {
+		if (amt.min !== 0 || amt.max !== 3000) {
 			tableParams.amount_usd_min = amt.min * 1_000_000;
 			tableParams.amount_usd_max = amt.max * 1_000_000;
 		}
@@ -398,7 +398,7 @@ function FundingPageInner() {
 
 			{/* Quarterly chart — full-width above the rail layout */}
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="Quarterly capital flow" meta={`${currentYear - 2} — ${currentYear}`} />
+				<SectionHead title="Quarterly capital flow" meta={`${currentYear - 2} — ${currentYear}`} action={<Link href="/analytics?tab=funding" className="btn ghost">View all analytics <ArrowRight size={12} /></Link>} />
 				<div style={{ padding: 'var(--space-4)' }}>
 					{quarters && quarters.length > 0
 						? <QuarterlyChart quarters={quarters} />
@@ -444,8 +444,7 @@ function FundingPageInner() {
 						placeholder="Search deals, companies, investors…"
 						total={totalRows}
 						shown={tableDeals.length}
-						viewToggle={<ViewToggle view={view} setView={setView} />}
-					/>
+						/>
 
 					{isLoading && tableDeals.length === 0 ? (
 						<Empty msg="Loading…" />
@@ -454,84 +453,12 @@ function FundingPageInner() {
 							<h3>No rounds match</h3>
 							<p>Adjust the filters in the rail to widen results.</p>
 						</div>
-					) : view === 'grid' ? (
-						<div className="deal-grid">
-							{tableDeals.map((d) => {
-								const cc = d.hq_country ? countryCode(d.hq_country) : '';
-								return (
-									<div
-										key={d.id}
-										role="button"
-										tabIndex={0}
-										className="card deal-card linkable"
-										onClick={(e) => {
-											if ((e.target as HTMLElement).closest('button, a')) return;
-											if (e.metaKey || e.ctrlKey) {
-												window.open(`/deals/${d.id}`, '_blank');
-												return;
-											}
-											setDrawerTarget(d.id);
-										}}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter' || e.key === ' ') {
-												if ((e.target as HTMLElement).closest('button, a')) return;
-												e.preventDefault();
-												setDrawerTarget(d.id);
-											}
-										}}
-									>
-										<div className="deal-card-head">
-											<Logo co={{ name: d.company_name ?? '—', website: d.company_website }} size={40} />
-											<div style={{ minWidth: 0, flex: 1 }}>
-												<div className="deal-card-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-													{d.company_name ?? '—'}
-													{d.company_is_verified && <VerifiedBadge size={13} />}
-												</div>
-												{(d.company_sub ?? d.co_sub ?? d.company_description ?? d.description) && (
-													<div className="deal-card-sub">
-														{d.company_sub ?? d.co_sub ?? d.company_description ?? d.description}
-													</div>
-												)}
-											</div>
-											<div className="deal-card-amount">
-												<div className="deal-card-amount-v">{formatDealAmount(d.amount_usd)}</div>
-												{d.round_type_name && <Tag variant="pos">{d.round_type_name}</Tag>}
-											</div>
-										</div>
-										<div className="deal-card-meta">
-											<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-												{cc && <Flag cc={cc} />} {d.hq_city ?? d.hq_country ?? '—'}
-											</span>
-											<span className="deal-card-date">{formatShortDate(d.announced_date)}</span>
-										</div>
-										{(d.investors?.length ?? 0) > 0 ? (
-											<div className="deal-card-investors">
-												<span className="deal-card-investors-label">Investors</span>
-												<span className="deal-card-investors-list">
-													{d.investors!.slice(0, 3).join(' · ')}
-													{d.investors!.length > 3 && ` +${d.investors!.length - 3}`}
-												</span>
-											</div>
-										) : d.lead_investor && (
-											<div className="deal-card-investors">
-												<span className="deal-card-investors-label">Lead investor</span>
-												<span className="deal-card-investors-list">{d.lead_investor}</span>
-											</div>
-										)}
-										<div className="co-card-compare">
-											<CompareToggle id={d.id} kind="deals" />
-										</div>
-									</div>
-								);
-							})}
-						</div>
 					) : (
 						<div className="card">
 							<table className="data-table funding-table">
 								<thead>
 									<tr>
 										<SortHeader label="Company" sortKey="company_name" sort={sort} setSort={setSort} />
-										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
 										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 										<SortHeader label="Announced" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 										<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
@@ -540,19 +467,19 @@ function FundingPageInner() {
 								<tbody>
 									{tableDeals.map((d) => {
 										const cc = d.hq_country ? countryCode(d.hq_country) : '';
-										const sectorName = d.primary_sector ?? '';
-										const sectorSlug = d.sector_slug ?? d.primary_sector_slug ?? sectorName;
+										const companyTarget = d.company_slug ?? d.company_id ?? null;
 										return (
 											<tr
 												key={d.id}
 												style={{ cursor: 'pointer' }}
 												onClick={(e) => {
 													if ((e.target as HTMLElement).closest('button, a')) return;
+													if (!companyTarget) return;
 													if (e.metaKey || e.ctrlKey) {
-														window.open(`/deals/${d.id}`, '_blank');
+														window.open(`/companies/${companyTarget}`, '_blank');
 														return;
 													}
-													setDrawerTarget(d.id);
+													setDrawerTarget(companyTarget);
 												}}
 											>
 												<td>
@@ -578,11 +505,6 @@ function FundingPageInner() {
 													</div>
 												</td>
 												<td>
-													{sectorName
-														? <AudiencePill sectorSlug={sectorSlug} label={sectorName} size="sm" />
-														: <span style={{ color: 'var(--fg-muted)' }}>—</span>}
-												</td>
-												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 														{cc && <Flag cc={cc} />}
 														{[d.hq_city, d.hq_country].filter(Boolean).join(', ') || '—'}
@@ -600,8 +522,8 @@ function FundingPageInner() {
 						</div>
 					)}
 
-					<DealDrawer
-						id={drawerTarget}
+					<CompanyDrawer
+						idOrSlug={drawerTarget}
 						onClose={() => setDrawerTarget(null)}
 					/>
 
@@ -731,7 +653,7 @@ function fmtPct(p: number | null | undefined): { text: string; dir: 'pos' | 'neg
 function QuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 	if (quarters.length === 0) return null;
 	const maxAmt = Math.max(1, ...quarters.map((q) => q.total_amount));
-	const W = 900, H = 240, PAD = 36;
+	const W = 900, H = 150, PAD = 30;
 	const xFor = (i: number) => PAD + (W - PAD * 2) * (i / quarters.length) + 6;
 	const bw = (W - PAD * 2) / quarters.length - 12;
 	// Mint palette from ui_design_2/screens-2.jsx:428 — alternating shades.
