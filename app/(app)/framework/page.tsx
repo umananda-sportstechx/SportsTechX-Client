@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
 import { Page, SectionHead, Empty, AudienceIcon, type Audience } from '@/components/ui/atoms';
 
@@ -80,6 +81,69 @@ const STATIC_CELLS: Record<Audience, StaticCell[]> = {
 	],
 };
 
+/** Full framework taxonomy with per-level explanations, mirrored from the
+ *  current hub's framework/methodology page. */
+const FRAMEWORK_DETAIL: Array<{
+	audience: Audience;
+	n: number;
+	title: string;
+	intro: string;
+	subs: Array<{ n: string; title: string; desc: string; leaves: Array<{ n: string; name: string; desc: string }> }>;
+}> = [
+	{
+		audience: "athletes", n: 1, title: "For Athletes",
+		intro: "This sector covers all solutions focused on the Athlete, whether professional, amateur or recreational. These are related to the actual sports activity, whether it's before, during or after it. Common goals are tracking performance, preventing injuries & finding sports to play.",
+		subs: [
+			{ n: "1.1", title: "For Activity – Hardware", desc: "Physical resources worn/used during an activity.", leaves: [
+				{ n: "1.1.1", name: "Wearables", desc: "Attachments to the body of the athlete or the surface of playing equipment used." },
+				{ n: "1.1.2", name: "Equipment & Infrastructure", desc: "Movable physical equipment or immovable resources installed on premises that are used to perform an activity." },
+			] },
+			{ n: "1.2", title: "For Activity — Software", desc: "Applications or platforms that support the athlete during the activity, often to improve performance, either through tracking the activity and providing feedback or by training guidance.", leaves: [
+				{ n: "1.2.1", name: "Tracking & Analytics", desc: "Tools that capture and track key metrics of sports activities and provide insights." },
+				{ n: "1.2.2", name: "Classes & Tutorials", desc: "Platforms that provide access to classes, videos and tutorial guides (both live and on-demand) to be active, learn new skills and help improve performance." },
+			] },
+			{ n: "1.3", title: "Before / After Activity", desc: "Hardware or Software solutions that help an athlete either prepare for an activity they are about to perform or recover after it.", leaves: [
+				{ n: "1.3.1", name: "Booking & Discovery", desc: "Platforms to discover and book venues, find players or sports events locally or while traveling." },
+				{ n: "1.3.2", name: "Recovery & Injury Prevention", desc: "Applications to reduce the likelihood of injury or help speed-up / ensure recovery." },
+				{ n: "1.3.3", name: "Coaching & Recruitment", desc: "Tools to improve performance by providing training & guidance or helping connect with coaches and scouts." },
+			] },
+		],
+	},
+	{
+		audience: "fans", n: 2, title: "For Fans",
+		intro: "This sector is all about how sports connects to or is consumed by Fans and viewers. All of these solutions are focused on the fan and so will include content, merchandise or betting and fantasy sports. Goals typically include a better involvement and experience of fans related to the athletes, teams and sports they like.",
+		subs: [
+			{ n: "2.1", title: "Content Platforms", desc: "Platforms that provide access to various forms of content (both as consumers and creators), either video, audio or text based.", leaves: [
+				{ n: "2.1.1", name: "News & Content", desc: "Original / editorial content, often about sports teams or athletes, or content related to live sports news & results." },
+				{ n: "2.1.2", name: "Streaming Platforms", desc: "Sports streaming platforms, both live and on-demand." },
+			] },
+			{ n: "2.2", title: "Fan Experiences", desc: "Solutions and offerings to enhance the sports experience and to involve fans with their preferred sports, sometimes commercially.", leaves: [
+				{ n: "2.2.1", name: "Fan Engagement", desc: "Helping fans connect with their favorite athletes, teams and sports as well as other fans to enhance their experience." },
+				{ n: "2.2.2", name: "Ticketing & Merchandise", desc: "Platforms for fans to purchase, sell or trade tickets for events or merchandise & memorabilia from teams & athletes." },
+			] },
+			{ n: "2.3", title: "Fantasy Sports & Betting", desc: "Solutions to place real or play money on sports events and online games based on real or virtual teams.", leaves: [
+				{ n: "2.3.1", name: "Fantasy Sports", desc: "Fantasy sports or sports prediction games." },
+				{ n: "2.3.2", name: "Betting", desc: "Platforms to place sports bets." },
+				{ n: "2.3.3", name: "Enablement", desc: "Tools to aid the sports betting industry, bettors or fantasy sports gamers." },
+			] },
+		],
+	},
+	{
+		audience: "executives", n: 3, title: "For Executives",
+		intro: "All solutions that help Sports Executives perform their responsibilities. Whether it's managing sports facilities, teams, associations, leagues, events, gyms or media companies. Goals here usually relate to improving operational efficiency or providing a better experience to the end consumer.",
+		subs: [
+			{ n: "3.1", title: "Organisations & Venues", desc: "Solutions to help sports related organisations or venues with managing internal operations.", leaves: [
+				{ n: "3.1.1", name: "Team & Club Management", desc: "Tools for professional or amateur sports teams, clubs or gyms." },
+				{ n: "3.1.2", name: "League & Event Management", desc: "Tools for organisers of leagues, tournaments, races or major events." },
+				{ n: "3.1.3", name: "Stadium & Facility Management", desc: "Solutions for stadiums or sports facilities that help make operations or fan / client organisation easier." },
+			] },
+			{ n: "3.2", title: "Media & Sponsors", desc: "Solutions that are either for or connect with the media, or sponsoring brands.", leaves: [
+				{ n: "3.2.1", name: "Media Production", desc: "Tools to make broadcasting easier and richer." },
+				{ n: "3.2.2", name: "Sponsorship", desc: "Platforms to connect brands with teams and athletes for sponsorship." },
+			] },
+		],
+	},
+];
 interface PillarColumn {
 	audience: Audience;
 	apiNode: SectorNode | null;
@@ -91,6 +155,8 @@ export default function FrameworkPage() {
 		['/api/sectors', { tree: true }],
 		{ dedupingInterval: 60 * 60_000 },
 	);
+
+	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
 	const columns = useMemo<PillarColumn[]>(() => {
 		// Build slug → node lookup once.
@@ -267,34 +333,54 @@ export default function FrameworkPage() {
 				</div>
 			)}
 
-			<div className="card" style={{ marginTop: 'var(--space-5)', padding: 'var(--space-5)' }}>
-				<SectionHead title="How the framework works" meta="Read the methodology" />
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32, marginTop: 16 }}>
-					{[
-						{ n: '01', title: 'FOR', desc: 'Every company is mapped to one of three audience groups: For Athletes, For Fans, or For Executives.' },
-						{ n: '02', title: 'Vertical', desc: 'Within each FOR group, companies are mapped into 3 verticals (e.g. For Activity, Content Platforms…).' },
-						{ n: '03', title: 'Sub-sector', desc: 'Each vertical contains specialised sub-sectors (e.g. Wearables, Streaming, Stadium Tech…).' },
-					].map((s) => (
-						<div key={s.n}>
-							<div
-								style={{
-									fontFamily: 'var(--font-mono)',
-									fontSize: 11,
-									color: 'var(--fg-muted)',
-									marginBottom: 6,
-									fontWeight: 700,
-									letterSpacing: '0.08em',
-								}}
-							>
-								STEP {s.n}
-							</div>
-							<div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{s.title}</div>
-							<div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.5 }}>{s.desc}</div>
-						</div>
-					))}
+						<div style={{ marginTop: 'var(--space-5)' }}>
+					<SectionHead title="The framework explained" meta="Every sector, sub-sector and sub-sub-sector" />
+					<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, margin: '10px 0 16px' }}>
+						Solutions are divided into three audience-led sectors — Athlete, Fan and Sports Executive — each cascading into sub-sectors and sub-sub-sectors. Here is a detailed explanation of every level.
+					</p>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+						{FRAMEWORK_DETAIL.map((pillar) => {
+							const color = PILLAR_COLORS[pillar.audience];
+							const isOpen = expanded[pillar.audience] ?? false;
+							return (
+								<div key={pillar.audience} className="card" style={{ overflow: 'hidden', borderColor: color }}>
+									<button
+										onClick={() => setExpanded((prev) => ({ ...prev, [pillar.audience]: !isOpen }))}
+										aria-expanded={isOpen}
+										style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 'var(--space-4)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+									>
+										<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 17, color }}>
+											<AudienceIcon audience={pillar.audience} size={16} />
+											{pillar.n}. {pillar.title}
+										</span>
+										{isOpen ? <ChevronDown size={18} style={{ color }} /> : <ChevronRight size={18} style={{ color }} />}
+									</button>
+									{isOpen && (
+										<div style={{ padding: '0 var(--space-4) var(--space-4)', borderTop: `1px solid ${color}` }}>
+											<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, margin: '14px 0 18px' }}>{pillar.intro}</p>
+											<div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+												{pillar.subs.map((sub) => (
+													<div key={sub.n}>
+														<div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{sub.n} {sub.title}</div>
+														<div style={{ fontSize: 12.5, color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 10 }}>{sub.desc}</div>
+														<div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 14, borderLeft: `2px solid ${color}` }}>
+															{sub.leaves.map((leaf) => (
+																<div key={leaf.n} style={{ fontSize: 12.5, color: 'var(--fg-2)', lineHeight: 1.5 }}>
+																	<strong style={{ color: 'var(--fg)' }}>{leaf.n} {leaf.name}:</strong> {leaf.desc}
+																</div>
+															))}
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
+								</div>
+							);
+						})}
+					</div>
 				</div>
-			</div>
-		</Page>
+			</Page>
 	);
 }
 
