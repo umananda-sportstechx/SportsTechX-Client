@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Building2, Target } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
-import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo, sectorMetaFor } from '@/components/ui/atoms';
 import { FeatureGate } from '@/components/shell/screen-lock';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -96,6 +96,7 @@ function InvestorsPageInner() {
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
 	const [drawerTarget, setDrawerTarget] = useState<string | null>(null);
 	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
+	const [mode, setMode] = useState<'investor' | 'thesis'>(params.get('mode') === 'thesis' ? 'thesis' : 'investor');
 	const [sort, setSort] = useState<SortState | null>(paramToSort(params.get('sort')));
 
 	const { data: roundsResp } = useSWR<{ data: RoundRef[] } | RoundRef[]>(qk.reference.roundTypes(), {
@@ -120,85 +121,50 @@ function InvestorsPageInner() {
 
 	const currentYear = new Date().getFullYear();
 
-	const facets = useMemo<Facet[]>(() => [
+	const investorFacets = useMemo<Facet[]>(() => [
 		{ key: 'is_verified', label: 'Verified', kind: 'bool' },
 		{ key: 'actively_investing', label: 'Actively investing', kind: 'bool' },
+		{ key: 'category', label: 'Firm type', kind: 'multi', options: () => CATEGORY_OPTIONS },
 		{
-			key: 'category',
-			label: 'Firm type',
-			kind: 'multi',
-			options: () => CATEGORY_OPTIONS,
-		},
-		{
-			key: 'round_type_slug',
-			label: 'Stage focus',
-			kind: 'multi',
-			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })),
-			maxHeight: 220,
-		},
-		{
-			key: 'country',
-			label: 'Country',
-			kind: 'multi',
-			section: 'Location',
+			key: 'country', label: 'Country', kind: 'multi', section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
 		},
 		...locationFacets(locFacets),
+		{ key: 'year_launched', label: 'Year launched', kind: 'range', section: 'Firm', min: 1990, max: currentYear, step: 1 },
+		{ key: 'deals', label: 'Deal count', kind: 'range', section: 'Firm', min: 0, max: 50, step: 1 },
+	], [locFacets, currentYear]);
+
+	const thesisFacets = useMemo<Facet[]>(() => [
 		{
-			key: 'sector_slug',
-			label: 'Portfolio sector',
-			kind: 'multi',
-			section: 'Thesis',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			key: 'round_type_slug', label: 'Stage focus', kind: 'multi',
+			options: () => roundList.map((r) => ({ value: r.slug, label: r.name })), maxHeight: 220,
+		},
+		{
+			key: 'sector_slug', label: 'Portfolio sector', kind: 'multi', section: 'Sector',
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
-			key: 'sub_sector_slug',
-			label: 'Portfolio sub-sector',
-			kind: 'multi',
-			section: 'Thesis',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			key: 'sub_sector_slug', label: 'Portfolio sub-sector', kind: 'multi', section: 'Sector',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
-			key: 'sub_sub_sector_slug',
-			label: 'Portfolio sub-sub-sector',
-			kind: 'multi',
-			section: 'Thesis',
-			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
+			key: 'sub_sub_sector_slug', label: 'Portfolio sub-sub-sector', kind: 'multi', section: 'Sector', gate: 'advanced_filters',
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
-			key: 'sport_slug',
-			label: 'Sport',
-			kind: 'multi',
-			section: 'Thesis',
-			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
-			maxHeight: 240,
+			key: 'sport_slug', label: 'Sport', kind: 'multi',
+			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })), maxHeight: 240,
 		},
-		{
-			key: 'year_launched',
-			label: 'Year launched',
-			kind: 'range',
-			section: 'Firm',
-			min: 1990,
-			max: currentYear,
-			step: 1,
-		},
-		{
-			key: 'deals',
-			label: 'Deal count',
-			kind: 'range',
-			section: 'Firm',
-			min: 0,
-			max: 50,
-			step: 1,
-		},
-	], [roundList, sectorTiers, sportList, locFacets, currentYear]);
+	], [roundList, sectorTiers, sportList]);
+
+	const allFacets = useMemo(() => [...investorFacets, ...thesisFacets], [investorFacets, thesisFacets]);
+	const railFacets = mode === 'thesis' ? thesisFacets : investorFacets;
 
 	const [filterState, setFilterState] = useState<FilterState>(() => {
-		const init = emptyFilterState(facets, { search: params.get('q') ?? '' });
+		const init = emptyFilterState(allFacets, { search: params.get('q') ?? '' });
 		const v = params.get('is_verified'); if (v) init.is_verified = v === 'true';
 		const a = params.get('actively_investing'); if (a) init.actively_investing = a === 'true';
 		const c = params.get('category');
@@ -255,17 +221,18 @@ function InvestorsPageInner() {
 		if (dl && (dl[0] !== 0 || dl[1] !== 50)) { sp.set('deals_min', String(dl[0])); sp.set('deals_max', String(dl[1])); }
 		if (page > 1) sp.set('page', String(page));
 		if (view !== 'grid') sp.set('view', view);
+		if (mode !== 'investor') sp.set('mode', mode);
 		const sortParam = sortToParam(sort);
 		if (sortParam) sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view, sort]);
+	}, [filterState, page, view, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
 
-	const queryParams: Record<string, unknown> = { page, limit: 24 };
+	const queryParams: Record<string, unknown> = { page, limit: 50 };
 	if (debouncedSearch) queryParams.search = debouncedSearch;
 	const cat = filterState.category as string[] | undefined;
 	if (cat?.length === 1) queryParams.category = cat[0];
@@ -314,16 +281,38 @@ function InvestorsPageInner() {
 			/>
 
 			<div className="flt-layout">
-				<FilterRail
-					facets={facets}
+								<FilterRail
+					facets={railFacets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}
-					defaultOpen={{ category: true }}
+					defaultOpen={{ category: true, round_type_slug: true, sector_slug: true }}
+					topSlot={
+						<div className="ff-mode-wrap">
+							<div className="ff-mode" role="tablist" aria-label="Filter group">
+								<button
+									role="tab"
+									aria-selected={mode === 'investor'}
+									className={`ff-mode-btn ${mode === 'investor' ? 'on' : ''}`}
+									onClick={() => setMode('investor')}
+								>
+									<Building2 size={11} /> Investor
+								</button>
+								<button
+									role="tab"
+									aria-selected={mode === 'thesis'}
+									className={`ff-mode-btn ${mode === 'thesis' ? 'on' : ''}`}
+									onClick={() => setMode('thesis')}
+								>
+									<Target size={11} /> Thesis
+								</button>
+							</div>
+						</div>
+					}
 				/>
 
 				<div className="flt-main">
 					<ActiveFiltersBar
-						facets={facets}
+						facets={allFacets}
 						state={filterState}
 						setState={setFilterState}
 						placeholder="Search firms, thesis, portfolio…"
