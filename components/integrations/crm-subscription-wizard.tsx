@@ -7,6 +7,7 @@ import { Loader2, Plus, Check, ChevronRight, ChevronLeft, Coins, Trash2, X } fro
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { useSectorTiers, type SectorRef } from '@/hooks/use-sector-tiers';
 
 /**
  * Provider-subscription wizard (Phase 3). Walks: dataset → destination object →
@@ -154,7 +155,13 @@ export function CrmSubscriptionWizard({
 	const [companyQuery, setCompanyQuery] = useState('');
 	const [includeRelated, setIncludeRelated] = useState(false);
 	const [autoSync, setAutoSync] = useState(false);
-	const [rowLimit, setRowLimit] = useState(100);
+	// Row range (1-indexed, inclusive). offset = from-1; limit = to-from+1 (max 1000).
+	const [fromRow, setFromRow] = useState('1');
+	const [toRow, setToRow] = useState('100');
+	const rFrom = Math.max(1, parseInt(fromRow, 10) || 1);
+	const rTo = Math.max(rFrom, parseInt(toRow, 10) || rFrom);
+	const rowOffset = rFrom - 1;
+	const rowLimit = Math.max(1, Math.min(1000, rTo - rFrom + 1));
 	// Filter facets: `fSearch` (name search, every dataset) + a per-entity facet
 	// map driven by ENTITY_FACETS.
 	const [fSearch, setFSearch] = useState('');
@@ -226,7 +233,7 @@ export function CrmSubscriptionWizard({
 		{ dedupingInterval: 10_000, keepPreviousData: true },
 	);
 	const matched = mode === 'list' ? companies.length : (count?.matched ?? 0);
-	const quoteRows = Math.min(matched, rowLimit);
+	const quoteRows = mode === 'list' ? Math.min(companies.length, rowLimit) : Math.min(Math.max(0, matched - rowOffset), rowLimit);
 	const quoteCredits = Math.ceil(quoteRows * perRow);
 
 	// ── Mapping helpers ─────────────────────────────────────────────────────────
@@ -311,6 +318,7 @@ export function CrmSubscriptionWizard({
 				include_related: entity === 'companies' ? includeRelated : false,
 				auto_sync: mode === 'filter' ? autoSync : false,
 				row_limit: rowLimit,
+				row_offset: mode === 'filter' ? rowOffset : 0,
 				target_id: target.id,
 				mappings,
 			});
@@ -378,6 +386,7 @@ export function CrmSubscriptionWizard({
 									setCompanyQuery('');
 									setIncludeRelated(false);
 									setAutoSync(false);
+									setFromRow('1'); setToRow('100');
 									setFSearch(''); setFacets({});
 								}}>
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
@@ -498,9 +507,18 @@ export function CrmSubscriptionWizard({
 								</label>
 							)}
 
-							<Field label="Row limit">
-								<input type="number" min={1} max={1000} className="search-input" style={{ ...selectStyle, width: 120 }}
-									value={rowLimit} onChange={(e) => setRowLimit(Math.max(1, Math.min(1000, parseInt(e.target.value, 10) || 1)))} />
+							<Field label={mode === 'list' ? 'Row limit' : 'Rows (from / to)'}>
+								{mode === 'list' ? (
+									<input type="number" min={1} max={1000} className="search-input" style={{ ...selectStyle, width: 120 }}
+										value={toRow} onChange={(e) => { setFromRow('1'); setToRow(e.target.value); }} />
+								) : (
+									<div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-2)' }}>
+										<input type="number" min={1} className="search-input" style={{ ...selectStyle, width: 100 }} placeholder="1" value={fromRow} onChange={(e) => setFromRow(e.target.value)} />
+										<span>to</span>
+										<input type="number" min={1} className="search-input" style={{ ...selectStyle, width: 100 }} placeholder="100" value={toRow} onChange={(e) => setToRow(e.target.value)} />
+										<span style={{ color: 'var(--fg-muted)' }}>= {rowLimit.toLocaleString()} row{rowLimit === 1 ? '' : 's'} (max 1,000){matched ? ` of ${matched.toLocaleString()} matching` : ''}</span>
+									</div>
+								)}
 							</Field>
 
 							{/* Quote */}
@@ -508,9 +526,8 @@ export function CrmSubscriptionWizard({
 								{mapped.length === 0 ? (
 									<span style={{ color: 'var(--fg-muted)' }}>Map columns first to see the cost.</span>
 								) : (
-									<>Syncs up to <b>{quoteRows.toLocaleString()}</b> row{quoteRows === 1 ? '' : 's'} · <b>{perRow}</b> credit{perRow === 1 ? '' : 's'}/row ·{' '}
+									<>{mode === 'filter' && rowOffset > 0 ? <>Syncs rows <b>{(rowOffset + 1).toLocaleString()}</b>–<b>{(rowOffset + quoteRows).toLocaleString()}</b></> : <>Syncs up to <b>{quoteRows.toLocaleString()}</b> row{quoteRows === 1 ? '' : 's'}</>} · <b>{perRow}</b> credit{perRow === 1 ? '' : 's'}/row ·{' '}
 										<b><Coins size={11} style={{ verticalAlign: '-1px' }} /> {quoteCredits.toLocaleString()}</b> per sync
-										{matched > rowLimit && <span style={{ color: 'var(--fg-muted)' }}> (of {matched.toLocaleString()} matching — capped at your limit)</span>}
 									</>
 								)}
 							</div>
@@ -524,7 +541,7 @@ export function CrmSubscriptionWizard({
 							<ReviewLine k="Destination" v={objectsResp?.objects.find((o) => o.slug === object)?.label ?? object} />
 							<ReviewLine k="Mapped fields" v={`${mapped.length} column${mapped.length === 1 ? '' : 's'}${matchKeySet ? ' · match key set' : ' · no match key'}`} />
 							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})${autoSync ? ' · auto-sync on' : ''}`} />
-							<ReviewLine k="Row limit" v={String(rowLimit)} />
+							<ReviewLine k="Rows" v={mode === 'filter' && rowOffset > 0 ? `${rowOffset + 1}–${rowOffset + rowLimit} (${rowLimit})` : `up to ${rowLimit}`} />
 							<ReviewLine k="Per sync" v={`~${quoteRows.toLocaleString()} rows · ${quoteCredits.toLocaleString()} credits`} />
 							<p style={{ ...hint, marginTop: 10 }}>Nothing syncs until you save. You can sync immediately or later from the subscriptions list.</p>
 						</div>
@@ -577,19 +594,43 @@ function useRefOptions(source: RefSource): { slug: string; name: string }[] {
 	return useMemo(() => rows.filter((r) => r?.slug && r?.name).map((r) => ({ slug: r.slug, name: r.name })).sort((a, b) => a.name.localeCompare(b.name)), [rows]);
 }
 
+/** Sectors as a hierarchy: an indented, depth-first option list (pillar → sub →
+ *  sub-sub) so a sub-sub-sector can be picked explicitly. */
+function useSectorOptions(): { list: { slug: string; label: string }[]; tiers: ReturnType<typeof useSectorTiers> } {
+	const { data } = useSWR<{ data: SectorRef[] } | SectorRef[]>(qk.reference.sectors(), { dedupingInterval: 10 * 60_000, revalidateOnFocus: false });
+	const sectorList = useMemo(() => (Array.isArray(data) ? data : data?.data ?? []).filter((s) => s?.slug && s?.name), [data]);
+	const tiers = useSectorTiers(sectorList);
+	const list = useMemo(() => {
+		const byParent = new Map<string, SectorRef[]>();
+		for (const s of sectorList) { const k = s.parent_id ?? '__root'; (byParent.get(k) ?? byParent.set(k, []).get(k)!).push(s); }
+		const out: { slug: string; label: string }[] = [];
+		const walk = (node: SectorRef, depth: number) => {
+			out.push({ slug: node.slug, label: `${'— '.repeat(depth)}${node.name}` });
+			(byParent.get(node.id) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((c) => walk(c, depth + 1));
+		};
+		(byParent.get('__root') ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((t) => walk(t, 0));
+		return out;
+	}, [sectorList]);
+	return { list, tiers };
+}
+
 /** Renders the per-dataset filter facets from ENTITY_FACETS into a 2-col grid.
- *  Sector/tech-tag/sport are real dropdowns fed by the reference endpoints. */
+ *  Sector (hierarchical) / tech-tag / sport are real dropdowns fed by reference data. */
 function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Record<string, unknown>; setFacets: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void }) {
 	// Reference lists (fetched unconditionally to satisfy hook rules; cheap + cached).
-	const sectors = useRefOptions('sectors');
 	const sports = useRefOptions('sports');
 	const techTags = useRefOptions('techTags');
-	const refFor = (s: RefSource) => (s === 'sectors' ? sectors : s === 'sports' ? sports : techTags);
+	const { list: sectorOptions, tiers } = useSectorOptions();
+	const refFor = (s: RefSource) => (s === 'sports' ? sports : techTags);
 
 	const list = ENTITY_FACETS[entity] ?? [];
 	if (list.length === 0) return null;
 	const set = (key: string, v: unknown) => setFacets((prev) => ({ ...prev, [key]: v }));
 	const str = (k: string) => (facets[k] as string) ?? '';
+	// Selecting a sector stores the EXPANDED descendant slugs in `sector_slug`
+	// (what the server matches) while `__sector_pick` holds the picked node for
+	// the dropdown value. `__`-prefixed keys aren't sent (not in ENTITY_FACETS).
+	const pickSector = (node: string) => setFacets((prev) => ({ ...prev, __sector_pick: node, sector_slug: node ? tiers.expand(node).join(',') : '' }));
 	// Bound number inputs so a typo can't send an out-of-range value (which the
 	// server would reject, collapsing the whole filter). Years 1800–2200; $M ≥ 0.
 	const yearBounds = { min: 1800, max: 2200 };
@@ -605,6 +646,17 @@ function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Re
 				}
 				if (f.k === 'select') {
 					return <Field key={f.key} label={f.label}><select className="search-input" style={selectStyle} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)}>{f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>;
+				}
+				if (f.k === 'ref' && f.source === 'sectors') {
+					return (
+						<Field key={f.key} label={f.label}>
+							<select className="search-input" style={selectStyle} value={(facets.__sector_pick as string) ?? ''} onChange={(e) => pickSector(e.target.value)}>
+								<option value="">{sectorOptions.length ? 'Any sector' : 'Loading…'}</option>
+								{sectorOptions.map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)}
+							</select>
+							<div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 3 }}>Pick any tier — a pillar/sub-sector includes everything beneath it.</div>
+						</Field>
+					);
 				}
 				if (f.k === 'ref') {
 					const opts = refFor(f.source);
