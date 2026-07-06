@@ -51,8 +51,9 @@ export function useSectorTiers(sectorList: SectorRef[]): SectorTiers {
 		});
 		const bySlug = new Map(sectorList.map((s) => [s.slug, s]));
 		const topOf = (s: SectorRef): SectorRef => {
-			let cur = s;
-			while (cur.parent_id) { const p = byId.get(cur.parent_id); if (!p) break; cur = p; }
+			let cur = s; let d = 0;
+			// `d < 6` guards against a malformed parent_id cycle (freeze), mirroring depthOf.
+			while (cur.parent_id && d < 6) { const p = byId.get(cur.parent_id); if (!p) break; cur = p; d++; }
 			return cur;
 		};
 		const audienceBySlug = new Map<string, Audience>();
