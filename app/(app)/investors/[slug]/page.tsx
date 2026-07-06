@@ -26,6 +26,7 @@ interface Investor {
 	total_aum_usd?: number | string | null;
 	total_funding?: number | string | null;
 	num_investments?: number | null;
+	deals_count?: number | null;
 	primary_focus?: string | null;
 	year_launched?: number | null;
 	recent_investment?: string | null;
@@ -316,7 +317,7 @@ export default function InvestorDetailPage() {
 							<div className="co-kv"><span className="co-kv-k">Stage focus</span><span className="co-kv-v">{stageFocus}</span></div>
 						)}
 						<div className="co-kv"><span className="co-kv-k">AUM</span><span className="co-kv-v"><b>{aum ?? '—'}</b></span></div>
-						<div className="co-kv"><span className="co-kv-k">Investments</span><span className="co-kv-v">{investor.num_investments ?? '—'}</span></div>
+						<div className="co-kv"><span className="co-kv-k">Investments</span><span className="co-kv-v">{investor.deals_count ?? investor.num_investments ?? '—'}</span></div>
 						{investor.recent_investment && (
 							<div className="co-kv"><span className="co-kv-k">Recent</span><span className="co-kv-v">{investor.recent_investment}</span></div>
 						)}
