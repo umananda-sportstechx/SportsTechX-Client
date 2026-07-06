@@ -112,7 +112,24 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
     }
   }
 
-  throw new Error(`${res.status}: ${text}`);
+  // Surface the server's human message (NestJS `{message}` / this app's
+  // `{error:{message}}` / a validation array) instead of dumping raw JSON.
+  let message = `Request failed (${res.status}).`;
+  try {
+    const body = JSON.parse(text) as { message?: unknown; error?: unknown };
+    const err = body.error as { message?: unknown } | string | undefined;
+    const cand =
+      (typeof err === 'object' && err && typeof err.message === 'string' ? err.message : undefined)
+      ?? (typeof body.message === 'string' ? body.message : undefined)
+      ?? (Array.isArray(body.message) ? (body.message as string[]).join(', ') : undefined)
+      ?? (typeof err === 'string' ? err : undefined);
+    if (cand && cand.trim()) message = cand;
+  } catch {
+    if (text && text.trim() && text.length < 300) message = text;
+  }
+  const e = new Error(message) as Error & { status?: number };
+  e.status = res.status;
+  throw e;
 }
 
 // ─── apiRequest (non-GET writes) ─────────────────────────────────────────────
@@ -266,7 +283,7 @@ export const swrConfig: SWRConfiguration = {
   revalidateOnReconnect: true,
   errorRetryCount: 2,
   shouldRetryOnError: (err: unknown) => {
-    if (err instanceof Error && err.message.startsWith('404')) return false;
+    if (err instanceof Error && (err as Error & { status?: number }).status === 404) return false;
     return true;
   },
   keepPreviousData: true,

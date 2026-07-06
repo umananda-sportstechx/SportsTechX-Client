@@ -9,11 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug, RefreshCw, Settings2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug, Settings2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { PageHeader } from '@/components/ui/page-header';
-import { CrmMappingModal } from '@/components/integrations/crm-mapping-modal';
 import { CrmSubscriptionsPanel } from '@/components/integrations/crm-subscription-wizard';
 
 /**
@@ -96,7 +95,6 @@ export default function IntegrationsPage() {
 
 function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => void }) {
 	const [busy, setBusy] = useState(false);
-	const [mappingOpen, setMappingOpen] = useState(false);
 	const [subsOpen, setSubsOpen] = useState(false);
 	const conn = p.connection;
 	const connected = conn?.status === 'connected';
@@ -120,21 +118,6 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 			await apiRequest('DELETE', `/api/integrations/crm/${conn.id}`);
 			toast.success(`Disconnected ${p.label}.`);
 			onChanged();
-		} catch (e) {
-			toast.error((e as Error).message);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	const syncNow = async () => {
-		if (!conn) return;
-		setBusy(true);
-		try {
-			await apiRequest('POST', `/api/integrations/crm/${conn.id}/sync`);
-			toast.success('Sync started — this can take a moment.');
-			// Give the worker a beat, then refresh status.
-			setTimeout(onChanged, 1500);
 		} catch (e) {
 			toast.error((e as Error).message);
 		} finally {
@@ -169,35 +152,15 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 					<div className="space-y-3">
 						{/* Last run status. Scheduled connection sync was retired — recurring
 						    sync now lives on subscriptions (event-driven auto-sync). */}
-						<SyncStatusLine conn={conn} />
-
-						{!conn.mappings_configured && (
-							<p className="text-xs text-amber-600 dark:text-amber-500">
-								Map your fields before syncing.
-							</p>
-						)}
+						<p className="text-xs text-muted-foreground">
+							Sync runs per <b>subscription</b> — each one sets what to sync, where it lands, and its own field mapping.
+						</p>
 
 						{/* Phase 3: scoped, column-priced subscriptions — the primary flow. */}
 						<Button variant="secondary" size="sm" className="w-full h-8 text-xs" onClick={() => setSubsOpen(true)}>
 							<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Manage subscriptions
 						</Button>
 
-						<div className="flex gap-2">
-							<Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => setMappingOpen(true)}>
-								<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Fields
-							</Button>
-							<Button
-								size="sm"
-								className="flex-1 h-8 text-xs"
-								onClick={() => void syncNow()}
-								disabled={busy || !conn.mappings_configured || conn.last_sync_status === 'running'}
-							>
-								{busy || conn.last_sync_status === 'running'
-									? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-									: <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-								Sync now
-							</Button>
-						</div>
 						<button
 							className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
 							onClick={() => void disconnect()}
@@ -206,14 +169,6 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 							Disconnect
 						</button>
 
-						{mappingOpen && (
-							<CrmMappingModal
-								connectionId={conn.id}
-								provider={p.provider}
-								onClose={() => setMappingOpen(false)}
-								onSaved={() => { setMappingOpen(false); onChanged(); }}
-							/>
-						)}
 						{subsOpen && (
 							<CrmSubscriptionsPanel
 								connectionId={conn.id}
@@ -237,26 +192,6 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 			</CardContent>
 		</Card>
 	);
-}
-
-/** One-line last-run summary for a connection. */
-function SyncStatusLine({ conn }: { conn: CrmConnection }) {
-	const when = conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString() : null;
-	if (conn.last_sync_status === 'running') {
-		return <p className="text-xs text-muted-foreground">Syncing…</p>;
-	}
-	if (conn.last_sync_status === 'error') {
-		return <p className="text-xs text-destructive" title={conn.last_sync_error ?? undefined}>Last sync failed{conn.last_sync_error ? `: ${conn.last_sync_error}` : ''}</p>;
-	}
-	if (conn.last_sync_status === 'success' || conn.last_sync_status === 'partial') {
-		return (
-			<p className="text-xs text-muted-foreground">
-				{conn.last_sync_status === 'partial' ? 'Partially synced' : 'Synced'} {conn.last_sync_row_count ?? 0} row(s){when ? ` · ${when}` : ''}
-				{conn.sync_frequency !== 'off' && conn.next_sync_at ? ` · next ${new Date(conn.next_sync_at).toLocaleDateString()}` : ''}
-			</p>
-		);
-	}
-	return <p className="text-xs text-muted-foreground">Not synced yet.</p>;
 }
 
 /** Intercom identity-verification hash — for users who embed Intercom on their
