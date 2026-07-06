@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: '%s | SportsTechX',
   },
   description: 'The global platform for sports technology intelligence.',
-  icons: { icon: [{ url: '/stx_black.png', type: 'image/png' }, { url: '/favicon.ico' }] },
+  icons: { icon: [{ url: '/stx_pink.png', type: 'image/png' }, { url: '/favicon.ico' }] },
 };
 
 export const viewport: Viewport = {

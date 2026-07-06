@@ -9,10 +9,10 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
 import {
-	Page, Logo, Flag, Tag, AudiencePill, Stat, SectionHead, Empty, PageTitle, VerifiedBadge,
+	Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, sectorMetaFor,
 } from '@/components/ui/atoms';
 import {
-	FilterRail, ActiveFiltersBar, ViewToggle,
+	FilterRail, ActiveFiltersBar,
 	emptyFilterState, type Facet, type FilterState, type TriValue, type AmountValue,
 } from '@/components/ui/filter-rail';
 import {
@@ -86,7 +86,6 @@ interface SectorRef { id: string; name: string; slug: string }
 interface RefResponse<T> { data: T[] }
 
 const TYPE_OPTIONS = [
-	{ value: 'acquisition', label: 'Strategic' },
 	{ value: 'merger', label: 'Merger' },
 	{ value: 'asset_purchase', label: 'Asset' },
 ];
@@ -114,7 +113,6 @@ function MnaPageInner() {
 	const currentYear = new Date().getFullYear();
 
 	const [page, setPage] = useState(Number(params.get('page') ?? '1'));
-	const [view, setView] = useState<'table' | 'grid'>((params.get('view') as 'table' | 'grid') ?? 'table');
 	// Per-party filter mode (mirrors the funding page's Startup/Deal toggle):
 	// Acquiree = target-side facets, Acquirer = buyer-side facets, Deal =
 	// deal-level facets. Selections from all three modes stay applied; mode only
@@ -145,43 +143,43 @@ function MnaPageInner() {
 	// Acquiree (target) side facets. Keys are per-party so each side keeps its
 	// own selection; they map to acquiree_* query params in tableParams.
 	const acquireeFacets = useMemo<Facet[]>(() => [
-		{ key: 'acquiree_is_sportstech', label: 'Target is SportsTech', kind: 'tri', section: 'Target', yesLabel: 'Yes', noLabel: 'No' },
+		{ key: 'acquiree_is_sportstech', label: 'Acquiree is SportsTech', kind: 'tri', section: 'Acquiree', yesLabel: 'Yes', noLabel: 'No' },
 		{
 			key: 'acquiree_sector_slug',
-			label: 'Target sector',
+			label: 'Acquiree sector',
 			kind: 'multi',
-			section: 'Target',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			section: 'Acquiree',
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
 			key: 'acquiree_sub_sector_slug',
-			label: 'Target sub-sector',
+			label: 'Acquiree sub-sector',
 			kind: 'multi',
-			section: 'Target',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			section: 'Acquiree',
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
 			key: 'acquiree_sub_sub_sector_slug',
-			label: 'Target sub-sub-sector',
+			label: 'Acquiree sub-sub-sector',
 			kind: 'multi',
-			section: 'Target',
+			section: 'Acquiree',
 			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
 			key: 'acquiree_sport_slug',
-			label: 'Target sport',
+			label: 'Acquiree sport',
 			kind: 'multi',
-			section: 'Target',
+			section: 'Acquiree',
 			options: () => sportList.map((s) => ({ value: s.slug, label: s.name })),
 			maxHeight: 240,
 		},
 		{
 			key: 'country',
-			label: 'Target HQ',
+			label: 'Acquiree HQ',
 			kind: 'multi',
 			section: 'Location',
 			options: () => COMMON_COUNTRIES.map((c) => ({ value: c, label: c })),
@@ -197,7 +195,7 @@ function MnaPageInner() {
 			label: 'Acquirer sector',
 			kind: 'multi',
 			section: 'Acquirer',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
@@ -205,7 +203,7 @@ function MnaPageInner() {
 			label: 'Acquirer sub-sector',
 			kind: 'multi',
 			section: 'Acquirer',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
@@ -214,7 +212,7 @@ function MnaPageInner() {
 			kind: 'multi',
 			section: 'Acquirer',
 			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
 			maxHeight: 240,
 		},
 		{
@@ -398,14 +396,13 @@ function MnaPageInner() {
 			sp.set('year_max', String(yr[1]));
 		}
 		if (page > 1) sp.set('page', String(page));
-		if (view !== 'table') sp.set('view', view);
 		if (mode !== 'acquiree') sp.set('mode', mode);
 		const sortParam = sortToParam(sort);
 		if (sortParam && sortParam !== '-acquisition_date') sp.set('sort', sortParam);
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filterState, page, view, sort, mode]);
+	}, [filterState, page, sort, mode]);
 
 	const debouncedSearch = useDebouncedValue(filterState.search ?? '', 300);
 	useEffect(() => { recordSearchSignal(debouncedSearch); }, [debouncedSearch]);
@@ -420,7 +417,7 @@ function MnaPageInner() {
 
 	const tableParams: Record<string, unknown> = {
 		page,
-		limit: view === 'grid' ? 36 : 30,
+		limit: 50,
 		sort: sortToParam(sort) ?? '-acquisition_date',
 	};
 	if (debouncedSearch) tableParams.q = debouncedSearch;
@@ -501,7 +498,7 @@ function MnaPageInner() {
 			</div>
 
 			<div className="card" style={{ marginBottom: 'var(--space-5)' }}>
-				<SectionHead title="Quarterly M&A volume" meta={`${currentYear - 2} — ${currentYear}`} />
+				<SectionHead title="Quarterly M&A volume" meta={`${currentYear - 2} — ${currentYear}`} action={<Link href="/analytics?tab=mna" className="btn ghost">View all analytics <ArrowRight size={12} /></Link>} />
 				<div style={{ padding: 'var(--space-4)' }}>
 					{quarters && quarters.length > 0
 						? <MaQuarterlyChart quarters={quarters} />
@@ -560,7 +557,6 @@ function MnaPageInner() {
 						placeholder="Search targets, acquirers…"
 						total={total}
 						shown={table.length}
-						viewToggle={<ViewToggle view={view} setView={setView} />}
 					/>
 
 					{isLoading && table.length === 0 ? (
@@ -570,63 +566,13 @@ function MnaPageInner() {
 							<h3>No acquisitions match</h3>
 							<p>Try clearing some filters.</p>
 						</div>
-					) : view === 'grid' ? (
-						<div className="deal-grid">
-							{table.map((d) => {
-								const cc = d.hq_country ? countryCode(d.hq_country) : '';
-								const tag = typeTag(d.acquisition_type);
-								const amt = Number(d.amount_usd ?? 0);
-								const linkable = Boolean(d.acquiree_slug);
-								return (
-									<div
-										key={d.id}
-										className={`card deal-card ${linkable ? 'linkable' : ''}`}
-										onClick={() => {
-											if (!linkable) return;
-											router.push(`/companies/${d.acquiree_slug}`);
-										}}
-									>
-										<div className="deal-card-head">
-											<Logo co={{ name: d.acquiree_name ?? '—', website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={40} />
-											<div style={{ minWidth: 0, flex: 1 }}>
-												<div className="deal-card-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-													{d.acquiree_name ?? '—'}
-													{d.acquiree_is_verified && <VerifiedBadge size={13} />}
-												</div>
-												{d.acquiree_description && (
-													<div className="deal-card-sub">{d.acquiree_description}</div>
-												)}
-											</div>
-											<div className="deal-card-amount">
-												<div className="deal-card-amount-v">
-													{Number.isFinite(amt) && amt > 0
-														? formatDealAmount(amt)
-														: <span style={{ color: 'var(--fg-muted)', fontSize: 12, fontWeight: 400 }}>undisc.</span>}
-												</div>
-												<Tag variant={tag.variant}>{tag.label}</Tag>
-											</div>
-										</div>
-										<div className="deal-card-meta">
-											<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-												{cc && <Flag cc={cc} />} {d.hq_city ?? d.hq_country ?? '—'}
-											</span>
-											<span className="deal-card-date">{formatShortDate(d.acquisition_date)}</span>
-										</div>
-										<div className="deal-card-investors">
-											<span className="deal-card-investors-label">Acquired by</span>
-											<span className="deal-card-investors-list">{d.acquirer_name ?? '—'}</span>
-										</div>
-									</div>
-								);
-							})}
-						</div>
+					
 					) : (
 						<div className="card">
 							<table className="data-table funding-table">
 								<thead>
 									<tr>
 										<SortHeader label="Company" sortKey="acquiree_name" sort={sort} setSort={setSort} />
-										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
 										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 										<SortHeader label="Acquirer" sortKey="acquirer_name" sort={sort} setSort={setSort} />
 										<SortHeader label="Announced" sortKey="acquisition_date" sort={sort} setSort={setSort} defaultDir="desc" />
@@ -671,15 +617,6 @@ function MnaPageInner() {
 															)}
 														</div>
 													</div>
-												</td>
-												<td>
-													{d.primary_sector
-														? <AudiencePill
-																sectorSlug={d.primary_sector_slug ?? d.primary_sector}
-																label={d.primary_sector}
-																size="sm"
-															/>
-														: '—'}
 												</td>
 												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -771,7 +708,7 @@ function MaQuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 	if (quarters.length === 0) return null;
 	// Use deal_count for the M&A chart (matches design: count, not value).
 	const maxAmt = Math.max(1, ...quarters.map((q) => q.deal_count));
-	const W = 900, H = 240, PAD = 36;
+	const W = 900, H = 150, PAD = 30;
 	const xFor = (i: number) => PAD + (W - PAD * 2) * (i / quarters.length) + 6;
 	const bw = (W - PAD * 2) / quarters.length - 12;
 	const BAR_PRIMARY = '#79CABD';

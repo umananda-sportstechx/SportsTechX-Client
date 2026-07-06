@@ -73,12 +73,10 @@ const STATIC_CELLS: Record<Audience, StaticCell[]> = {
 	executives: [
 		{ title: 'Organisations & Venues', desc: 'Team & Club Management, League & Event Management, Stadium & Facility Management' },
 		{ title: 'Media & Sponsors', desc: 'Media Production, Sponsorship' },
-		{ title: 'Business Tools', desc: 'Marketing, Operations, Compliance' },
 	],
 	business: [
 		{ title: 'Organisations & Venues', desc: 'Team & Club Management, League & Event Management, Stadium & Facility Management' },
 		{ title: 'Media & Sponsors', desc: 'Media Production, Sponsorship' },
-		{ title: 'Business Tools', desc: 'Marketing, Operations, Compliance' },
 	],
 };
 
