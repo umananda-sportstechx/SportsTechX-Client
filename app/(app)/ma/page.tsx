@@ -9,7 +9,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
 import {
-	Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, sectorMetaFor,
+	Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, AudienceGlyph,
 } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar,
@@ -149,7 +149,7 @@ function MnaPageInner() {
 			label: 'Acquiree sector',
 			kind: 'multi',
 			section: 'Acquiree',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -157,7 +157,7 @@ function MnaPageInner() {
 			label: 'Acquiree sub-sector',
 			kind: 'multi',
 			section: 'Acquiree',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -166,7 +166,7 @@ function MnaPageInner() {
 			kind: 'multi',
 			section: 'Acquiree',
 			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -195,7 +195,7 @@ function MnaPageInner() {
 			label: 'Acquirer sector',
 			kind: 'multi',
 			section: 'Acquirer',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -203,7 +203,7 @@ function MnaPageInner() {
 			label: 'Acquirer sub-sector',
 			kind: 'multi',
 			section: 'Acquirer',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
@@ -212,7 +212,7 @@ function MnaPageInner() {
 			kind: 'multi',
 			section: 'Acquirer',
 			gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{

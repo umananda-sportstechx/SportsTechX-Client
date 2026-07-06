@@ -36,6 +36,9 @@ export interface FacetOption {
 	count?: number;
 	/** Optional colored icon block shown before the label (e.g. sector swatch). */
 	swatch?: { color: string; icon: string };
+	/** Optional rendered icon (e.g. an audience glyph) shown before the label.
+	 *  Takes precedence over `swatch`. */
+	icon?: ReactNode;
 }
 
 export type FacetKind = 'bool' | 'multi' | 'range' | 'quarter' | 'tri' | 'amount';
@@ -217,11 +220,12 @@ export function emptyFilterState(facets: Facet[], extras: Partial<FilterState> =
 // ─── Inner controls ───────────────────────────────────────────────────────
 
 function FRMultiSelect({
-	options, value, onChange,
+	options, value, onChange, maxHeight,
 }: {
 	options: FacetOption[];
 	value: string[];
 	onChange: (v: string[]) => void;
+	maxHeight?: number;
 }) {
 	const [q, setQ] = useState('');
 	const filtered = options.filter((o) => !q || o.label.toLowerCase().includes(q.toLowerCase()));
@@ -236,10 +240,10 @@ function FRMultiSelect({
 					onChange={(e) => setQ(e.target.value)}
 				/>
 			)}
-			{/* No inner max-height/scroll — the option list flows within the single
-			    rail scroll so users aren't fighting three nested scrollbars. Long
-			    lists stay manageable via the search box above. */}
-			<div className="flt-multi-list">
+			{/* Cap the option list to `maxHeight` (default 220px) with its own scroll
+			    so a long facet (countries, investors, sub-sectors) can't blow up the
+			    rail's height — the search box above keeps long lists navigable. */}
+			<div className="flt-multi-list" style={{ maxHeight: maxHeight ?? 220, overflowY: 'auto' }}>
 				{filtered.map((o) => {
 					const on = value.includes(o.value);
 					return (
@@ -249,7 +253,9 @@ function FRMultiSelect({
 							onClick={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])}
 						>
 							<span className={`flt-check ${on ? 'on' : ''}`}>{on && <Check size={10} />}</span>
-							{o.swatch && (
+							{o.icon ? (
+								<span aria-hidden style={{ display: 'inline-flex', flexShrink: 0 }}>{o.icon}</span>
+							) : o.swatch && (
 								<span
 									aria-hidden
 									style={{
@@ -592,6 +598,7 @@ function FRGroup({
 							options={facet.options()}
 							value={(val as string[]) ?? []}
 							onChange={(v) => onChange(v)}
+							maxHeight={facet.maxHeight}
 						/>
 					)}
 					{facet.kind === 'range' && (

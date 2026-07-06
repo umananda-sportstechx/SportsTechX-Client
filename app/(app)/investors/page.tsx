@@ -7,7 +7,7 @@ import { Plus, ChevronLeft, ChevronRight, Building2, Target } from 'lucide-react
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
-import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo, sectorMetaFor } from '@/components/ui/atoms';
+import { Page, Flag, Tag, Empty, PageTitle, VerifiedBadge, Logo, AudienceGlyph } from '@/components/ui/atoms';
 import { FeatureGate } from '@/components/shell/screen-lock';
 import {
 	FilterRail, ActiveFiltersBar, ViewToggle,
@@ -141,17 +141,17 @@ function InvestorsPageInner() {
 		},
 		{
 			key: 'sector_slug', label: 'Portfolio sector', kind: 'multi', section: 'Sector',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sector_slug', label: 'Portfolio sub-sector', kind: 'multi', section: 'Sector',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sub_sector_slug', label: 'Portfolio sub-sub-sector', kind: 'multi', section: 'Sector', gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{

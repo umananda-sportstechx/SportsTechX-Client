@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, Building2, DollarSign } from 'lu
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { recordSearchSignal } from '@/lib/personalization';
-import { Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, sectorMetaFor } from '@/components/ui/atoms';
+import { Page, Logo, Flag, Stat, SectionHead, Empty, PageTitle, VerifiedBadge, AudienceGlyph } from '@/components/ui/atoms';
 import {
 	FilterRail, ActiveFiltersBar,
 	emptyFilterState, type Facet, type FilterState, type AmountValue,
@@ -144,7 +144,10 @@ function FundingPageInner() {
 
 	// Investor options for the (gated) investor picker. Pulled once, cached long
 	// — the selected ids map to the backend `investor_id` filter.
-	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.investors.list({ limit: 200 }), {
+	// Only investors that actually appear in funding deals (ranked by deal count),
+	// so every option returns results — mirrors the legacy investor_split_master
+	// dropdown. (Was /api/investors, which included investors with zero deals.)
+	const { data: investorsResp } = useSWR<{ data: InvestorRef[] }>(qk.deals.investorOptions(300), {
 		dedupingInterval: 60 * 60_000,
 	});
 	const investorList = investorsResp?.data ?? [];
@@ -162,17 +165,17 @@ function FundingPageInner() {
 		{ key: 'is_company_verified', label: 'Verified company only', kind: 'bool' },
 		{
 			key: 'sector_slug', label: 'Sector', kind: 'multi', section: 'Company',
-			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.tops.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sector_slug', label: 'Sub-sector', kind: 'multi', section: 'Company',
-			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
 			key: 'sub_sub_sector_slug', label: 'Sub-sub-sector', kind: 'multi', section: 'Company', gate: 'advanced_filters',
-			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, swatch: sectorMetaFor(s.slug, s.name) })),
+			options: () => sectorTiers.subSubs.map((s) => ({ value: s.slug, label: s.name, icon: <AudienceGlyph audience={sectorTiers.audienceOf(s.slug)} /> })),
 			maxHeight: 240,
 		},
 		{
