@@ -155,13 +155,8 @@ export function CrmSubscriptionWizard({
 	const [companyQuery, setCompanyQuery] = useState('');
 	const [includeRelated, setIncludeRelated] = useState(false);
 	const [autoSync, setAutoSync] = useState(false);
-	// Row range (1-indexed, inclusive). offset = from-1; limit = to-from+1 (max 1000).
-	const [fromRow, setFromRow] = useState('1');
-	const [toRow, setToRow] = useState('100');
-	const rFrom = Math.max(1, parseInt(fromRow, 10) || 1);
-	const rTo = Math.max(rFrom, parseInt(toRow, 10) || rFrom);
-	const rowOffset = rFrom - 1;
-	const rowLimit = Math.max(1, Math.min(1000, rTo - rFrom + 1));
+	// Hard cap on how many matching rows this subscription covers (max 1000).
+	const [rowLimit, setRowLimit] = useState(100);
 	// Filter facets: `fSearch` (name search, every dataset) + a per-entity facet
 	// map driven by ENTITY_FACETS.
 	const [fSearch, setFSearch] = useState('');
@@ -233,7 +228,7 @@ export function CrmSubscriptionWizard({
 		{ dedupingInterval: 10_000, keepPreviousData: true },
 	);
 	const matched = mode === 'list' ? companies.length : (count?.matched ?? 0);
-	const quoteRows = mode === 'list' ? Math.min(companies.length, rowLimit) : Math.min(Math.max(0, matched - rowOffset), rowLimit);
+	const quoteRows = mode === 'list' ? Math.min(companies.length, rowLimit) : Math.min(matched, rowLimit);
 	const quoteCredits = Math.ceil(quoteRows * perRow);
 
 	// ── Mapping helpers ─────────────────────────────────────────────────────────
@@ -296,7 +291,7 @@ export function CrmSubscriptionWizard({
 		if (mapped.length === 0) { toast.error('Map at least one column.'); return; }
 		setSaving(true);
 		try {
-			const obj = objectsResp?.objects.find((o) => o.slug === object);
+			const obj = [...createdObjects, ...(objectsResp?.objects ?? [])].find((o) => o.slug === object);
 			const targetRes = await apiRequest('POST', `/api/integrations/crm/${connectionId}/targets`, {
 				entity, provider_object: object, provider_target_name: obj?.label ?? object,
 			});
@@ -318,7 +313,6 @@ export function CrmSubscriptionWizard({
 				include_related: entity === 'companies' ? includeRelated : false,
 				auto_sync: mode === 'filter' ? autoSync : false,
 				row_limit: rowLimit,
-				row_offset: mode === 'filter' ? rowOffset : 0,
 				target_id: target.id,
 				mappings,
 			});
@@ -386,7 +380,7 @@ export function CrmSubscriptionWizard({
 									setCompanyQuery('');
 									setIncludeRelated(false);
 									setAutoSync(false);
-									setFromRow('1'); setToRow('100');
+									setRowLimit(100);
 									setFSearch(''); setFacets({});
 								}}>
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
@@ -507,18 +501,14 @@ export function CrmSubscriptionWizard({
 								</label>
 							)}
 
-							<Field label={mode === 'list' ? 'Row limit' : 'Rows (from / to)'}>
-								{mode === 'list' ? (
+							<Field label="Row limit">
+								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<input type="number" min={1} max={1000} className="search-input" style={{ ...selectStyle, width: 120 }}
-										value={toRow} onChange={(e) => { setFromRow('1'); setToRow(e.target.value); }} />
-								) : (
-									<div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-2)' }}>
-										<input type="number" min={1} className="search-input" style={{ ...selectStyle, width: 100 }} placeholder="1" value={fromRow} onChange={(e) => setFromRow(e.target.value)} />
-										<span>to</span>
-										<input type="number" min={1} className="search-input" style={{ ...selectStyle, width: 100 }} placeholder="100" value={toRow} onChange={(e) => setToRow(e.target.value)} />
-										<span style={{ color: 'var(--fg-muted)' }}>= {rowLimit.toLocaleString()} row{rowLimit === 1 ? '' : 's'} (max 1,000){matched ? ` of ${matched.toLocaleString()} matching` : ''}</span>
-									</div>
-								)}
+										value={rowLimit} onChange={(e) => setRowLimit(Math.max(1, Math.min(1000, parseInt(e.target.value, 10) || 1)))} />
+									<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+										Hard cap — syncs at most this many matching rows (max 1,000){mode === 'filter' && matched > rowLimit ? ` · ${matched.toLocaleString()} match — narrow the filter to cover them all` : ''}
+									</span>
+								</div>
 							</Field>
 
 							{/* Quote */}
@@ -526,8 +516,8 @@ export function CrmSubscriptionWizard({
 								{mapped.length === 0 ? (
 									<span style={{ color: 'var(--fg-muted)' }}>Map columns first to see the cost.</span>
 								) : (
-									<>{mode === 'filter' && rowOffset > 0 ? <>Syncs rows <b>{(rowOffset + 1).toLocaleString()}</b>–<b>{(rowOffset + quoteRows).toLocaleString()}</b></> : <>Syncs up to <b>{quoteRows.toLocaleString()}</b> row{quoteRows === 1 ? '' : 's'}</>} · <b>{perRow}</b> credit{perRow === 1 ? '' : 's'}/row ·{' '}
-										<b><Coins size={11} style={{ verticalAlign: '-1px' }} /> {quoteCredits.toLocaleString()}</b> per sync
+									<>Syncs up to <b>{quoteRows.toLocaleString()}</b> row{quoteRows === 1 ? '' : 's'} · <b>{perRow}</b> credit{perRow === 1 ? '' : 's'}/row ·{' '}
+										<b><Coins size={11} style={{ verticalAlign: '-1px' }} /> {quoteCredits.toLocaleString()}</b> then only changed rows after
 									</>
 								)}
 							</div>
@@ -538,10 +528,10 @@ export function CrmSubscriptionWizard({
 					{step === 3 && (
 						<div style={{ fontSize: 13 }}>
 							<ReviewLine k="Dataset" v={ENTITIES.find((e) => e.key === entity)?.label ?? entity} />
-							<ReviewLine k="Destination" v={objectsResp?.objects.find((o) => o.slug === object)?.label ?? object} />
+							<ReviewLine k="Destination" v={[...createdObjects, ...(objectsResp?.objects ?? [])].find((o) => o.slug === object)?.label ?? object} />
 							<ReviewLine k="Mapped fields" v={`${mapped.length} column${mapped.length === 1 ? '' : 's'}${matchKeySet ? ' · match key set' : ' · no match key'}`} />
 							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})${autoSync ? ' · auto-sync on' : ''}`} />
-							<ReviewLine k="Rows" v={mode === 'filter' && rowOffset > 0 ? `${rowOffset + 1}–${rowOffset + rowLimit} (${rowLimit})` : `up to ${rowLimit}`} />
+							<ReviewLine k="Row limit" v={`up to ${rowLimit}`} />
 							<ReviewLine k="Per sync" v={`~${quoteRows.toLocaleString()} rows · ${quoteCredits.toLocaleString()} credits`} />
 							<p style={{ ...hint, marginTop: 10 }}>Nothing syncs until you save. You can sync immediately or later from the subscriptions list.</p>
 						</div>
