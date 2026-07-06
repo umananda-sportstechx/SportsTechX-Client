@@ -37,19 +37,21 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 // Declarative filter facets per dataset. Values map 1:1 to the server list
 // schemas (CSV slugs, coerced numbers/booleans) — enum `select`s only use values
 // known to be valid so a bad value can't collapse the whole filter server-side.
+type RefSource = 'sectors' | 'techTags' | 'sports';
 type Facet =
 	| { k: 'text'; key: string; label: string; ph?: string }
 	| { k: 'num'; key: string; label: string; ph?: string }
 	| { k: 'bool'; key: string; label: string }
 	| { k: 'select'; key: string; label: string; opts: [string, string][] }
+	| { k: 'ref'; key: string; label: string; source: RefSource }
 	| { k: 'rangeM'; keyMin: string; keyMax: string; label: string }
 	| { k: 'rangeYear'; keyMin: string; keyMax: string; label: string };
 
 const ENTITY_FACETS: Record<string, Facet[]> = {
 	companies: [
-		{ k: 'text', key: 'sector_slug', label: 'Sector slug(s)', ph: 'e.g. tracking-analytics' },
-		{ k: 'text', key: 'tech_tag_slug', label: 'Tech tag slug(s)' },
-		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'ref', key: 'sector_slug', label: 'Sector', source: 'sectors' },
+		{ k: 'ref', key: 'tech_tag_slug', label: 'Tech tag', source: 'techTags' },
+		{ k: 'ref', key: 'sport_slug', label: 'Sport', source: 'sports' },
 		{ k: 'text', key: 'country', label: 'Country' },
 		{ k: 'select', key: 'business_model', label: 'Business model', opts: [['', 'Any'], ['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C']] },
 		{ k: 'rangeM', keyMin: 'min_funding', keyMax: 'max_funding', label: 'Total funding ($M)' },
@@ -60,14 +62,13 @@ const ENTITY_FACETS: Record<string, Facet[]> = {
 		{ k: 'bool', key: 'exclude_unfunded', label: 'Funded only' },
 	],
 	deals: [
-		{ k: 'text', key: 'sector_slug', label: 'Sector slug(s)' },
-		{ k: 'text', key: 'round_type_slug', label: 'Round type slug(s)' },
+		{ k: 'ref', key: 'sector_slug', label: 'Sector', source: 'sectors' },
 		{ k: 'num', key: 'year', label: 'Year', ph: 'e.g. 2024' },
 		{ k: 'rangeM', keyMin: 'amount_usd_min', keyMax: 'amount_usd_max', label: 'Amount ($M)' },
 		{ k: 'bool', key: 'disclosed_only', label: 'Disclosed only' },
 	],
 	investors: [
-		{ k: 'text', key: 'sector_slug', label: 'Thesis sector slug(s)' },
+		{ k: 'ref', key: 'sector_slug', label: 'Thesis sector', source: 'sectors' },
 		{ k: 'text', key: 'country', label: 'Country' },
 		{ k: 'bool', key: 'is_verified', label: 'Verified only' },
 		{ k: 'bool', key: 'actively_investing', label: 'Actively investing' },
@@ -80,12 +81,12 @@ const ENTITY_FACETS: Record<string, Facet[]> = {
 	],
 	programs: [
 		{ k: 'text', key: 'country', label: 'Country' },
-		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'ref', key: 'sport_slug', label: 'Sport', source: 'sports' },
 		{ k: 'text', key: 'category', label: 'Category' },
 	],
 	events: [
 		{ k: 'text', key: 'country', label: 'Country' },
-		{ k: 'text', key: 'sport_slug', label: 'Sport slug(s)' },
+		{ k: 'ref', key: 'sport_slug', label: 'Sport', source: 'sports' },
 		{ k: 'bool', key: 'upcoming_only', label: 'Upcoming only' },
 	],
 };
@@ -103,7 +104,7 @@ function buildFacetFilters(entity: string, facets: Record<string, unknown>): Rec
 	const year = (v: number | null) => (v != null && v >= 1800 && v <= 2200 ? Math.round(v) : null);
 	const usd = (v: number | null) => (v != null && v >= 0 ? Math.round(v) : null);
 	for (const facet of ENTITY_FACETS[entity] ?? []) {
-		if (facet.k === 'text' || facet.k === 'select') {
+		if (facet.k === 'text' || facet.k === 'select' || facet.k === 'ref') {
 			const v = String(facets[facet.key] ?? '').trim();
 			if (v) f[facet.key] = v;
 		} else if (facet.k === 'num') {
@@ -477,8 +478,8 @@ export function CrmSubscriptionWizard({
 								</div>
 							) : (
 								<div>
-									<Field label="Name search">
-										<input className="search-input" style={selectStyle} placeholder={`Filter ${entity} by name…`} value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
+									<Field label="Name contains">
+										<input className="search-input" style={selectStyle} placeholder={`Only ${entity} whose name contains…`} value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
 									</Field>
 									<FacetInputs entity={entity} facets={facets} setFacets={setFacets} />
 									<p style={hint}>Future matching {entity} auto-enter this subscription (up to the row limit).</p>
@@ -568,8 +569,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 	);
 }
 
-/** Renders the per-dataset filter facets from ENTITY_FACETS into a 2-col grid. */
+interface RefItem { id: string; name: string; slug: string }
+function useRefOptions(source: RefSource): { slug: string; name: string }[] {
+	const key = source === 'sectors' ? qk.reference.sectors() : source === 'sports' ? qk.reference.sports() : qk.reference.techTags();
+	const { data } = useSWR<{ data: RefItem[] } | RefItem[]>(key, { dedupingInterval: 10 * 60_000, revalidateOnFocus: false });
+	const rows = Array.isArray(data) ? data : data?.data ?? [];
+	return useMemo(() => rows.filter((r) => r?.slug && r?.name).map((r) => ({ slug: r.slug, name: r.name })).sort((a, b) => a.name.localeCompare(b.name)), [rows]);
+}
+
+/** Renders the per-dataset filter facets from ENTITY_FACETS into a 2-col grid.
+ *  Sector/tech-tag/sport are real dropdowns fed by the reference endpoints. */
 function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Record<string, unknown>; setFacets: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void }) {
+	// Reference lists (fetched unconditionally to satisfy hook rules; cheap + cached).
+	const sectors = useRefOptions('sectors');
+	const sports = useRefOptions('sports');
+	const techTags = useRefOptions('techTags');
+	const refFor = (s: RefSource) => (s === 'sectors' ? sectors : s === 'sports' ? sports : techTags);
+
 	const list = ENTITY_FACETS[entity] ?? [];
 	if (list.length === 0) return null;
 	const set = (key: string, v: unknown) => setFacets((prev) => ({ ...prev, [key]: v }));
@@ -589,6 +605,17 @@ function FacetInputs({ entity, facets, setFacets }: { entity: string; facets: Re
 				}
 				if (f.k === 'select') {
 					return <Field key={f.key} label={f.label}><select className="search-input" style={selectStyle} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)}>{f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>;
+				}
+				if (f.k === 'ref') {
+					const opts = refFor(f.source);
+					return (
+						<Field key={f.key} label={f.label}>
+							<select className="search-input" style={selectStyle} value={str(f.key)} onChange={(e) => set(f.key, e.target.value)}>
+								<option value="">{opts.length ? 'Any' : 'Loading…'}</option>
+								{opts.map((o) => <option key={o.slug} value={o.slug}>{o.name}</option>)}
+							</select>
+						</Field>
+					);
 				}
 				if (f.k === 'bool') {
 					return <label key={f.key} style={{ ...toggleRow, alignSelf: 'end', paddingBottom: 8 }}><input type="checkbox" checked={facets[f.key] === true} onChange={(e) => set(f.key, e.target.checked)} /> {f.label}</label>;
