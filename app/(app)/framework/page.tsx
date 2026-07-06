@@ -333,7 +333,7 @@ export default function FrameworkPage() {
 				</div>
 			)}
 
-						<div style={{ marginTop: 'var(--space-5)' }}>
+				<div style={{ marginTop: 'var(--space-5)' }}>
 					<SectionHead title="The framework explained" meta="Every sector, sub-sector and sub-sub-sector" />
 					<p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55, margin: '10px 0 16px' }}>
 						Solutions are divided into three audience-led sectors — Athlete, Fan and Sports Executive — each cascading into sub-sectors and sub-sub-sectors. Here is a detailed explanation of every level.

@@ -441,7 +441,7 @@ function FundingPageInner() {
 						placeholder="Search deals, companies, investors…"
 						total={totalRows}
 						shown={tableDeals.length}
-											/>
+						/>
 
 					{isLoading && tableDeals.length === 0 ? (
 						<Empty msg="Loading…" />
@@ -450,7 +450,6 @@ function FundingPageInner() {
 							<h3>No rounds match</h3>
 							<p>Adjust the filters in the rail to widen results.</p>
 						</div>
-					
 					) : (
 						<div className="card">
 							<table className="data-table funding-table">

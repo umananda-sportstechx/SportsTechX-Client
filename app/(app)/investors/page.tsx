@@ -281,7 +281,7 @@ function InvestorsPageInner() {
 			/>
 
 			<div className="flt-layout">
-								<FilterRail
+				<FilterRail
 					facets={railFacets}
 					state={filterState}
 					setState={(s) => { setFilterState(s); setPage(1); }}

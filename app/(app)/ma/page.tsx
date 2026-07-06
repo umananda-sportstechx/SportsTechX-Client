@@ -566,7 +566,6 @@ function MnaPageInner() {
 							<h3>No acquisitions match</h3>
 							<p>Try clearing some filters.</p>
 						</div>
-					
 					) : (
 						<div className="card">
 							<table className="data-table funding-table">
@@ -763,15 +762,6 @@ function MaQuarterlyChart({ quarters }: { quarters: QuarterlyPoint[] }) {
 			/>
 		</svg>
 	);
-}
-
-function typeTag(t: string | null | undefined): { variant: 'pos' | 'pill' | ''; label: string } {
-	switch (t) {
-		case 'acquisition': return { variant: 'pos', label: 'Strategic' };
-		case 'asset_purchase': return { variant: 'pill', label: 'Asset' };
-		case 'merger': return { variant: '', label: 'Merger' };
-		default: return { variant: '', label: 'Deal' };
-	}
 }
 
 function splitDollars(n: number): { value: string; unit: string } {

@@ -101,7 +101,7 @@ export function InvestorDrawer({
 	};
 
 	const { data: dealsResp } = useSWR<DealsResponse>(
-		investor?.id ? qk.deals.list({ investor_id: investor.id, limit: 30, sort: '-announced_date' }) : null,
+		investor?.id ? qk.deals.list({ investor_id: investor.id, limit: 100, sort: '-announced_date' }) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
 	const deals = dealsResp?.data ?? [];
