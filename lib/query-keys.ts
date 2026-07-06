@@ -55,6 +55,9 @@ export const qk = {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
     detail: (id: string) => [`/api/deals/${id}`] as const,
     investors: (id: string) => [`/api/deals/${id}/investors`] as const,
+    // Distinct investors appearing in deals, ranked by deal count — Funding
+    // investor filter dropdown (only investors you can actually filter by).
+    investorOptions: (limit = 300) => ['/api/deals/investors', { limit }] as const,
   },
   acquisitions: {
     list: (params: Record<string, unknown> = {}) => ['/api/acquisitions', params] as const,

@@ -40,11 +40,14 @@ interface Deal {
 	amount_usd?: number | string | null;
 	round_type_name?: string | null;
 	round_type?: string | null;
+	primary_sector?: string | null;
+	primary_sector_slug?: string | null;
+	hq_country?: string | null;
 }
 
 interface DealsResponse { data: Deal[] }
 
-type Tab = 'general' | 'portfolio';
+type Tab = 'general' | 'portfolio' | 'analytics';
 
 const TYPE_LABELS: Record<string, string> = {
 	venture_capital: 'VC',
@@ -98,7 +101,7 @@ export function InvestorDrawer({
 	};
 
 	const { data: dealsResp } = useSWR<DealsResponse>(
-		investor?.id ? qk.deals.list({ investor_id: investor.id, limit: 30, sort: '-announced_date' }) : null,
+		investor?.id ? qk.deals.list({ investor_id: investor.id, limit: 100, sort: '-announced_date' }) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
 	const deals = dealsResp?.data ?? [];
@@ -174,6 +177,7 @@ export function InvestorDrawer({
 						tabs={[
 							{ key: 'general', label: 'General' },
 							{ key: 'portfolio', label: 'Portfolio', count: deals.length },
+							{ key: 'analytics', label: 'Analytics' },
 						]}
 						current={tab}
 						onTab={(k) => setTab(k as Tab)}
@@ -182,6 +186,7 @@ export function InvestorDrawer({
 					<DrawerBody>
 						{tab === 'general' && <General investor={investor} />}
 						{tab === 'portfolio' && <Portfolio deals={deals} />}
+						{tab === 'analytics' && <Analytics deals={deals} />}
 					</DrawerBody>
 
 					<DrawerFoot>
@@ -273,6 +278,91 @@ function Portfolio({ deals }: { deals: Deal[] }) {
 	);
 }
 
+function Analytics({ deals }: { deals: Deal[] }) {
+	if (deals.length === 0) {
+		return <div className="co-empty">Not enough activity to chart yet.</div>;
+	}
+	const totalDeployed = deals.reduce((sum, d) => sum + (Number(d.amount_usd ?? 0) || 0), 0);
+	const companies = new Set(deals.map((d) => d.company_slug ?? d.company_name).filter(Boolean)).size;
+	const sectors = new Set(deals.map((d) => d.primary_sector).filter(Boolean));
+	const countries = new Set(deals.map((d) => d.hq_country).filter(Boolean));
+
+	const byYear = new Map<number, { count: number; amt: number }>();
+	for (const d of deals) {
+		if (!d.announced_date) continue;
+		const y = new Date(d.announced_date).getFullYear();
+		if (!Number.isFinite(y)) continue;
+		const cur = byYear.get(y) ?? { count: 0, amt: 0 };
+		cur.count += 1;
+		cur.amt += Number(d.amount_usd ?? 0) || 0;
+		byYear.set(y, cur);
+	}
+	const years = [...byYear.entries()].sort((a, b) => a[0] - b[0]);
+	const maxYear = Math.max(1, ...years.map(([, v]) => v.count));
+
+	const sectorCounts = new Map<string, number>();
+	for (const d of deals) {
+		if (d.primary_sector) sectorCounts.set(d.primary_sector, (sectorCounts.get(d.primary_sector) ?? 0) + 1);
+	}
+	const sectorRows = [...sectorCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+	const maxSector = Math.max(1, ...sectorRows.map(([, n]) => n));
+
+	const stat = (label: string, value: string) => (
+		<div style={{ flex: 1, minWidth: 0 }}>
+			<div className="co-stat-label">{label}</div>
+			<div className="co-stat-val">{value}</div>
+		</div>
+	);
+
+	return (
+		<div>
+			<p style={{ fontSize: 11, color: 'var(--fg-muted)', marginBottom: 14 }}>
+				Aggregated from tracked rounds — reflects total round size, not investor-specific allocation.
+			</p>
+			<div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+				{stat('Companies', String(companies))}
+				{stat('Capital', formatDollars(totalDeployed))}
+				{stat('Sectors', String(sectors.size))}
+				{stat('Countries', String(countries.size))}
+			</div>
+
+			{years.length > 0 && (
+				<div style={{ marginBottom: 20 }}>
+					<h4 className="co-drawer-h4">Investment timeline</h4>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+						{years.map(([y, v]) => (
+							<div key={y} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+								<span className="num" style={{ width: 38, fontSize: 11, color: 'var(--fg-muted)' }}>{y}</span>
+								<div style={{ flex: 1, height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+									<div style={{ width: `${(v.count / maxYear) * 100}%`, height: '100%', background: 'var(--accent)' }} />
+								</div>
+								<span className="num" style={{ width: 56, textAlign: 'right', fontSize: 11 }}>{v.count} deal{v.count === 1 ? '' : 's'}</span>
+								<span className="num" style={{ width: 54, textAlign: 'right', fontSize: 11, color: 'var(--fg-muted)' }}>{formatDollars(v.amt)}</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{sectorRows.length > 0 && (
+				<div>
+					<h4 className="co-drawer-h4">Top sectors</h4>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+						{sectorRows.map(([s, n]) => (
+							<div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+								<span style={{ width: 130, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</span>
+								<div style={{ flex: 1, height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+									<div style={{ width: `${(n / maxSector) * 100}%`, height: '100%', background: 'var(--accent-2)' }} />
+								</div>
+								<span className="num" style={{ width: 26, textAlign: 'right', fontSize: 11 }}>{n}</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
 function formatDollars(value: number | string | null | undefined): string {
 	if (value == null) return '—';
 	const n = typeof value === 'string' ? Number(value) : value;

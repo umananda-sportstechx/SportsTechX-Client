@@ -1,6 +1,15 @@
 import { useMemo } from 'react';
+import type { Audience } from '@/components/ui/atoms';
 
 export interface SectorRef { id: string; name: string; slug: string; parent_id?: string | null }
+
+/** Map a top-level pillar (name/slug) to its audience for sector icons. */
+function pillarAudience(s: SectorRef): Audience {
+	const k = `${s.slug} ${s.name}`.toLowerCase();
+	if (/athlet|activ|perform/.test(k)) return 'athletes';
+	if (/fan|content|media|stream/.test(k)) return 'fans';
+	return 'executives';
+}
 
 export interface SectorTiers {
 	/** Depth-0 sectors (pillars). */
@@ -11,6 +20,8 @@ export interface SectorTiers {
 	subSubs: SectorRef[];
 	/** A slug plus every descendant slug beneath it. */
 	expand: (slug: string) => string[];
+	/** The audience a sector belongs to (via its top pillar), for sector icons. */
+	audienceOf: (slug: string) => Audience | null;
 }
 
 /**
@@ -39,6 +50,14 @@ export function useSectorTiers(sectorList: SectorRef[]): SectorTiers {
 			childrenByParent.set(s.parent_id, arr);
 		});
 		const bySlug = new Map(sectorList.map((s) => [s.slug, s]));
+		const topOf = (s: SectorRef): SectorRef => {
+			let cur = s; let d = 0;
+			// `d < 6` guards against a malformed parent_id cycle (freeze), mirroring depthOf.
+			while (cur.parent_id && d < 6) { const p = byId.get(cur.parent_id); if (!p) break; cur = p; d++; }
+			return cur;
+		};
+		const audienceBySlug = new Map<string, Audience>();
+		sectorList.forEach((s) => audienceBySlug.set(s.slug, pillarAudience(topOf(s))));
 		const expand = (slug: string): string[] => {
 			const root = bySlug.get(slug);
 			if (!root) return [slug];
@@ -60,6 +79,7 @@ export function useSectorTiers(sectorList: SectorRef[]): SectorTiers {
 			// Sub-sector / Sub-sub-sector lists overlap (BUG-005/013).
 			subSubs: sectorList.filter((s) => depthOf(s) === 2),
 			expand,
+			audienceOf: (slug: string) => audienceBySlug.get(slug) ?? null,
 		};
 	}, [sectorList]);
 }
