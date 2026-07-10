@@ -19,6 +19,7 @@ import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DeveloperTabs } from '@/components/developer-tabs';
 
 interface ApiKey {
 	id: string;
@@ -125,6 +126,7 @@ export default function ApiKeysPage() {
 
 	return (
 		<div className="p-4 md:p-8 max-w-5xl mx-auto">
+			<DeveloperTabs />
 			<PageHeader
 				title="API Keys"
 				subtitle="Programmatic access to the SportsTechX Developer API"
