@@ -9,11 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Copy, Check, ExternalLink, MessageSquare, Loader2, Plug, Settings2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, MessageSquare, Loader2, Settings2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { PageHeader } from '@/components/ui/page-header';
 import { CrmSubscriptionsPanel } from '@/components/integrations/crm-subscription-wizard';
+import { BrandLogo } from '@/components/brand-logo';
 
 /**
  * CRM connections — the user-facing surface for connecting a CRM and syncing
@@ -130,7 +131,7 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 			<CardHeader>
 				<div className="flex items-start justify-between gap-3">
 					<div className="flex items-center gap-3">
-						<div className="bg-muted rounded-lg p-2"><Plug className="h-5 w-5" /></div>
+						<BrandLogo id={p.provider} label={p.label} size={40} />
 						<div>
 							<CardTitle className="text-base">{p.label}</CardTitle>
 							<CardDescription className="text-xs">
