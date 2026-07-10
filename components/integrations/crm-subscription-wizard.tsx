@@ -57,7 +57,6 @@ const ENTITY_FACETS: Record<string, Facet[]> = {
 		{ k: 'ref', key: 'tech_tag_slug', label: 'Tech tag', source: 'techTags' },
 		{ k: 'ref', key: 'sport_slug', label: 'Sport', source: 'sports' },
 		{ k: 'text', key: 'country', label: 'Country' },
-		{ k: 'text', key: 'region', label: 'Region' },
 		{ k: 'select', key: 'business_model', label: 'Business model', opts: [['', 'Any'], ['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C']] },
 		{ k: 'rangeM', keyMin: 'min_funding', keyMax: 'max_funding', label: 'Total funding ($M)' },
 		{ k: 'rangeYear', keyMin: 'founded_year_min', keyMax: 'founded_year_max', label: 'Founded year' },
