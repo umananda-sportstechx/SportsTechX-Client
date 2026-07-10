@@ -124,4 +124,8 @@ export const PROVIDER_DOCS: Record<string, ProviderDoc> = {
 	},
 };
 
-export const PROVIDER_LIST = Object.values(PROVIDER_DOCS);
+// Providers kept in the catalogue (so their entries/detail content still exist)
+// but hidden from the public docs index until they're actually live.
+const HIDDEN_FROM_DOCS = new Set(['hubspot', 'salesforce']);
+
+export const PROVIDER_LIST = Object.values(PROVIDER_DOCS).filter((p) => !HIDDEN_FROM_DOCS.has(p.slug));
