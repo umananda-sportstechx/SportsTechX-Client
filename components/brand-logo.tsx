@@ -4,7 +4,7 @@
  * one, else a branded initial tile (used for providers whose official mark isn't
  * available yet — drop a /public/logos/<id>.svg in and add the id to HAS_LOGO).
  */
-const HAS_LOGO = new Set(['google-sheets', 'salesforce', 'hubspot', 'intercom']);
+const HAS_LOGO = new Set(['attio', 'google-sheets', 'salesforce', 'hubspot', 'intercom']);
 
 const BRAND: Record<string, string> = {
 	attio: '#266DF0',
