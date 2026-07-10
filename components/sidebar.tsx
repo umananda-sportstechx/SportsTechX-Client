@@ -11,7 +11,7 @@ import { useFeatureAccess } from '@/contexts/feature-access-context';
 import {
   Home, Globe, Book, Database, Building2, DollarSign, Handshake,
   TrendingUp, Network, CalendarDays, CreditCard, Settings, Code,
-  Link2, Key, FileText, ChevronDown, ChevronRight, Menu, X, Lock,
+  Link2, Key, FileText, ChevronDown, ChevronRight, Menu, X, Lock, Webhook,
 } from 'lucide-react';
 
 // ── Navigation structure ─────────────────────────────────────────────────────
@@ -53,10 +53,11 @@ const topNav: NavItem[] = [
 const bottomNav: NavItem[] = [
   { id: 'subscriptions', label: 'Subscriptions', icon: CreditCard, path: '/subscriptions' },
   {
-    id: 'developers', label: 'Developers', icon: Code, isCategory: true, adminOnly: true,
+    id: 'developers', label: 'Developers', icon: Code, isCategory: true,
     subItems: [
       { id: 'integrations', label: 'Integrations', icon: Link2, path: '/integrations' },
       { id: 'api-keys', label: 'API Keys', icon: Key, path: '/api-keys' },
+      { id: 'webhooks', label: 'Webhooks', icon: Webhook, path: '/webhooks' },
       { id: 'api-docs', label: 'API Docs', icon: FileText, path: '/api-docs' },
     ],
   },

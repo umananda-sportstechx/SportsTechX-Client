@@ -25,6 +25,7 @@ interface ApiKey {
 	name: string;
 	description: string | null;
 	api_key_prefix: string;
+	scopes: string[];
 	status: string;
 	expires_at: string | null;
 	last_used_at: string | null;
@@ -33,6 +34,8 @@ interface ApiKey {
 	rate_limit_per_day: number;
 	created_at: string;
 }
+
+const ALL_SCOPES = ['companies:read', 'investors:read', 'deals:read'] as const;
 
 interface CreateResponse {
 	key: string;
@@ -48,6 +51,8 @@ export default function ApiKeysPage() {
 
 	const [createOpen, setCreateOpen] = useState(false);
 	const [newName, setNewName] = useState('');
+	const [newMode, setNewMode] = useState<'live' | 'test'>('live');
+	const [newScopes, setNewScopes] = useState<string[]>([...ALL_SCOPES]);
 	const [revealedKey, setRevealedKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -60,9 +65,10 @@ export default function ApiKeysPage() {
 	);
 
 	const createKey = async (name: string) => {
+		if (newScopes.length === 0) { toast.error('Select at least one scope.'); return; }
 		setCreatePending(true);
 		try {
-			const res = await apiRequest('POST', '/api/me/api-keys', { name });
+			const res = await apiRequest('POST', '/api/me/api-keys', { name, mode: newMode, scopes: newScopes });
 			const data = (await res.json()) as CreateResponse;
 			setRevealedKey(data.key);
 			setNewName('');
@@ -73,6 +79,8 @@ export default function ApiKeysPage() {
 			setCreatePending(false);
 		}
 	};
+
+	const toggleScope = (s: string) => setNewScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
 
 	const revokeKey = async (id: string) => {
 		setRevokePending(true);
@@ -99,6 +107,8 @@ export default function ApiKeysPage() {
 		setCreateOpen(false);
 		setRevealedKey(null);
 		setNewName('');
+		setNewMode('live');
+		setNewScopes([...ALL_SCOPES]);
 	};
 
 	// Tier gate
@@ -144,6 +154,7 @@ export default function ApiKeysPage() {
 								<TableRow>
 									<TableHead className="text-xs">Name</TableHead>
 									<TableHead className="text-xs">Prefix</TableHead>
+									<TableHead className="text-xs">Scopes</TableHead>
 									<TableHead className="text-xs">Status</TableHead>
 									<TableHead className="text-xs">Last used</TableHead>
 									<TableHead className="text-xs">Created</TableHead>
@@ -153,8 +164,12 @@ export default function ApiKeysPage() {
 							<TableBody>
 								{(keys ?? []).map((k) => (
 									<TableRow key={k.id}>
-										<TableCell className="font-medium">{k.name}</TableCell>
+										<TableCell className="font-medium">
+											{k.name}
+											{k.api_key_prefix.startsWith('stx_test_') && <Badge variant="secondary" className="ml-2 text-[10px]">test</Badge>}
+										</TableCell>
 										<TableCell className="font-mono text-xs text-muted-foreground">{k.api_key_prefix}…</TableCell>
+										<TableCell className="text-xs text-muted-foreground">{(k.scopes ?? []).map((s) => s.replace(':read', '')).join(', ') || '—'}</TableCell>
 										<TableCell>
 											<Badge variant={k.status === 'active' ? 'success' : 'secondary'} className="text-xs capitalize">
 												{k.status}
@@ -206,8 +221,27 @@ export default function ApiKeysPage() {
 								<Label htmlFor="key-name">Name</Label>
 								<Input id="key-name" placeholder="e.g. Production server" value={newName}
 									onChange={(e) => setNewName(e.target.value)}
-									onKeyDown={(e) => { if (e.key === 'Enter' && newName.trim()) void createKey(newName.trim()); }}
 								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Mode</Label>
+								<div className="flex gap-2">
+									{(['live', 'test'] as const).map((m) => (
+										<Button key={m} type="button" size="sm" variant={newMode === m ? 'default' : 'outline'} className="capitalize flex-1" onClick={() => setNewMode(m)}>{m}</Button>
+									))}
+								</div>
+								<p className="text-xs text-muted-foreground">Test keys are prefixed <code>stx_test_</code> and read the same data — use them in non-production.</p>
+							</div>
+							<div className="space-y-2">
+								<Label>Scopes</Label>
+								<div className="space-y-1.5">
+									{ALL_SCOPES.map((s) => (
+										<label key={s} className="flex items-center gap-2 text-sm cursor-pointer">
+											<input type="checkbox" checked={newScopes.includes(s)} onChange={() => toggleScope(s)} />
+											<code className="text-xs">{s}</code>
+										</label>
+									))}
+								</div>
 							</div>
 							<DialogFooter className="gap-2">
 								<Button variant="outline" onClick={closeCreateModal}>Cancel</Button>

@@ -245,6 +245,10 @@ export const qk = {
   apiKeys: {
     list: () => ['/api/me/api-keys'] as const,
   },
+  webhooks: {
+    list: () => ['/api/me/webhooks'] as const,
+    deliveries: (id: string) => [`/api/me/webhooks/${id}/deliveries`] as const,
+  },
   integrations: {
     intercomHash: () => ['/api/integrations/intercom/hash'] as const,
     crm: () => ['/api/integrations/crm'] as const,
