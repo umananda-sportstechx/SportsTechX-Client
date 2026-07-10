@@ -151,14 +151,14 @@ function ProviderCard({ p, onChanged }: { p: ProviderStatus; onChanged: () => vo
 				{connected && conn ? (
 					<div className="space-y-3">
 						{/* Last run status. Scheduled connection sync was retired — recurring
-						    sync now lives on subscriptions (event-driven auto-sync). */}
+						    sync now lives on exports (event-driven auto-sync). */}
 						<p className="text-xs text-muted-foreground">
-							Sync runs per <b>subscription</b> — each one sets what to sync, where it lands, and its own field mapping.
+							Sync runs per <b>export</b> — each one sets what to sync, where it lands, and its own field mapping.
 						</p>
 
-						{/* Phase 3: scoped, column-priced subscriptions — the primary flow. */}
+						{/* Scoped, column-priced exports — the primary flow. */}
 						<Button variant="secondary" size="sm" className="w-full h-8 text-xs" onClick={() => setSubsOpen(true)}>
-							<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Manage subscriptions
+							<Settings2 className="h-3.5 w-3.5 mr-1.5" /> Manage exports
 						</Button>
 
 						<button
