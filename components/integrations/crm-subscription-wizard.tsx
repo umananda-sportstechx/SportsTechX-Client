@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Loader2, Plus, Check, ChevronRight, ChevronLeft, Coins, Trash2, X } from 'lucide-react';
+import { Loader2, Plus, Check, ChevronRight, ChevronLeft, Coins, Trash2, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
@@ -28,11 +28,14 @@ const ENTITIES = [
 
 interface ProviderObject { slug: string; label: string }
 interface ProviderField { slug: string; label: string; type: string; writable: boolean }
-interface ExportColumn { key: string; label: string; credit_cost: number }
+interface ExportColumn { key: string; label: string; credit_cost: number; related?: boolean }
 interface CompanyRow { id: string; name: string }
 interface CountResp { matched: number; rows: number; credits: number; credits_per_row: number; capped: boolean }
 
 const CREATE_SENTINEL = '__create__';
+// Safety ceiling for a single export (mirrors the server EXPORT_MAX_ROWS). Credits
+// are the real limiter; this only protects memory/runtime on a runaway export.
+const EXPORT_ROW_LIMIT_MAX = 50_000;
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Declarative filter facets per dataset. Values map 1:1 to the server list
@@ -54,6 +57,7 @@ const ENTITY_FACETS: Record<string, Facet[]> = {
 		{ k: 'ref', key: 'tech_tag_slug', label: 'Tech tag', source: 'techTags' },
 		{ k: 'ref', key: 'sport_slug', label: 'Sport', source: 'sports' },
 		{ k: 'text', key: 'country', label: 'Country' },
+		{ k: 'text', key: 'region', label: 'Region' },
 		{ k: 'select', key: 'business_model', label: 'Business model', opts: [['', 'Any'], ['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C']] },
 		{ k: 'rangeM', keyMin: 'min_funding', keyMax: 'max_funding', label: 'Total funding ($M)' },
 		{ k: 'rangeYear', keyMin: 'founded_year_min', keyMax: 'founded_year_max', label: 'Founded year' },
@@ -127,13 +131,51 @@ function buildFacetFilters(entity: string, facets: Record<string, unknown>): Rec
 	return f;
 }
 
+/** Inverse of buildFacetFilters — turn a saved server filter back into the facet
+ *  UI state so an existing export can be edited. $M ranges are scaled back from raw
+ *  USD; ref/text/select/bool/year pass through. `sector_slug` (expanded CSV) is
+ *  preserved verbatim so the filter round-trips even though the hierarchical picker
+ *  can't reconstruct the originally-picked node (it shows "Any sector" but the
+ *  filter stays intact unless the user re-picks). */
+function facetsFromFilter(entity: string, filter: Record<string, unknown> | null): { search: string; facets: Record<string, unknown> } {
+	const facets: Record<string, unknown> = {};
+	if (!filter) return { search: '', facets };
+	const search = typeof filter.q === 'string' ? filter.q : '';
+	for (const facet of ENTITY_FACETS[entity] ?? []) {
+		if (facet.k === 'text' || facet.k === 'select' || facet.k === 'ref' || facet.k === 'num') {
+			if (filter[facet.key] != null) facets[facet.key] = String(filter[facet.key]);
+		} else if (facet.k === 'bool') {
+			if (filter[facet.key] === true) facets[facet.key] = true;
+		} else if (facet.k === 'rangeM') {
+			if (filter[facet.keyMin] != null) facets[facet.keyMin] = String(Number(filter[facet.keyMin]) / 1_000_000);
+			if (filter[facet.keyMax] != null) facets[facet.keyMax] = String(Number(filter[facet.keyMax]) / 1_000_000);
+		} else if (facet.k === 'rangeYear') {
+			if (filter[facet.keyMin] != null) facets[facet.keyMin] = String(filter[facet.keyMin]);
+			if (filter[facet.keyMax] != null) facets[facet.keyMax] = String(filter[facet.keyMax]);
+		}
+	}
+	return { search, facets };
+}
+
+interface WizardInitial {
+	entity: string; mode: 'list' | 'filter'; filter: Record<string, unknown> | null;
+	company_ids: string[] | null; include_related: boolean; auto_sync: boolean;
+	row_limit: number; target_id: string | null;
+}
+
 type MapRow = { include: boolean; remoteField: string; isMatch: boolean; creating: boolean; newName: string; type: string };
 
 export function CrmSubscriptionWizard({
-	connectionId, provider, onClose, onSaved,
-}: { connectionId: string; provider: string; onClose: () => void; onSaved: () => void }) {
+	connectionId, provider, onClose, onSaved, editId, initial,
+}: {
+	connectionId: string; provider: string; onClose: () => void; onSaved: () => void;
+	editId?: string | null; initial?: WizardInitial | null;
+}) {
+	const isEdit = !!editId;
+	const seed = initial ?? null;
+	const seededFacets = useMemo(() => facetsFromFilter(seed?.entity ?? 'companies', seed?.filter ?? null), [seed]);
 	const [step, setStep] = useState(0);
-	const [entity, setEntity] = useState<string>('companies');
+	const [entity, setEntity] = useState<string>(seed?.entity ?? 'companies');
 	const [object, setObject] = useState('');
 	const [saving, setSaving] = useState(false);
 	// Sheets (create a spreadsheet — drive.file can't list existing ones) and Attio
@@ -150,17 +192,18 @@ export function CrmSubscriptionWizard({
 	const [fields, setFields] = useState<ProviderField[]>([]);
 
 	// Scope state.
-	const [mode, setMode] = useState<'list' | 'filter'>('filter');
+	const [mode, setMode] = useState<'list' | 'filter'>(seed?.mode ?? 'filter');
 	const [companies, setCompanies] = useState<CompanyRow[]>([]);
 	const [companyQuery, setCompanyQuery] = useState('');
-	const [includeRelated, setIncludeRelated] = useState(false);
-	const [autoSync, setAutoSync] = useState(false);
-	// Hard cap on how many matching rows this subscription covers (max 1000).
-	const [rowLimit, setRowLimit] = useState(100);
-	// Filter facets: `fSearch` (name search, every dataset) + a per-entity facet
-	// map driven by ENTITY_FACETS.
-	const [fSearch, setFSearch] = useState('');
-	const [facets, setFacets] = useState<Record<string, unknown>>({});
+	const [includeRelated, setIncludeRelated] = useState(seed?.include_related ?? false);
+	// Auto-sync defaults ON for new filter exports (the "set up once, keep syncing"
+	// flow); preserved verbatim when editing.
+	const [autoSync, setAutoSync] = useState(seed?.auto_sync ?? true);
+	// How many matching rows this export covers (credits are the real limiter;
+	// EXPORT_ROW_LIMIT_MAX is only a memory/runtime safety ceiling).
+	const [rowLimit, setRowLimit] = useState(seed?.row_limit ?? 100);
+	// Per-entity filter facets driven by ENTITY_FACETS (name-contains was removed).
+	const [facets, setFacets] = useState<Record<string, unknown>>(seededFacets.facets);
 
 	// ── Data fetches ──────────────────────────────────────────────────────────
 	const { data: objectsResp, isLoading: objectsLoading, error: objectsErr } =
@@ -169,7 +212,11 @@ export function CrmSubscriptionWizard({
 	const { data: fieldsResp, isLoading: fieldsLoading } =
 		useSWR<{ fields: ProviderField[] }>(object ? qk.integrations.crmProviderFields(connectionId, object) : null, { revalidateOnFocus: false });
 
-	const columns = useMemo(() => columnsResp?.columns ?? [], [columnsResp]);
+	// Related (deal/M&A summary) columns are only offered when the export opts into
+	// "include related" — the flatten toggle now lives in the Map-fields step.
+	const allColumns = useMemo(() => columnsResp?.columns ?? [], [columnsResp]);
+	const columns = useMemo(() => (includeRelated ? allColumns : allColumns.filter((c) => !c.related)), [allColumns, includeRelated]);
+	const hasRelated = useMemo(() => allColumns.some((c) => c.related), [allColumns]);
 
 	// Seed the provider-field list + auto-match once fields load for an object.
 	useEffect(() => {
@@ -199,6 +246,57 @@ export function CrmSubscriptionWizard({
 		{ revalidateOnFocus: false, keepPreviousData: true },
 	);
 
+	// ── Edit-mode hydration ─────────────────────────────────────────────────────
+	// Resolve the saved target → its provider-object slug (dataset/destination are
+	// locked when editing — the backend can't change entity/mode/target).
+	const { data: targetsResp } = useSWR<{ targets: Array<{ id: string; provider_object: string }> }>(
+		isEdit ? [`/api/integrations/crm/${connectionId}/targets`] : null, { revalidateOnFocus: false },
+	);
+	useEffect(() => {
+		if (!isEdit || !seed?.target_id || object) return;
+		const t = targetsResp?.targets.find((x) => x.id === seed.target_id);
+		if (t) setObject(t.provider_object);
+	}, [isEdit, seed?.target_id, targetsResp, object]);
+
+	// Hydrate saved mappings → rows once the export's mappings + provider fields load.
+	const { data: savedMappingsResp } = useSWR<{ mappings: Array<{ stx_column: string; remote_field: string; is_match_key: boolean }> }>(
+		isEdit && editId ? [`/api/integrations/crm/${connectionId}/subscriptions/${editId}/mappings`] : null, { revalidateOnFocus: false },
+	);
+	const mappingsHydrated = useRef(false);
+	useEffect(() => {
+		if (!isEdit || mappingsHydrated.current) return;
+		const saved = savedMappingsResp?.mappings;
+		if (!saved || fields.length === 0) return;
+		// If a saved mapping is a related (deal/M&A) column, turn the flatten toggle
+		// on first so those columns are visible/mappable — old exports had
+		// include_related defaulted off even when related columns were mapped.
+		const relatedKeys = new Set(allColumns.filter((c) => c.related).map((c) => c.key));
+		if (!includeRelated && saved.some((m) => relatedKeys.has(m.stx_column))) { setIncludeRelated(true); return; }
+		if (columns.length === 0) return;
+		mappingsHydrated.current = true;
+		setRows((prev) => {
+			const next = { ...prev };
+			for (const m of saved) {
+				const field = fields.find((f) => f.slug === m.remote_field);
+				next[m.stx_column] = { include: true, remoteField: m.remote_field, isMatch: !!m.is_match_key, creating: false, newName: '', type: field?.type ?? 'text' };
+			}
+			return next;
+		});
+	}, [isEdit, savedMappingsResp, columns, fields, allColumns, includeRelated]);
+
+	// Hydrate list-mode company chips from the saved company_ids.
+	const { data: seedCompaniesResp } = useSWR<{ data: CompanyRow[] }>(
+		isEdit && seed?.mode === 'list' && seed.company_ids && seed.company_ids.length > 0
+			? qk.companies.list({ ids: seed.company_ids.join(','), limit: seed.company_ids.length }) : null,
+		{ revalidateOnFocus: false },
+	);
+	const companiesHydrated = useRef(false);
+	useEffect(() => {
+		if (!isEdit || companiesHydrated.current || !seedCompaniesResp?.data) return;
+		companiesHydrated.current = true;
+		setCompanies(seedCompaniesResp.data);
+	}, [isEdit, seedCompaniesResp]);
+
 	// ── Derived: mapped columns, per-row cost, quote ────────────────────────────
 	// A column counts as mapped only once it has a resolved remote field — a row
 	// left open in "create new field" (no field yet) doesn't count, so it can't
@@ -211,16 +309,11 @@ export function CrmSubscriptionWizard({
 	const perRow = mapped.reduce((s, c) => s + (c.credit_cost ?? 0.5), 0);
 	const matchKeySet = Object.values(rows).some((r) => r.include && r.isMatch);
 
-	// Filter payload for the count quote (companies facets).
-	const filterObj = useMemo(() => {
-		const f: Record<string, unknown> = {};
-		// `q` is read by every entity's filter builder (companies also honours it).
-		if (fSearch.trim()) f.q = fSearch.trim();
-		Object.assign(f, buildFacetFilters(entity, facets));
-		return f;
-	}, [entity, fSearch, facets]);
+	// Filter payload for the count quote (per-entity facets; empty = whole dataset).
+	const filterObj = useMemo(() => buildFacetFilters(entity, facets), [entity, facets]);
 
-	// Live quote. Filter mode → count endpoint; list mode → local (ids length).
+	// Live quote. Filter mode → count endpoint (works with an empty filter =
+	// whole dataset); list mode → local (ids length).
 	const { data: count } = useSWR<CountResp>(
 		step === 2 && mode === 'filter' && mappedKeys.length > 0
 			? qk.exports.count(entity, null, mappedKeys, filterObj)
@@ -283,7 +376,9 @@ export function CrmSubscriptionWizard({
 		: step === 1
 			? mapped.length > 0 && mapped.every((c) => rows[c.key]?.remoteField)
 			: step === 2
-				? (mode === 'list' ? companies.length > 0 : Object.keys(filterObj).length > 0) && rowLimit >= 1
+				// Scope is optional in filter mode — an empty filter exports the whole
+				// dataset (bounded by the row limit + credits). List mode still needs ≥1.
+				? (mode === 'list' ? companies.length > 0 : true) && rowLimit >= 1
 				: true;
 
 	// ── Save ────────────────────────────────────────────────────────────────────
@@ -291,12 +386,6 @@ export function CrmSubscriptionWizard({
 		if (mapped.length === 0) { toast.error('Map at least one column.'); return; }
 		setSaving(true);
 		try {
-			const obj = [...createdObjects, ...(objectsResp?.objects ?? [])].find((o) => o.slug === object);
-			const targetRes = await apiRequest('POST', `/api/integrations/crm/${connectionId}/targets`, {
-				entity, provider_object: object, provider_target_name: obj?.label ?? object,
-			});
-			const { target } = (await targetRes.json()) as { target: { id: string } };
-
 			const mappings = mapped.map((c) => ({
 				stx_entity_type: entity,
 				stx_column: c.key,
@@ -306,23 +395,43 @@ export function CrmSubscriptionWizard({
 				remote_field_type: rows[c.key]!.type,
 			}));
 
-			const subRes = await apiRequest('POST', `/api/integrations/crm/${connectionId}/subscriptions`, {
-				entity,
-				mode,
-				...(mode === 'list' ? { company_ids: companies.map((c) => c.id) } : { filter: filterObj }),
-				include_related: entity === 'companies' ? includeRelated : false,
-				auto_sync: mode === 'filter' ? autoSync : false,
-				row_limit: rowLimit,
-				target_id: target.id,
-				mappings,
-			});
-			const { subscription } = (await subRes.json()) as { subscription: { id: string } };
+			let subId: string;
+			if (isEdit && editId) {
+				// Entity / mode / destination are locked when editing — only scope,
+				// flags, row limit and mappings are patchable.
+				await apiRequest('PATCH', `/api/integrations/crm/${connectionId}/subscriptions/${editId}`, {
+					...(mode === 'list' ? { company_ids: companies.map((c) => c.id) } : { filter: filterObj }),
+					include_related: entity === 'companies' ? includeRelated : false,
+					auto_sync: mode === 'filter' ? autoSync : false,
+					row_limit: rowLimit,
+				});
+				await apiRequest('PUT', `/api/integrations/crm/${connectionId}/subscriptions/${editId}/mappings`, { mappings });
+				subId = editId;
+			} else {
+				const obj = [...createdObjects, ...(objectsResp?.objects ?? [])].find((o) => o.slug === object);
+				const targetRes = await apiRequest('POST', `/api/integrations/crm/${connectionId}/targets`, {
+					entity, provider_object: object, provider_target_name: obj?.label ?? object,
+				});
+				const { target } = (await targetRes.json()) as { target: { id: string } };
+				const subRes = await apiRequest('POST', `/api/integrations/crm/${connectionId}/subscriptions`, {
+					entity,
+					mode,
+					...(mode === 'list' ? { company_ids: companies.map((c) => c.id) } : { filter: filterObj }),
+					include_related: entity === 'companies' ? includeRelated : false,
+					auto_sync: mode === 'filter' ? autoSync : false,
+					row_limit: rowLimit,
+					target_id: target.id,
+					mappings,
+				});
+				const { subscription } = (await subRes.json()) as { subscription: { id: string } };
+				subId = subscription.id;
+			}
 
 			if (thenSync) {
-				await apiRequest('POST', `/api/integrations/crm/${connectionId}/subscriptions/${subscription.id}/sync`);
-				toast.success('Subscription saved — sync started.');
+				await apiRequest('POST', `/api/integrations/crm/${connectionId}/subscriptions/${subId}/sync`);
+				toast.success(isEdit ? 'Export updated — sync started.' : 'Export saved — sync started.');
 			} else {
-				toast.success('Subscription saved.');
+				toast.success(isEdit ? 'Export updated.' : 'Export saved.');
 			}
 			onSaved();
 		} catch (e) {
@@ -348,7 +457,7 @@ export function CrmSubscriptionWizard({
 					}}
 				>
 					<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0 }}>
-						New subscription
+						{isEdit ? 'Edit export' : 'New export'}
 					</DialogPrimitive.Title>
 
 					{/* Stepper */}
@@ -365,7 +474,7 @@ export function CrmSubscriptionWizard({
 					{step === 0 && (
 						<div>
 							<Field label="Dataset">
-								<select className="search-input" style={selectStyle} value={entity} onChange={(e) => {
+								<select className="search-input" style={selectStyle} value={entity} disabled={isEdit} onChange={(e) => {
 									// Changing the dataset invalidates the mapping AND the scope — reset
 									// everything downstream so a stale `list` set / facets / object
 									// can't leak into a different entity and save a broken subscription.
@@ -379,9 +488,9 @@ export function CrmSubscriptionWizard({
 									setCompanies([]);
 									setCompanyQuery('');
 									setIncludeRelated(false);
-									setAutoSync(false);
+									setAutoSync(true);
 									setRowLimit(100);
-									setFSearch(''); setFacets({});
+									setFacets({});
 								}}>
 									{ENTITIES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
 								</select>
@@ -390,7 +499,7 @@ export function CrmSubscriptionWizard({
 								{objectsLoading ? (
 									<Spinner text="Loading…" />
 								) : (
-									<select className="search-input" style={selectStyle} value={object} onChange={(e) => { setObject(e.target.value); setRows({}); setFields([]); }}>
+									<select className="search-input" style={selectStyle} value={object} disabled={isEdit} onChange={(e) => { setObject(e.target.value); setRows({}); setFields([]); }}>
 										<option value="">Select…</option>
 										{[...createdObjects, ...(objectsResp?.objects ?? [])].map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)}
 									</select>
@@ -422,6 +531,12 @@ export function CrmSubscriptionWizard({
 								Auto-matched by name. Adjust any field, mark one column as the <b>match key</b> to update
 								records instead of duplicating them, or create a new field in {provider}.
 							</p>
+							{entity === 'companies' && hasRelated && (
+								<label style={{ ...toggleRow, margin: '0 0 12px', flexWrap: 'wrap' }}>
+									<input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} /> Include related deals / M&A
+									<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>— adds latest-round &amp; M&amp;A summary columns to map (a one-row-per-company summary, not full history)</span>
+								</label>
+							)}
 							{fieldsLoading ? <Spinner text="Loading provider fields…" /> : (
 								<div style={{ display: 'grid', gridTemplateColumns: '18px 1fr 1.3fr 46px', gap: 8, alignItems: 'center' }}>
 									<span /><span style={colHead}>Column</span><span style={colHead}>{provider} field</span><span style={{ ...colHead, textAlign: 'center' }}>Match</span>
@@ -452,7 +567,7 @@ export function CrmSubscriptionWizard({
 							{entity === 'companies' && (
 								<div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
 									{(['filter', 'list'] as const).map((m) => (
-										<button key={m} className={`btn ${mode === m ? '' : 'ghost'}`} style={{ flex: 1, fontSize: 12 }} onClick={() => setMode(m)}>
+										<button key={m} className={`btn ${mode === m ? '' : 'ghost'}`} style={{ flex: 1, fontSize: 12, opacity: isEdit && mode !== m ? 0.5 : 1 }} disabled={isEdit} onClick={() => setMode(m)}>
 											{m === 'filter' ? 'A saved filter' : 'Specific companies'}
 										</button>
 									))}
@@ -481,19 +596,11 @@ export function CrmSubscriptionWizard({
 								</div>
 							) : (
 								<div>
-									<Field label="Name contains">
-										<input className="search-input" style={selectStyle} placeholder={`Only ${entity} whose name contains…`} value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
-									</Field>
 									<FacetInputs entity={entity} facets={facets} setFacets={setFacets} />
-									<p style={hint}>Future matching {entity} auto-enter this subscription (up to the row limit).</p>
+									<p style={hint}>Leave the filters empty to export every {entity} (bounded by the row limit and your credits). Future matching {entity} auto-enter this export.</p>
 								</div>
 							)}
 
-							{entity === 'companies' && (
-								<label style={{ ...toggleRow, marginTop: 12 }}>
-									<input type="checkbox" checked={includeRelated} onChange={(e) => setIncludeRelated(e.target.checked)} /> Flatten related deals / M&A onto each row
-								</label>
-							)}
 							{mode === 'filter' && (
 								<label style={{ ...toggleRow, marginTop: 10 }}>
 									<input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} /> Auto-sync new matches
@@ -501,14 +608,19 @@ export function CrmSubscriptionWizard({
 								</label>
 							)}
 
-							<Field label="Row limit">
+							<Field label="Rows to export">
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-									<input type="number" min={1} max={1000} className="search-input" style={{ ...selectStyle, width: 120 }}
-										value={rowLimit} onChange={(e) => setRowLimit(Math.max(1, Math.min(1000, parseInt(e.target.value, 10) || 1)))} />
-									<span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
-										Hard cap — syncs at most this many matching rows (max 1,000){mode === 'filter' && matched > rowLimit ? ` · ${matched.toLocaleString()} match — narrow the filter to cover them all` : ''}
-									</span>
+									<input type="number" min={1} max={EXPORT_ROW_LIMIT_MAX} className="search-input" style={{ ...selectStyle, width: 120 }}
+										value={rowLimit} onChange={(e) => setRowLimit(Math.max(1, Math.min(EXPORT_ROW_LIMIT_MAX, parseInt(e.target.value, 10) || 1)))} />
+									{mode === 'filter' && matched > 0 && (
+										<button type="button" className="btn ghost" style={{ fontSize: 11 }} onClick={() => setRowLimit(Math.min(matched, EXPORT_ROW_LIMIT_MAX))}>
+											Export all {matched.toLocaleString()}
+										</button>
+									)}
 								</div>
+								<span style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'block', marginTop: 4 }}>
+									Export as many rows as your credits allow (up to {EXPORT_ROW_LIMIT_MAX.toLocaleString()}).{mode === 'filter' && matched > rowLimit ? ` ${matched.toLocaleString()} match — only the first ${rowLimit.toLocaleString()} will sync.` : ''}
+								</span>
 							</Field>
 
 							{/* Quote */}
@@ -530,10 +642,10 @@ export function CrmSubscriptionWizard({
 							<ReviewLine k="Dataset" v={ENTITIES.find((e) => e.key === entity)?.label ?? entity} />
 							<ReviewLine k="Destination" v={[...createdObjects, ...(objectsResp?.objects ?? [])].find((o) => o.slug === object)?.label ?? object} />
 							<ReviewLine k="Mapped fields" v={`${mapped.length} column${mapped.length === 1 ? '' : 's'}${matchKeySet ? ' · match key set' : ' · no match key'}`} />
-							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})${autoSync ? ' · auto-sync on' : ''}`} />
+							<ReviewLine k="Scope" v={mode === 'list' ? `${companies.length} specific companies` : `${Object.keys(filterObj).length === 0 ? `All ${entity}` : `Filter (${Object.keys(filterObj).length} facet${Object.keys(filterObj).length === 1 ? '' : 's'})`}${autoSync ? ' · auto-sync on' : ''}`} />
 							<ReviewLine k="Row limit" v={`up to ${rowLimit}`} />
 							<ReviewLine k="Per sync" v={`~${quoteRows.toLocaleString()} rows · ${quoteCredits.toLocaleString()} credits`} />
-							<p style={{ ...hint, marginTop: 10 }}>Nothing syncs until you save. You can sync immediately or later from the subscriptions list.</p>
+							<p style={{ ...hint, marginTop: 10 }}>Nothing syncs until you save. You can sync immediately or later from the exports list.</p>
 						</div>
 					)}
 
@@ -688,6 +800,7 @@ interface Subscription {
 	id: string; entity: string; mode: 'list' | 'filter'; row_limit: number;
 	is_active: boolean; last_sync_at: string | null; last_sync_status: string | null;
 	last_sync_row_count: number | null; company_ids: string[] | null; target_id: string | null;
+	filter: Record<string, unknown> | null; include_related: boolean; auto_sync: boolean;
 }
 
 /** Modal that lists a connection's subscriptions and launches the wizard. */
@@ -696,6 +809,7 @@ export function CrmSubscriptionsPanel({
 }: { connectionId: string; provider: string; onClose: () => void }) {
 	const { data, isLoading, mutate } = useSWR<{ subscriptions: Subscription[] }>(qk.integrations.crmSubscriptions(connectionId), { revalidateOnFocus: false });
 	const [wizardOpen, setWizardOpen] = useState(false);
+	const [editSub, setEditSub] = useState<Subscription | null>(null);
 	const [busyId, setBusyId] = useState<string | null>(null);
 	const subs = data?.subscriptions ?? [];
 
@@ -711,7 +825,7 @@ export function CrmSubscriptionsPanel({
 		setBusyId(id);
 		try {
 			await apiRequest('DELETE', `/api/integrations/crm/${connectionId}/subscriptions/${id}`);
-			toast.success('Subscription removed.');
+			toast.success('Export removed.');
 			void mutate();
 		} catch (e) { toast.error((e as Error).message); } finally { setBusyId(null); }
 	};
@@ -730,17 +844,17 @@ export function CrmSubscriptionsPanel({
 					}}
 				>
 					<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-						<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0 }}>Subscriptions</DialogPrimitive.Title>
-						<button className="btn" style={{ fontSize: 12 }} onClick={() => setWizardOpen(true)}><Plus size={14} /> New subscription</button>
+						<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0 }}>Exports</DialogPrimitive.Title>
+						<button className="btn" style={{ fontSize: 12 }} onClick={() => { setEditSub(null); setWizardOpen(true); }}><Plus size={14} /> New export</button>
 					</div>
 					<p style={{ fontSize: 13, color: 'var(--fg-2)', margin: '8px 0 16px' }}>
-						Each subscription syncs a scoped set of rows to a {provider} object. You’re charged per synced row by the columns you map.
+						Each export syncs a scoped set of rows to a {provider} object. You’re charged per synced row by the columns you map.
 					</p>
 
 					{isLoading ? <Spinner text="Loading…" /> : subs.length === 0 ? (
 						<div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--fg-muted)' }}>
-							<p style={{ fontSize: 14, marginBottom: 10 }}>No subscriptions yet.</p>
-							<button className="btn" onClick={() => setWizardOpen(true)}><Plus size={14} /> Create your first</button>
+							<p style={{ fontSize: 14, marginBottom: 10 }}>No exports yet.</p>
+							<button className="btn" onClick={() => { setEditSub(null); setWizardOpen(true); }}><Plus size={14} /> Create your first</button>
 						</div>
 					) : (
 						<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -759,7 +873,8 @@ export function CrmSubscriptionsPanel({
 										<button className="btn ghost" style={{ fontSize: 12 }} onClick={() => void syncSub(s.id)} disabled={busyId === s.id || s.last_sync_status === 'running'}>
 											{busyId === s.id || s.last_sync_status === 'running' ? <Loader2 size={13} className="animate-spin" /> : 'Sync'}
 										</button>
-										<button className="btn ghost" style={{ padding: '0 8px', color: 'var(--neg)' }} onClick={() => void deleteSub(s.id)} disabled={busyId === s.id} title="Remove subscription"><Trash2 size={13} /></button>
+										<button className="btn ghost" style={{ fontSize: 12 }} onClick={() => { setEditSub(s); setWizardOpen(true); }} disabled={busyId === s.id} title="Edit export"><Pencil size={13} /></button>
+										<button className="btn ghost" style={{ padding: '0 8px', color: 'var(--neg)' }} onClick={() => void deleteSub(s.id)} disabled={busyId === s.id} title="Remove export"><Trash2 size={13} /></button>
 									</div>
 								</div>
 							))}
@@ -774,8 +889,14 @@ export function CrmSubscriptionsPanel({
 						<CrmSubscriptionWizard
 							connectionId={connectionId}
 							provider={provider}
-							onClose={() => setWizardOpen(false)}
-							onSaved={() => { setWizardOpen(false); void mutate(); }}
+							editId={editSub?.id ?? null}
+							initial={editSub ? {
+								entity: editSub.entity, mode: editSub.mode, filter: editSub.filter,
+								company_ids: editSub.company_ids, include_related: editSub.include_related,
+								auto_sync: editSub.auto_sync, row_limit: editSub.row_limit, target_id: editSub.target_id,
+							} : null}
+							onClose={() => { setWizardOpen(false); setEditSub(null); }}
+							onSaved={() => { setWizardOpen(false); setEditSub(null); void mutate(); }}
 						/>
 					)}
 				</DialogPrimitive.Content>
