@@ -204,6 +204,13 @@ export function CrmSubscriptionWizard({
 	const [rowLimit, setRowLimit] = useState(seed?.row_limit ?? 100);
 	// Per-entity filter facets driven by ENTITY_FACETS (name-contains was removed).
 	const [facets, setFacets] = useState<Record<string, unknown>>(seededFacets.facets);
+	// A name-search `q` from an export created by the OLD wizard is preserved
+	// silently (there's no longer a UI field for it) so editing doesn't drop it and
+	// broaden the scope. New exports have no q.
+	const [seedQ] = useState(seededFacets.search);
+	// Whether the user has touched the specific-companies list (edit mode preserves
+	// the saved company_ids on save unless they actually changed the selection).
+	const [companiesDirty, setCompaniesDirty] = useState(false);
 
 	// ── Data fetches ──────────────────────────────────────────────────────────
 	const { data: objectsResp, isLoading: objectsLoading, error: objectsErr } =
@@ -232,8 +239,11 @@ export function CrmSubscriptionWizard({
 			for (const c of columns) {
 				if (next[c.key]) continue; // don't clobber user edits
 				const m = fields.find((f) => norm(f.slug) === norm(c.key) || norm(f.label) === norm(c.label));
+				// In edit mode the saved mappings are authoritative — auto-match only
+				// pre-fills the suggested field, it must NOT auto-include a column the
+				// saved export never had (that would silently add columns + cost).
 				next[c.key] = m
-					? { include: true, remoteField: m.slug, isMatch: false, creating: false, newName: '', type: m.type }
+					? { include: !isEdit, remoteField: m.slug, isMatch: false, creating: false, newName: '', type: m.type }
 					: { include: false, remoteField: '', isMatch: false, creating: false, newName: '', type: 'text' };
 			}
 			return next;
@@ -284,10 +294,12 @@ export function CrmSubscriptionWizard({
 		});
 	}, [isEdit, savedMappingsResp, columns, fields, allColumns, includeRelated]);
 
-	// Hydrate list-mode company chips from the saved company_ids.
+	// Hydrate list-mode company chips from the saved company_ids. The list endpoint
+	// caps `limit` at 200 (and REJECTS above it), so request at most 200 for display;
+	// the full saved set is preserved on save via `companiesDirty` below.
 	const { data: seedCompaniesResp } = useSWR<{ data: CompanyRow[] }>(
 		isEdit && seed?.mode === 'list' && seed.company_ids && seed.company_ids.length > 0
-			? qk.companies.list({ ids: seed.company_ids.join(','), limit: seed.company_ids.length }) : null,
+			? qk.companies.list({ ids: seed.company_ids.slice(0, 200).join(','), limit: Math.min(seed.company_ids.length, 200) }) : null,
 		{ revalidateOnFocus: false },
 	);
 	const companiesHydrated = useRef(false);
@@ -307,10 +319,18 @@ export function CrmSubscriptionWizard({
 	);
 	const mappedKeys = mapped.map((c) => c.key);
 	const perRow = mapped.reduce((s, c) => s + (c.credit_cost ?? 0.5), 0);
-	const matchKeySet = Object.values(rows).some((r) => r.include && r.isMatch);
+	// Derive from `mapped` (columns actually saved), not raw `rows` — a match-key set
+	// on a column that isn't mapped (e.g. a related column hidden after toggling
+	// off Include-related) must NOT count, or the export would sync with no match key.
+	const matchKeySet = mapped.some((c) => rows[c.key]?.isMatch);
 
 	// Filter payload for the count quote (per-entity facets; empty = whole dataset).
-	const filterObj = useMemo(() => buildFacetFilters(entity, facets), [entity, facets]);
+	// A preserved legacy name-search `q` (edit of an old export) is folded back in.
+	const filterObj = useMemo(() => {
+		const f = buildFacetFilters(entity, facets);
+		if (seedQ.trim()) f.q = seedQ.trim();
+		return f;
+	}, [entity, facets, seedQ]);
 
 	// Live quote. Filter mode → count endpoint (works with an empty filter =
 	// whole dataset); list mode → local (ids length).
@@ -372,6 +392,7 @@ export function CrmSubscriptionWizard({
 
 	const addCompany = (c: CompanyRow) => {
 		setCompanies((cs) => (cs.some((x) => x.id === c.id) ? cs : cs.length >= rowLimit ? cs : [...cs, c]));
+		setCompaniesDirty(true);
 		setCompanyQuery('');
 	};
 
@@ -405,7 +426,11 @@ export function CrmSubscriptionWizard({
 				// Entity / mode / destination are locked when editing — only scope,
 				// flags, row limit and mappings are patchable.
 				await apiRequest('PATCH', `/api/integrations/crm/${connectionId}/subscriptions/${editId}`, {
-					...(mode === 'list' ? { company_ids: companies.map((c) => c.id) } : { filter: filterObj }),
+					// Preserve the full saved company set unless the user actually changed
+					// it (chips may only render the first 200 of a larger set).
+					...(mode === 'list'
+						? { company_ids: !companiesDirty && seed?.company_ids ? seed.company_ids : companies.map((c) => c.id) }
+						: { filter: filterObj }),
 					include_related: entity === 'companies' ? includeRelated : false,
 					auto_sync: mode === 'filter' ? autoSync : false,
 					row_limit: rowLimit,
@@ -593,7 +618,7 @@ export function CrmSubscriptionWizard({
 									<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
 										{companies.map((c) => (
 											<span key={c.id} style={chip}>{c.name}
-												<button onClick={() => setCompanies((cs) => cs.filter((x) => x.id !== c.id))} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'inherit', display: 'flex' }}><X size={12} /></button>
+												<button onClick={() => { setCompanies((cs) => cs.filter((x) => x.id !== c.id)); setCompaniesDirty(true); }} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'inherit', display: 'flex' }}><X size={12} /></button>
 											</span>
 										))}
 									</div>
