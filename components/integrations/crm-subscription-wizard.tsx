@@ -324,6 +324,11 @@ export function CrmSubscriptionWizard({
 	const quoteRows = mode === 'list' ? Math.min(companies.length, rowLimit) : Math.min(matched, rowLimit);
 	const quoteCredits = Math.ceil(quoteRows * perRow);
 
+	// Proactive credit check — export credits are the 'integration' pool.
+	const { data: creditBalance } = useSWR<{ total_available: number }>(qk.credits.balance('integration'), { revalidateOnFocus: false, dedupingInterval: 30_000 });
+	const availableCredits = creditBalance?.total_available ?? null;
+	const shortCredits = availableCredits != null && quoteCredits > availableCredits;
+
 	// ── Mapping helpers ─────────────────────────────────────────────────────────
 	const setRow = (col: string, patch: Partial<MapRow>) => {
 		setRows((s) => {
@@ -624,13 +629,20 @@ export function CrmSubscriptionWizard({
 							</Field>
 
 							{/* Quote */}
-							<div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-2)', fontSize: 13 }}>
+							<div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, border: `1px solid ${shortCredits ? 'var(--neg)' : 'var(--border)'}`, background: 'var(--bg-2)', fontSize: 13 }}>
 								{mapped.length === 0 ? (
 									<span style={{ color: 'var(--fg-muted)' }}>Map columns first to see the cost.</span>
 								) : (
 									<>Syncs up to <b>{quoteRows.toLocaleString()}</b> row{quoteRows === 1 ? '' : 's'} · <b>{perRow}</b> credit{perRow === 1 ? '' : 's'}/row ·{' '}
 										<b><Coins size={11} style={{ verticalAlign: '-1px' }} /> {quoteCredits.toLocaleString()}</b> then only changed rows after
 									</>
+								)}
+								{availableCredits != null && mapped.length > 0 && (
+									<div style={{ marginTop: 6, fontSize: 12, color: shortCredits ? 'var(--neg)' : 'var(--fg-muted)' }}>
+										{shortCredits
+											? <>Not enough credits — you have <b>{availableCredits.toLocaleString()}</b>, this needs <b>{quoteCredits.toLocaleString()}</b>. <a href="/credits" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Buy more credits</a></>
+											: <>You have <b>{availableCredits.toLocaleString()}</b> export credits available.</>}
+									</div>
 								)}
 							</div>
 						</div>
