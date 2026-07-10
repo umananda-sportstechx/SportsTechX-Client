@@ -19,6 +19,7 @@ import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DeveloperTabs } from '@/components/developer-tabs';
 
 const WEBHOOK_EVENTS = [
 	'company.created', 'company.updated',
@@ -105,6 +106,7 @@ export default function WebhooksPage() {
 
 	return (
 		<div className="p-4 md:p-8 max-w-5xl mx-auto">
+			<DeveloperTabs />
 			<PageHeader
 				title="Webhooks"
 				subtitle="Receive signed, real-time event notifications at your own endpoint"

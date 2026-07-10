@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PROVIDER_LIST } from './providers';
+import { ProviderLogo } from './provider-logo';
 
 export const metadata = {
 	title: 'Integrations — SportsTechX Docs',
@@ -12,18 +13,6 @@ const STEPS = [
 	{ n: '3', t: 'Map', d: 'Map your columns to the provider’s fields.' },
 	{ n: '4', t: 'Sync', d: 'Sync on demand or on a schedule.' },
 ];
-
-function Monogram({ letter, brand, size = 44 }: { letter: string; brand: string; size?: number }) {
-	return (
-		<span
-			aria-hidden
-			className="inline-grid place-items-center rounded-xl font-bold text-white shrink-0"
-			style={{ width: size, height: size, fontSize: size * 0.42, background: `linear-gradient(140deg, ${brand}, ${brand}cc)`, boxShadow: `0 6px 18px -8px ${brand}80` }}
-		>
-			{letter}
-		</span>
-	);
-}
 
 export default function IntegrationsDocsPage() {
 	return (
@@ -62,7 +51,7 @@ export default function IntegrationsDocsPage() {
 							href={`/docs/integrations/${p.slug}`}
 							className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 hover:border-foreground/25 hover:shadow-sm transition-all"
 						>
-							<Monogram letter={p.letter} brand={p.brand} />
+							<ProviderLogo doc={p} size={44} />
 							<div className="min-w-0">
 								<div className="flex items-center gap-2">
 									<span className="font-semibold">{p.label}</span>

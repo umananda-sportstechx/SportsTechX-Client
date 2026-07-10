@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Code, Key, BookOpen, Webhook } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { DeveloperTabs } from '@/components/developer-tabs';
 
 const SWAGGER_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? '/api/docs';
 
