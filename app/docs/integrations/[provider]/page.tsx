@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PROVIDER_DOCS } from '../providers';
+import { ProviderLogo } from '../provider-logo';
 
 export function generateStaticParams() {
 	return Object.keys(PROVIDER_DOCS).map((provider) => ({ provider }));
@@ -11,18 +12,6 @@ export async function generateMetadata({ params }: { params: Promise<{ provider:
 	const doc = PROVIDER_DOCS[provider];
 	if (!doc) return { title: 'Integration — SportsTechX' };
 	return { title: `${doc.label} integration — SportsTechX`, description: doc.tagline };
-}
-
-function Monogram({ letter, brand, size = 52 }: { letter: string; brand: string; size?: number }) {
-	return (
-		<span
-			aria-hidden
-			className="inline-grid place-items-center rounded-2xl font-bold text-white shrink-0"
-			style={{ width: size, height: size, fontSize: size * 0.42, background: `linear-gradient(140deg, ${brand}, ${brand}cc)`, boxShadow: `0 8px 22px -10px ${brand}90` }}
-		>
-			{letter}
-		</span>
-	);
 }
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -45,7 +34,7 @@ export default async function IntegrationDocPage({ params }: { params: Promise<{
 
 			{/* Header */}
 			<header className="flex items-start gap-4 mt-6 mb-10">
-				<Monogram letter={doc.letter} brand={doc.brand} />
+				<ProviderLogo doc={doc} />
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2 flex-wrap">
 						<h1 className="text-3xl font-bold tracking-tight">{doc.label}</h1>
