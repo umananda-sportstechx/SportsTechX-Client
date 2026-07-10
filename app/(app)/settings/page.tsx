@@ -671,7 +671,7 @@ function ApiTab() {
 			<div className="co-stat-label" style={{ marginBottom: 8 }}>CRM connections</div>
 			<div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
 				<div style={{ fontSize: 13, color: 'var(--fg-2)', maxWidth: 360 }}>
-					Connect a CRM (Attio, HubSpot, Salesforce, Google Sheets) to sync companies,
+					Connect Attio or Google Sheets to sync companies,
 					deal flow, investors and more. Syncs use export credits — 1 per row.
 				</div>
 				<Link href="/integrations"><button className="btn ghost">Manage connections</button></Link>

@@ -23,7 +23,7 @@ export interface ProviderDoc {
 
 export const PROVIDER_DOCS: Record<string, ProviderDoc> = {
 	attio: {
-		slug: 'attio', label: 'Attio', letter: 'A', brand: '#4a3aff', category: 'CRM sync',
+		slug: 'attio', label: 'Attio', letter: 'A', brand: '#266DF0', category: 'CRM sync',
 		tagline: 'Push companies, investors and deal flow into your Attio workspace.',
 		whatSyncs: [
 			'Companies and investors you export become Company / Person records in Attio.',
