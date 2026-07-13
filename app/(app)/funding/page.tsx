@@ -459,6 +459,7 @@ function FundingPageInner() {
 								<thead>
 									<tr>
 										<SortHeader label="Company" sortKey="company_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
 										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 										<SortHeader label="Announced" sortKey="announced_date" sort={sort} setSort={setSort} defaultDir="desc" />
 										<SortHeader label="Amount" sortKey="amount_usd" sort={sort} setSort={setSort} align="right" defaultDir="desc" />
@@ -504,6 +505,7 @@ function FundingPageInner() {
 														</div>
 													</div>
 												</td>
+												<td><span className="tbl-ellipsis">{d.primary_sector ?? '—'}</span></td>
 												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 														{cc && <Flag cc={cc} />}
