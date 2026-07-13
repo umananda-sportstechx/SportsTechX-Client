@@ -572,6 +572,7 @@ function MnaPageInner() {
 								<thead>
 									<tr>
 										<SortHeader label="Company" sortKey="acquiree_name" sort={sort} setSort={setSort} />
+										<SortHeader label="Sector" sortKey="primary_sector" sort={sort} setSort={setSort} />
 										<SortHeader label="Location" sortKey="hq_country" sort={sort} setSort={setSort} />
 										<SortHeader label="Acquirer" sortKey="acquirer_name" sort={sort} setSort={setSort} />
 										<SortHeader label="Announced" sortKey="acquisition_date" sort={sort} setSort={setSort} defaultDir="desc" />
@@ -617,6 +618,7 @@ function MnaPageInner() {
 														</div>
 													</div>
 												</td>
+												<td><span className="tbl-ellipsis">{d.primary_sector ?? '—'}</span></td>
 												<td>
 													<span className="tbl-ellipsis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
 														{cc && <Flag cc={cc} />}
