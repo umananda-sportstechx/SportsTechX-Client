@@ -26,6 +26,8 @@ export const qk = {
     current: () => ['/api/raise'] as const,
     home: () => ['/api/raise/home'] as const,
     criteria: () => ['/api/raise/criteria'] as const,
+    pipeline: (params: Record<string, unknown> = {}) => ['/api/raise/pipeline', params] as const,
+    pipelineActivity: (id: string) => [`/api/raise/pipeline/${id}/activity`] as const,
   },
   features: () => ['/api/features'] as const,
 
