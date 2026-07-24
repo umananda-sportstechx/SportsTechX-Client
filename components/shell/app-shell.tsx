@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { SidebarRail } from './sidebar-rail';
 import { Topbar } from './topbar';
@@ -8,6 +9,7 @@ import { TickerStrip } from './ticker-strip';
 import { AiPanel } from './ai-panel';
 import { PaywallGate } from '@/components/paywall/paywall-gate';
 import { CommandPalette } from './command-palette';
+import { RaiseShell } from './raise-shell';
 
 /**
  * Top-level shell that wraps every authenticated page with the SportsTechX
@@ -46,6 +48,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// stable while next-themes hydrates.
 	const themeMode: 'dark' | 'light' = resolvedTheme === 'light' ? 'light' : 'dark';
 
+	// The founder raise workspace uses its own clean shell (sidebar + content,
+	// no topbar/ticker/AI), on the Atlas palette. Cmd+K and the paywall stay.
+	const pathname = usePathname();
+	const isRaiseWorkspace = pathname === '/raise' || pathname.startsWith('/raise/');
+
 	// Cmd+K shortcut for the command palette.
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
@@ -71,6 +78,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		railVisuallyExpanded ? 'rail-expanded' : '',
 		aiOpen ? 'ai-open' : '',
 	].filter(Boolean).join(' ');
+
+	if (isRaiseWorkspace) {
+		return (
+			<>
+				<RaiseShell>{children}</RaiseShell>
+				<CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+				<PaywallGate />
+			</>
+		);
+	}
 
 	return (
 		<div className={shellClasses}>
