@@ -24,6 +24,7 @@ export const qk = {
   // ── Atlas Raise (founder workspace) ────────────────────────
   raise: {
     current: () => ['/api/raise'] as const,
+    home: () => ['/api/raise/home'] as const,
     criteria: () => ['/api/raise/criteria'] as const,
   },
   features: () => ['/api/features'] as const,
