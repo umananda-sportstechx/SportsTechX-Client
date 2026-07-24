@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 700" width="1400" height="700" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1400" height="700" fill="#FFFFFF"/>
+
+  <rect x="0" y="0" width="220" height="700" fill="#F7F6F2"/>
+  <line x1="220" y1="0" x2="220" y2="700" stroke="#E4E2DB" stroke-width="1"/>
+  <text x="28" y="48" font-size="16" font-weight="600" fill="#1F1E1C">Atlas</text>
+  <text x="40" y="106" font-size="14" fill="#6B6A64">Home</text>
+  <text x="40" y="152" font-size="14" fill="#6B6A64">Pitch deck</text>
+  <text x="40" y="198" font-size="14" fill="#6B6A64">Market</text>
+  <rect x="16" y="222" width="188" height="34" rx="8" fill="#EAF2FA"/>
+  <text x="40" y="244" font-size="14" fill="#1B4C78">Investors</text>
+  <text x="40" y="290" font-size="14" fill="#6B6A64">Pipeline</text>
+  <text x="40" y="336" font-size="14" fill="#6B6A64">Resources</text>
+
+  <text x="252" y="40" font-size="18" fill="#6B6A64">&#8592;</text>
+
+  <rect x="252" y="64" width="48" height="48" rx="10" fill="#F2F1EC"/>
+  <text x="270" y="94" font-size="16" font-weight="600" fill="#6B6A64">B</text>
+  <text x="316" y="84" font-size="20" font-weight="600" fill="#1F1E1C">Baseline Ventures</text>
+  <text x="316" y="104" font-size="13" fill="#9B9A93">Seed VC &#183; Europe</text>
+  <rect x="1258" y="68" width="110" height="36" rx="6" fill="#1F1E1C"/>
+  <text x="1274" y="91" font-size="13" fill="#FFFFFF">Add to pipeline</text>
+
+  <rect x="252" y="128" width="270" height="56" rx="8" fill="#F2F1EC"/>
+  <text x="268" y="150" font-size="11" fill="#6B6A64">Stages</text>
+  <text x="268" y="170" font-size="13" font-weight="500" fill="#1F1E1C">Pre-seed, seed</text>
+  <rect x="534" y="128" width="270" height="56" rx="8" fill="#F2F1EC"/>
+  <text x="550" y="150" font-size="11" fill="#6B6A64">Typical cheque size</text>
+  <text x="550" y="170" font-size="13" font-weight="500" fill="#9B9A93">Not confirmed</text>
+  <rect x="816" y="128" width="270" height="56" rx="8" fill="#F2F1EC"/>
+  <text x="832" y="150" font-size="11" fill="#6B6A64">Geography</text>
+  <text x="832" y="170" font-size="13" font-weight="500" fill="#1F1E1C">Europe</text>
+  <rect x="1098" y="128" width="270" height="56" rx="8" fill="#F2F1EC"/>
+  <text x="1114" y="150" font-size="11" fill="#6B6A64">Lead or follow</text>
+  <text x="1114" y="170" font-size="13" font-weight="500" fill="#1F1E1C">Usually leads</text>
+
+  <rect x="252" y="200" width="1116" height="84" rx="12" fill="#FFFFFF" stroke="#E4E2DB"/>
+  <text x="272" y="224" font-size="15" font-weight="600" fill="#1F1E1C">Overview</text>
+  <text x="272" y="246" font-size="13" fill="#6B6A64">Baseline Ventures is a European seed-stage fund investing in connected hardware and</text>
+  <text x="272" y="264" font-size="13" fill="#6B6A64">data-driven consumer products. Typically leads rounds and takes a board seat.</text>
+
+  <rect x="252" y="300" width="1116" height="84" rx="12" fill="#FFFFFF" stroke="#E4E2DB"/>
+  <text x="272" y="324" font-size="15" font-weight="600" fill="#1F1E1C">Investment thesis</text>
+  <text x="272" y="346" font-size="13" fill="#6B6A64">Backs founders building recurring-revenue products at the intersection of hardware and</text>
+  <text x="272" y="364" font-size="13" fill="#6B6A64">software, with early distribution or design partners already in place.</text>
+
+  <rect x="252" y="400" width="1116" height="68" rx="12" fill="#FFFFFF" stroke="#E4E2DB"/>
+  <text x="272" y="424" font-size="15" font-weight="600" fill="#1F1E1C">Relevant partners</text>
+  <text x="272" y="446" font-size="13" font-weight="500" fill="#1F1E1C">Elena Brandt</text>
+  <text x="272" y="462" font-size="12" fill="#9B9A93">General partner</text>
+  <text x="500" y="446" font-size="13" font-weight="500" fill="#1F1E1C">Marcus Reid</text>
+  <text x="500" y="462" font-size="12" fill="#9B9A93">Principal</text>
+
+  <rect x="252" y="484" width="1116" height="84" rx="12" fill="#FFFFFF" stroke="#E4E2DB"/>
+  <text x="272" y="508" font-size="15" font-weight="600" fill="#1F1E1C">Portfolio</text>
+  <text x="272" y="530" font-size="13" fill="#6B6A64">Includes: Whoop, Statsbomb, Trainingpeaks, Formsense, Ridewell.</text>
+  <text x="272" y="548" font-size="12" fill="#9B9A93">Relevant sports-tech investments: Whoop (wearables), Statsbomb (analytics).</text>
+
+  <rect x="252" y="584" width="1116" height="84" rx="12" fill="#FFFFFF" stroke="#E4E2DB"/>
+  <text x="272" y="608" font-size="15" font-weight="600" fill="#1F1E1C">Recent investment activity</text>
+  <text x="272" y="630" font-size="13" fill="#6B6A64">Led a EUR 6m seed round for Formsense in May 2026. No other public activity</text>
+  <text x="272" y="648" font-size="13" fill="#6B6A64">recorded in the past quarter.</text>
+</svg>
