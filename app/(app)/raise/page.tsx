@@ -98,8 +98,8 @@ export default function RaiseHomePage() {
 				<div style={{ display: 'grid', gap: 'var(--space-4)' }}>
 					<div className="card" style={{ padding: 18 }}>
 						<SideLabel>Raise snapshot</SideLabel>
-						<SnapRow icon={<FileText size={15} />} label="Pitch deck" href="/raise/pitch-deck"
-							value={data.snapshot.deck ? (data.snapshot.deck.score != null ? `${data.snapshot.deck.score}/100 · ${data.snapshot.deck.status}` : data.snapshot.deck.status) : 'Not analysed'} />
+						<SnapRow icon={<FileText size={15} />} label="Pitch deck" href="/pitch-analyzer"
+							value={data.snapshot.deck ? (data.snapshot.deck.score != null ? `${data.snapshot.deck.score}/100 · Reviewed` : 'Processing…') : 'Not analysed'} />
 						<SnapRow icon={<Users size={15} />} label="Investors in pipeline" href="/raise/pipeline" value={String(data.snapshot.pipeline_count)} />
 						<SnapRow icon={<MessageSquare size={15} />} label="Active conversations" href="/raise/pipeline" value={String(data.snapshot.active_conversations)} last />
 					</div>
