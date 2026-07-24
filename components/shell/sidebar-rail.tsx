@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
 	Home, Network, FileText, Mail, Building2, DollarSign, Shield,
 	Wallet, Zap, CalendarDays, TrendingUp, CreditCard, Settings,
-	ChevronRight, Heart, Globe, Search, Grid3x3, Code,
+	ChevronRight, Heart, Globe, Search, Grid3x3, Code, BookOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
@@ -55,10 +55,8 @@ const WORKSPACE_NAV: Record<'founder' | 'investor', NavGroup> = {
 			{ id: 'f-deck', name: 'Pitch Deck', icon: FileText, path: '/pitch-analyzer' },
 			{ id: 'f-investors', name: 'Investors', icon: Heart, path: '/raise/investors' },
 			{ id: 'f-pipeline', name: 'Pipeline', icon: Grid3x3, path: '/raise/pipeline' },
-			{ id: 'f-benchmarks', name: 'Benchmarks', icon: TrendingUp, path: '/copilot/benchmarks' },
-			{ id: 'f-market', name: 'Market', icon: Globe, path: '/copilot/market' },
-			{ id: 'f-toolkit', name: 'Raise toolkit', icon: Zap, path: '/copilot/toolkit' },
-			{ id: 'f-company', name: 'My company', icon: Building2, path: '/copilot/company' },
+			{ id: 'f-market', name: 'Market', icon: Globe, path: '/raise/market' },
+			{ id: 'f-resources', name: 'Resources', icon: BookOpen, path: '/raise/resources' },
 		],
 	},
 	investor: {
