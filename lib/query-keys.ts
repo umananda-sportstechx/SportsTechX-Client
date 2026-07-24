@@ -20,6 +20,12 @@
 export const qk = {
   // ── Identity ────────────────────────────────────────────────────────────
   profile: () => ['/api/profiles/me'] as const,
+
+  // ── Atlas Raise (founder workspace) ────────────────────────
+  raise: {
+    current: () => ['/api/raise'] as const,
+    criteria: () => ['/api/raise/criteria'] as const,
+  },
   features: () => ['/api/features'] as const,
 
   // ── Reference ──────────────────────────────────────────────────────────

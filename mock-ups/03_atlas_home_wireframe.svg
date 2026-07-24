@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 760" width="1400" height="760" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1400" height="760" fill="#FFFFFF"/>
+
+  <!-- NAV -->
+  <rect x="0" y="0" width="220" height="760" fill="#F7F6F2"/>
+  <line x1="220" y1="0" x2="220" y2="760" stroke="#E4E2DB" stroke-width="1"/>
+  <text x="28" y="48" font-size="16" font-weight="600" fill="#1F1E1C">Atlas</text>
+  <rect x="180" y="34" width="16" height="16" rx="3" fill="none" stroke="#9B9A93"/>
+  <line x1="188" y1="34" x2="188" y2="50" stroke="#9B9A93"/>
+
+  <rect x="16" y="84" width="188" height="34" rx="8" fill="#EAF2FA"/>
+  <text x="40" y="106" font-size="14" fill="#1B4C78">Home</text>
+  <text x="40" y="152" font-size="14" fill="#6B6A64">Pitch deck</text>
+  <text x="40" y="198" font-size="14" fill="#6B6A64">Market</text>
+  <text x="40" y="244" font-size="14" fill="#6B6A64">Investors</text>
+  <text x="40" y="290" font-size="14" fill="#6B6A64">Pipeline</text>
+  <text x="40" y="336" font-size="14" fill="#6B6A64">Resources</text>
+
+  <line x1="16" y1="680" x2="204" y2="680" stroke="#E4E2DB" stroke-width="1"/>
+  <text x="40" y="712" font-size="14" fill="#6B6A64">Raise settings</text>
+  <text x="40" y="748" font-size="14" fill="#6B6A64">Account</text>
+
+  <!-- HEADER -->
+  <text x="252" y="32" font-size="22" font-weight="600" fill="#1F1E1C">Good morning, Peter</text>
+
+  <rect x="252" y="44" width="100" height="26" rx="6" fill="#FAFAF8" stroke="#E4E2DB"/>
+  <text x="264" y="61" font-size="12" fill="#6B6A64">Seed round</text>
+  <rect x="360" y="44" width="120" height="26" rx="6" fill="#FAFAF8" stroke="#E4E2DB"/>
+  <text x="372" y="61" font-size="12" fill="#6B6A64">EUR 1.5m target</text>
+  <rect x="488" y="44" width="150" height="26" rx="6" fill="#FAFAF8" stroke="#E4E2DB"/>
+  <text x="500" y="61" font-size="12" fill="#6B6A64">EUR 250k committed</text>
+  <rect x="646" y="44" width="180" height="26" rx="6" fill="#FAFAF8" stroke="#E4E2DB"/>
+  <text x="658" y="61" font-size="12" fill="#6B6A64">Target close: 30 Nov</text>
+
+  <rect x="252" y="80" width="1116" height="80" rx="8" fill="#F2F1EC"/>
+  <text x="272" y="104" font-size="12" fill="#6B6A64">Capital committed</text>
+  <text x="742" y="104" font-size="12" fill="#6B6A64">EUR 250k of EUR 1m</text>
+  <rect x="272" y="112" width="600" height="8" rx="4" fill="#E4E2DB"/>
+  <rect x="272" y="112" width="150" height="8" rx="4" fill="#378ADD"/>
+  <rect x="1016" y="106" width="150" height="28" rx="6" fill="#EAF2FA"/>
+  <text x="1030" y="124" font-size="12" fill="#1B4C78">Stage: Preparing</text>
+  <rect x="1178" y="106" width="170" height="28" rx="6" fill="#EAF3DE"/>
+  <text x="1192" y="124" font-size="12" fill="#27500A">Momentum: strong</text>
+
+  <line x1="220" y1="180" x2="1400" y2="180" stroke="#E4E2DB" stroke-width="1"/>
+
+  <!-- MAIN PANEL: What needs your attention -->
+  <rect x="252" y="204" width="673" height="424" rx="12" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.5"/>
+  <text x="276" y="230" font-size="15" font-weight="600" fill="#1F1E1C">What needs your attention</text>
+  <line x1="252" y1="244" x2="925" y2="244" stroke="#E4E2DB"/>
+
+  <text x="276" y="290" font-size="14" font-weight="600" fill="#1F1E1C">Review your pitch deck analysis</text>
+  <text x="276" y="312" font-size="13" fill="#6B6A64">Your analysis is ready, including the main weaknesses</text>
+  <text x="276" y="330" font-size="13" fill="#6B6A64">investors are likely to challenge.</text>
+  <rect x="781" y="287" width="120" height="34" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="800" y="309" font-size="13" fill="#1F1E1C">View analysis</text>
+  <line x1="252" y1="364" x2="925" y2="364" stroke="#E4E2DB"/>
+
+  <text x="276" y="416" font-size="14" font-weight="600" fill="#1F1E1C">Follow up with overdue investors</text>
+  <text x="276" y="438" font-size="13" fill="#6B6A64">These investors have passed their next-step</text>
+  <text x="276" y="456" font-size="13" fill="#6B6A64">date with no update recorded.</text>
+  <rect x="276" y="466" width="90" height="22" rx="6" fill="#FCEBEB"/>
+  <text x="288" y="481" font-size="11" fill="#791F1F">5 overdue</text>
+  <rect x="761" y="413" width="140" height="34" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="781" y="435" font-size="13" fill="#1F1E1C">Review overdue</text>
+  <line x1="252" y1="496" x2="925" y2="496" stroke="#E4E2DB"/>
+
+  <text x="276" y="542" font-size="14" font-weight="600" fill="#1F1E1C">Review new investor matches</text>
+  <text x="276" y="564" font-size="13" fill="#6B6A64">Atlas found additional investors that fit your</text>
+  <text x="276" y="582" font-size="13" fill="#6B6A64">round stage and criteria.</text>
+  <rect x="761" y="539" width="140" height="34" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="781" y="561" font-size="13" fill="#1F1E1C">Review matches</text>
+
+  <!-- ASIDE: Raise snapshot -->
+  <rect x="957" y="204" width="411" height="180" rx="12" fill="#F1EFE8" stroke="#E4E2DB"/>
+  <text x="977" y="230" font-size="15" font-weight="600" fill="#1F1E1C">Raise snapshot</text>
+  <line x1="957" y1="244" x2="1368" y2="244" stroke="#DAD8D0"/>
+  <text x="977" y="272" font-size="13" fill="#6B6A64">Pitch deck</text>
+  <text x="1250" y="272" font-size="13" fill="#1F1E1C">67/100 - Developing</text>
+  <line x1="957" y1="284" x2="1368" y2="284" stroke="#DAD8D0"/>
+  <text x="977" y="312" font-size="13" fill="#6B6A64">Investors in pipeline</text>
+  <text x="1310" y="312" font-size="13" fill="#1F1E1C">24</text>
+  <line x1="957" y1="324" x2="1368" y2="324" stroke="#DAD8D0"/>
+  <text x="977" y="352" font-size="13" fill="#6B6A64">Active conversations</text>
+  <text x="1310" y="352" font-size="13" fill="#1F1E1C">4</text>
+
+  <!-- ASIDE: Strategy session -->
+  <rect x="957" y="408" width="411" height="230" rx="12" fill="#F1EFE8" stroke="#E4E2DB"/>
+  <text x="977" y="442" font-size="14" font-weight="600" fill="#1F1E1C">Your strategy session is available</text>
+  <text x="977" y="466" font-size="13" fill="#6B6A64">Use your quarterly session to pressure-test the raise</text>
+  <text x="977" y="486" font-size="13" fill="#6B6A64">and plan what to do next.</text>
+  <rect x="977" y="508" width="371" height="34" rx="6" fill="#1F1E1C"/>
+  <text x="1120" y="530" font-size="13" fill="#FFFFFF">Book your call</text>
+
+  <text x="977" y="580" font-size="11" fill="#9B9A93">Locked</text>
+  <text x="1030" y="580" font-size="11" fill="#9B9A93">/</text>
+  <rect x="1042" y="568" width="74" height="20" rx="6" fill="#EAF2FA"/>
+  <text x="1050" y="582" font-size="11" font-weight="600" fill="#1B4C78">Unlocked</text>
+  <text x="1122" y="580" font-size="11" fill="#9B9A93">/</text>
+  <text x="1134" y="580" font-size="11" fill="#9B9A93">Booked</text>
+  <text x="1186" y="580" font-size="11" fill="#9B9A93">/</text>
+  <text x="1198" y="580" font-size="11" fill="#9B9A93">Completed</text>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 460" width="1400" height="460" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1400" height="460" fill="#FFFFFF"/>
+
+  <rect x="0" y="0" width="220" height="460" fill="#F7F6F2"/>
+  <line x1="220" y1="0" x2="220" y2="460" stroke="#E4E2DB" stroke-width="1"/>
+  <text x="28" y="48" font-size="16" font-weight="600" fill="#1F1E1C">Atlas</text>
+  <text x="40" y="106" font-size="14" fill="#6B6A64">Home</text>
+  <text x="40" y="152" font-size="14" fill="#6B6A64">Pitch deck</text>
+  <text x="40" y="198" font-size="14" fill="#6B6A64">Market</text>
+  <text x="40" y="244" font-size="14" fill="#6B6A64">Investors</text>
+  <rect x="16" y="268" width="188" height="34" rx="8" fill="#EAF2FA"/>
+  <text x="40" y="290" font-size="14" fill="#1B4C78">Pipeline</text>
+  <text x="40" y="336" font-size="14" fill="#6B6A64">Resources</text>
+
+  <text x="252" y="40" font-size="22" font-weight="600" fill="#1F1E1C">Pipeline</text>
+  <rect x="1264" y="24" width="104" height="34" rx="6" fill="#1F1E1C"/>
+  <text x="1280" y="46" font-size="12" fill="#FFFFFF">Add investor</text>
+
+  <rect x="252" y="66" width="220" height="34" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="266" y="87" font-size="12" fill="#9B9A93">Search investors</text>
+  <rect x="484" y="68" width="60" height="30" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="496" y="87" font-size="11" fill="#1F1E1C">Stage</text>
+  <rect x="556" y="68" width="140" height="30" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="568" y="87" font-size="11" fill="#1F1E1C">Overdue next step</text>
+  <rect x="708" y="68" width="106" height="30" rx="6" fill="none" stroke="#B4B2A9"/>
+  <text x="720" y="87" font-size="11" fill="#1F1E1C">Investor type</text>
+  <text x="826" y="87" font-size="11" fill="#9B9A93">Show archived</text>
+
+  <text x="252" y="122" font-size="12" fill="#9B9A93">24 investors in pipeline</text>
+
+  <!-- Column 1: Target -->
+  <text x="252" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Target (8)</text>
+  <rect x="252" y="160" width="150" height="60" rx="8" fill="#F7F6F2"/>
+  <text x="262" y="176" font-size="11" font-weight="600" fill="#1F1E1C">Meridian Angels</text>
+  <text x="262" y="190" font-size="10" fill="#9B9A93">No contact yet</text>
+  <text x="262" y="204" font-size="10" fill="#6B6A64">Next: Send intro request</text>
+  <rect x="252" y="226" width="150" height="46" rx="8" fill="#F7F6F2"/>
+  <text x="262" y="242" font-size="11" font-weight="600" fill="#1F1E1C">Kinetic Partners</text>
+  <text x="262" y="256" font-size="10" fill="#9B9A93">No contact yet</text>
+
+  <!-- Column 2: Contacted -->
+  <text x="416" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Contacted (6)</text>
+  <rect x="416" y="160" width="150" height="60" rx="8" fill="#F7F6F2"/>
+  <text x="426" y="176" font-size="11" font-weight="600" fill="#1F1E1C">Forma Capital</text>
+  <text x="426" y="190" font-size="10" fill="#9B9A93">Contact: Alex Ng</text>
+  <text x="426" y="204" font-size="10" fill="#6B6A64">Next: Follow up - Jul 24</text>
+
+  <!-- Column 3: In conversation -->
+  <text x="580" y="150" font-size="12" font-weight="600" fill="#1F1E1C">In conversation (4)</text>
+  <rect x="580" y="160" width="150" height="74" rx="8" fill="#F7F6F2"/>
+  <text x="590" y="176" font-size="11" font-weight="600" fill="#1F1E1C">Northgate Capital</text>
+  <text x="590" y="190" font-size="10" fill="#9B9A93">Contact: Priya Shah</text>
+  <text x="590" y="204" font-size="10" fill="#6B6A64">Last activity: 2 days ago</text>
+  <text x="590" y="218" font-size="10" fill="#A32D2D">Next: Send deck - overdue</text>
+
+  <!-- Column 4: Due diligence -->
+  <text x="744" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Due diligence (1)</text>
+  <rect x="744" y="160" width="150" height="60" rx="8" fill="#F7F6F2"/>
+  <text x="754" y="176" font-size="11" font-weight="600" fill="#1F1E1C">Ardent Sports Fund</text>
+  <text x="754" y="190" font-size="10" fill="#9B9A93">Contact: Lena Voss</text>
+  <text x="754" y="204" font-size="10" fill="#6B6A64">Next: Share data room - Jul 26</text>
+
+  <!-- Column 5: Term sheet -->
+  <text x="908" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Term sheet (1)</text>
+  <rect x="908" y="160" width="150" height="60" rx="8" fill="#F7F6F2"/>
+  <text x="918" y="176" font-size="11" font-weight="600" fill="#1F1E1C">Baseline Ventures</text>
+  <text x="918" y="190" font-size="10" fill="#9B9A93">EUR 400k potential</text>
+  <text x="918" y="204" font-size="10" fill="#6B6A64">Next: Review terms - Jul 25</text>
+
+  <!-- Column 6: Committed -->
+  <text x="1072" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Committed (0)</text>
+  <rect x="1072" y="160" width="150" height="46" rx="8" fill="none" stroke="#E4E2DB" stroke-dasharray="4 4"/>
+  <text x="1147" y="187" font-size="10" fill="#9B9A93" text-anchor="middle">No investors yet</text>
+
+  <!-- Column 7: Closed -->
+  <text x="1236" y="150" font-size="12" font-weight="600" fill="#1F1E1C">Closed (0)</text>
+  <rect x="1236" y="160" width="132" height="46" rx="8" fill="none" stroke="#E4E2DB" stroke-dasharray="4 4"/>
+  <text x="1302" y="187" font-size="10" fill="#9B9A93" text-anchor="middle">No investors yet</text>
+
+  <!-- Column 8: Passed (below, second row to fit) -->
+  <text x="252" y="298" font-size="12" font-weight="600" fill="#1F1E1C">Passed (4)</text>
+  <rect x="252" y="308" width="150" height="46" rx="8" fill="#F7F6F2" opacity="0.7"/>
+  <text x="262" y="324" font-size="11" font-weight="600" fill="#1F1E1C">Vantage Fund</text>
+  <text x="262" y="338" font-size="10" fill="#9B9A93">Passed on 12 Jul</text>
+</svg>
