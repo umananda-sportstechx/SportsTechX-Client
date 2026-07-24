@@ -26,6 +26,8 @@ export interface Profile {
   user_type_detail: string | null;
   // `account_type` is the self-declared persona set at onboarding.
   account_type: AccountType | null;
+  // Set once the user has seen the post-login plan paywall.
+  paywall_shown_at?: string | null;
   avatar_url: string | null;
   company_name: string | null;
   job_title: string | null;

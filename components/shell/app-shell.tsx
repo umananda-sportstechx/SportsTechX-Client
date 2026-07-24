@@ -6,6 +6,7 @@ import { SidebarRail } from './sidebar-rail';
 import { Topbar } from './topbar';
 import { TickerStrip } from './ticker-strip';
 import { AiPanel } from './ai-panel';
+import { PaywallGate } from '@/components/paywall/paywall-gate';
 import { CommandPalette } from './command-palette';
 
 /**
@@ -93,6 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			<AiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
 			<CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+			<PaywallGate />
 
 			{/* Ticker toggle (hidden by default — wired up in tweaks panel later). */}
 			<TickerToggleEffect onChange={setShowTicker} />

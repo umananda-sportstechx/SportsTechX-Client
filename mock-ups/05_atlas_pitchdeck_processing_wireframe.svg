@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 460" width="1400" height="460" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1400" height="460" fill="#FFFFFF"/>
+
+  <rect x="0" y="0" width="220" height="460" fill="#F7F6F2"/>
+  <line x1="220" y1="0" x2="220" y2="460" stroke="#E4E2DB" stroke-width="1"/>
+  <text x="28" y="48" font-size="16" font-weight="600" fill="#1F1E1C">Atlas</text>
+  <rect x="180" y="34" width="16" height="16" rx="3" fill="none" stroke="#9B9A93"/>
+  <line x1="188" y1="34" x2="188" y2="50" stroke="#9B9A93"/>
+  <rect x="16" y="130" width="188" height="34" rx="8" fill="#EAF2FA"/>
+  <text x="40" y="106" font-size="14" fill="#6B6A64">Home</text>
+  <text x="40" y="152" font-size="14" fill="#1B4C78">Pitch deck</text>
+  <text x="40" y="198" font-size="14" fill="#6B6A64">Market</text>
+  <text x="40" y="244" font-size="14" fill="#6B6A64">Investors</text>
+  <text x="40" y="290" font-size="14" fill="#6B6A64">Pipeline</text>
+  <text x="40" y="336" font-size="14" fill="#6B6A64">Resources</text>
+
+  <text x="252" y="56" font-size="20" font-weight="600" fill="#1F1E1C">Pitch deck</text>
+  <text x="252" y="80" font-size="14" fill="#6B6A64">Analyse and improve your fundraising deck.</text>
+
+  <rect x="252" y="104" width="1116" height="300" rx="12" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.5"/>
+
+  <circle cx="810" cy="146" r="14" fill="none" stroke="#9B9A93" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="810" y="182" font-size="16" font-weight="600" fill="#1F1E1C" text-anchor="middle">Analysing Zenniz - Seed deck.pdf</text>
+  <text x="810" y="204" font-size="13" fill="#6B6A64" text-anchor="middle">This usually takes about a minute. Feel free to keep working elsewhere -</text>
+  <text x="810" y="222" font-size="13" fill="#6B6A64" text-anchor="middle">we'll let you know the moment it's ready.</text>
+
+  <circle cx="690" cy="256" r="9" fill="#3B6D11"/>
+  <polyline points="686,256 689,260 696,251" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+  <text x="708" y="260" font-size="14" fill="#6B6A64">Deck uploaded</text>
+
+  <circle cx="690" cy="288" r="9" fill="#3B6D11"/>
+  <polyline points="686,288 689,292 696,283" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+  <text x="708" y="292" font-size="14" fill="#6B6A64">Extracting content</text>
+
+  <circle cx="690" cy="320" r="9" fill="none" stroke="#378ADD" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="708" y="324" font-size="14" font-weight="600" fill="#1F1E1C">Scoring against investor criteria</text>
+
+  <circle cx="690" cy="352" r="9" fill="none" stroke="#B4B2A9" stroke-width="1.5"/>
+  <line x1="690" y1="346" x2="690" y2="352" stroke="#B4B2A9" stroke-width="1.5"/>
+  <line x1="690" y1="352" x2="694" y2="355" stroke="#B4B2A9" stroke-width="1.5"/>
+  <text x="708" y="356" font-size="14" fill="#9B9A93">Generating recommendations</text>
+</svg>
