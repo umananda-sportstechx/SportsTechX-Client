@@ -1,0 +1,439 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { Download, Loader2, Coins, Eye } from 'lucide-react';
+import { toast } from 'sonner';
+import { qk } from '@/lib/query-keys';
+import { getAuthHeaders, apiRequest } from '@/lib/query-client';
+import { openCreditExhausted } from '@/lib/credit-events';
+import { useCreditBalance } from '@/hooks/use-credit-balance';
+
+/**
+ * Metered export button + modal. One per catalog page.
+ *
+ * Lets the user pick a format (CSV/XLSX) and a subset of the admin-enabled
+ * columns, then downloads the file. Each exported row costs 1 export credit
+ * (the integration-credit pool, surfaced to users as "export credits"). A 402
+ * pops the global out-of-credits modal.
+ *
+ * `search` mirrors the page's active name search so the export matches roughly
+ * what the user is looking at. `filters` (companies) carries the page's active
+ * facets so "export what I'm filtering" returns exactly the list view. (Row cap
+ * server-side keeps a single export bounded.)
+ */
+
+type ExportFormat = 'csv' | 'xlsx';
+interface ColumnsResp { entity: string; label: string; columns: { key: string; label: string; credit_cost: number }[] }
+interface CountResp { entity: string; matched: number; rows: number; credits: number; credits_per_row: number; capped: boolean }
+interface PreviewResp { columns: { key: string; label: string }[]; rows: Array<Record<string, string> & { __id: string }> }
+
+// Keys that the modal owns itself (search) or that are pagination/sort noise —
+// stripped from the page filter payload so the export WHERE is purely facets.
+const NON_FACET_KEYS = new Set(['search', 'q', 'page', 'limit', 'sort', 'ids']);
+
+export function ExportButton({ entity, search, filters }: { entity: string; search?: string | null; filters?: Record<string, unknown> | null }) {
+	const [open, setOpen] = useState(false);
+	return (
+		<>
+			<button className="btn ghost" onClick={() => setOpen(true)} title="Export to CSV / Excel">
+				<Download size={12} /> Export
+			</button>
+			{open && <ExportModal entity={entity} search={search} filters={filters} onClose={() => setOpen(false)} />}
+		</>
+	);
+}
+
+function ExportModal({ entity, search, filters, onClose }: { entity: string; search?: string | null; filters?: Record<string, unknown> | null; onClose: () => void }) {
+	const { data, isLoading } = useSWR<ColumnsResp>(qk.exports.columns(entity), { dedupingInterval: 60_000 });
+	const { balance } = useCreditBalance('integration');
+	const [format, setFormat] = useState<ExportFormat>('xlsx');
+	const [selected, setSelected] = useState<Set<string> | null>(null);
+	const [busy, setBusy] = useState(false);
+	const [previewOpen, setPreviewOpen] = useState(false);
+	const [preview, setPreview] = useState<PreviewResp | null>(null);
+	const [previewLoading, setPreviewLoading] = useState(false);
+	// Selective export: explicit row ids the user ticked. Empty = export all matching.
+	const [rowSel, setRowSel] = useState<Set<string>>(new Set());
+	// In-modal search — seeded from the page's active search, editable here.
+	const [q, setQ] = useState(search ?? '');
+	const qTrim = q.trim() || null;
+	// The page's active facet filters, minus search/pagination — stable across
+	// renders (keyed on contents) so the count SWR doesn't thrash. Empty → the
+	// export just honours the in-modal search (unchanged behaviour).
+	const filtersSig = JSON.stringify(filters ?? {});
+	const cleanFilters = useMemo(() => {
+		const src = (filters ?? {}) as Record<string, unknown>;
+		const out: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(src)) {
+			if (NON_FACET_KEYS.has(k)) continue;
+			if (v === undefined || v === null || v === '') continue;
+			out[k] = v;
+		}
+		return out;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filtersSig]);
+	const hasFilters = Object.keys(cleanFilters).length > 0;
+	// Row range (1-indexed, inclusive). Empty = all matching rows.
+	const [fromRow, setFromRow] = useState('');
+	const [toRow, setToRow] = useState('');
+
+	// Default: everything selected once columns load.
+	const cols = data?.columns ?? [];
+	const sel = selected ?? new Set(cols.map((c) => c.key));
+	const allOn = cols.length > 0 && cols.every((c) => sel.has(c.key));
+	const selectedKeys = cols.filter((c) => sel.has(c.key)).map((c) => c.key);
+	// Stable signature of the current selection (admin order) for the preview effect.
+	const selectedKeysSig = selectedKeys.join(',');
+
+	// Cost preview reflects the ACTUAL selected columns (× per-column credit cost).
+	const { data: count, isLoading: countLoading } = useSWR<CountResp>(
+		selectedKeys.length ? qk.exports.count(entity, qTrim, selectedKeys, cleanFilters) : null,
+		{ dedupingInterval: 15_000, keepPreviousData: true },
+	);
+	// Per-row cost from the server (authoritative); fall back to summing locally.
+	const perRowCost = count?.credits_per_row ?? cols.filter((c) => sel.has(c.key)).reduce((s, c) => s + c.credit_cost, 0);
+
+	// When the preview is open, (re)load it as the column selection changes so it
+	// always reflects exactly what will download. No credits are charged.
+	useEffect(() => {
+		if (!previewOpen) return;
+		let cancelled = false;
+		setPreviewLoading(true);
+		// Debounce: toggling several columns quickly shouldn't fire a request per click.
+		const timer = setTimeout(() => {
+			(async () => {
+				try {
+					const res = await apiRequest('POST', `/api/exports/${entity}/preview`, {
+						columns: selectedKeysSig ? selectedKeysSig.split(',') : [],
+						search: qTrim,
+						...(hasFilters ? { filters: cleanFilters } : {}),
+					});
+					const body = (await res.json()) as PreviewResp;
+					if (!cancelled) setPreview(body);
+				} catch {
+					if (!cancelled) setPreview(null);
+				} finally {
+					if (!cancelled) setPreviewLoading(false);
+				}
+			})();
+		}, 300);
+		return () => { cancelled = true; clearTimeout(timer); };
+	}, [previewOpen, selectedKeysSig, entity, qTrim, filtersSig, hasFilters, cleanFilters]);
+
+	const toggle = (key: string) => {
+		const next = new Set(sel);
+		next.has(key) ? next.delete(key) : next.add(key);
+		setSelected(next);
+	};
+	const toggleAll = () => setSelected(allOn ? new Set() : new Set(cols.map((c) => c.key)));
+
+	const available = balance?.total_available ?? 0;
+	const matched = count?.matched ?? 0;
+	// Cost = ceil(rows × per-row column cost). Precedence: ticked rows > range > all.
+	const selectingRows = rowSel.size > 0;
+	const rangeActive = !selectingRows && (fromRow.trim() !== '' || toRow.trim() !== '');
+	const rFrom = Math.max(1, parseInt(fromRow, 10) || 1);
+	const rTo = Math.min(matched || 0, parseInt(toRow, 10) || matched || 0);
+	// Bound the range by `count.rows` (the server-side per-run cap = min(matched,
+	// plan cap)) so the quoted rows/credits match what the export actually delivers.
+	const rangeRows = rangeActive ? Math.min(count?.rows ?? Infinity, Math.max(0, Math.min(50_000, rTo - rFrom + 1))) : 0;
+	const effRows = selectingRows ? rowSel.size : (rangeActive ? rangeRows : (count?.rows ?? 0));
+	const cost = Math.ceil(effRows * perRowCost);
+	const insufficient = cost > available;
+	const toggleRow = (id: string) => setRowSel((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+	const allRowsOn = (preview?.rows.length ?? 0) > 0 && (preview?.rows ?? []).every((r) => rowSel.has(r.__id));
+	const toggleAllRows = () => {
+		const ids = (preview?.rows ?? []).map((r) => r.__id);
+		setRowSel((prev) => {
+			const n = new Set(prev);
+			if (ids.every((id) => n.has(id))) ids.forEach((id) => n.delete(id));
+			else ids.forEach((id) => n.add(id));
+			return n;
+		});
+	};
+
+	const exportNow = async () => {
+		const columns = cols.filter((c) => sel.has(c.key)).map((c) => c.key);
+		if (columns.length === 0) { toast.error('Pick at least one column'); return; }
+		setBusy(true);
+		try {
+			const headers = await getAuthHeaders();
+			const res = await fetch(`/api/exports/${entity}`, {
+				method: 'POST',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					format, columns,
+					// Precedence: ticked rows > row range > all matching the search+filters.
+					...(selectingRows
+						? { ids: [...rowSel] }
+						: {
+							search: qTrim,
+							...(hasFilters ? { filters: cleanFilters } : {}),
+							...(rangeActive ? { offset: rFrom - 1, range_limit: rangeRows } : {}),
+						}),
+				}),
+			});
+
+			if (res.status === 402) {
+				let detail: { required?: number; available?: number } = {};
+				try {
+					const body = await res.json() as { error?: { details?: { required?: number; available?: number } } };
+					if (body.error?.details) detail = body.error.details;
+				} catch { /* ignore */ }
+				openCreditExhausted({ ...detail, creditType: 'integration' });
+				onClose();
+				return;
+			}
+			if (!res.ok) {
+				let msg = 'Export failed. Please try again.';
+				try { const b = await res.json() as { message?: string; error?: { message?: string } }; msg = b.error?.message ?? b.message ?? msg; } catch { /* ignore */ }
+				toast.error(msg);
+				return;
+			}
+
+			const rows = res.headers.get('X-Export-Rows') ?? '0';
+			const credits = res.headers.get('X-Export-Credits') ?? '0';
+			const blob = await res.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${entity}-export.${format}`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(url);
+
+			if (rows === '0') toast.info('No rows matched — nothing exported, no credits charged.');
+			else toast.success(`Exported ${Number(rows).toLocaleString()} rows · ${Number(credits).toLocaleString()} export credits used`);
+			onClose();
+		} catch (e) {
+			toast.error((e as Error).message || 'Export failed.');
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const selectedCount = cols.filter((c) => sel.has(c.key)).length;
+
+	return (
+		<DialogPrimitive.Root open onOpenChange={(o) => { if (!o) onClose(); }}>
+			<DialogPrimitive.Portal>
+				<DialogPrimitive.Overlay style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', zIndex: 200 }} />
+				<DialogPrimitive.Content
+					aria-describedby={undefined}
+					style={{
+						position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+						width: 'min(96vw, 860px)', maxHeight: '88vh', overflow: 'auto',
+						background: 'var(--surface, var(--bg-2))', border: '1px solid var(--border-strong)',
+						borderRadius: 6, padding: 'var(--space-5)', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', zIndex: 201,
+					}}
+				>
+					<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0 }}>
+						Export {data?.label ?? entity}
+					</DialogPrimitive.Title>
+					<p style={{ fontSize: 13, color: 'var(--fg-2)', margin: '8px 0 0' }}>
+						Pick columns and a format — you pay <b>{perRowCost} credit{perRowCost === 1 ? '' : 's'}/row</b> for this selection.{' '}
+						<span style={{ color: 'var(--fg-muted)' }}>
+							You have <Coins size={11} style={{ verticalAlign: '-1px' }} /> {available.toLocaleString()} export credits.
+						</span>
+					</p>
+
+					{/* In-modal search — narrow the export set. */}
+					<input
+						className="search-input"
+						placeholder={`Search ${data?.label ?? entity}…`}
+						value={q}
+						onChange={(e) => setQ(e.target.value)}
+						style={{ width: '100%', marginTop: 12, height: 34 }}
+					/>
+
+					{/* Row range — export a slice, e.g. rows 101–200. Empty = all matching. */}
+					<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: 'var(--fg-2)', flexWrap: 'wrap' }}>
+						<span style={{ fontWeight: 600 }}>Rows</span>
+						<input type="number" min={1} placeholder="1" value={fromRow} disabled={selectingRows}
+							onChange={(e) => setFromRow(e.target.value)}
+							style={{ width: 76, height: 30, padding: '0 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-1)', fontFamily: 'var(--font-mono)' }} />
+						<span>to</span>
+						<input type="number" min={1} placeholder={matched ? String(matched) : 'end'} value={toRow} disabled={selectingRows}
+							onChange={(e) => setToRow(e.target.value)}
+							style={{ width: 76, height: 30, padding: '0 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-1)', fontFamily: 'var(--font-mono)' }} />
+						{matched > 0 && <span style={{ color: 'var(--fg-muted)' }}>of {matched.toLocaleString()} matching</span>}
+						{(fromRow || toRow) && (
+							<button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setFromRow(''); setToRow(''); }}>All rows</button>
+						)}
+						{rangeActive && rangeRows > 5000 && <span style={{ color: 'var(--fg-muted)' }}>(max 5,000/export)</span>}
+					</div>
+
+					{/* Pre-flight cost: rows that will be exported + credits charged. */}
+					<div
+						style={{
+							marginTop: 12, padding: '10px 12px', borderRadius: 8,
+							border: `1px solid ${insufficient ? 'var(--neg)' : 'var(--border)'}`,
+							background: insufficient ? 'color-mix(in oklab, var(--neg) 8%, transparent)' : 'var(--bg-2)',
+							fontSize: 13,
+						}}
+					>
+						{selectingRows ? (
+							<>
+								Exporting <b>{rowSel.size.toLocaleString()}</b> selected row{rowSel.size === 1 ? '' : 's'} · costs{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{insufficient && (
+									<div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>You’re short {(cost - available).toLocaleString()} credits.</div>
+								)}
+							</>
+						) : rangeActive ? (
+							<>
+								Exporting rows <b>{rFrom.toLocaleString()}</b>–<b>{Math.max(rFrom, rFrom + rangeRows - 1).toLocaleString()}</b>{' '}
+								({rangeRows.toLocaleString()} row{rangeRows === 1 ? '' : 's'}) · costs{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{insufficient && <div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>You’re short {(cost - available).toLocaleString()} credits.</div>}
+							</>
+						) : countLoading ? (
+							<span style={{ color: 'var(--fg-muted)' }}>Calculating rows…</span>
+						) : !count ? (
+							<span style={{ color: 'var(--fg-muted)' }}>Row count unavailable — you’ll be charged {perRowCost} credit{perRowCost === 1 ? '' : 's'} per exported row.</span>
+						) : count.rows === 0 ? (
+							<span style={{ color: 'var(--fg-muted)' }}>No rows match — nothing to export, no credits charged.</span>
+						) : (
+							<>
+								This will export <b>{count.rows.toLocaleString()}</b> row{count.rows === 1 ? '' : 's'} and cost{' '}
+								<b style={{ color: insufficient ? 'var(--neg)' : 'var(--fg)' }}>{cost.toLocaleString()}</b> export credit{cost === 1 ? '' : 's'}.
+								{count.capped && (
+									<div style={{ color: 'var(--fg-muted)', fontSize: 11, marginTop: 4 }}>
+										Capped at {count.rows.toLocaleString()} rows per export (more match your search).
+									</div>
+								)}
+								{insufficient && (
+									<div style={{ color: 'var(--neg)', fontSize: 12, marginTop: 4 }}>
+										You’re short {(cost - available).toLocaleString()} credits. Top up or narrow your search.
+									</div>
+								)}
+							</>
+						)}
+					</div>
+
+					<p style={{ fontSize: 11, color: 'var(--fg-muted)', margin: '8px 0 0' }}>
+						Exports all rows matching your {hasFilters ? <b>current filters</b> : 'search'} by default. Open <b>Preview &amp; select rows</b> below to pick specific ones.
+					</p>
+
+					{/* Format */}
+					<div style={{ display: 'flex', gap: 8, margin: '16px 0 10px' }}>
+						{(['xlsx', 'csv'] as ExportFormat[]).map((f) => (
+							<button
+								key={f}
+								className={`btn ${format === f ? '' : 'ghost'}`}
+								onClick={() => setFormat(f)}
+								style={{ textTransform: 'uppercase', fontSize: 12 }}
+							>
+								{f}
+							</button>
+						))}
+					</div>
+
+					{/* Columns */}
+					<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '6px 0' }}>
+						<span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)' }}>
+							Columns <span style={{ color: 'var(--fg-muted)', fontWeight: 400 }}>· {selectedCount}/{cols.length}</span>
+						</span>
+						<button className="btn ghost" style={{ fontSize: 11 }} onClick={toggleAll} disabled={isLoading || cols.length === 0}>
+							{allOn ? 'Clear all' : 'Select all'}
+						</button>
+					</div>
+
+					{isLoading ? (
+						<div style={{ color: 'var(--fg-muted)', padding: '12px 0' }}>Loading columns…</div>
+					) : cols.length === 0 ? (
+						<div style={{ color: 'var(--fg-muted)', padding: '12px 0' }}>No columns are available for export.</div>
+					) : (
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
+							{cols.map((c) => (
+								<label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)' }}>
+									<input type="checkbox" checked={sel.has(c.key)} onChange={() => toggle(c.key)} />
+									<span style={{ fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+									<span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)', flexShrink: 0 }} title="Per-row credit cost">{c.credit_cost}cr</span>
+								</label>
+							))}
+						</div>
+					)}
+
+					{/* Data preview + row picker — tick rows to export only those (no charge to preview) */}
+					<div style={{ marginTop: 14 }}>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+							<button
+								className="btn ghost"
+								style={{ fontSize: 12 }}
+								onClick={() => setPreviewOpen((v) => !v)}
+								disabled={cols.length === 0 || selectedCount === 0}
+							>
+								<Eye size={13} /> {previewOpen ? 'Hide preview' : 'Preview & select rows'}
+							</button>
+							{rowSel.size > 0 && (
+								<button className="btn ghost" style={{ fontSize: 11 }} onClick={() => setRowSel(new Set())}>
+									Clear {rowSel.size} selected
+								</button>
+							)}
+						</div>
+
+						{previewOpen && (
+							<div style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+								<div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--fg-muted)', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+									Showing up to {preview?.rows.length ?? 0} row{(preview?.rows.length ?? 0) === 1 ? '' : 's'}. Tick rows to export only those; leave all unticked to export everything matching. Narrow the search to find more.
+								</div>
+								{previewLoading ? (
+									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>
+										<Loader2 size={13} className="animate-spin" style={{ verticalAlign: '-2px' }} /> Loading preview…
+									</div>
+								) : !preview || preview.rows.length === 0 ? (
+									<div style={{ padding: 14, color: 'var(--fg-muted)', fontSize: 13 }}>No rows to preview.</div>
+								) : (
+									<div style={{ overflowX: 'auto', maxHeight: 320 }}>
+										<table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+											<thead>
+												<tr>
+													<th style={{ padding: '6px 8px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', width: 28 }}>
+														<input type="checkbox" checked={allRowsOn} onChange={toggleAllRows} title="Select all shown" />
+													</th>
+													{preview.columns.map((c) => (
+														<th key={c.key} style={{ textAlign: 'left', padding: '6px 10px', position: 'sticky', top: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+															{c.label}
+														</th>
+													))}
+												</tr>
+											</thead>
+											<tbody>
+												{preview.rows.map((r) => {
+													const checked = rowSel.has(r.__id);
+													return (
+														<tr key={r.__id} style={{ background: checked ? 'color-mix(in oklab, var(--accent) 8%, transparent)' : undefined }}>
+															<td style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
+																<input type="checkbox" checked={checked} onChange={() => toggleRow(r.__id)} />
+															</td>
+															{preview.columns.map((c) => (
+																<td key={c.key} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={r[c.key]}>
+																	{r[c.key] || <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+																</td>
+															))}
+														</tr>
+													);
+												})}
+											</tbody>
+										</table>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+
+					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
+						<button className="btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
+						<button className="btn" onClick={() => void exportNow()} disabled={busy || selectedCount === 0 || insufficient || cost === 0}>
+							{busy ? <><Loader2 size={14} className="animate-spin" /> Exporting…</> : <><Download size={14} /> {cost > 0 ? `Export · ${cost.toLocaleString()} cr` : 'Export'}</>}
+						</button>
+					</div>
+				</DialogPrimitive.Content>
+			</DialogPrimitive.Portal>
+		</DialogPrimitive.Root>
+	);
+}

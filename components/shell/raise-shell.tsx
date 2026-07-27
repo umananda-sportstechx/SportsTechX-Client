@@ -46,7 +46,8 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 	};
 
 	return (
-		<div className="atlas-raise raise-shell">
+		// `.atlas` supplies the kit tokens (atlas.css) for the shell + all founder pages.
+		<div className="atlas raise-shell">
 			<aside className="raise-rail">
 				<div className="raise-brand">Atlas<small>by SportsTechX</small></div>
 				<nav className="raise-nav">{NAV.map(renderItem)}</nav>

@@ -1,0 +1,493 @@
+'use client';
+
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { ArrowRight, Lock, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
+import { Page, Tag, SectionHead, Empty, PageTitle } from '@/components/ui/atoms';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { useUserProfile, getUserType, type UserType } from '@/hooks/use-user-profile';
+
+interface Report {
+	id: string;
+	slug?: string;
+	title: string;
+	short_title?: string | null;
+	description?: string | null;
+	report_type?: string | null;
+	pages?: number | null;
+	published_at?: string | null;
+	cover_url?: string | null;
+	is_free?: boolean;
+	has_pro_version?: boolean;     // true → report has a Pro edition; show a PRO badge
+	drive_link?: string | null;
+	is_published?: boolean;       // false → admin-only visibility; show DRAFT chip on the card
+}
+
+interface ReportsResponse {
+	data: Report[];
+	total: number;
+}
+
+// PLACEHOLDER — STX_DATA.REPORTS verbatim, displayed when API returns none.
+const MOCK_REPORTS: Array<{
+	id: string; title: string; kind: string; desc: string; year: string; pages: number; color: string;
+}> = [
+	{ id: 'mr-1', title: 'Global Sports Tech Ecosystem Report 2026', kind: 'Flagship', desc: 'Definitive overview of the global sports tech ecosystem.',            year: '2026', pages: 184, color: '#0F172A' },
+	{ id: 'mr-2', title: 'Global Sports Tech VC Report 2025',         kind: 'VC',       desc: 'Deep dive into investment activity, capital flow, and exit trends.',  year: '2025', pages: 124, color: '#1E40AF' },
+	{ id: 'mr-3', title: 'Football Tech Report 2025',                 kind: 'Vertical', desc: 'Innovation & investment in global football tech.',                    year: '2025', pages: 96,  color: '#15803D' },
+	{ id: 'mr-4', title: 'Saudi Arabia Sport Business & Tech Report', kind: 'Regional', desc: 'Overview of the Saudi Arabian sport ecosystem.',                      year: '2025', pages: 78,  color: '#0C4A6E' },
+	{ id: 'mr-5', title: 'Indian Sports Business & Tech Report 2025', kind: 'Regional', desc: 'Overview of the Indian sports business and tech.',                    year: '2025', pages: 82,  color: '#7C2D12' },
+	{ id: 'mr-6', title: 'Womens Sport Tech 2025',                    kind: 'Vertical', desc: "Investment, audience growth, and innovation in women's sport.",      year: '2025', pages: 64,  color: '#BE185D' },
+];
+
+const COVER_COLORS = [
+	'#0F172A', '#1E40AF', '#15803D', '#0C4A6E', '#7C2D12', '#BE185D', '#1E293B', '#0F766E',
+];
+
+/**
+ * Bordered nudge that sits in the PageTitle action slot, prompting
+ * free/growth users to upgrade. Hidden for `pro` (caller's check).
+ * Ported verbatim from `ui_design_2/app/screens-3.jsx:437-445`.
+ *
+ * Declared BEFORE the default export — Turbopack/SWC fast-refresh sometimes
+ * doesn't hoist function declarations placed after the default export of a
+ * client component, which surfaces as `ReferenceError: X is not defined` at
+ * runtime even though TS sees the symbol fine. Putting helpers above the
+ * default export removes the ambiguity.
+ */
+function UpgradeToProBadge({ userType, total }: { userType: UserType; total: number }) {
+	const tierLabel = userType === 'growth' ? 'Growth' : 'Free';
+	return (
+		<div
+			style={{
+				alignSelf: 'center',
+				display: 'flex',
+				alignItems: 'center',
+				gap: 12,
+				padding: '10px 12px 10px 14px',
+				border: '1px solid var(--border)',
+				borderRadius: 10,
+				background: 'var(--bg-2)',
+			}}
+		>
+			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+				<div
+					style={{
+						fontFamily: 'var(--font-mono)',
+						fontSize: 10,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+					}}
+				>
+					You&apos;re on {tierLabel}
+				</div>
+				<div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 2 }}>
+					Unlock all {total.toLocaleString()} reports with Pro
+				</div>
+			</div>
+			<Link href="/subscriptions">
+				<button className="btn">
+					<Sparkles size={12} /> Upgrade to Pro
+				</button>
+			</Link>
+		</div>
+	);
+}
+
+export default function ReportsPage() {
+	const reportsAccess = useFeatureAccess('reports_access');
+	const { data: profile } = useUserProfile();
+	const userType = getUserType(profile);
+	const { data, isLoading } = useSWR<ReportsResponse>(qk.reports.list(), {
+		dedupingInterval: 10 * 60_000,
+	});
+
+	const reportsApiRaw = data?.data ?? [];
+	// Sort newest-first by publication date (fallback to id so it's stable).
+	const reportsApi = useMemo(() => {
+		const ts = (r: Report) => (r.published_at ? new Date(r.published_at).getTime() : 0);
+		return [...reportsApiRaw].sort((a, b) => ts(b) - ts(a));
+	}, [reportsApiRaw]);
+	const useMock = !isLoading && reportsApi.length === 0;
+	const total = useMock ? MOCK_REPORTS.length : (data?.total ?? reportsApi.length);
+	// Featured = the 3 most recent reports, shown in a carousel; the rest below.
+	const featured = reportsApi.slice(0, 3);
+	const restApi = reportsApi.slice(3);
+	const [fIdx, setFIdx] = useState(0);
+	const featuredIdx = Math.min(fIdx, Math.max(0, featured.length - 1));
+	const featuredApi = featured[featuredIdx];
+
+	return (
+		<Page>
+			<PageTitle
+				kicker={`Library · ${total.toLocaleString()} reports`}
+				title="Reports"
+				sub="Deep, expert-authored analyses of sports tech sub-sectors and regions — used by leagues, brands, and investors."
+				action={userType !== 'pro' ? <UpgradeToProBadge userType={userType} total={total} /> : undefined}
+			/>
+
+			{isLoading && reportsApi.length === 0 ? (
+				<Empty msg="Loading…" />
+			) : useMock ? (
+				<>
+					<MockFeaturedHero r={MOCK_REPORTS[0]} hasAccess={reportsAccess.hasAccess} />
+					<SectionHead title="All Reports" meta={`${MOCK_REPORTS.length} published`} />
+					<div className="rep-grid">
+						{MOCK_REPORTS.slice(1).map((r) => <MockReportCard key={r.id} r={r} />)}
+					</div>
+				</>
+			) : featuredApi ? (
+				<>
+					<div style={{ position: 'relative', marginBottom: 'var(--space-5)' }}>
+					{featured.length > 1 && (
+						<button
+							aria-label="Previous featured report"
+							onClick={() => setFIdx((i) => (i - 1 + featured.length) % featured.length)}
+							className="btn ghost"
+							style={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)', zIndex: 2, padding: 6 }}
+						>
+							<ChevronLeft size={18} />
+						</button>
+					)}
+					<div
+						className="card"
+						style={{
+							overflow: 'hidden',
+							display: 'grid',
+							gridTemplateColumns: '380px 1fr',
+						}}
+					>
+						<div
+							className="report-cover"
+							style={{ background: coverColor(featuredApi, 0), height: 320, position: 'relative' }}
+						>
+							{(featuredApi.has_pro_version || featuredApi.is_published === false) && (
+								<div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, zIndex: 2 }}>
+									{featuredApi.has_pro_version && (
+										<span style={{
+											padding: '4px 10px', background: '#d97706', color: '#fff',
+											fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+										}}>
+											PRO
+										</span>
+									)}
+									{featuredApi.is_published === false && (
+										<span style={{
+											padding: '4px 10px', background: '#fbbf24', color: '#7c2d12',
+											fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', borderRadius: 2,
+										}}>
+											DRAFT
+										</span>
+									)}
+								</div>
+							)}
+							<span className="rc-meta">
+								{splitYear(featuredApi.published_at, featuredApi.id)}{featuredApi.pages ? ` · ${featuredApi.pages}p` : ` · 124p`}
+							</span>
+							<span className="rc-title">{featuredApi.short_title ?? featuredApi.title}</span>
+						</div>
+						<div
+							style={{
+								padding: 'var(--space-5)',
+								display: 'flex',
+								flexDirection: 'column',
+								justifyContent: 'center',
+							}}
+						>
+							<Tag variant="pos">Just released</Tag>
+							<h2
+								style={{
+									fontFamily: 'var(--font-display)',
+									fontSize: 28,
+									fontWeight: 800,
+									letterSpacing: '-0.02em',
+									lineHeight: 1.1,
+									margin: '12px 0 8px',
+								}}
+							>
+								{featuredApi.title}
+							</h2>
+							<p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 16 }}>
+								{featuredApi.description ?? 'The definitive overview of the global sports tech ecosystem — capital flows, sub-sector innovation, regional analysis, and 184 pages of research.'}
+							</p>
+							<div style={{ display: 'flex', gap: 8 }}>
+								{reportsAccess.hasAccess && featuredApi.drive_link ? (
+									<a href={featuredApi.drive_link} target="_blank" rel="noopener noreferrer">
+										<button className="btn">Download PDF <ArrowRight size={12} /></button>
+									</a>
+								) : (
+									<Link
+										href={reportsAccess.hasAccess ? `/reports/${featuredApi.slug ?? featuredApi.id}` : '/subscriptions'}
+										target={reportsAccess.hasAccess ? '_blank' : undefined}
+										rel={reportsAccess.hasAccess ? 'noopener noreferrer' : undefined}
+									>
+										<button className="btn">
+											{reportsAccess.hasAccess ? 'Open report' : (<><Lock size={12} /> Unlock</>)}
+											<ArrowRight size={12} />
+										</button>
+									</Link>
+								)}
+								<Link href={`/reports/${featuredApi.slug ?? featuredApi.id}`} target="_blank" rel="noopener noreferrer">
+									<button className="btn ghost">Read summary</button>
+								</Link>
+							</div>
+						</div>
+					</div>
+					{featured.length > 1 && (
+						<button
+							aria-label="Next featured report"
+							onClick={() => setFIdx((i) => (i + 1) % featured.length)}
+							className="btn ghost"
+							style={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)', zIndex: 2, padding: 6 }}
+						>
+							<ChevronRight size={18} />
+						</button>
+					)}
+					{featured.length > 1 && (
+						<div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+							{featured.map((f, i) => (
+								<button
+									key={f.id}
+									aria-label={`Featured report ${i + 1}`}
+									onClick={() => setFIdx(i)}
+									style={{
+										width: i === featuredIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', cursor: 'pointer',
+										background: i === featuredIdx ? 'var(--accent)' : 'var(--border)', transition: 'width 0.2s',
+									}}
+								/>
+							))}
+						</div>
+					)}
+					</div>
+
+					<SectionHead title="All Reports" meta={`${total.toLocaleString()} published`} />
+
+					<div className="rep-grid">
+						{restApi.map((r, i) => (
+							<Link
+								key={r.id}
+								href={`/reports/${r.slug ?? r.id}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="card rep-card"
+								style={{
+									display: 'flex',
+									flexDirection: 'column',
+									textDecoration: 'none',
+									color: 'inherit',
+								}}
+							>
+								<div className="report-cover" style={{ background: coverColor(r, i + 1), height: 200, position: 'relative' }}>
+									{(r.has_pro_version || r.is_published === false) && (
+										<div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 5, zIndex: 2 }}>
+											{r.has_pro_version && (
+												<span style={{
+													padding: '3px 7px', background: '#d97706', color: '#fff',
+													fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+												}}>
+													PRO
+												</span>
+											)}
+											{r.is_published === false && (
+												<span style={{
+													padding: '3px 7px', background: '#fbbf24', color: '#7c2d12',
+													fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 2,
+												}}>
+													DRAFT
+												</span>
+											)}
+										</div>
+									)}
+									<span className="rc-meta">
+										{splitYear(r.published_at, r.id)}{r.pages ? ` · ${r.pages}p` : ` · ${pickFallbackPages(r.id)}p`}
+									</span>
+									<span className="rc-title" style={{ fontSize: 16 }}>{r.short_title ?? r.title}</span>
+								</div>
+								{/* Flex column so the button always sits at the bottom of the
+								    card regardless of how short/long the title or description
+								    runs — uniform alignment across the grid. */}
+								<div
+									style={{
+										padding: 'var(--space-3)',
+										display: 'flex',
+										flexDirection: 'column',
+										flex: 1,
+										minHeight: 0,
+									}}
+								>
+									<div
+										style={{
+											fontSize: 11,
+											color: 'var(--fg-muted)',
+											textTransform: 'uppercase',
+											letterSpacing: '0.08em',
+											marginBottom: 4,
+										}}
+									>
+										{(r.report_type ?? 'Report')} · {splitYear(r.published_at, r.id)}
+									</div>
+									<div style={{ fontWeight: 600, marginBottom: 4 }}>{r.title}</div>
+									<div
+										style={{
+											fontSize: 12,
+											color: 'var(--fg-2)',
+											marginBottom: 10,
+											display: '-webkit-box',
+											WebkitLineClamp: 2,
+											WebkitBoxOrient: 'vertical',
+											overflow: 'hidden',
+										}}
+									>
+										{r.description ?? pickFallbackDesc(r.id)}
+									</div>
+									<button
+										className="btn ghost"
+										style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
+									>
+										View report
+									</button>
+								</div>
+							</Link>
+						))}
+					</div>
+				</>
+			) : (
+				<Empty msg="No reports published yet" />
+			)}
+		</Page>
+	);
+}
+
+function MockFeaturedHero({
+	r,
+	hasAccess,
+}: { r: typeof MOCK_REPORTS[number]; hasAccess: boolean }) {
+	return (
+		<div
+			className="card"
+			style={{
+				marginBottom: 'var(--space-5)',
+				overflow: 'hidden',
+				display: 'grid',
+				gridTemplateColumns: '380px 1fr',
+			}}
+		>
+			<div className="report-cover" style={{ background: r.color, height: 320 }}>
+				<span className="rc-meta">{r.year} · {r.pages}p</span>
+				<span className="rc-title">{r.title}</span>
+			</div>
+			<div
+				style={{
+					padding: 'var(--space-5)',
+					display: 'flex',
+					flexDirection: 'column',
+					justifyContent: 'center',
+				}}
+			>
+				<Tag variant="pos">Just released</Tag>
+				<h2
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 28,
+						fontWeight: 800,
+						letterSpacing: '-0.02em',
+						lineHeight: 1.1,
+						margin: '12px 0 8px',
+					}}
+				>
+					{r.title}
+				</h2>
+				<p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 16 }}>
+					The definitive overview of the global sports tech ecosystem — capital flows, sub-sector innovation, regional analysis, and 184 pages of research.
+				</p>
+				<div style={{ display: 'flex', gap: 8 }}>
+					<Link href={hasAccess ? '/reports' : '/subscriptions'}>
+						<button className="btn">
+							{hasAccess ? 'Download PDF' : (<><Lock size={12} /> Unlock</>)} <ArrowRight size={12} />
+						</button>
+					</Link>
+					<button className="btn ghost">Read summary</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function MockReportCard({ r }: { r: typeof MOCK_REPORTS[number] }) {
+	return (
+		<div className="card rep-card" style={{ display: 'flex', flexDirection: 'column' }}>
+			<div className="report-cover" style={{ background: r.color, height: 200 }}>
+				<span className="rc-meta">{r.year} · {r.pages}p</span>
+				<span className="rc-title" style={{ fontSize: 16 }}>{r.title}</span>
+			</div>
+			<div
+				style={{
+					padding: 'var(--space-3)',
+					display: 'flex',
+					flexDirection: 'column',
+					flex: 1,
+					minHeight: 0,
+				}}
+			>
+				<div
+					style={{
+						fontSize: 11,
+						color: 'var(--fg-muted)',
+						textTransform: 'uppercase',
+						letterSpacing: '0.08em',
+						marginBottom: 4,
+					}}
+				>
+					{r.kind} · {r.year}
+				</div>
+				<div style={{ fontWeight: 600, marginBottom: 4 }}>{r.title}</div>
+				<div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 10 }}>{r.desc}</div>
+				<button
+					className="btn ghost"
+					style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
+				>
+					View report
+				</button>
+			</div>
+		</div>
+	);
+}
+
+// PLACEHOLDER years used when a report record lacks `published_at`.
+const FALLBACK_YEARS = ['2026', '2025', '2025', '2024', '2024', '2023'];
+const FALLBACK_PAGES = [64, 78, 82, 96, 124, 184];
+function pickFallbackPages(id?: string): number {
+	const seed = id ? ((id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0)) : 0;
+	return FALLBACK_PAGES[seed % FALLBACK_PAGES.length];
+}
+
+const FALLBACK_DESCS = [
+	'Deep dive into investment activity, capital flow, and exit trends.',
+	'Innovation & investment in this sports-tech vertical.',
+	'Regional overview of the sports business and tech ecosystem.',
+	'Audience growth, content trends, and platform consolidation.',
+	'Capital deployment patterns across stages and sub-sectors.',
+	'Top performers, breakout startups, and emerging categories.',
+];
+function pickFallbackDesc(id?: string): string {
+	const seed = id ? ((id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0)) : 0;
+	return FALLBACK_DESCS[seed % FALLBACK_DESCS.length];
+}
+
+function splitYear(iso: string | null | undefined, id?: string): string {
+	if (iso) {
+		const d = new Date(iso);
+		if (!Number.isNaN(d.getTime())) return String(d.getUTCFullYear());
+	}
+	const seed = id ? ((id.charCodeAt(0) ?? 0) + (id.charCodeAt(1) ?? 0)) : 0;
+	return FALLBACK_YEARS[seed % FALLBACK_YEARS.length];
+}
+
+function coverColor(r: Report, fallbackIdx: number): string {
+	if (r.cover_url) return `url(${r.cover_url}) center / cover`;
+	const hash = ((r.id?.charCodeAt(0) ?? 0) + (r.id?.charCodeAt(1) ?? 0) + fallbackIdx) % COVER_COLORS.length;
+	return COVER_COLORS[hash];
+}
