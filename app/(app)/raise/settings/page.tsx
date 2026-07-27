@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, H1, Sub, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas/kit';
+import { InvestorExclude } from '@/components/atlas/investor-exclude';
 
 /**
  * Atlas Raise — Company & Raise settings (mock-up 16 / Notion "Company & Raise
@@ -54,7 +55,7 @@ export default function RaiseSettingsPage() {
 	const RAISE_KEYS = ['company_name', 'company_website', 'hq_city', 'hq_country', 'company_description',
 		'company_sector_id', 'company_category', 'company_stage', 'revenue_status', 'round_type', 'target_amount', 'target_close_date', 'valuation',
 		'prior_capital_raised', 'structure'];
-	const CRIT_KEYS = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok'];
+	const CRIT_KEYS = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'excluded_investor_ids'];
 
 	const save = async () => {
 		setSaving(true);
@@ -122,7 +123,10 @@ export default function RaiseSettingsPage() {
 						<Field label="Cheque max"><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field>
 						<Field label="Lead or follower"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Prefer lead'], ['followers', 'Prefer followers'], ['both', 'Both']]} /></Field>
 					</Grid>
-					<Field label="Strategic investor preference"><Select value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Open to strategics'], ['no', 'Financial investors only']]} placeholder="Select…" /></Field>
+					<Grid n={2}>
+						<Field label="Strategic investor preference"><Select value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Open to strategics'], ['no', 'Financial investors only']]} placeholder="Select…" /></Field>
+						<InvestorExclude label="Excluded investors" value={crit.excluded_investor_ids as string[] | undefined} onChange={(x) => setC('excluded_investor_ids', x)} />
+					</Grid>
 				</Section>
 
 				<div style={{ display: 'flex', justifyContent: 'flex-end' }}>

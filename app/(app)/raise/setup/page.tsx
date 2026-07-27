@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading } from '@/components/atlas/kit';
+import { InvestorExclude } from '@/components/atlas/investor-exclude';
 
 /**
  * Atlas Raise — first-login setup wizard (Notion "Raise Setup Questionnaire") +
@@ -80,7 +81,7 @@ export default function RaiseSetupPage() {
 		setSaving(true);
 		try {
 			const critPayload = Object.fromEntries(
-				['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'biggest_concern']
+				['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern']
 					.filter((k) => crit[k] !== undefined && crit[k] !== '').map((k) => [k, crit[k]]),
 			);
 			await apiRequest('PUT', '/api/raise/criteria', critPayload);
@@ -165,6 +166,7 @@ export default function RaiseSetupPage() {
 							<Field label="Open to strategic investors?"><Select placeholder="Select…" value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
 						</Grid>
 						<Multi label="What expertise or access would be most valuable? (optional)" v={crit.desired_expertise} on={(x) => setC('desired_expertise', x)} opts={['Commercial partnerships', 'Sports rights', 'Media', 'Product', 'International expansion', 'Other']} />
+						<InvestorExclude label="Are there investors Atlas should exclude? (optional)" value={crit.excluded_investor_ids as string[] | undefined} onChange={(x) => setC('excluded_investor_ids', x)} />
 						<Field label="Biggest fundraising concern (optional)"><Select placeholder="Select…" value={s(crit.biggest_concern)} onChange={(e) => setC('biggest_concern', e.target.value)} options={[['story', 'Story'], ['access', 'Investor access'], ['valuation', 'Valuation'], ['timing', 'Timing'], ['diligence', 'Due diligence'], ['other', 'Other']]} /></Field>
 					</>}
 				</div>
