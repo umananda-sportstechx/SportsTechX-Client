@@ -111,7 +111,7 @@ export default function RaiseHomePage() {
 						<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Raise snapshot</div>
 						<div style={{ height: 1, background: 'var(--a-border)', margin: '12px -20px' }} />
 						<SnapRow label="Pitch deck" href="/raise/pitch"
-							value={data.snapshot.deck ? (data.snapshot.deck.score != null ? `${data.snapshot.deck.score}/100 · Reviewed` : 'Processing…') : 'Not analysed'} />
+							value={data.snapshot.deck ? (data.snapshot.deck.score != null ? `${data.snapshot.deck.score}/100 · ${deckTier(data.snapshot.deck.score)}` : 'Processing…') : 'Not analysed'} />
 						<SnapRow label="Investors in pipeline" href="/raise/pipeline" value={String(data.snapshot.pipeline_count)} />
 						<SnapRow label="Active conversations" href="/raise/pipeline" value={String(data.snapshot.active_conversations)} last />
 					</Card>
@@ -150,7 +150,8 @@ export default function RaiseHomePage() {
 	);
 }
 
-function Wrap({ children }: { children: React.ReactNode }) { return <div style={{ padding: '32px 40px', maxWidth: 1180 }}>{children}</div>; }
+function deckTier(s: number): string { return s < 50 ? 'Early Stage' : s < 70 ? 'Developing' : s < 83 ? 'Investor Ready' : s < 93 ? 'Strong' : 'Exceptional'; }
+function Wrap({ children }: { children: React.ReactNode }) { return <div style={{ padding: '32px 40px', maxWidth: 1180, marginInline: 'auto' }}>{children}</div>; }
 function Center({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}>{children}</div>; }
 function SnapRow({ label, value, href, last }: { label: string; value: string; href: string; last?: boolean }) {
 	return (

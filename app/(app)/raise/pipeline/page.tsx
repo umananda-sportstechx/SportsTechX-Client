@@ -59,7 +59,7 @@ export default function RaisePipelinePage() {
 
 			<div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
 				{FILTERS.map(([f, l]) => (
-					<button key={f} className={`atlas-btn atlas-btn--outline atlas-btn--sm`} style={filter === f ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined} onClick={() => setFilter(f)}>{l}</button>
+					<button key={f} aria-pressed={filter === f} className={`atlas-btn atlas-btn--outline atlas-btn--sm`} style={filter === f ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined} onClick={() => setFilter(f)}>{l}</button>
 				))}
 			</div>
 			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 16 }}>{rows.length} investor{rows.length === 1 ? '' : 's'} in pipeline</div>
@@ -172,7 +172,7 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
 			<div className="atlas" onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 100%)', height: '100%', background: 'var(--a-page)', borderLeft: '1px solid var(--a-border)', padding: 28, overflowY: 'auto' }}>
 				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
 					<div style={{ fontSize: 18, fontWeight: 600 }}>{title}</div>
-					<button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={onClose}><X size={16} /></button>
+					<button className="atlas-btn atlas-btn--ghost atlas-btn--sm" aria-label="Close" onClick={onClose}><X size={16} /></button>
 				</div>
 				{children}
 			</div>

@@ -42,11 +42,12 @@ export default function RaisePitchPage() {
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
 
-	// Latest scorecard (verdict + top improvements) once analysis is done.
-	const { data: detail } = useSWR<{ scorecard?: DeckScorecard } & Partial<DeckScorecard>>(
+	// Latest scorecard (verdict + top improvements) once analysis is done. The
+	// deck-analysis detail returns the structured scorecard under `result_json`.
+	const { data: detail } = useSWR<{ result_json: DeckScorecard | null }>(
 		latest && latest.status === 'done' ? qk.deckAnalysis.detail(latest.id) : null,
 	);
-	const card: Partial<DeckScorecard> | null = detail?.scorecard ?? detail ?? null;
+	const card: DeckScorecard | null = detail?.result_json ?? null;
 
 	const analyze = async (file: File) => {
 		if (uploading) return;
