@@ -27,7 +27,7 @@ const STAGES: [string, string][] = [
 	['due_diligence', 'Due diligence'], ['term_sheet', 'Term sheet'], ['committed', 'Committed'],
 	['closed', 'Closed'], ['passed', 'Passed'],
 ];
-const FILTERS: [string, string][] = [['', 'All'], ['overdue', 'Overdue next step'], ['no_next_step', 'No next step'], ['committed', 'Committed']];
+const FILTERS: [string, string][] = [['', 'All'], ['overdue', 'Overdue next step'], ['no_next_step', 'No next step'], ['committed', 'Committed'], ['archived', 'Show archived']];
 const nameOf = (p: Pipe) => p.investor_name ?? p.custom_name ?? 'Investor';
 const money = (v: string | null) => (v == null ? null : `€${Number(v).toLocaleString()}`);
 const overdue = (d: string | null) => !!d && new Date(d) < new Date(new Date().toDateString());
