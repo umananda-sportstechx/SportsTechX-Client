@@ -17,6 +17,9 @@ type Rec = Record<string, unknown>;
 
 export default function RaiseSettingsPage() {
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
+	const home = useSWR<{ raise: { stage?: string | null } | null }>(qk.raise.home());
+	const STAGE_LABEL: Record<string, string> = { setting_up: 'Setting up', preparing: 'Preparing', outreach: 'Outreach underway', in_conversations: 'In conversations', due_diligence: 'In due diligence', closing: 'Closing', funded: 'Funded', paused: 'Paused', closed: 'Closed' };
+	const derivedStage = home.data?.raise?.stage ? (STAGE_LABEL[home.data.raise.stage] ?? home.data.raise.stage) : '—';
 	const [form, setForm] = useState<Rec>({});
 	const [crit, setCrit] = useState<Rec>({});
 	const [saving, setSaving] = useState(false);
@@ -81,7 +84,7 @@ export default function RaiseSettingsPage() {
 						<Field label="Target close date"><Input type="date" value={s(form.target_close_date)} onChange={(e) => set('target_close_date', e.target.value)} /></Field>
 					</Grid>
 					<Grid n={3}>
-						<ReadOnly label="Amount committed" value={form.committed_amount != null ? String(form.committed_amount) : '—'} note="Calculated from committed investors in your pipeline" />
+						<ReadOnly label="Amount committed" value={form.committed_amount != null ? String(form.committed_amount) : '—'} note="From your raise profile" />
 						<Field label="Valuation"><Input placeholder="Not provided" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
 						<Field label="Previous capital raised"><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field>
 					</Grid>
@@ -107,7 +110,7 @@ export default function RaiseSettingsPage() {
 
 				<Section title="Raise controls">
 					<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>
-						Current stage: <strong style={{ color: 'var(--a-muted)' }}>{String(form.stage ?? '—')}</strong> · automatically determined from your pipeline activity, not editable here.
+						Current stage: <strong style={{ color: 'var(--a-muted)' }}>{derivedStage}</strong> · automatically determined from your pipeline activity, not editable here.
 					</div>
 					<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
 						<Button variant="outline" disabled={busy} onClick={() => void setStatus('funded', 'Round marked as funded')}>Mark round as funded</Button>
@@ -130,7 +133,7 @@ function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: stri
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
+			return <button key={o} type="button" aria-pressed={active} className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
 				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
 	</div></Field>;
