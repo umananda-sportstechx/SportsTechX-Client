@@ -26,6 +26,7 @@ export default function RaiseSetupPage() {
 	const [done, setDone] = useState(false);
 	const [form, setForm] = useState<Rec>({});
 	const [crit, setCrit] = useState<Rec>({});
+	const [errors, setErrors] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
 		if (data?.raise) setForm(data.raise);
@@ -63,6 +64,26 @@ export default function RaiseSetupPage() {
 		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
 	], []);
 
+	// Required fields per step (Notion "Required: Yes"). Validated client-side so
+	// setup can't complete with gaps (e.g. an empty Category → no sector → dead Market).
+	const REQUIRED: { key: string; label: string; kind?: 'array' | 'bool' }[][] = [
+		[{ key: 'company_name', label: 'Company name' }, { key: 'company_website', label: 'Website' }, { key: 'hq_country', label: 'Country' }, { key: 'hq_city', label: 'City' }, { key: 'company_description', label: 'What the company does' }, { key: 'company_sector_id', label: 'Category' }, { key: 'company_stage', label: 'Stage' }, { key: 'revenue_status', label: 'Revenue status' }],
+		[{ key: 'fundraising_process', label: 'Fundraising process' }, { key: 'round_type', label: 'Round' }, { key: 'target_amount', label: 'Amount raising' }, { key: 'committed_amount', label: 'Already committed' }, { key: 'target_close_date', label: 'Target close date' }, { key: 'lead_investor_status', label: 'Lead investor' }, { key: 'structure', label: 'Structure' }],
+		[{ key: 'prior_capital_raised', label: 'Prior capital raised' }, { key: 'last_round_date', label: 'Last round date' }, { key: 'annual_revenue', label: 'Annual revenue / ARR' }, { key: 'monthly_burn', label: 'Monthly burn' }, { key: 'runway_months', label: 'Runway months' }],
+		[{ key: 'pitch_deck_status', label: 'Pitch deck' }, { key: 'financial_model_status', label: 'Financial model' }, { key: 'data_room_status', label: 'Data room' }, { key: 'has_target_list', label: 'Investor target list', kind: 'bool' }],
+		[{ key: 'investor_types', label: 'Investor types', kind: 'array' }, { key: 'geographies', label: 'Geographies', kind: 'array' }, { key: 'cheque_min', label: 'Cheque minimum' }, { key: 'cheque_max', label: 'Cheque maximum' }, { key: 'lead_preference', label: 'Lead/follower preference' }, { key: 'strategic_ok', label: 'Strategic preference', kind: 'bool' }],
+	];
+	const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
+		kind === 'array' ? !Array.isArray(v) || v.length === 0
+			: kind === 'bool' ? v !== true && v !== false
+				: v === undefined || v === null || v === '';
+	const validate = (i: number): { key: string; label: string }[] => {
+		const src = i === STEPS.length - 1 ? crit : form;
+		const missing = (REQUIRED[i] ?? []).filter((r) => isEmpty(src[r.key], r.kind));
+		setErrors(new Set(missing.map((r) => r.key)));
+		return missing;
+	};
+
 	const saveStep = async (i: number) => {
 		const keys = stepFields[i] ?? [];
 		const payload = Object.fromEntries(keys.filter((k) => form[k] !== undefined && form[k] !== '').map((k) => [k, form[k]]));
@@ -71,13 +92,17 @@ export default function RaiseSetupPage() {
 	};
 
 	const next = async () => {
+		const miss = validate(step);
+		if (miss.length) { toast.error(`Please complete: ${miss.map((r) => r.label).join(', ')}`); return; }
 		setSaving(true);
-		try { await saveStep(step); void mutate(); setStep((x) => Math.min(x + 1, STEPS.length - 1)); }
+		try { await saveStep(step); void mutate(); setErrors(new Set()); setStep((x) => Math.min(x + 1, STEPS.length - 1)); }
 		catch (e) { toast.error((e as Error).message ?? 'Could not save'); }
 		finally { setSaving(false); }
 	};
 
 	const finish = async () => {
+		const miss = validate(STEPS.length - 1);
+		if (miss.length) { toast.error(`Please complete: ${miss.map((r) => r.label).join(', ')}`); return; }
 		setSaving(true);
 		try {
 			const critPayload = Object.fromEntries(
@@ -107,6 +132,11 @@ export default function RaiseSetupPage() {
 			</div>
 
 			<Card style={{ padding: 24 }}>
+				{errors.size > 0 && (
+					<div style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #F1D6D6', background: 'var(--a-danger-bg, #FCEBEB)', color: 'var(--a-danger, #A32D2D)', padding: '10px 14px', fontSize: 13 }}>
+						Required — please complete: {(REQUIRED[step] ?? []).filter((r) => errors.has(r.key)).map((r) => r.label).join(', ')}.
+					</div>
+				)}
 				<div style={{ display: 'grid', gap: 16 }}>
 					{step === 0 && <>
 						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} /></Field>

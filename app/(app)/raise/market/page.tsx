@@ -56,7 +56,7 @@ export default function RaiseMarketPage() {
 	};
 
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (!data || data.unavailable) return <Screen><H1>Market</H1><div style={{ marginTop: 20 }}><Empty>Add your company in setup so Atlas can map your market and competitors.{' '}<Link href="/raise/setup" style={{ color: 'var(--a-navy)' }}>Complete setup →</Link></Empty></div></Screen>;
+	if (!data || data.unavailable) return <Screen><H1>Market</H1><div style={{ marginTop: 20 }}><Empty>Atlas needs your company category to map your market. Set it under{' '}<Link href="/raise/settings" style={{ color: 'var(--a-navy)' }}>Raise settings → Category</Link>.</Empty></div></Screen>;
 
 	return (
 		<Screen width={1400}>
