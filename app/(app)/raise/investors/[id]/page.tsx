@@ -30,6 +30,7 @@ interface Pipe {
 	next_step_due: string | null; notes: string | null;
 }
 interface Activity { type: string; payload: Record<string, unknown> | null; occurred_at: string }
+interface Deal { id: string; company_name: string | null; company_slug: string | null; amount_usd: string | null; announced_date: string | null; round_type_name: string | null }
 
 const STAGES: [string, string][] = [
 	['target', 'Target'], ['contacted', 'Contacted'], ['in_conversation', 'In conversation'],
@@ -44,6 +45,7 @@ export default function InvestorProfilePage() {
 	const router = useRouter();
 	const { data: inv, isLoading, error } = useSWR<Investor>(qk.investors.detail(id));
 	const { data: bundle } = useSWR<ThesisBundle>(qk.investors.thesis(id));
+	const { data: deals } = useSWR<{ data: Deal[] }>(qk.deals.list({ investor_id: id, sort: '-announced_date', limit: 12 }));
 	const pipe = useSWR<{ data: Pipe[] }>(qk.raise.pipeline());
 	const record = useMemo(() => (pipe.data?.data ?? []).find((r) => r.investor_id === id) ?? null, [pipe.data, id]);
 
@@ -83,7 +85,34 @@ export default function InvestorProfilePage() {
 
 			{inv.description && <Section title="Overview">{inv.description}</Section>}
 			{thesisText && <Section title="Investment thesis">{thesisText}</Section>}
-			{!inv.description && !thesisText && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
+
+			{(() => {
+				const rows = deals?.data ?? [];
+				const portfolio = [...new Set(rows.map((d) => d.company_name).filter(Boolean) as string[])].slice(0, 12);
+				const recent = rows.slice(0, 6);
+				return <>
+					{portfolio.length > 0 && (
+						<Card style={{ marginBottom: 16 }}>
+							<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Portfolio</div>
+							<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.6 }}>Includes: {portfolio.join(', ')}.</div>
+						</Card>
+					)}
+					{recent.length > 0 && (
+						<Card style={{ marginBottom: 16 }}>
+							<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Recent investment activity</div>
+							<div style={{ display: 'grid', gap: 8 }}>
+								{recent.map((d) => (
+									<div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, color: 'var(--a-muted)' }}>
+										<span><span style={{ color: 'var(--a-ink)' }}>{d.company_name ?? 'Company'}</span>{d.round_type_name ? ` · ${d.round_type_name}` : ''}{d.amount_usd ? ` · $${(Number(d.amount_usd) / 1e6).toFixed(1)}m` : ''}</span>
+										<span style={{ color: 'var(--a-faint)', whiteSpace: 'nowrap' }}>{d.announced_date ? new Date(d.announced_date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : ''}</span>
+									</div>
+								))}
+							</div>
+						</Card>
+					)}
+					{!inv.description && !thesisText && portfolio.length === 0 && recent.length === 0 && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
+				</>;
+			})()}
 		</Screen>
 	);
 }
