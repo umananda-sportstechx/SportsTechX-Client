@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { Screen, Card, Badge, Button, Field, Input, Select, Loading } from '@/components/atlas/kit';
+import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 
 /**
  * Atlas Raise — Investor profile (mock-ups 12/13 / canvas isProfileBaseline &
@@ -18,7 +18,11 @@ import { Screen, Card, Badge, Button, Field, Input, Select, Loading } from '@/co
 interface Investor {
 	id: string; name: string; slug: string | null; category: string | null; description: string | null;
 	website: string | null; hq_country: string | null; hq_city: string | null; hq_region: string | null;
-	thesis?: string | null; round_types?: Array<{ name: string }>;
+}
+interface ThesisBundle {
+	thesis: { description?: string | null } | null;
+	round_types: Array<{ name: string }>;
+	geo: Array<{ scope_type: string; scope_value: string }>;
 }
 interface Pipe {
 	id: string; investor_id: string | null; stage: string; contact_name: string | null;
@@ -38,13 +42,17 @@ const geoOf = (i: Investor) => [i.hq_country, i.hq_region].filter(Boolean)[0] ??
 export default function InvestorProfilePage() {
 	const id = String(useParams().id);
 	const router = useRouter();
-	const { data: inv, isLoading } = useSWR<Investor>(qk.investors.detail(id));
+	const { data: inv, isLoading, error } = useSWR<Investor>(qk.investors.detail(id));
+	const { data: bundle } = useSWR<ThesisBundle>(qk.investors.thesis(id));
 	const pipe = useSWR<{ data: Pipe[] }>(qk.raise.pipeline());
 	const record = useMemo(() => (pipe.data?.data ?? []).find((r) => r.investor_id === id) ?? null, [pipe.data, id]);
 
+	if (error) return <Screen><Empty>Investor not found. <button onClick={() => router.push('/raise/investors')} style={{ background: 'none', border: 'none', color: 'var(--a-navy)', cursor: 'pointer', font: 'inherit' }}>Back to investors</button></Empty></Screen>;
 	if (isLoading || !inv) return <Screen><Loading /></Screen>;
 
-	const stages = inv.round_types?.map((r) => r.name).join(', ') || 'Not specified';
+	const stages = bundle?.round_types?.map((r) => r.name).join(', ') || 'Not specified';
+	const thesisText = bundle?.thesis?.description ?? null;
+	const geoText = bundle?.geo?.map((g) => g.scope_value).join(', ') || [inv.hq_country, inv.hq_region].filter(Boolean).join(', ') || '—';
 
 	return (
 		<Screen>
@@ -69,13 +77,13 @@ export default function InvestorProfilePage() {
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 14, marginBottom: 16 }}>
 				<Tile label="Stages" value={stages} />
 				<Tile label="Typical cheque size" value="Not confirmed" muted />
-				<Tile label="Geography" value={[inv.hq_country, inv.hq_region].filter(Boolean).join(', ') || '—'} />
+				<Tile label="Geography" value={geoText} />
 				<Tile label="Website" value={inv.website ? <a href={inv.website} target="_blank" rel="noreferrer" style={{ color: 'var(--a-navy)' }}>Visit</a> : '—'} />
 			</div>
 
 			{inv.description && <Section title="Overview">{inv.description}</Section>}
-			{inv.thesis && <Section title="Investment thesis">{inv.thesis}</Section>}
-			{!inv.description && !inv.thesis && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
+			{thesisText && <Section title="Investment thesis">{thesisText}</Section>}
+			{!inv.description && !thesisText && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
 		</Screen>
 	);
 }

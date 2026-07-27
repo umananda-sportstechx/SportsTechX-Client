@@ -124,6 +124,7 @@ export default function RaiseSetupPage() {
 
 					{step === 4 && <>
 						<Multi label="Which investor types are you targeting?" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
+						<Field label="Target geographies"><Input placeholder="Europe, UK" value={Array.isArray(crit.geographies) ? (crit.geographies as string[]).join(', ') : ''} onChange={(e) => setC('geographies', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></Field>
 						<Grid><Field label="Cheque size — minimum"><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field><Field label="Cheque size — maximum"><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field></Grid>
 						<Grid>
 							<Field label="Lead, followers or both?"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Lead'], ['followers', 'Followers'], ['both', 'Both']]} /></Field>
@@ -175,7 +176,7 @@ function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: stri
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
+			return <button key={o} type="button" aria-pressed={active} className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
 				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
 	</div></Field>;

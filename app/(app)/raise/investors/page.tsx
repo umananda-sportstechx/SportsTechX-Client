@@ -25,10 +25,25 @@ export default function RaiseInvestorsPage() {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 
+	const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 	const matches = useSWR<MatchResult>(['/api/recommendations/investors', { limit: 24 }]);
-	const all = useSWR<{ data: Investor[] }>(tab === 'all' ? qk.investors.list({ q: dq || undefined, limit: 40 }) : null);
+	const all = useSWR<{ data: Investor[]; meta?: { total?: number } }>(tab === 'all' ? qk.investors.list({ q: dq || undefined, limit: 40 }) : null);
 	const pipe = useSWR<{ data: Array<{ investor_id: string | null }> }>(qk.raise.pipeline());
+	const criteria = useSWR<{ criteria: { investor_types?: string[]; geographies?: string[]; cheque_min?: string | null; cheque_max?: string | null } | null }>(qk.raise.current());
 	const inPipeline = useMemo(() => new Set((pipe.data?.data ?? []).map((r) => r.investor_id).filter(Boolean) as string[]), [pipe.data]);
+
+	const criteriaSummary = useMemo(() => {
+		const c = criteria.data?.criteria;
+		if (!c) return null;
+		const parts: string[] = [];
+		if (c.investor_types?.length) parts.push(c.investor_types.join(', '));
+		if (c.geographies?.length) parts.push(c.geographies.join(', '));
+		if (c.cheque_min || c.cheque_max) {
+			const fmt = (v: string | null | undefined) => (v ? `€${(Number(v) / 1000).toLocaleString()}k` : '');
+			parts.push(`${fmt(c.cheque_min)}${c.cheque_min && c.cheque_max ? '–' : ''}${fmt(c.cheque_max)} cheque`);
+		}
+		return parts.length ? `Matching on ${parts.join(' · ')}` : null;
+	}, [criteria.data]);
 
 	const add = async (investorId: string) => {
 		try {
@@ -51,11 +66,20 @@ export default function RaiseInvestorsPage() {
 						: matches.data?.reason === 'no_company_claim' || !matches.data?.company ? (
 							<Empty>Add your company so Atlas can match investors to your sector, stage and geography.{' '}<Link href="/raise/setup" style={{ color: 'var(--a-navy)' }}>Complete setup →</Link></Empty>
 						) : (matches.data?.results.length ?? 0) === 0 ? <Empty>No matches yet. Broaden your investor criteria in setup.</Empty>
-							: <Grid>
-								{matches.data!.results.map((m) => (
-									<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons} />
-								))}
-							</Grid>
+							: <>
+								{criteriaSummary && (
+									<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', border: '1px solid var(--a-border)', borderRadius: 10, padding: '14px 20px', marginBottom: 14 }}>
+										<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{criteriaSummary}</span>
+										<Button href="/raise/settings" variant="outline" size="sm">Edit criteria</Button>
+									</div>
+								)}
+								<Grid>
+									{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
+										<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
+											onDismiss={() => setDismissed((s) => new Set(s).add(m.id))} />
+									))}
+								</Grid>
+							</>
 				) : (
 					<>
 						<div style={{ position: 'relative', marginBottom: 16 }}>
@@ -63,7 +87,7 @@ export default function RaiseInvestorsPage() {
 							<Input placeholder="Search investors by name" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
 						</div>
 						{all.isLoading ? <Loading /> : (all.data?.data.length ?? 0) === 0 ? <Empty>No investors found.</Empty>
-							: <AllTable rows={all.data!.data} inPipeline={inPipeline} />}
+							: <AllTable rows={all.data!.data} total={all.data?.meta?.total ?? all.data!.data.length} inPipeline={inPipeline} />}
 					</>
 				)}
 			</div>
@@ -71,7 +95,7 @@ export default function RaiseInvestorsPage() {
 	);
 }
 
-function InvestorCard({ inv, added, onAdd, reasons }: { inv: Investor; added: boolean; onAdd: () => void; reasons?: string[] }) {
+function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void }) {
 	const [busy, setBusy] = useState(false);
 	const doAdd = async () => { setBusy(true); await onAdd(); setBusy(false); };
 	return (
@@ -93,6 +117,7 @@ function InvestorCard({ inv, added, onAdd, reasons }: { inv: Investor; added: bo
 				{added
 					? <Button variant="ghost" size="sm" disabled><Check size={13} /> In pipeline</Button>
 					: <Button size="sm" disabled={busy} onClick={() => void doAdd()}>{busy ? <Loader2 className="spin" size={13} /> : <><Plus size={13} /> Add to pipeline</>}</Button>}
+				{!added && onDismiss && <Button variant="outline" size="sm" onClick={onDismiss}>Not relevant</Button>}
 				<Button href={`/raise/investors/${inv.id}`} variant="ghost" size="sm"><ExternalLink size={13} /> View profile</Button>
 			</div>
 		</Card>
@@ -102,10 +127,10 @@ function InvestorCard({ inv, added, onAdd, reasons }: { inv: Investor; added: bo
 function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>{children}</div>; }
 
 const COLS = 'minmax(0,2fr) 130px 150px minmax(0,1.6fr) 110px';
-function AllTable({ rows, inPipeline }: { rows: Investor[]; inPipeline: Set<string> }) {
+function AllTable({ rows, total, inPipeline }: { rows: Investor[]; total: number; inPipeline: Set<string> }) {
 	return (
 		<div>
-			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 8 }}>{rows.length} investors</div>
+			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 8 }}>{total} investors</div>
 			<div style={{ borderTop: '1px solid var(--a-border)' }}>
 				<div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 16, fontSize: 12, color: 'var(--a-muted)', padding: '10px 0', borderBottom: '1px solid var(--a-border)' }}>
 					<span>Investor</span><span>Type</span><span>Geography</span><span>Description</span><span style={{ textAlign: 'right' }}>Action</span>
