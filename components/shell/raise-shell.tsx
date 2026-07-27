@@ -46,7 +46,9 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 	};
 
 	return (
-		<div className="atlas-raise raise-shell">
+		// `atlas` = first-class kit tokens (rebuilt pages); `atlas-raise` = legacy-token
+		// override kept so not-yet-rebuilt pages still render navy during migration.
+		<div className="atlas atlas-raise raise-shell">
 			<aside className="raise-rail">
 				<div className="raise-brand">Atlas<small>by SportsTechX</small></div>
 				<nav className="raise-nav">{NAV.map(renderItem)}</nav>
