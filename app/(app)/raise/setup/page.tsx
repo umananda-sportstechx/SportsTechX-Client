@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -28,9 +28,14 @@ export default function RaiseSetupPage() {
 	const [crit, setCrit] = useState<Rec>({});
 	const [errors, setErrors] = useState<Set<string>>(new Set());
 
+	// Seed the wizard from any saved draft ONCE — later background revalidations must
+	// not clobber the founder's in-progress edits on the current step.
+	const hydrated = useRef(false);
 	useEffect(() => {
-		if (data?.raise) setForm(data.raise);
-		if (data?.criteria) setCrit(data.criteria);
+		if (hydrated.current || !data) return;
+		if (data.raise) setForm(data.raise);
+		if (data.criteria) setCrit(data.criteria);
+		hydrated.current = true;
 	}, [data]);
 
 	const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));

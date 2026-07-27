@@ -44,6 +44,10 @@ export default function RaisePipelinePage() {
 	const params = filter ? { filter } : {};
 	const { data, isLoading, mutate } = useSWR<{ data: Pipe[] }>(qk.raise.pipeline(params));
 	const rows = data?.data ?? [];
+	// Unfiltered set of investor_ids already in the pipeline — used by the Add panel
+	// so an active board filter can't hide an existing entry and allow a duplicate.
+	const allPipe = useSWR<{ data: Pipe[] }>(qk.raise.pipeline());
+	const existingIds = useMemo(() => new Set((allPipe.data?.data ?? []).map((r) => r.investor_id).filter(Boolean) as string[]), [allPipe.data]);
 
 	const byStage = useMemo(() => {
 		const m: Record<string, Pipe[]> = {};
@@ -115,7 +119,7 @@ export default function RaisePipelinePage() {
 			)}
 
 			{open && <DetailPanel row={open} onClose={() => setOpen(null)} onSaved={() => { refresh(); setOpen(null); }} />}
-			{adding && <AddPanel onClose={() => setAdding(false)} onSaved={() => { refresh(); setAdding(false); }} existing={new Set(rows.map((r) => r.investor_id).filter(Boolean) as string[])} />}
+			{adding && <AddPanel onClose={() => setAdding(false)} onSaved={() => { refresh(); void allPipe.mutate(); setAdding(false); }} existing={existingIds} />}
 		</div>
 	);
 }
