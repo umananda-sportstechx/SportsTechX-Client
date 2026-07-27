@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import './atlas.css';
 
@@ -12,6 +13,18 @@ import './atlas.css';
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
 	return parts.filter(Boolean).join(' ');
+}
+
+// ── Layout ──────────────────────────────────────────────────────────────────
+/** Padded content wrapper — the founder shell's content region has no padding. */
+export function Screen({ children, width = 1180 }: { children: ReactNode; width?: number }) {
+	return <div style={{ padding: '32px 40px', maxWidth: width }}>{children}</div>;
+}
+export function Loading() {
+	return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}><Loader2 className="spin" size={22} /></div>;
+}
+export function Empty({ children }: { children: ReactNode }) {
+	return <div className="atlas-card" style={{ textAlign: 'center', color: 'var(--a-muted)', fontSize: 14, padding: 28 }}>{children}</div>;
 }
 
 // ── Text ──────────────────────────────────────────────────────────────────
