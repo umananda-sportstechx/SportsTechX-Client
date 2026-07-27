@@ -35,11 +35,14 @@ const usd = (n?: number) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixe
 export default function RaiseMarketPage() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
 	const [recomputing, setRecomputing] = useState(false);
-	// Poll while the (async) TAM/SAM estimate is still being generated, then stop.
+	// Poll while the (async) TAM/SAM estimate is generating — but cap attempts so a
+	// never-resolving estimate (LLM off / unparseable) doesn't poll forever.
+	const [attempts, setAttempts] = useState(0);
 	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market(), {
-		refreshInterval: (d) => (d && !d.unavailable && d.tam == null ? 8000 : 0),
+		refreshInterval: (d) => (d && !d.unavailable && d.tam == null && attempts < 6 ? 8000 : 0),
+		onSuccess: (d) => setAttempts((a) => (d && !d.unavailable && d.tam == null ? a + 1 : 0)),
 	});
-	const estimating = !!data && !data.unavailable && data.tam == null;
+	const estimating = !!data && !data.unavailable && data.tam == null && attempts < 6;
 
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
@@ -49,6 +52,7 @@ export default function RaiseMarketPage() {
 		try {
 			const res = await apiRequest('GET', '/api/raise/market?force=1');
 			if (!res.ok) throw new Error('Could not recompute');
+			setAttempts(0);
 			await mutate((await res.json()) as Market, { revalidate: false });
 			toast.success('Market analysis recomputed');
 		} catch (e) { toast.error((e as Error).message ?? 'Recompute failed'); }
