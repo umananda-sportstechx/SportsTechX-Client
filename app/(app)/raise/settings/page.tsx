@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -33,8 +33,26 @@ export default function RaiseSettingsPage() {
 	const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
 	const setC = (k: string, v: unknown) => setCrit((c) => ({ ...c, [k]: v }));
 
+	// Atlas taxonomy picker — lets a founder set/correct the sector that drives Market + matching.
+	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
+	const sectorOptions = useMemo<[string, string][]>(() => {
+		const list = sectors ?? [];
+		const byId = new Map(list.map((x) => [x.id, x]));
+		const path = (x: { name: string; parent_id: string | null }): string => {
+			const parts = [x.name]; let p = x.parent_id;
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
+			return parts.join(' → ');
+		};
+		return list.filter((x) => !list.some((y) => y.parent_id === x.id)).map((x) => [x.id, path(x)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [sectors]);
+	const pickSector = (id: string) => {
+		set('company_sector_id', id || null);
+		const label = sectorOptions.find(([v]) => v === id)?.[1];
+		set('company_category', id && label ? label.split(' → ') : null);
+	};
+
 	const RAISE_KEYS = ['company_name', 'company_website', 'hq_city', 'hq_country', 'company_description',
-		'company_stage', 'revenue_status', 'round_type', 'target_amount', 'target_close_date', 'valuation',
+		'company_sector_id', 'company_category', 'company_stage', 'revenue_status', 'round_type', 'target_amount', 'target_close_date', 'valuation',
 		'prior_capital_raised', 'structure'];
 	const CRIT_KEYS = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok'];
 
@@ -74,7 +92,10 @@ export default function RaiseSettingsPage() {
 						<Field label="Current stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 					</Grid>
 					<Field label="Company description"><Input value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} /></Field>
-					<Field label="Revenue status"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Generating revenue']]} /></Field>
+					<Grid n={2}>
+						<Field label="Category (Atlas taxonomy)"><Select placeholder="Select the closest category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} /></Field>
+						<Field label="Revenue status"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Generating revenue']]} /></Field>
+					</Grid>
 				</Section>
 
 				<Section title="Raise details">
