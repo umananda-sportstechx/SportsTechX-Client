@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Screen, H1, Card, Tabs, Loading, Empty } from '@/components/atlas/kit';
+import { apiRequest } from '@/lib/query-client';
+import { Screen, H1, Card, Tabs, Button, Loading, Empty } from '@/components/atlas/kit';
 
 /**
  * Atlas Raise — Market (canvas: isMarket → marketSize / marketComp). Reads
@@ -31,17 +34,34 @@ const usd = (n?: number) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixe
 
 export default function RaiseMarketPage() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
-	const { data, isLoading } = useSWR<Market>(qk.raise.market());
+	const [recomputing, setRecomputing] = useState(false);
+	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market());
 
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
+
+	const recompute = async () => {
+		setRecomputing(true);
+		try {
+			const res = await apiRequest('GET', '/api/raise/market?force=1');
+			if (!res.ok) throw new Error('Could not recompute');
+			await mutate((await res.json()) as Market, { revalidate: false });
+			toast.success('Market analysis recomputed');
+		} catch (e) { toast.error((e as Error).message ?? 'Recompute failed'); }
+		finally { setRecomputing(false); }
+	};
 
 	if (isLoading) return <Screen><Loading /></Screen>;
 	if (!data || data.unavailable) return <Screen><H1>Market</H1><div style={{ marginTop: 20 }}><Empty>Add your company in setup so Atlas can map your market and competitors.{' '}<Link href="/raise/setup" style={{ color: 'var(--a-navy)' }}>Complete setup →</Link></Empty></div></Screen>;
 
 	return (
 		<Screen width={1400}>
-			<H1>Market</H1>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+				<H1>Market</H1>
+				<Button variant="outline" size="sm" disabled={recomputing} onClick={() => void recompute()}>
+					{recomputing ? <Loader2 className="spin" size={13} /> : <RefreshCw size={13} />} Recompute
+				</Button>
+			</div>
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 13, marginTop: 20 }}>
 				<Kpi label="Total market (TAM)" value={eur(data.tam)} estimated={data.tam != null} />
