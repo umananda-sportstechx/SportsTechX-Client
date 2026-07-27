@@ -3,49 +3,52 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useMemo, useState } from 'react';
-import { Screen, H1, Card, Tabs, Button, Loading, Empty } from '@/components/atlas/kit';
+import { qk } from '@/lib/query-keys';
+import { Screen, H1, Card, Tabs, Loading, Empty } from '@/components/atlas/kit';
 
 /**
- * Atlas Raise — Market (canvas: isMarket → marketSize / marketComp). Reuses the
- * founder's verified-company report (GET /api/verified-reports/mine — returns an
- * ARRAY, newest first). TAM/SAM/CAGR/funding aren't computed yet, so those KPI
- * tiles read "—" (methodology in progress); competitors are real.
+ * Atlas Raise — Market (canvas: isMarket → marketSize / marketComp). Reads
+ * GET /api/raise/market: grounded aggregates (total funding, competitors, funding
+ * CAGR) from our deals dataset + LLM-estimated TAM/SAM with methodology. Numbers
+ * are labelled estimated vs grounded per the honesty note.
  */
-interface Report {
-	status: string;
-	report_data: {
-		company?: { sector?: string; classification?: string[] };
-		competitors?: Array<{ id?: string; name?: string; website?: string; business_model?: string; hq_country?: string; funding?: string; category?: string }>;
-		marketOverview?: { headline?: string; bullets?: string[]; paragraphs?: string[] };
-	} | null;
+interface Grounded { sector?: string; total_funding_usd?: number; funded_companies?: number; companies_tracked?: number; deals?: number; funding_cagr_pct?: number | null }
+interface Methodology { approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
+interface Competitor { id: string; name: string; hq_country: string | null; funding: string }
+interface Market {
+	unavailable?: boolean; reason?: string;
+	tam: string | null; sam: string | null; cagr: string | null;
+	classification: string | null; insight_md: string | null;
+	methodology: Methodology | null; competitors: Competitor[] | null; updated_at?: string;
 }
+
+const eur = (v: string | null) => {
+	if (v == null) return '—';
+	const n = Number(v);
+	return n >= 1e9 ? `EUR ${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `EUR ${(n / 1e6).toFixed(0)}m` : `EUR ${n.toLocaleString()}`;
+};
+const usd = (n?: number) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}m` : `$${n.toLocaleString()}`);
 
 export default function RaiseMarketPage() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
-	const [filter, setFilter] = useState<'all' | 'direct' | 'adjacent'>('all');
-	const { data, isLoading } = useSWR<Report[]>(['/api/verified-reports/mine']);
-	const rd = data?.[0]?.report_data ?? null;
-	const competitors = rd?.competitors ?? [];
-	const shown = useMemo(() => {
-		if (filter === 'all') return competitors;
-		return competitors.filter((c) => (c.category ?? '').toLowerCase().includes(filter === 'direct' ? 'direct' : 'adjacent'));
-	}, [competitors, filter]);
+	const { data, isLoading } = useSWR<Market>(qk.raise.market());
+
+	const competitors = useMemo(() => data?.competitors ?? [], [data]);
+	const g = data?.methodology?.grounded;
 
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (!rd) return <Screen><Empty>Add your company in setup so Atlas can map your market and competitors.{' '}<Link href="/raise/setup" style={{ color: 'var(--a-navy)' }}>Complete setup →</Link></Empty></Screen>;
-
-	const classification = rd.company?.classification ?? (rd.company?.sector ? [rd.company.sector] : []);
+	if (!data || data.unavailable) return <Screen><H1>Market</H1><div style={{ marginTop: 20 }}><Empty>Add your company in setup so Atlas can map your market and competitors.{' '}<Link href="/raise/setup" style={{ color: 'var(--a-navy)' }}>Complete setup →</Link></Empty></div></Screen>;
 
 	return (
 		<Screen width={1400}>
 			<H1>Market</H1>
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 13, marginTop: 20 }}>
-				<Kpi label="Total market (TAM)" value="—" />
-				<Kpi label="Addressable market (SAM)" value="—" />
-				<Kpi label="Market growth" value="—" />
-				<Kpi label="Competitors tracked" value={String(competitors.length)} />
-				<Kpi label="Total funding raised" value="—" />
+				<Kpi label="Total market (TAM)" value={eur(data.tam)} estimated={data.tam != null} />
+				<Kpi label="Addressable market (SAM)" value={eur(data.sam)} estimated={data.sam != null} />
+				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
+				<Kpi label="Competitors tracked" value={String(g?.companies_tracked ?? competitors.length)} />
+				<Kpi label="Total funding raised" value={usd(g?.total_funding_usd)} />
 			</div>
 
 			<div style={{ marginTop: 28 }}>
@@ -54,53 +57,46 @@ export default function RaiseMarketPage() {
 
 			{tab === 'size' ? (
 				<div style={{ marginTop: 20, display: 'grid', gap: 18 }}>
-					{classification.length > 0 && (
+					{data.classification && (
 						<Card focus style={{ padding: '18px 24px' }}>
 							<div style={{ fontSize: 13, color: 'var(--a-muted)' }}>Your market classification</div>
-							<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, fontSize: 15, flexWrap: 'wrap' }}>
-								{classification.map((c, i) => (
-									<span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
-										<span style={{ fontWeight: 600 }}>{c}</span>{i < classification.length - 1 && <span style={{ color: 'var(--a-faint)' }}>→</span>}
-									</span>
-								))}
-							</div>
+							<div style={{ fontSize: 15, fontWeight: 600, marginTop: 10 }}>{data.classification}</div>
 						</Card>
 					)}
-					<Card focus style={{ padding: '20px 24px 26px' }}>
-						<div style={{ fontSize: 15, fontWeight: 600 }}>{rd.marketOverview?.headline ?? 'Market overview'}</div>
-						{rd.marketOverview?.paragraphs?.map((p, i) => <p key={i} style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.65, margin: '12px 0 0' }}>{p}</p>)}
-						{rd.marketOverview?.bullets && rd.marketOverview.bullets.length > 0 && (
-							<ul style={{ margin: '10px 0 0', paddingLeft: 20, display: 'grid', gap: 6 }}>{rd.marketOverview.bullets.map((b, i) => <li key={i} style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{b}</li>)}</ul>
+					{data.insight_md && (
+						<Card focus style={{ padding: '20px 24px 24px' }}>
+							<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Market insights</div>
+							<p style={{ margin: 0, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.6 }}>{data.insight_md}</p>
+						</Card>
+					)}
+					<Card style={{ padding: '20px 24px' }}>
+						<div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>How these figures are derived</div>
+						{data.methodology?.approach && <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{data.methodology.approach}</p>}
+						{g && (
+							<div style={{ fontSize: 12, color: 'var(--a-muted)', display: 'grid', gap: 4, marginBottom: 12 }}>
+								<span><strong style={{ color: 'var(--a-ink)' }}>Grounded (from our dataset):</strong> {usd(g.total_funding_usd)} raised · {g.funded_companies ?? 0} funded of {g.companies_tracked ?? 0} companies · {g.deals ?? 0} deals{g.funding_cagr_pct != null ? ` · funding CAGR ${g.funding_cagr_pct}%` : ''}.</span>
+							</div>
 						)}
-						{!rd.marketOverview && <div style={{ color: 'var(--a-faint)', fontSize: 14, marginTop: 8 }}>Market analysis is still generating for your company.</div>}
-						<div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 16 }}>TAM / SAM sizing methodology is in progress and will appear here once available.</div>
+						{(data.methodology?.assumptions?.length ?? 0) > 0 && (
+							<div style={{ marginBottom: 10 }}>
+								<div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Assumptions</div>
+								<ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>{data.methodology!.assumptions!.map((a, i) => <li key={i} style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.5 }}>{a}</li>)}</ul>
+							</div>
+						)}
+						<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 8 }}>TAM/SAM are estimates; funding, competitor counts and CAGR are computed from SportsTechX data.</div>
 					</Card>
-					<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-						<Button variant="outline" disabled title="Coming soon">Change geography</Button>
-						<Button variant="outline" disabled title="Coming soon">Select a narrower segment</Button>
-						<Button variant="outline" disabled title="Coming soon">Correct categorisation</Button>
-					</div>
 				</div>
 			) : (
 				<div style={{ marginTop: 20 }}>
-					<div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-						{(['all', 'direct', 'adjacent'] as const).map((f) => (
-							<button key={f} onClick={() => setFilter(f)} className={`atlas-btn ${filter === f ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`} style={{ textTransform: 'capitalize' }}>
-								{f}{f === 'all' ? ` (${competitors.length})` : ''}
-							</button>
-						))}
-						<span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--a-faint)' }}>Last updated: {data?.[0] ? 'recent' : '—'}</span>
-					</div>
-					{shown.length === 0 ? <Empty>No competitors mapped yet.</Empty> : (
+					{competitors.length === 0 ? <Empty>No competitors mapped yet.</Empty> : (
 						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 14 }}>
-							{shown.map((c, i) => (
-								<Card key={c.id ?? i} style={{ padding: 16, minHeight: 132 }}>
+							{competitors.map((c) => (
+								<Card key={c.id} style={{ padding: 16, minHeight: 110 }}>
 									<div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-										<span style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, color: 'var(--a-muted)', flexShrink: 0 }}>{(c.name ?? 'C').charAt(0)}</span>
-										<div><div style={{ fontSize: 14, fontWeight: 600 }}>{c.name ?? 'Company'}</div>{c.hq_country && <div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 4 }}>{c.hq_country}</div>}</div>
+										<span style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, color: 'var(--a-muted)', flexShrink: 0 }}>{c.name.charAt(0)}</span>
+										<div><div style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</div>{c.hq_country && <div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 4 }}>{c.hq_country}</div>}</div>
 									</div>
-									{c.funding && <div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 14 }}>{c.funding}</div>}
-									{c.business_model && <div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 8, lineHeight: 1.35 }}>{c.business_model}</div>}
+									<div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 14 }}>{c.funding}</div>
 								</Card>
 							))}
 						</div>
@@ -111,6 +107,11 @@ export default function RaiseMarketPage() {
 	);
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
-	return <div className="atlas-stat"><div className="atlas-stat__label">{label}</div><div className="atlas-stat__value">{value}</div></div>;
+function Kpi({ label, value, estimated }: { label: string; value: string; estimated?: boolean }) {
+	return (
+		<div className="atlas-stat">
+			<div className="atlas-stat__label">{label}{estimated && <span style={{ color: 'var(--a-faint)', fontWeight: 400 }}> · est.</span>}</div>
+			<div className="atlas-stat__value">{value}</div>
+		</div>
+	);
 }
