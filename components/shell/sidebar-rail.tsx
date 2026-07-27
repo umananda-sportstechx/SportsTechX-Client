@@ -52,7 +52,7 @@ const WORKSPACE_NAV: Record<'founder' | 'investor', NavGroup> = {
 		label: 'Fundraising Copilot',
 		items: [
 			{ id: 'f-home', name: 'Home', icon: Home, path: '/raise' },
-			{ id: 'f-deck', name: 'Pitch Deck', icon: FileText, path: '/pitch-analyzer' },
+			{ id: 'f-deck', name: 'Pitch Deck', icon: FileText, path: '/raise/pitch' },
 			{ id: 'f-investors', name: 'Investors', icon: Heart, path: '/raise/investors' },
 			{ id: 'f-pipeline', name: 'Pipeline', icon: Grid3x3, path: '/raise/pipeline' },
 			{ id: 'f-market', name: 'Market', icon: Globe, path: '/raise/market' },
