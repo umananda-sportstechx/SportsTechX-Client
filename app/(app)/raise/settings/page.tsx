@@ -4,17 +4,15 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { Page } from '@/components/ui/atoms';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { Screen, H1, Sub, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas/kit';
 
 /**
- * Atlas Raise — Company & Raise settings (Notion "Company & Raise Settings",
- * mock-up 16). Edits the underlying raise profile + investor criteria Atlas uses
- * to run the raise; the derived Current stage is not editable here. Saves via the
- * existing PATCH /api/raise and PUT /api/raise/criteria.
+ * Atlas Raise — Company & Raise settings (mock-up 16 / Notion "Company & Raise
+ * Settings"). Edits the raise profile + investor criteria; the derived Current
+ * stage is read-only. Saves via PATCH /api/raise and PUT /api/raise/criteria.
  */
-
 type Rec = Record<string, unknown>;
 
 export default function RaiseSettingsPage() {
@@ -57,112 +55,83 @@ export default function RaiseSettingsPage() {
 		finally { setBusy(false); }
 	};
 
-	if (isLoading) return <Page><Center><Loader2 className="spin" size={22} /></Center></Page>;
+	if (isLoading) return <Screen><Loading /></Screen>;
 
 	return (
-		<Page>
-			<div style={{ maxWidth: 1120 }}>
-				<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 6px' }}>Raise settings</h1>
-				<p style={{ fontSize: 13, color: 'var(--fg-muted)', margin: '0 0 24px' }}>Edit the underlying information Atlas uses to run your raise.</p>
+		<Screen>
+			<H1>Raise settings</H1>
+			<Sub>Edit the underlying information Atlas uses to run your raise.</Sub>
 
+			<div style={{ display: 'grid', gap: 18, marginTop: 24 }}>
 				<Section title="Company profile">
-					<Row><Text label="Company name" v={form.company_name} on={(x) => set('company_name', x)} /><Text label="Website" v={form.company_website} on={(x) => set('company_website', x)} /></Row>
-					<Row>
-						<Row><Text label="City" v={form.hq_city} on={(x) => set('hq_city', x)} /><Text label="Country" v={form.hq_country} on={(x) => set('hq_country', x)} /></Row>
-						<Select label="Current stage" v={form.company_stage} on={(x) => set('company_stage', x)} opts={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} />
-					</Row>
-					<Text label="Company description" v={form.company_description} on={(x) => set('company_description', x)} />
-					<Select label="Revenue status" v={form.revenue_status} on={(x) => set('revenue_status', x)} opts={[['pre_revenue', 'Pre-revenue'], ['generating', 'Generating revenue']]} />
+					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} /></Field></Grid>
+					<Grid n={3}>
+						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} /></Field>
+						<Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} /></Field>
+						<Field label="Current stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
+					</Grid>
+					<Field label="Company description"><Input value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} /></Field>
+					<Field label="Revenue status"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Generating revenue']]} /></Field>
 				</Section>
 
 				<Section title="Raise details">
-					<Row>
-						<Select label="Round type" v={form.round_type} on={(x) => set('round_type', x)} opts={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} />
-						<Num label="Target raise" v={form.target_amount} on={(x) => set('target_amount', x)} />
-						<Text label="Target close date" v={form.target_close_date} on={(x) => set('target_close_date', x)} type="date" />
-					</Row>
-					<Row>
+					<Grid n={3}>
+						<Field label="Round type"><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
+						<Field label="Target raise"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field>
+						<Field label="Target close date"><Input type="date" value={s(form.target_close_date)} onChange={(e) => set('target_close_date', e.target.value)} /></Field>
+					</Grid>
+					<Grid n={3}>
 						<ReadOnly label="Amount committed" value={form.committed_amount != null ? String(form.committed_amount) : '—'} note="Calculated from committed investors in your pipeline" />
-						<Text label="Valuation" v={form.valuation} on={(x) => set('valuation', x)} placeholder="Not provided" />
-						<Num label="Previous capital raised" v={form.prior_capital_raised} on={(x) => set('prior_capital_raised', x)} />
-					</Row>
-					<Select label="Fundraising structure" v={form.structure} on={(x) => set('structure', x)} opts={[['equity', 'Priced equity round'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} />
+						<Field label="Valuation"><Input placeholder="Not provided" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
+						<Field label="Previous capital raised"><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field>
+					</Grid>
+					<Field label="Fundraising structure"><Select placeholder="Select…" value={s(form.structure)} onChange={(e) => set('structure', e.target.value)} options={[['equity', 'Priced equity round'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} /></Field>
 				</Section>
 
 				<Section title="Investor criteria">
-					<Row>
+					<Grid n={2}>
 						<Multi label="Investor types" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
-						<CsvText label="Geographies" v={crit.geographies} on={(x) => setC('geographies', x)} placeholder="Europe, UK" />
-					</Row>
-					<Row>
-						<Row><Num label="Cheque min" v={crit.cheque_min} on={(x) => setC('cheque_min', x)} /><Num label="Cheque max" v={crit.cheque_max} on={(x) => setC('cheque_max', x)} /></Row>
-						<Select label="Lead or follower preference" v={crit.lead_preference} on={(x) => setC('lead_preference', x)} opts={[['lead', 'Prefer lead'], ['followers', 'Prefer followers'], ['both', 'Both']]} />
-					</Row>
-					<Select label="Strategic investor preference" v={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} on={(x) => setC('strategic_ok', x === 'yes')} opts={[['yes', 'Open to strategics'], ['no', 'Financial investors only']]} />
+						<Field label="Geographies"><Input placeholder="Europe, UK" value={Array.isArray(crit.geographies) ? (crit.geographies as string[]).join(', ') : ''} onChange={(e) => setC('geographies', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></Field>
+					</Grid>
+					<Grid n={3}>
+						<Field label="Cheque min"><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field>
+						<Field label="Cheque max"><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field>
+						<Field label="Lead or follower"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Prefer lead'], ['followers', 'Prefer followers'], ['both', 'Both']]} /></Field>
+					</Grid>
+					<Field label="Strategic investor preference"><Select value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Open to strategics'], ['no', 'Financial investors only']]} placeholder="Select…" /></Field>
 				</Section>
 
-				<div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0 32px' }}>
-					<button className="btn" disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="spin" size={13} /> : 'Save changes'}</button>
+				<div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+					<Button disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="spin" size={13} /> : 'Save changes'}</Button>
 				</div>
 
 				<Section title="Raise controls">
-					<p style={{ fontSize: 12, color: 'var(--fg-muted)', margin: '0 0 12px' }}>
-						Current stage: <strong style={{ color: 'var(--fg-2)' }}>{String(form.stage ?? '—')}</strong> · automatically determined from your pipeline activity, not editable here.
-					</p>
+					<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>
+						Current stage: <strong style={{ color: 'var(--a-muted)' }}>{String(form.stage ?? '—')}</strong> · automatically determined from your pipeline activity, not editable here.
+					</div>
 					<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-						<button className="btn ghost" disabled={busy} onClick={() => void setStatus('funded', 'Round marked as funded')}>Mark round as funded</button>
-						<button className="btn ghost" disabled={busy} onClick={() => void setStatus('paused', 'Raise paused')}>Pause this raise</button>
-						<button className="btn ghost" disabled={busy} style={{ borderColor: '#E24B4A', color: '#A32D2D' }} onClick={() => void setStatus('closed', 'Raise closed')}>Close this raise</button>
+						<Button variant="outline" disabled={busy} onClick={() => void setStatus('funded', 'Round marked as funded')}>Mark round as funded</Button>
+						<Button variant="outline" disabled={busy} onClick={() => void setStatus('paused', 'Raise paused')}>Pause this raise</Button>
+						<Button variant="danger" disabled={busy} onClick={() => void setStatus('closed', 'Raise closed')}>Close this raise</Button>
 					</div>
 				</Section>
 			</div>
-		</Page>
+		</Screen>
 	);
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-function Center({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', placeItems: 'center', minHeight: 300 }}>{children}</div>; }
+function s(v: unknown): string { return v == null ? '' : String(v); }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-	return (
-		<div className="card" style={{ padding: 22, marginBottom: 18 }}>
-			<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>{title}</div>
-			<div style={{ display: 'grid', gap: 16 }}>{children}</div>
-		</div>
-	);
+	return <Card style={{ padding: 22 }}><div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>{title}</div><div style={{ display: 'grid', gap: 16 }}>{children}</div></Card>;
 }
-function Row({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(children as unknown[])?.length ?? 2}, 1fr)`, gap: 16 }}>{children}</div>; }
-function Label({ children }: { children: React.ReactNode }) { return <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 6 }}>{children}</div>; }
-const inputStyle: React.CSSProperties = { width: '100%', height: 38, padding: '0 12px', background: 'var(--bg-1)', border: '1px solid var(--border-strong)', borderRadius: 6, color: 'var(--fg)', fontSize: 13, fontFamily: 'inherit' };
-
-function Text({ label, v, on, placeholder, type = 'text' }: { label: string; v: unknown; on: (x: string) => void; placeholder?: string; type?: string }) {
-	return <div><Label>{label}</Label><input type={type} style={inputStyle} placeholder={placeholder} value={(v as string) ?? ''} onChange={(e) => on(e.target.value)} /></div>;
-}
-function Num({ label, v, on }: { label: string; v: unknown; on: (x: number | '') => void }) {
-	return <div><Label>{label}</Label><input type="number" min={0} style={inputStyle} value={(v as number) ?? ''} onChange={(e) => on(e.target.value === '' ? '' : Number(e.target.value))} /></div>;
-}
-function Select({ label, v, on, opts }: { label: string; v: unknown; on: (x: string) => void; opts: [string, string][] }) {
-	return <div><Label>{label}</Label><select style={inputStyle} value={(v as string) ?? ''} onChange={(e) => on(e.target.value)}>
-		<option value="">Select…</option>{opts.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
-	</select></div>;
-}
-function CsvText({ label, v, on, placeholder }: { label: string; v: unknown; on: (x: string[]) => void; placeholder?: string }) {
-	const str = Array.isArray(v) ? (v as string[]).join(', ') : '';
-	return <div><Label>{label}</Label><input style={inputStyle} placeholder={placeholder} value={str}
-		onChange={(e) => on(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))} /></div>;
-}
-function ReadOnly({ label, value, note }: { label: string; value: string; note?: string }) {
-	return <div><Label>{label}</Label>
-		<div style={{ ...inputStyle, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', color: 'var(--fg-2)' }}>{value}</div>
-		{note && <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>{note}</div>}
-	</div>;
-}
+function Grid({ n, children }: { n: number; children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 16 }}>{children}</div>; }
 function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
 	const sel = new Set((v as string[]) ?? []);
-	return <div><Label>{label}</Label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" className="btn ghost" style={active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
-				onClick={() => { const n = new Set(sel); n.has(o) ? n.delete(o) : n.add(o); on([...n]); }}>{o}</button>;
+			return <button key={o} type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
+				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
-	</div></div>;
+	</div></Field>;
 }

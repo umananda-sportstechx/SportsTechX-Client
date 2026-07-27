@@ -1,0 +1,151 @@
+/*
+ * Atlas design system — the fresh founder-workspace UI kit, built from the
+ * raise mock-ups. First-class tokens (not overrides of the legacy design
+ * system), theme-aware via next-themes' `data-theme` on <html>. Everything the
+ * kit renders is namespaced `atlas-*`; the legacy design-system.css is untouched.
+ */
+.atlas {
+  /* surfaces */
+  --a-page: #FFFFFF;
+  --a-rail: #F7F6F2;
+  --a-surface: #FFFFFF;
+  --a-surface-2: #F1EFE8;   /* cream cards (snapshot, scores) */
+  --a-inset: #F2F1EC;       /* chips, progress tracks */
+  /* text */
+  --a-ink: #1F1E1C;
+  --a-muted: #6B6A64;
+  --a-faint: #9B9A93;
+  /* lines */
+  --a-border: #E4E2DB;
+  --a-border-strong: #B4B2A9;
+  /* accents */
+  --a-navy: #1B4C78;
+  --a-navy-soft: #EAF2FA;
+  --a-blue: #378ADD;
+  --a-primary: #1F1E1C;     /* filled CTA */
+  --a-primary-ink: #FFFFFF;
+  /* status */
+  --a-ok: #27500A;      --a-ok-bg: #EAF3DE;
+  --a-warn: #854F0B;    --a-warn-bg: #FAEEDA;   --a-warn-ring: #EF9F27;
+  --a-danger: #A32D2D;  --a-danger-bg: #FCEBEB;
+  /* shape + type */
+  --a-radius: 12px;
+  --a-radius-sm: 8px;
+  --a-radius-xs: 6px;
+  --a-font: var(--font-space-grotesk), system-ui, -apple-system, sans-serif;
+  --a-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+[data-theme="dark"] .atlas {
+  --a-page: #17150F;
+  --a-rail: #1B1915;
+  --a-surface: #201E1A;
+  --a-surface-2: #262420;
+  --a-inset: #262420;
+  --a-ink: #F4F2EC;
+  --a-muted: #A8A69E;
+  --a-faint: #86847C;
+  --a-border: #34322C;
+  --a-border-strong: #4A473F;
+  --a-navy: #7FB0DC;
+  --a-navy-soft: rgba(127, 176, 220, 0.14);
+  --a-blue: #6FA8DC;
+  --a-primary: #F4F2EC;
+  --a-primary-ink: #1F1E1C;
+  --a-ok: #B6D89A;      --a-ok-bg: rgba(59, 109, 17, 0.18);
+  --a-warn: #E7B96A;    --a-warn-bg: rgba(133, 79, 11, 0.22);  --a-warn-ring: #EF9F27;
+  --a-danger: #F0A5A2;  --a-danger-bg: rgba(226, 75, 74, 0.14);
+}
+
+.atlas {
+  color: var(--a-ink);
+  font-family: var(--a-font);
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.atlas-h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0; color: var(--a-ink); }
+.atlas-h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--a-ink); }
+.atlas-sub { font-size: 14px; color: var(--a-muted); margin: 6px 0 0; }
+.atlas-eyebrow {
+  font-family: var(--a-mono);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--a-faint);
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.atlas-card {
+  background: var(--a-surface);
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  padding: 20px;
+}
+.atlas-card--cream { background: var(--a-surface-2); border-color: var(--a-border); }
+.atlas-card--focus { border-color: var(--a-border-strong); border-width: 1.5px; }
+
+/* ── Button ─────────────────────────────────────────────────────────────── */
+.atlas-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 38px; padding: 0 16px;
+  border-radius: var(--a-radius-xs);
+  font-family: var(--a-font); font-size: 13px; font-weight: 500;
+  border: 1px solid transparent; cursor: pointer;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  white-space: nowrap; text-decoration: none;
+}
+.atlas-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.atlas-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-navy) 30%, transparent); }
+.atlas-btn--primary { background: var(--a-primary); color: var(--a-primary-ink); }
+.atlas-btn--primary:hover:not(:disabled) { opacity: 0.9; }
+.atlas-btn--outline { background: transparent; color: var(--a-ink); border-color: var(--a-border-strong); }
+.atlas-btn--outline:hover:not(:disabled) { background: var(--a-inset); }
+.atlas-btn--ghost { background: transparent; color: var(--a-muted); }
+.atlas-btn--ghost:hover:not(:disabled) { background: var(--a-inset); color: var(--a-ink); }
+.atlas-btn--danger { background: transparent; color: var(--a-danger); border-color: color-mix(in srgb, var(--a-danger) 45%, transparent); }
+.atlas-btn--sm { height: 30px; padding: 0 12px; font-size: 12px; }
+
+/* ── Field ──────────────────────────────────────────────────────────────── */
+.atlas-label { display: block; font-size: 12px; color: var(--a-muted); margin-bottom: 6px; }
+.atlas-input, .atlas-select, .atlas-textarea {
+  width: 100%; height: 38px; padding: 0 12px;
+  background: var(--a-surface); color: var(--a-ink);
+  border: 1px solid var(--a-border-strong); border-radius: var(--a-radius-xs);
+  font-family: var(--a-font); font-size: 13px; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.atlas-textarea { height: auto; min-height: 72px; padding: 10px 12px; resize: vertical; }
+.atlas-input::placeholder, .atlas-textarea::placeholder { color: var(--a-faint); }
+.atlas-input:focus-visible, .atlas-select:focus-visible, .atlas-textarea:focus-visible {
+  border-color: var(--a-navy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-navy) 20%, transparent);
+}
+.atlas-input--readonly { background: var(--a-inset); color: var(--a-muted); }
+
+/* ── Badge / chip ───────────────────────────────────────────────────────── */
+.atlas-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 500; line-height: 1.4;
+}
+.atlas-badge--neutral { background: var(--a-inset); color: var(--a-muted); }
+.atlas-badge--navy { background: var(--a-navy-soft); color: var(--a-navy); }
+.atlas-badge--ok { background: var(--a-ok-bg); color: var(--a-ok); }
+.atlas-badge--warn { background: var(--a-warn-bg); color: var(--a-warn); }
+.atlas-badge--danger { background: var(--a-danger-bg); color: var(--a-danger); }
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.atlas-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--a-border); }
+.atlas-tab {
+  background: none; border: none; cursor: pointer;
+  padding: 0 0 10px; font-family: var(--a-font); font-size: 14px; color: var(--a-muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.atlas-tab.active { color: var(--a-ink); font-weight: 600; border-bottom-color: var(--a-ink); }
+
+/* ── Stat tile ──────────────────────────────────────────────────────────── */
+.atlas-stat { background: var(--a-inset); border-radius: var(--a-radius-sm); padding: 14px 16px; }
+.atlas-stat__label { font-size: 12px; color: var(--a-muted); }
+.atlas-stat__value { font-size: 18px; font-weight: 600; color: var(--a-ink); margin-top: 6px; }
+
+/* ── Progress ───────────────────────────────────────────────────────────── */
+.atlas-progress { height: 8px; border-radius: 4px; background: var(--a-inset); overflow: hidden; }
+.atlas-progress__fill { height: 100%; background: var(--a-blue); border-radius: 4px; }
