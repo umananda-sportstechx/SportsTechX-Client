@@ -80,10 +80,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	].filter(Boolean).join(' ');
 
 	if (isRaiseWorkspace) {
+		// Founder-only shell — no legacy CommandPalette (its nav points at removed routes).
 		return (
 			<>
 				<RaiseShell>{children}</RaiseShell>
-				<CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 				<PaywallGate />
 			</>
 		);
