@@ -57,9 +57,9 @@ export default function RaiseSetupPage() {
 
 	const stepFields = useMemo<string[][]>(() => [
 		['company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
-		['round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
+		['fundraising_process', 'round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
 		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
-		[],
+		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
 	], []);
 
 	const saveStep = async (i: number) => {
@@ -120,6 +120,7 @@ export default function RaiseSetupPage() {
 					</>}
 
 					{step === 1 && <>
+						<Field label="Where are you in the fundraising process?"><Select placeholder="Select…" value={s(form.fundraising_process)} onChange={(e) => set('fundraising_process', e.target.value)} options={[['exploring', 'Exploring'], ['preparing', 'Preparing'], ['approaching', 'Actively approaching investors'], ['due_diligence', 'In due diligence'], ['negotiating', 'Negotiating terms']]} /></Field>
 						<Field label="What round are you raising?"><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
 						<Grid><Field label="How much are you raising?"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field><Field label="Already committed"><Input type="number" min={0} value={s(form.committed_amount)} onChange={(e) => set('committed_amount', e.target.value)} /></Field></Grid>
 						<Grid>
@@ -141,9 +142,19 @@ export default function RaiseSetupPage() {
 						<Field label="Strongest traction metric (optional)"><Input placeholder="e.g. 40% MoM growth" value={s(form.strongest_traction)} onChange={(e) => set('strongest_traction', e.target.value)} /></Field>
 					</>}
 
-					{step === 3 && <div style={{ fontSize: 14, color: 'var(--a-muted)', lineHeight: 1.6 }}>
-						You’ll add your pitch deck and existing investor conversations from the workspace once setup is complete — the Pitch Deck and Pipeline pages walk you through it. Continue to define the investors you need.
-					</div>}
+					{step === 3 && <>
+						<Grid>
+							<Field label="Do you have a current pitch deck?"><Select placeholder="Select…" value={s(form.pitch_deck_status)} onChange={(e) => set('pitch_deck_status', e.target.value)} options={[['have', 'Yes — I’ll upload it'], ['later', 'I’ll add it later']]} /></Field>
+							<Field label="Do you have an investor target list?"><Select value={form.has_target_list === true ? 'yes' : form.has_target_list === false ? 'no' : ''} onChange={(e) => set('has_target_list', e.target.value === 'yes')} placeholder="Select…" options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
+						</Grid>
+						<Grid>
+							<Field label="Do you have a financial model?"><Select placeholder="Select…" value={s(form.financial_model_status)} onChange={(e) => set('financial_model_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
+							<Field label="Do you have a data room?"><Select placeholder="Select…" value={s(form.data_room_status)} onChange={(e) => set('data_room_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
+						</Grid>
+						<div style={{ fontSize: 13, color: 'var(--a-faint)', lineHeight: 1.5 }}>
+							You’ll upload your deck and build out your investor pipeline from the workspace once setup is complete — the Pitch Deck and Pipeline pages walk you through it.
+						</div>
+					</>}
 
 					{step === 4 && <>
 						<Multi label="Which investor types are you targeting?" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
