@@ -30,7 +30,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		if (loading) return;
 		if (!sessionValid) {
-			const target = `/login?redirectTo=${encodeURIComponent(pathname ?? '/dashboard')}`;
+			const target = `/login?redirectTo=${encodeURIComponent(pathname ?? '/raise')}`;
 			router.replace(target);
 		}
 	}, [loading, sessionValid, router, pathname]);

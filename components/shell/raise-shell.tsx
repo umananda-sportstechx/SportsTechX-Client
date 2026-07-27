@@ -18,7 +18,7 @@ interface RaiseNavItem { name: string; icon: LucideIcon; path: string }
 // Order follows the mock-ups: Home · Pitch deck · Market · Investors · Pipeline · Resources.
 const NAV: RaiseNavItem[] = [
 	{ name: 'Home', icon: Home, path: '/raise' },
-	{ name: 'Pitch deck', icon: FileText, path: '/pitch-analyzer' },
+	{ name: 'Pitch deck', icon: FileText, path: '/raise/pitch' },
 	{ name: 'Market', icon: Globe, path: '/raise/market' },
 	{ name: 'Investors', icon: Heart, path: '/raise/investors' },
 	{ name: 'Pipeline', icon: Grid3x3, path: '/raise/pipeline' },
