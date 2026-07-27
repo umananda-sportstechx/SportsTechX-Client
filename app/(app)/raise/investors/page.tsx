@@ -58,12 +58,12 @@ export default function RaiseInvestorsPage() {
 							</Grid>
 				) : (
 					<>
-						<div style={{ position: 'relative', maxWidth: 360, marginBottom: 16 }}>
+						<div style={{ position: 'relative', marginBottom: 16 }}>
 							<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
-							<Input placeholder="Search investors…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
+							<Input placeholder="Search investors by name" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
 						</div>
 						{all.isLoading ? <Loading /> : (all.data?.data.length ?? 0) === 0 ? <Empty>No investors found.</Empty>
-							: <Grid>{all.data!.data.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => add(inv.id)} />)}</Grid>}
+							: <AllTable rows={all.data!.data} inPipeline={inPipeline} />}
 					</>
 				)}
 			</div>
@@ -93,10 +93,33 @@ function InvestorCard({ inv, added, onAdd, reasons }: { inv: Investor; added: bo
 				{added
 					? <Button variant="ghost" size="sm" disabled><Check size={13} /> In pipeline</Button>
 					: <Button size="sm" disabled={busy} onClick={() => void doAdd()}>{busy ? <Loader2 className="spin" size={13} /> : <><Plus size={13} /> Add to pipeline</>}</Button>}
-				{inv.slug && <Button href={`/investors/${inv.slug}`} variant="ghost" size="sm"><ExternalLink size={13} /> Profile</Button>}
+				<Button href={`/raise/investors/${inv.id}`} variant="ghost" size="sm"><ExternalLink size={13} /> View profile</Button>
 			</div>
 		</Card>
 	);
 }
 
 function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>{children}</div>; }
+
+const COLS = 'minmax(0,2fr) 130px 150px minmax(0,1.6fr) 110px';
+function AllTable({ rows, inPipeline }: { rows: Investor[]; inPipeline: Set<string> }) {
+	return (
+		<div>
+			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 8 }}>{rows.length} investors</div>
+			<div style={{ borderTop: '1px solid var(--a-border)' }}>
+				<div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 16, fontSize: 12, color: 'var(--a-muted)', padding: '10px 0', borderBottom: '1px solid var(--a-border)' }}>
+					<span>Investor</span><span>Type</span><span>Geography</span><span>Description</span><span style={{ textAlign: 'right' }}>Action</span>
+				</div>
+				{rows.map((i) => (
+					<div key={i.id} style={{ display: 'grid', gridTemplateColumns: COLS, gap: 16, fontSize: 13, padding: '13px 0', borderBottom: '1px solid var(--a-border)', alignItems: 'center' }}>
+						<span style={{ fontWeight: 500 }}>{i.name}{inPipeline.has(i.id) && <span style={{ marginLeft: 8 }}><Badge tone="navy">In pipeline</Badge></span>}</span>
+						<span style={{ color: 'var(--a-muted)' }}>{i.category ?? '—'}</span>
+						<span style={{ color: 'var(--a-muted)' }}>{i.hq_country ?? '—'}</span>
+						<span style={{ color: 'var(--a-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.description ?? '—'}</span>
+						<Link href={`/raise/investors/${i.id}`} style={{ textAlign: 'right', color: 'var(--a-navy)', fontSize: 13 }}>View profile</Link>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
