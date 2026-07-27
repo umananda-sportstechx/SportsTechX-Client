@@ -35,7 +35,11 @@ const usd = (n?: number) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixe
 export default function RaiseMarketPage() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
 	const [recomputing, setRecomputing] = useState(false);
-	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market());
+	// Poll while the (async) TAM/SAM estimate is still being generated, then stop.
+	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market(), {
+		refreshInterval: (d) => (d && !d.unavailable && d.tam == null ? 8000 : 0),
+	});
+	const estimating = !!data && !data.unavailable && data.tam == null;
 
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
@@ -64,8 +68,8 @@ export default function RaiseMarketPage() {
 			</div>
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 13, marginTop: 20 }}>
-				<Kpi label="Total market (TAM)" value={eur(data.tam)} estimated={data.tam != null} />
-				<Kpi label="Addressable market (SAM)" value={eur(data.sam)} estimated={data.sam != null} />
+				<Kpi label="Total market (TAM)" value={estimating ? 'Estimating…' : eur(data.tam)} estimated={data.tam != null} />
+				<Kpi label="Addressable market (SAM)" value={estimating ? 'Estimating…' : eur(data.sam)} estimated={data.sam != null} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
 				<Kpi label="Competitors tracked" value={String(g?.companies_tracked ?? competitors.length)} />
 				<Kpi label="Total funding raised" value={usd(g?.total_funding_usd)} />
