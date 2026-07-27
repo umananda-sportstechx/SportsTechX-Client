@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Frozen snapshot of the pre-Atlas frontend — reference only, not built.
+    "legacy/**",
   ]),
 ]);
 

@@ -1,73 +1,14 @@
 /*
- * Atlas Raise — founder workspace shell + palette.
- *
- * The founder mock-ups use a clean sidebar-plus-content shell (no topbar,
- * ticker or AI panel) on a navy + warm-cream identity, distinct from the
- * app's orange accent. We reskin by OVERRIDING the design-system tokens under
- * `.atlas-raise`, so the existing page markup (.card, .btn, var(--accent),
- * var(--bg-2)…) re-colours automatically — light by default, with a dark
- * variant keyed off next-themes' `data-theme` on <html>.
+ * Atlas Raise — founder workspace shell layout. Palette/tokens come from the
+ * Atlas kit (components/atlas/atlas.css) via the `.atlas` class on the wrapper;
+ * this file is layout + sidebar chrome only.
  */
-.atlas-raise {
-  --accent: #1B4C78;
-  --accent-2: #378ADD;
-  --accent-fg: #FFFFFF;
-  --accent-soft: rgba(27, 76, 120, 0.10);
-  --bg: #FFFFFF;
-  --bg-1: #FFFFFF;
-  --bg-2: #F2F1EC;
-  --bg-3: #F1EFE8;
-  --surface: #FFFFFF;
-  --fg: #1F1E1C;
-  --fg-2: #6B6A64;
-  --fg-muted: #9B9A93;
-  --border: #E4E2DB;
-  --border-strong: #B4B2A9;
-
-  /* Shell-only tokens */
-  --raise-rail-bg: #F7F6F2;
-  --raise-active-bg: #EAF2FA;
-  --raise-btn: #1F1E1C;
-  --raise-btn-fg: #FFFFFF;
-}
-
-[data-theme="dark"] .atlas-raise {
-  --accent: #7FB0DC;
-  --accent-2: #378ADD;
-  --accent-fg: #10233A;
-  --accent-soft: rgba(127, 176, 220, 0.14);
-  --bg: #17150F;
-  --bg-1: #17150F;
-  --bg-2: #211F1A;
-  --bg-3: #262420;
-  --surface: #201E1A;
-  --fg: #F4F2EC;
-  --fg-2: #A8A69E;
-  --fg-muted: #86847C;
-  --border: #34322C;
-  --border-strong: #4A473F;
-
-  --raise-rail-bg: #1B1915;
-  --raise-active-bg: rgba(127, 176, 220, 0.14);
-  --raise-btn: #F4F2EC;
-  --raise-btn-fg: #1F1E1C;
-}
-
-/* Primary CTAs in the mock-ups are near-black (light) / cream (dark), not the
- * navy accent — the accent is reserved for links, active nav and progress. */
-.atlas-raise .btn:not(.ghost) {
-  background: var(--raise-btn);
-  border-color: var(--raise-btn);
-  color: var(--raise-btn-fg);
-}
-
-/* ── Shell ─────────────────────────────────────────────────────────────── */
 .raise-shell {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   min-height: 100dvh;
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--a-page);
+  color: var(--a-ink);
 }
 
 .raise-content {
@@ -76,15 +17,15 @@
   overflow-y: auto;
 }
 
-/* ── Sidebar ───────────────────────────────────────────────────────────── */
+/* ── Sidebar ───────────────────────────────────────────────────────────────*/
 .raise-rail {
   position: sticky;
   top: 0;
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--raise-rail-bg);
-  border-right: 1px solid var(--border);
+  background: var(--a-rail);
+  border-right: 1px solid var(--a-border);
   padding: 22px 16px 16px;
 }
 
@@ -92,74 +33,43 @@
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--fg);
+  color: var(--a-ink);
   padding: 0 12px;
 }
 .raise-brand small {
   display: block;
   font-size: 10px;
   font-weight: 400;
-  color: var(--fg-muted);
+  color: var(--a-faint);
   margin-top: 1px;
 }
 
-.raise-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 30px;
-  flex: 1;
-}
+.raise-nav { display: flex; flex-direction: column; gap: 2px; margin-top: 30px; flex: 1; }
 .raise-nav-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  margin-top: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  border-top: 1px solid var(--a-border);
+  padding-top: 10px; margin-top: 10px;
 }
 
 .raise-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--fg-2);
-  font-size: 14px;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 12px; border-radius: 8px;
+  border: none; background: transparent;
+  color: var(--a-muted); font-size: 14px; font-family: var(--a-font);
+  text-align: left; text-decoration: none; cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
-.raise-nav-item:hover { background: var(--accent-soft); color: var(--fg); }
-.raise-nav-item.active {
-  background: var(--raise-active-bg);
-  color: var(--accent);
-  font-weight: 500;
-}
+.raise-nav-item:hover { background: var(--a-navy-soft); color: var(--a-ink); }
+.raise-nav-item.active { background: var(--a-navy-soft); color: var(--a-navy); font-weight: 500; }
 .raise-nav-item svg { flex-shrink: 0; }
 
 @media (max-width: 720px) {
   .raise-shell { grid-template-columns: 1fr; }
   .raise-rail {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-    overflow-x: auto;
-    padding: 10px 12px;
+    position: static; height: auto; flex-direction: row; align-items: center;
+    gap: 4px; overflow-x: auto; padding: 10px 12px;
   }
-  .raise-nav, .raise-nav-bottom {
-    flex-direction: row;
-    margin: 0;
-    border: none;
-    padding: 0;
-  }
+  .raise-nav, .raise-nav-bottom { flex-direction: row; margin: 0; border: none; padding: 0; }
   .raise-brand small { display: none; }
   .raise-nav-item .raise-label { display: none; }
 }
