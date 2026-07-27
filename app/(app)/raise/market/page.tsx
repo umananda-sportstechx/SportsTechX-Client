@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
-import { Screen, H1, Eyebrow, Card, Stat, Tabs, Button, Loading, Empty } from '@/components/atlas/kit';
+import { Screen, H1, Eyebrow, Card, Stat, Tabs, Loading, Empty } from '@/components/atlas/kit';
 
 /**
  * Atlas Raise — Market (mock-ups 08/09 / Notion "Market"). Two tabs: Market size
@@ -62,8 +61,7 @@ export default function RaiseMarketPage() {
 							<Card key={c.id ?? i} style={{ padding: 18 }}>
 								<div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>{c.name ?? 'Company'}</div>
 								{c.hq_country && <div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 8 }}>{c.hq_country}</div>}
-								{c.business_model && <div style={{ fontSize: 12, color: 'var(--a-muted)', marginBottom: 10 }}>{c.business_model}</div>}
-								{c.id && <Button href={`/companies/${c.id}`} variant="ghost" size="sm"><ExternalLink size={13} /> View company</Button>}
+								{c.business_model && <div style={{ fontSize: 12, color: 'var(--a-muted)' }}>{c.business_model}</div>}
 							</Card>
 						))}
 					</div>

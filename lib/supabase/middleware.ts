@@ -115,7 +115,7 @@ export async function updateSession(request: NextRequest) {
   // live. A present-but-expired cookie must NOT trigger this redirect, or the
   // user gets thrown /signup → /dashboard → /login and loses their form input.
   if (authed && isAuthPage && authCookieLive(request) === true) {
-    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/raise';
     const url = request.nextUrl.clone();
     url.pathname = redirectTo;
     url.searchParams.delete('redirectTo');
