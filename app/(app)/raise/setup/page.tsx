@@ -34,8 +34,29 @@ export default function RaiseSetupPage() {
 	const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
 	const setC = (k: string, v: unknown) => setCrit((c) => ({ ...c, [k]: v }));
 
+	// Atlas taxonomy (Notion Step 1 "category"): pick the most specific sector — its
+	// full path (Root → Sub → Leaf) is stored as company_category for display, and
+	// company_sector_id drives Market + investor matching.
+	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
+	const sectorOptions = useMemo<[string, string][]>(() => {
+		const list = sectors ?? [];
+		const byId = new Map(list.map((s) => [s.id, s]));
+		const path = (s: { name: string; parent_id: string | null }): string => {
+			const parts = [s.name]; let p = s.parent_id;
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
+			return parts.join(' → ');
+		};
+		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
+		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [sectors]);
+	const pickSector = (id: string) => {
+		set('company_sector_id', id || null);
+		const label = sectorOptions.find(([v]) => v === id)?.[1];
+		set('company_category', id && label ? label.split(' → ') : null);
+	};
+
 	const stepFields = useMemo<string[][]>(() => [
-		['company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_stage', 'revenue_status'],
+		['company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
 		['round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
 		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'monthly_burn', 'runway_months', 'strongest_traction'],
 		[],
@@ -91,6 +112,7 @@ export default function RaiseSetupPage() {
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} /></Field>
 						<Grid><Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} /></Field><Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} /></Field></Grid>
 						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} /></Field>
+						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} /></Field>
 						<Grid>
 							<Field label="Stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 							<Field label="Generating revenue?"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Yes']]} /></Field>
