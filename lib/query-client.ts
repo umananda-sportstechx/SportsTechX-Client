@@ -117,12 +117,18 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
   let message = `Request failed (${res.status}).`;
   try {
     const body = JSON.parse(text) as { message?: unknown; error?: unknown };
-    const err = body.error as { message?: unknown } | string | undefined;
-    const cand =
+    const err = body.error as { message?: unknown; details?: { issues?: Array<{ path?: unknown[]; message?: string }> } } | string | undefined;
+    let cand =
       (typeof err === 'object' && err && typeof err.message === 'string' ? err.message : undefined)
       ?? (typeof body.message === 'string' ? body.message : undefined)
       ?? (Array.isArray(body.message) ? (body.message as string[]).join(', ') : undefined)
       ?? (typeof err === 'string' ? err : undefined);
+    // Zod validation errors: append the offending field(s) so it's never a mystery.
+    const issues = typeof err === 'object' && err ? err.details?.issues : undefined;
+    if (issues?.length) {
+      const fields = issues.map((i) => `${(i.path ?? []).join('.') || 'body'}${i.message ? ` (${i.message})` : ''}`).join('; ');
+      cand = `${cand ?? 'Validation failed'} — ${fields}`;
+    }
     if (cand && cand.trim()) message = cand;
   } catch {
     if (text && text.trim() && text.length < 300) message = text;
