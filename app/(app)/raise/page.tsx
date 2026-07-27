@@ -108,7 +108,7 @@ export default function RaiseHomePage() {
 					<Card variant="cream">
 						<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Raise snapshot</div>
 						<div style={{ height: 1, background: 'var(--a-border)', margin: '12px -20px' }} />
-						<SnapRow label="Pitch deck" href="/pitch-analyzer"
+						<SnapRow label="Pitch deck" href="/raise/pitch"
 							value={data.snapshot.deck ? (data.snapshot.deck.score != null ? `${data.snapshot.deck.score}/100 · Reviewed` : 'Processing…') : 'Not analysed'} />
 						<SnapRow label="Investors in pipeline" href="/raise/pipeline" value={String(data.snapshot.pipeline_count)} />
 						<SnapRow label="Active conversations" href="/raise/pipeline" value={String(data.snapshot.active_conversations)} last />
