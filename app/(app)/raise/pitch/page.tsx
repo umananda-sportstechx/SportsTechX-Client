@@ -15,7 +15,7 @@ import { Screen, H1, Sub, Card, Button, Badge, Loading } from '@/components/atla
 /**
  * Atlas Raise — Pitch deck (canvas: deckEmpty / deckProcessing / deckSummary).
  * Reuses the deck-analysis backend (upload → /api/deck-analysis → stream). The
- * full-analysis detail stays on the existing /pitch-analyzer/[id] streaming view.
+ * full-analysis detail stays on the existing /raise/pitch/[id] streaming view.
  */
 const BUCKET = 'user-uploads';
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -69,7 +69,7 @@ export default function RaisePitchPage() {
 			}
 			const { id } = (await res.json()) as { id: string };
 			await mutate();
-			router.push(`/pitch-analyzer/${id}`);
+			router.push(`/raise/pitch/${id}`);
 		} catch (e) {
 			if (!isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Upload failed');
 		} finally { setUploading(false); }
@@ -114,7 +114,7 @@ export default function RaisePitchPage() {
 				<Loader2 className="spin" size={28} color="var(--a-faint)" />
 				<div style={{ margin: '22px 0 0', fontSize: 16, fontWeight: 600 }}>Analysing {latest.filename ?? 'your deck'}</div>
 				<p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--a-muted)', textAlign: 'center', maxWidth: 520, lineHeight: 1.45 }}>This usually takes about a minute. Feel free to keep working elsewhere — we&apos;ll update this page when it&apos;s ready.</p>
-				<Button variant="outline" size="sm" onClick={() => router.push(`/pitch-analyzer/${latest.id}`)} style={{ marginTop: 20 }}>View live progress</Button>
+				<Button variant="outline" size="sm" onClick={() => router.push(`/raise/pitch/${latest.id}`)} style={{ marginTop: 20 }}>View live progress</Button>
 			</Card>
 		</Screen>
 	);
@@ -148,7 +148,7 @@ export default function RaisePitchPage() {
 					</div>
 				</>}
 				<div style={{ display: 'flex', gap: 16, marginTop: 26 }}>
-					<Button onClick={() => router.push(`/pitch-analyzer/${latest.id}`)}>View full analysis</Button>
+					<Button onClick={() => router.push(`/raise/pitch/${latest.id}`)}>View full analysis</Button>
 					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Analyse revised deck'}</Button>
 				</div>
 			</Card>
@@ -161,7 +161,7 @@ export default function RaisePitchPage() {
 							<span>{d.filename ?? 'Pitch deck'}</span>
 							<span style={{ color: 'var(--a-muted)' }}>{new Date(d.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
 							<span style={{ textAlign: 'right' }}>{d.overall_score ?? '—'}</span>
-							<a href={`/pitch-analyzer/${d.id}`} style={{ textAlign: 'right', color: 'var(--a-navy)' }}>Open</a>
+							<a href={`/raise/pitch/${d.id}`} style={{ textAlign: 'right', color: 'var(--a-navy)' }}>Open</a>
 						</div>
 					))}
 				</Card>
