@@ -58,7 +58,7 @@ export default function RaiseSetupPage() {
 	const stepFields = useMemo<string[][]>(() => [
 		['company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
 		['round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
-		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'monthly_burn', 'runway_months', 'strongest_traction'],
+		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
 		[],
 	], []);
 
@@ -136,6 +136,7 @@ export default function RaiseSetupPage() {
 					{step === 2 && <>
 						<Grid><Field label="Capital raised before this round"><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field><Field label="Last round date"><Input type="date" value={s(form.last_round_date)} onChange={(e) => set('last_round_date', e.target.value)} /></Field></Grid>
 						<Grid><Field label="Current annual revenue / ARR"><Input type="number" min={0} value={s(form.annual_revenue)} onChange={(e) => set('annual_revenue', e.target.value)} /></Field><Field label="Monthly burn"><Input type="number" min={0} value={s(form.monthly_burn)} onChange={(e) => set('monthly_burn', e.target.value)} /></Field></Grid>
+						<Grid><Field label="Revenue growth over the last 12 months (optional)"><Input type="number" placeholder="%" value={s(form.revenue_growth_pct)} onChange={(e) => set('revenue_growth_pct', e.target.value)} /></Field><Field label="Paying customers (optional)"><Input type="number" min={0} value={s(form.paying_customers)} onChange={(e) => set('paying_customers', e.target.value)} /></Field></Grid>
 						<Field label="Months of runway remaining"><Input type="number" min={0} value={s(form.runway_months)} onChange={(e) => set('runway_months', e.target.value)} /></Field>
 						<Field label="Strongest traction metric (optional)"><Input placeholder="e.g. 40% MoM growth" value={s(form.strongest_traction)} onChange={(e) => set('strongest_traction', e.target.value)} /></Field>
 					</>}
@@ -152,6 +153,7 @@ export default function RaiseSetupPage() {
 							<Field label="Lead, followers or both?"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Lead'], ['followers', 'Followers'], ['both', 'Both']]} /></Field>
 							<Field label="Open to strategic investors?"><Select placeholder="Select…" value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
 						</Grid>
+						<Multi label="What expertise or access would be most valuable? (optional)" v={crit.desired_expertise} on={(x) => setC('desired_expertise', x)} opts={['Commercial partnerships', 'Sports rights', 'Media', 'Product', 'International expansion', 'Other']} />
 						<Field label="Biggest fundraising concern (optional)"><Select placeholder="Select…" value={s(crit.biggest_concern)} onChange={(e) => setC('biggest_concern', e.target.value)} options={[['story', 'Story'], ['access', 'Investor access'], ['valuation', 'Valuation'], ['timing', 'Timing'], ['diligence', 'Due diligence'], ['other', 'Other']]} /></Field>
 					</>}
 				</div>
