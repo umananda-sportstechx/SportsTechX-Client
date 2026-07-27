@@ -32,16 +32,15 @@ export default function RaiseInvestorsPage() {
 	const criteria = useSWR<{ criteria: { investor_types?: string[]; geographies?: string[]; cheque_min?: string | null; cheque_max?: string | null } | null }>(qk.raise.current());
 	const inPipeline = useMemo(() => new Set((pipe.data?.data ?? []).map((r) => r.investor_id).filter(Boolean) as string[]), [pipe.data]);
 
+	// Only factors the engine actually matches on (sector/stage come from the company;
+	// type + geographies from criteria). Cheque size isn't matched — no investor cheque
+	// data — so it's shown as a stated preference, not a match factor.
 	const criteriaSummary = useMemo(() => {
 		const c = criteria.data?.criteria;
 		if (!c) return null;
 		const parts: string[] = [];
 		if (c.investor_types?.length) parts.push(c.investor_types.join(', '));
 		if (c.geographies?.length) parts.push(c.geographies.join(', '));
-		if (c.cheque_min || c.cheque_max) {
-			const fmt = (v: string | null | undefined) => (v ? `€${(Number(v) / 1000).toLocaleString()}k` : '');
-			parts.push(`${fmt(c.cheque_min)}${c.cheque_min && c.cheque_max ? '–' : ''}${fmt(c.cheque_max)} cheque`);
-		}
 		return parts.length ? `Matching on ${parts.join(' · ')}` : null;
 	}, [criteria.data]);
 
