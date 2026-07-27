@@ -16,7 +16,7 @@ export default function SignupPage() {
   const params = useSearchParams();
   // After signup we always route into onboarding (skippable). A `redirectTo`
   // is preserved only as the post-onboarding destination via the query string.
-  const redirectTo = params.get('redirectTo') ?? '/dashboard';
+  const redirectTo = params.get('redirectTo') ?? '/raise';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

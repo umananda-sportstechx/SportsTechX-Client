@@ -39,7 +39,7 @@ export function PaywallGate() {
 			await apiRequest('POST', '/api/profiles/plan', plan ? { plan } : {});
 			await mutate();
 			if (plan === 'founder') router.push('/raise/setup');
-			else if (plan === 'investor') router.push('/dashboard');
+			else if (plan === 'investor') router.push('/raise');
 		} catch { setBusy(null); }
 	};
 

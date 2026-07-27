@@ -47,6 +47,8 @@ export default function RaiseHomePage() {
 
 	const r = data.raise;
 	const greetName = profile?.display_name?.split(' ')[0] ?? profile?.full_name?.split(' ')[0] ?? 'there';
+	const hour = new Date().getHours();
+	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 	const committedPct = r && r.target_amount && Number(r.target_amount) > 0
 		? Math.min(100, Math.round((Number(r.committed_amount ?? 0) / Number(r.target_amount)) * 100)) : 0;
 
@@ -54,7 +56,7 @@ export default function RaiseHomePage() {
 		<Wrap>
 			{/* Header */}
 			<div style={{ marginBottom: 20 }}>
-				<H1>Good day, {greetName}</H1>
+				<H1>{greeting}, {greetName}</H1>
 				{r && (
 					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
 						<Badge>{r.round_type ? r.round_type.replace(/_/g, ' ') : 'Round'}</Badge>
@@ -81,7 +83,7 @@ export default function RaiseHomePage() {
 				</Card>
 			)}
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: 20, alignItems: 'start' }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.63fr) minmax(280px, 1fr)', gap: 32, alignItems: 'start' }}>
 				{/* What Needs Your Attention */}
 				<Card focus>
 					<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>What needs your attention</div>
