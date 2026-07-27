@@ -113,7 +113,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 					<span style={{ color: 'var(--a-ink)', fontWeight: 500 }}>Why Atlas recommends this: </span>{reasons.slice(0, 2).join('; ')}.
 				</div>
 			)}
-			<div style={{ display: 'flex', gap: 8, marginTop: 'auto', alignItems: 'center' }}>
+			<div style={{ display: 'flex', gap: 8, marginTop: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
 				{added
 					? <Button variant="ghost" size="sm" disabled><Check size={13} /> In pipeline</Button>
 					: <Button size="sm" disabled={busy} onClick={() => void doAdd()}>{busy ? <Loader2 className="spin" size={13} /> : <><Plus size={13} /> Add to pipeline</>}</Button>}
