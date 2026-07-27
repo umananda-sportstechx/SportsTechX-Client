@@ -8,7 +8,7 @@ import { Check, Plus, ExternalLink, Loader2, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Screen, H1, Card, Badge, Button, Tabs, Input, Loading, Empty } from '@/components/atlas/kit';
+import { Screen, H1, Card, Button, Tabs, Input, Loading, Empty } from '@/components/atlas/kit';
 
 /**
  * Atlas Raise — Investors (mock-ups 10/11 / Notion "Investors"). Recommended
