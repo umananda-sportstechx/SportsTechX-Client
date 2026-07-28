@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -25,14 +25,21 @@ export default function RaiseSettingsPage() {
 	const [crit, setCrit] = useState<Rec>({});
 	const [saving, setSaving] = useState(false);
 	const [busy, setBusy] = useState(false);
+	// Only fields the founder actually edits are submitted — so a pre-existing
+	// malformed value in an untouched field can't reject the whole Save.
+	const dirty = useRef<Set<string>>(new Set());
+	const dirtyC = useRef<Set<string>>(new Set());
 
+	const hydrated = useRef(false);
 	useEffect(() => {
-		if (data?.raise) setForm(data.raise);
-		if (data?.criteria) setCrit(data.criteria);
+		if (hydrated.current || !data) return;
+		if (data.raise) setForm(data.raise);
+		if (data.criteria) setCrit(data.criteria);
+		hydrated.current = true;
 	}, [data]);
 
-	const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
-	const setC = (k: string, v: unknown) => setCrit((c) => ({ ...c, [k]: v }));
+	const set = (k: string, v: unknown) => { dirty.current.add(k); setForm((f) => ({ ...f, [k]: v })); };
+	const setC = (k: string, v: unknown) => { dirtyC.current.add(k); setCrit((c) => ({ ...c, [k]: v })); };
 
 	// Atlas taxonomy picker — lets a founder set/correct the sector that drives Market + matching.
 	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
@@ -58,12 +65,14 @@ export default function RaiseSettingsPage() {
 	const CRIT_KEYS = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'excluded_investor_ids'];
 
 	const save = async () => {
+		const rp = Object.fromEntries(RAISE_KEYS.filter((k) => dirty.current.has(k) && form[k] !== '').map((k) => [k, form[k]]));
+		const cp = Object.fromEntries(CRIT_KEYS.filter((k) => dirtyC.current.has(k) && crit[k] !== '').map((k) => [k, crit[k]]));
+		if (Object.keys(rp).length === 0 && Object.keys(cp).length === 0) { toast('No changes to save'); return; }
 		setSaving(true);
 		try {
-			const rp = Object.fromEntries(RAISE_KEYS.filter((k) => form[k] !== undefined && form[k] !== '').map((k) => [k, form[k]]));
-			const cp = Object.fromEntries(CRIT_KEYS.filter((k) => crit[k] !== undefined && crit[k] !== '').map((k) => [k, crit[k]]));
-			await apiRequest('PATCH', '/api/raise', rp);
-			await apiRequest('PUT', '/api/raise/criteria', cp);
+			if (Object.keys(rp).length) await apiRequest('PATCH', '/api/raise', rp);
+			if (Object.keys(cp).length) await apiRequest('PUT', '/api/raise/criteria', cp);
+			dirty.current.clear(); dirtyC.current.clear();
 			void mutate();
 			toast.success('Settings saved');
 		} catch (e) { toast.error((e as Error).message ?? 'Could not save'); }
