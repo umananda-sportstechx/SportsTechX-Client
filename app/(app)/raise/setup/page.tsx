@@ -38,8 +38,12 @@ export default function RaiseSetupPage() {
 		hydrated.current = true;
 	}, [data]);
 
-	const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
-	const setC = (k: string, v: unknown) => setCrit((c) => ({ ...c, [k]: v }));
+	// Track edited fields so a step's save submits only what the founder changed —
+	// a stale/malformed value seeded from a resumed draft can't reject the save.
+	const dirty = useRef<Set<string>>(new Set());
+	const dirtyC = useRef<Set<string>>(new Set());
+	const set = (k: string, v: unknown) => { dirty.current.add(k); setForm((f) => ({ ...f, [k]: v })); };
+	const setC = (k: string, v: unknown) => { dirtyC.current.add(k); setCrit((c) => ({ ...c, [k]: v })); };
 
 	// Atlas taxonomy (Notion Step 1 "category"): pick the most specific sector — its
 	// full path (Root → Sub → Leaf) is stored as company_category for display, and
@@ -91,7 +95,7 @@ export default function RaiseSetupPage() {
 
 	const saveStep = async (i: number) => {
 		const keys = stepFields[i] ?? [];
-		const payload = Object.fromEntries(keys.filter((k) => form[k] !== undefined && form[k] !== '').map((k) => [k, form[k]]));
+		const payload = Object.fromEntries(keys.filter((k) => dirty.current.has(k) && form[k] !== '').map((k) => [k, form[k]]));
 		if (Object.keys(payload).length === 0) return;
 		await apiRequest('PATCH', '/api/raise', payload);
 	};
@@ -112,7 +116,7 @@ export default function RaiseSetupPage() {
 		try {
 			const critPayload = Object.fromEntries(
 				['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern']
-					.filter((k) => crit[k] !== undefined && crit[k] !== '').map((k) => [k, crit[k]]),
+					.filter((k) => dirtyC.current.has(k) && crit[k] !== '').map((k) => [k, crit[k]]),
 			);
 			await apiRequest('PUT', '/api/raise/criteria', critPayload);
 			await apiRequest('PATCH', '/api/raise', { setup_completed: true });
