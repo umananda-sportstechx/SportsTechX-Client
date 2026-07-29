@@ -161,7 +161,7 @@ function s(v: unknown): string { return v == null ? '' : String(v); }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
 	return <Card style={{ padding: 22 }}><div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>{title}</div><div style={{ display: 'grid', gap: 16 }}>{children}</div></Card>;
 }
-function Grid({ n, children }: { n: number; children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 16 }}>{children}</div>; }
+function Grid({ n, children }: { n: number; children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${n >= 3 ? 180 : 220}px, 1fr))`, gap: 16 }}>{children}</div>; }
 function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
 	const sel = new Set((v as string[]) ?? []);
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

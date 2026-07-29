@@ -97,13 +97,13 @@ export default function PitchAnalysisPage() {
 						<div style={{ width: 68, height: 68, borderRadius: '50%', border: `5px solid ${rating(overall).ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', fontSize: 17, fontWeight: 600 }}>{overall}</div>
 						<span style={{ background: rating(overall).bg, color: rating(overall).fg, borderRadius: 6, padding: '3px 16px', fontSize: 11 }}>{rating(overall).label}</span>
 					</div>
-					{scorecard?.verdict && <p style={{ margin: 0, flex: 1, minWidth: 420, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{scorecard.verdict}</p>}
+					{scorecard?.verdict && <p style={{ margin: 0, flex: 1, minWidth: 240, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{scorecard.verdict}</p>}
 				</Card>
 			)}
 
 			{scorecard && scorecard.sections.length > 0 && <>
 				<div style={{ margin: '28px 0 12px', fontSize: 13, fontWeight: 600 }}>Scores by topic</div>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 24 }}>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
 					{TOPIC_GROUPS.map((g) => {
 						const secs = sectionsByLabel(g.labels);
 						if (secs.length === 0) return null;
@@ -127,7 +127,7 @@ export default function PitchAnalysisPage() {
 					))}
 				</Card>
 
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 24, marginTop: 34 }}>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24, marginTop: 34 }}>
 					<Col title="Specific recommendations" items={scorecard.suggestions.map((s) => s.suggestion)} />
 					<Col title="Strengths" items={scorecard.strengths} />
 					<Col title="Main investor concerns" items={scorecard.risks} />

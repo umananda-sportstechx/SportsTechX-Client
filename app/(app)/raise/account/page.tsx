@@ -55,7 +55,7 @@ export default function RaiseAccountPage() {
 							<div style={{ fontSize: 12, color: 'var(--a-faint)' }}>{profile?.account_type === 'founder' ? 'Founder' : profile?.account_type ?? ''}{profile?.company_name ? `, ${profile.company_name}` : ''}</div>
 						</div>
 					</div>
-					<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
 						<ReadOnly label="Full name" value={name || '—'} />
 						<ReadOnly label="Email" value={profile?.email ?? '—'} />
 					</div>

@@ -83,7 +83,7 @@ export default function RaiseHomePage() {
 				</Card>
 			)}
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.63fr) minmax(280px, 1fr)', gap: 32, alignItems: 'start' }}>
+			<div className="atlas-home-cols">
 				{/* What Needs Your Attention */}
 				<Card focus>
 					<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>What needs your attention</div>
@@ -151,7 +151,7 @@ export default function RaiseHomePage() {
 }
 
 function deckTier(s: number): string { return s < 50 ? 'Early Stage' : s < 70 ? 'Developing' : s < 83 ? 'Investor Ready' : s < 93 ? 'Strong' : 'Exceptional'; }
-function Wrap({ children }: { children: React.ReactNode }) { return <div style={{ padding: '32px 40px', maxWidth: 1180, marginInline: 'auto' }}>{children}</div>; }
+function Wrap({ children }: { children: React.ReactNode }) { return <div className="atlas-screen" style={{ maxWidth: 1180 }}>{children}</div>; }
 function Center({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}>{children}</div>; }
 function SnapRow({ label, value, href, last }: { label: string; value: string; href: string; last?: boolean }) {
 	return (

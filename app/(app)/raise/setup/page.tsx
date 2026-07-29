@@ -235,7 +235,7 @@ function TransitionScreen({ onEnter }: { onEnter: () => void }) {
 				</div>
 			</Card>
 			<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Here’s how Atlas Raise works</div>
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24, textAlign: 'left' }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24, textAlign: 'left' }}>
 				{[['Prepare', 'Strengthen your pitch and get investor-ready.'], ['Connect', 'Find the right investors and organise your outreach.'], ['Close', 'Navigate due diligence, terms and closing.']].map(([t, d]) => (
 					<Card key={t}><div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.5 }}>{d}</div></Card>
 				))}
@@ -246,7 +246,7 @@ function TransitionScreen({ onEnter }: { onEnter: () => void }) {
 }
 
 function s(v: unknown): string { return v == null ? '' : String(v); }
-function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>{children}</div>; }
+function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>{children}</div>; }
 function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
 	const sel = new Set((v as string[]) ?? []);
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
