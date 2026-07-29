@@ -76,7 +76,7 @@ export default function InvestorProfilePage() {
 			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
 
 			<div style={{ fontSize: 15, fontWeight: 600, margin: record ? '30px 0 14px' : '24px 0 14px' }}>{record ? 'About this investor' : ''}</div>
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 14, marginBottom: 16 }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 16 }}>
 				<Tile label="Stages" value={stages} />
 				<Tile label="Typical cheque size" value="Not confirmed" muted />
 				<Tile label="Geography" value={geoText} />
@@ -144,7 +144,7 @@ function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => 
 	return (
 		<Card focus style={{ marginTop: 24, padding: '20px 20px 24px' }}>
 			<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>Your pipeline record</div>
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 16 }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
 				<Field label="Stage"><Select value={f.stage} onChange={(e) => set('stage', e.target.value)} options={STAGES} /></Field>
 				<Field label="Relevant contact"><Input value={f.contact_name ?? ''} onChange={(e) => set('contact_name', e.target.value)} /></Field>
 				<Field label="Potential investment (€)"><Input type="number" min={0} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
