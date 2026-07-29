@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, FileText, Globe, Heart, Grid3x3, BookOpen, Settings, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Brand } from '@/components/ui/brand';
 import './raise-shell.css';
 
 /**
@@ -49,7 +50,10 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 		// `.atlas` supplies the kit tokens (atlas.css) for the shell + all founder pages.
 		<div className="atlas raise-shell">
 			<aside className="raise-rail">
-				<div className="raise-brand">Atlas<small>by SportsTechX</small></div>
+				<div className="raise-brand">
+					<span className="raise-brand-name">Atlas</span>
+					<span className="raise-brand-by">by <Brand variant="horizontal" height={14} /></span>
+				</div>
 				<nav className="raise-nav">{NAV.map(renderItem)}</nav>
 				<nav className="raise-nav-bottom">{BOTTOM_NAV.map(renderItem)}</nav>
 			</aside>
