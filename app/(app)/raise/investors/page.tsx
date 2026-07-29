@@ -9,6 +9,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Button, Tabs, Input, Loading, Empty } from '@/components/atlas/kit';
+import { Logo, Flag } from '@/components/atlas/entity-logo';
 
 /**
  * Atlas Raise — Investors (mock-ups 10/11 / Notion "Investors"). Recommended
@@ -16,9 +17,9 @@ import { Screen, H1, Card, Button, Tabs, Input, Loading, Empty } from '@/compone
  * (the investor database). Recommendations lead with the *reasons* Atlas matched
  * them — not a mystery % score (Notion). "Add to pipeline" posts to raise Pipeline.
  */
-interface Match { id: string; name: string; slug: string | null; website: string | null; category: string | null; description: string | null; score: number; match_reasons: string[] }
+interface Match { id: string; name: string; slug: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null; category: string | null; description: string | null; score: number; match_reasons: string[] }
 interface MatchResult { company: { id: string; name: string } | null; reason?: string; results: Match[] }
-interface Investor { id: string; name: string; slug: string | null; category: string | null; description: string | null; website: string | null; hq_country?: string | null }
+interface Investor { id: string; name: string; slug: string | null; category: string | null; description: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null }
 
 export default function RaiseInvestorsPage() {
 	const [tab, setTab] = useState<'recommended' | 'all'>('recommended');
@@ -101,10 +102,17 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 	return (
 		<Card style={{ display: 'flex', flexDirection: 'column' }}>
 			<div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
-				<div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontWeight: 600, color: 'var(--a-muted)', flexShrink: 0 }}>{inv.name.charAt(0)}</div>
+				<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={36} />
 				<div style={{ minWidth: 0 }}>
 					<div style={{ fontWeight: 600, fontSize: 15 }}>{inv.name}</div>
-					{inv.category && <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>{inv.category}{inv.hq_country ? ` · ${inv.hq_country}` : ''}</div>}
+					{(inv.category || inv.hq_country) && (
+						<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', marginTop: 2 }}>
+							{inv.category && <span>{inv.category}</span>}
+							{inv.category && inv.hq_country && <span>·</span>}
+							{inv.hq_country && <Flag cc={inv.hq_country} size={14} />}
+							{inv.hq_country && <span>{inv.hq_country}</span>}
+						</div>
+					)}
 				</div>
 			</div>
 			{inv.description && <div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{inv.description}</div>}

@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty } from '@/components/atlas/kit';
+import { Logo, Flag } from '@/components/atlas/entity-logo';
 
 /**
  * Atlas Raise — Investor profile (mock-ups 12/13 / canvas isProfileBaseline &
@@ -17,7 +18,7 @@ import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty } fro
  */
 interface Investor {
 	id: string; name: string; slug: string | null; category: string | null; description: string | null;
-	website: string | null; hq_country: string | null; hq_city: string | null; hq_region: string | null;
+	website: string | null; logo_url: string | null; hq_country: string | null; hq_city: string | null; hq_region: string | null;
 }
 interface ThesisBundle {
 	thesis: { description?: string | null } | null;
@@ -62,10 +63,15 @@ export default function InvestorProfilePage() {
 
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, marginTop: 20 }}>
 				<div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-					<div style={{ width: 48, height: 48, borderRadius: 10, background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 600, color: 'var(--a-muted)' }}>{inv.name.charAt(0)}</div>
+					<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={48} radius={10} />
 					<div>
 						<div style={{ fontSize: 20, fontWeight: 600 }}>{inv.name}</div>
-						<div style={{ fontSize: 13, color: 'var(--a-faint)', marginTop: 4 }}>{[inv.category, geoOf(inv)].filter(Boolean).join(' · ')}</div>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--a-faint)', marginTop: 4 }}>
+							{inv.category && <span>{inv.category}</span>}
+							{inv.category && geoOf(inv) !== '—' && <span>·</span>}
+							{inv.hq_country && <Flag cc={inv.hq_country} size={15} />}
+							{geoOf(inv) !== '—' && <span>{geoOf(inv)}</span>}
+						</div>
 					</div>
 				</div>
 				{record
