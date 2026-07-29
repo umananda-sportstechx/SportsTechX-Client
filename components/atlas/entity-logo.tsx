@@ -47,6 +47,9 @@ const CC_TO_COUNTRY: Record<string, string> = {
 	CL: 'Chile', CO: 'Colombia', PE: 'Peru', NG: 'Nigeria', GH: 'Ghana',
 	MA: 'Morocco', QA: 'Qatar', BH: 'Bahrain', OM: 'Oman', JO: 'Jordan',
 	PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
+	MT: 'Malta', CY: 'Cyprus', EE: 'Estonia', LV: 'Latvia', LT: 'Lithuania',
+	SI: 'Slovenia', SK: 'Slovakia', HR: 'Croatia', BG: 'Bulgaria', RS: 'Serbia',
+	IS: 'Iceland', LI: 'Liechtenstein', MC: 'Monaco', EC: 'Ecuador', UY: 'Uruguay', CR: 'Costa Rica',
 };
 
 const COUNTRY_TO_ISO: Record<string, string> = {
