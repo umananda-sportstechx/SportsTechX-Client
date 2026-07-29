@@ -9,6 +9,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { H1, Button, Field, Input, Select, Textarea, Loading } from '@/components/atlas/kit';
+import { Logo, Flag } from '@/components/atlas/entity-logo';
 
 /**
  * Atlas Raise — investor Pipeline (mock-up 14 / Notion "Pipeline"). Full-width
@@ -19,7 +20,7 @@ import { H1, Button, Field, Input, Select, Textarea, Loading } from '@/component
  */
 interface Pipe {
 	id: string; investor_id: string | null; custom_name: string | null;
-	investor_name: string | null; investor_slug: string | null; stage: string;
+	investor_name: string | null; investor_slug: string | null; investor_logo_url: string | null; investor_website: string | null; stage: string;
 	contact_name: string | null; potential_amount: string | null; last_contact_at: string | null;
 	next_step: string | null; next_step_due: string | null; notes: string | null; is_archived: boolean;
 }
@@ -103,7 +104,10 @@ export default function RaisePipelinePage() {
 												onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }}
 												onClick={() => setOpen(p)}
 												style={{ textAlign: 'left', cursor: 'grab', background: 'var(--a-rail)', border: '1px solid var(--a-border)', borderRadius: 8, padding: 12 }}>
-												<div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{nameOf(p)}</div>
+												<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+													<Logo co={{ name: nameOf(p), website: p.investor_website, custom_logo_url: p.investor_logo_url }} size={26} radius={6} />
+													<div style={{ fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(p)}</div>
+												</div>
 												<div style={{ fontSize: 11, color: 'var(--a-faint)' }}>{p.contact_name ? `Contact: ${p.contact_name}` : 'No contact yet'}</div>
 												{p.potential_amount && <div style={{ fontSize: 11, color: 'var(--a-navy)', marginTop: 4 }}>{money(p.potential_amount)} potential</div>}
 												{p.next_step && <div style={{ fontSize: 11, color: overdue(p.next_step_due) ? 'var(--a-danger)' : 'var(--a-muted)', marginTop: 6 }}>
@@ -169,7 +173,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 	);
 }
 
-interface Inv { id: string; name: string; category: string | null; hq_country: string | null }
+interface Inv { id: string; name: string; category: string | null; hq_country: string | null; website: string | null; logo_url: string | null }
 function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved: () => void; existing: Set<string> }) {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
@@ -207,7 +211,12 @@ function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved
 								return (
 									<button key={inv.id} onClick={() => void addDb(inv)} disabled={added || busy}
 										style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--a-border)', cursor: added ? 'default' : 'pointer', textAlign: 'left' }}>
-										<span><span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{inv.name}</span>{inv.category && <span style={{ fontSize: 11, color: 'var(--a-faint)', marginLeft: 6 }}>{inv.category}</span>}</span>
+										<span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+										<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={24} radius={6} />
+										<span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{inv.name}</span>
+										{inv.hq_country && <Flag cc={inv.hq_country} size={13} />}
+										{inv.category && <span style={{ fontSize: 11, color: 'var(--a-faint)' }}>{inv.category}</span>}
+									</span>
 										<span style={{ fontSize: 12, color: added ? 'var(--a-faint)' : 'var(--a-navy)' }}>{added ? 'In pipeline' : '+ Add'}</span>
 									</button>
 								);

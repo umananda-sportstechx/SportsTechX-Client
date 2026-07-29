@@ -8,6 +8,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, H1, Card, Tabs, Button, Loading, Empty } from '@/components/atlas/kit';
+import { Logo, Flag } from '@/components/atlas/entity-logo';
 
 /**
  * Atlas Raise — Market (canvas: isMarket → marketSize / marketComp). Reads
@@ -17,7 +18,7 @@ import { Screen, H1, Card, Tabs, Button, Loading, Empty } from '@/components/atl
  */
 interface Grounded { sector?: string; total_funding_usd?: number; funded_companies?: number; companies_tracked?: number; deals?: number; funding_cagr_pct?: number | null }
 interface Methodology { approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
-interface Competitor { id: string; name: string; hq_country: string | null; funding: string }
+interface Competitor { id: string; name: string; website?: string | null; custom_logo_url?: string | null; hq_country: string | null; funding: string }
 interface Market {
 	unavailable?: boolean; reason?: string;
 	tam: string | null; sam: string | null; cagr: string | null;
@@ -121,8 +122,8 @@ export default function RaiseMarketPage() {
 							{competitors.map((c) => (
 								<Card key={c.id} style={{ padding: 16, minHeight: 110 }}>
 									<div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-										<span style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, color: 'var(--a-muted)', flexShrink: 0 }}>{c.name.charAt(0)}</span>
-										<div><div style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</div>{c.hq_country && <div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 4 }}>{c.hq_country}</div>}</div>
+										<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={36} />
+										<div><div style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</div>{c.hq_country && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', marginTop: 4 }}><Flag cc={c.hq_country} size={14} />{c.hq_country}</div>}</div>
 									</div>
 									<div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 14 }}>{c.funding}</div>
 								</Card>
