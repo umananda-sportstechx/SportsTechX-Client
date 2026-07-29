@@ -64,7 +64,7 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 
 			<div className="raise-main">
 				<header className="raise-topbar">
-					<Brand variant="horizontal" height={24} />
+					<Brand variant="horizontal" height={32} />
 					<button className="raise-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={22} /></button>
 				</header>
 				<div className="raise-content">{children}</div>
