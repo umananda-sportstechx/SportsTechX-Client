@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes';
 import { Home, FileText, Globe, Heart, Grid3x3, BookOpen, Settings, User, Menu, X, Sun, Moon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Brand } from '@/components/ui/brand';
+import { RaiseChat } from '@/components/atlas/raise-chat';
 import './raise-shell.css';
 
 /**
@@ -75,6 +76,8 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 			</div>
 
 			{open && <div className="raise-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />}
+
+			<RaiseChat />
 		</div>
 	);
 }

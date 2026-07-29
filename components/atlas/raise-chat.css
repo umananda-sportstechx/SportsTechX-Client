@@ -1,0 +1,132 @@
+/*
+ * Atlas founder chat — launcher FAB + slide-in panel. Rendered inside the
+ * `.atlas` scope (RaiseShell), so it inherits the --a-* palette. We alias the
+ * legacy token names the shared markdown renderer uses (--accent, --bg-2, …)
+ * onto Atlas tokens here, so chat-core's markdown themes to the raise palette
+ * in both light and dark without touching the shared code.
+ */
+.raise-chat-panel,
+.raise-chat-fab {
+	--accent: var(--a-navy);
+	--bg-2: var(--a-inset);
+	--fg: var(--a-ink);
+	--fg-2: var(--a-muted);
+	--fg-muted: var(--a-faint);
+	--border: var(--a-border);
+	--border-strong: var(--a-border-strong);
+	--font-mono: var(--a-mono);
+}
+
+/* ── Launcher FAB ──────────────────────────────────────────────────────────*/
+.raise-chat-fab {
+	position: fixed; right: 24px; bottom: 24px; z-index: 70;
+	width: 52px; height: 52px; border-radius: 50%;
+	display: inline-flex; align-items: center; justify-content: center;
+	background: var(--a-primary); color: var(--a-primary-ink);
+	border: none; cursor: pointer;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+	transition: transform 0.15s, box-shadow 0.15s;
+}
+.raise-chat-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22); }
+
+/* ── Panel: desktop right drawer ───────────────────────────────────────────*/
+.raise-chat-panel {
+	position: fixed; top: 0; right: 0; z-index: 80;
+	width: 400px; max-width: 100vw; height: 100dvh;
+	display: flex; flex-direction: column;
+	background: var(--a-surface);
+	border-left: 1px solid var(--a-border);
+	box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12);
+	transform: translateX(100%);
+	transition: transform 0.24s ease;
+	color: var(--a-ink); font-family: var(--a-font);
+}
+.raise-chat-panel.open { transform: none; }
+
+/* ── Head ──────────────────────────────────────────────────────────────────*/
+.raise-chat-head {
+	display: flex; align-items: center; gap: 10px;
+	padding: 12px 14px; border-bottom: 1px solid var(--a-border);
+	flex-shrink: 0;
+}
+.raise-chat-mark {
+	width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+	display: inline-flex; align-items: center; justify-content: center;
+	background: var(--a-navy-soft); color: var(--a-navy);
+}
+.raise-chat-head h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--a-ink); }
+.raise-chat-status {
+	display: flex; align-items: center; gap: 6px;
+	font-size: 11px; color: var(--a-muted); margin-top: 1px;
+}
+.raise-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--a-ok); }
+.raise-chat-dot.busy { background: var(--a-warn-ring); animation: raiseChatPulse 1s ease-in-out infinite; }
+@keyframes raiseChatPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+.raise-chat-iconbtn {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+	background: transparent; border: none; cursor: pointer; color: var(--a-muted);
+	transition: background 0.12s, color 0.12s;
+}
+.raise-chat-iconbtn:hover { background: var(--a-inset); color: var(--a-ink); }
+.raise-chat-iconbtn[data-active="true"] { color: var(--a-navy); }
+
+/* ── Body ──────────────────────────────────────────────────────────────────*/
+.raise-chat-body { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; }
+.raise-chat-msg { font-size: 13px; line-height: 1.5; }
+.raise-chat-msg.user {
+	align-self: flex-end; max-width: 85%;
+	background: var(--a-navy-soft); color: var(--a-ink);
+	padding: 8px 12px; border-radius: 12px 12px 3px 12px;
+}
+.raise-chat-msg.assistant { align-self: stretch; color: var(--a-ink); }
+
+.raise-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.raise-chat-chip {
+	display: inline-flex; align-items: center; gap: 6px;
+	font-size: 12px; padding: 6px 11px; border-radius: 999px; cursor: pointer;
+	border: 1px solid var(--a-border-strong); background: var(--a-surface); color: var(--a-ink);
+}
+.raise-chat-chip:hover { background: var(--a-inset); }
+.raise-chat-chip svg { color: var(--a-navy); }
+
+.raise-chat-sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--a-border); display: flex; flex-direction: column; gap: 2px; }
+.raise-chat-sources-head { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint); margin-bottom: 2px; }
+.raise-chat-source { font-size: 11px; color: var(--a-muted); text-decoration: none; }
+.raise-chat-source sup { color: var(--a-navy); font-weight: 700; }
+.raise-chat-source:hover { color: var(--a-ink); }
+
+.raise-chat-thinking { display: flex; gap: 8px; align-items: center; }
+.raise-chat-thinking span { font-size: 11px; color: var(--a-faint); font-family: var(--a-mono); letter-spacing: 0.04em; }
+
+/* ── Input ─────────────────────────────────────────────────────────────────*/
+.raise-chat-input-row {
+	display: flex; gap: 8px; align-items: flex-end;
+	padding: 12px 14px; border-top: 1px solid var(--a-border); flex-shrink: 0;
+}
+.raise-chat-input {
+	flex: 1; resize: none; max-height: 120px;
+	padding: 9px 12px; border-radius: 10px;
+	background: var(--a-surface); color: var(--a-ink);
+	border: 1px solid var(--a-border-strong);
+	font-family: var(--a-font); font-size: 13px; outline: none;
+}
+.raise-chat-input:focus-visible { border-color: var(--a-navy); box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-navy) 20%, transparent); }
+.raise-chat-input::placeholder { color: var(--a-faint); }
+.raise-chat-send {
+	width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+	display: inline-flex; align-items: center; justify-content: center;
+	background: var(--a-primary); color: var(--a-primary-ink); border: none; cursor: pointer;
+	transition: opacity 0.15s;
+}
+.raise-chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Mobile: full-screen modal ─────────────────────────────────────────────*/
+@media (max-width: 720px) {
+	.raise-chat-panel { width: 100vw; border-left: none; box-shadow: none; }
+	.raise-chat-fab { right: 16px; bottom: 16px; }
+	/* Hide the FAB while the mobile nav drawer is open (the rail gets `.open`);
+	   the FAB is a following sibling of the rail in RaiseShell. */
+	.raise-rail.open ~ .raise-chat-fab { display: none; }
+}
