@@ -71,7 +71,7 @@ export default function RaiseMarketPage() {
 				</Button>
 			</div>
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 13, marginTop: 20 }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 13, marginTop: 20 }}>
 				<Kpi label="Total market (TAM)" value={estimating ? 'Estimating…' : eur(data.tam)} estimated={data.tam != null} />
 				<Kpi label="Addressable market (SAM)" value={estimating ? 'Estimating…' : eur(data.sam)} estimated={data.sam != null} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
@@ -117,7 +117,7 @@ export default function RaiseMarketPage() {
 			) : (
 				<div style={{ marginTop: 20 }}>
 					{competitors.length === 0 ? <Empty>No competitors mapped yet.</Empty> : (
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 14 }}>
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
 							{competitors.map((c) => (
 								<Card key={c.id} style={{ padding: 16, minHeight: 110 }}>
 									<div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>

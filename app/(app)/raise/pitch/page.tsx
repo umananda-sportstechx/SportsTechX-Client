@@ -97,7 +97,7 @@ export default function RaisePitchPage() {
 					<div style={{ fontSize: 16, fontWeight: 600 }}>See how investors will read your deck</div>
 				</div>
 				<p style={{ margin: '20px 0 0', fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, maxWidth: 940 }}>Upload your current pitch deck and Atlas will score it, flag what&apos;s missing or unproven, and tell you the highest-priority fixes before you send it to investors.</p>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, margin: '32px 0', maxWidth: 1000 }}>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 24, margin: '32px 0', maxWidth: 1000 }}>
 					{AREAS.map((a) => (
 						<div key={a.h}><div style={{ fontSize: 12, fontWeight: 600 }}>{a.h}</div>
 							<div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 13, color: 'var(--a-muted)' }}>{a.items.map((it) => <span key={it}>{it}</span>)}</div></div>
@@ -140,7 +140,7 @@ export default function RaisePitchPage() {
 						</div>
 						<span style={{ background: r.bg, color: r.fg, borderRadius: 6, padding: '4px 20px', fontSize: 11 }}>{r.label}</span>
 					</div>
-					<p style={{ margin: '6px 0 0', flex: 1, minWidth: 420, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{card?.verdict ?? 'Your deck has been analysed. Open the full analysis for the detailed area-by-area read.'}</p>
+					<p style={{ margin: '6px 0 0', flex: 1, minWidth: 240, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{card?.verdict ?? 'Your deck has been analysed. Open the full analysis for the detailed area-by-area read.'}</p>
 				</div>
 				{improvements.length > 0 && <>
 					<div style={{ marginTop: 28, fontSize: 13, fontWeight: 600 }}>Top priority improvements</div>
