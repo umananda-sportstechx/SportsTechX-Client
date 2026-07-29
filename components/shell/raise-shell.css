@@ -1,7 +1,7 @@
 /*
  * Atlas Raise — founder workspace shell layout. Palette/tokens come from the
- * Atlas kit (components/atlas/atlas.css) via the `.atlas` class on the wrapper;
- * this file is layout + sidebar chrome only.
+ * Atlas kit (components/atlas/atlas.css) via `.atlas` on the wrapper.
+ * Desktop: fixed 220px rail + content. Mobile (≤720px): top bar + left drawer.
  */
 .raise-shell {
   display: grid;
@@ -11,11 +11,11 @@
   color: var(--a-ink);
 }
 
-.raise-content {
-  min-width: 0;
-  height: 100dvh;
-  overflow-y: auto;
-}
+.raise-main { min-width: 0; display: flex; flex-direction: column; }
+.raise-content { min-width: 0; height: 100dvh; overflow-y: auto; }
+
+/* Mobile top bar — hidden on desktop */
+.raise-topbar { display: none; }
 
 /* ── Sidebar ───────────────────────────────────────────────────────────────*/
 .raise-rail {
@@ -28,6 +28,8 @@
   border-right: 1px solid var(--a-border);
   padding: 22px 16px 16px;
 }
+.raise-rail-head { display: flex; align-items: center; justify-content: space-between; }
+.raise-rail-close { display: none; }
 
 .raise-brand { padding: 0 12px; }
 .raise-brand img { display: block; max-width: 100%; }
@@ -51,12 +53,48 @@
 .raise-nav-item.active { background: var(--a-navy-soft); color: var(--a-navy); font-weight: 500; }
 .raise-nav-item svg { flex-shrink: 0; }
 
+.raise-backdrop { display: none; }
+
+/* ── Mobile: top bar + left drawer ─────────────────────────────────────────*/
 @media (max-width: 720px) {
   .raise-shell { grid-template-columns: 1fr; }
-  .raise-rail {
-    position: static; height: auto; flex-direction: row; align-items: center;
-    gap: 4px; overflow-x: auto; padding: 10px 12px;
+
+  .raise-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 40;
+    padding: 10px 16px;
+    background: var(--a-rail);
+    border-bottom: 1px solid var(--a-border);
   }
-  .raise-nav, .raise-nav-bottom { flex-direction: row; margin: 0; border: none; padding: 0; }
-  .raise-nav-item .raise-label { display: none; }
+  .raise-topbar img { display: block; }
+  .raise-hamburger {
+    background: none; border: none; cursor: pointer; color: var(--a-ink);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 8px;
+  }
+  .raise-hamburger:hover { background: var(--a-navy-soft); }
+
+  .raise-content { height: auto; overflow: visible; }
+
+  /* Rail becomes an off-canvas left drawer */
+  .raise-rail {
+    position: fixed; top: 0; left: 0;
+    height: 100dvh; width: 264px; max-width: 84vw;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 2px 0 18px rgba(0, 0, 0, 0.14);
+  }
+  .raise-rail.open { transform: none; }
+  .raise-rail-close {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: none; border: none; cursor: pointer; color: var(--a-muted);
+  }
+  .raise-rail-close:hover { background: var(--a-navy-soft); color: var(--a-ink); }
+
+  .raise-backdrop {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.4); z-index: 55;
+  }
 }
