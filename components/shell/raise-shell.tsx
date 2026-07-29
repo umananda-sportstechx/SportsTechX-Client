@@ -51,8 +51,7 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 		<div className="atlas raise-shell">
 			<aside className="raise-rail">
 				<div className="raise-brand">
-					<span className="raise-brand-name">Atlas</span>
-					<span className="raise-brand-by">by <Brand variant="horizontal" height={14} /></span>
+					<Brand variant="horizontal" height={24} />
 				</div>
 				<nav className="raise-nav">{NAV.map(renderItem)}</nav>
 				<nav className="raise-nav-bottom">{BOTTOM_NAV.map(renderItem)}</nav>
