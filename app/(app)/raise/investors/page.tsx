@@ -124,5 +124,5 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 	);
 }
 
-function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>{children}</div>; }
+function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 14 }}>{children}</div>; }
 

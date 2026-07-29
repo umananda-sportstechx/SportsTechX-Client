@@ -17,9 +17,9 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 
 // ── Layout ──────────────────────────────────────────────────────────────────
 /** Padded content wrapper — the founder shell's content region has no padding.
- *  Centred within the main column so wide screens don't leave the content left-heavy. */
+ *  Centred within the main column; padding shrinks on small screens (see atlas.css). */
 export function Screen({ children, width = 1180 }: { children: ReactNode; width?: number }) {
-	return <div style={{ padding: '32px 40px', maxWidth: width, marginInline: 'auto' }}>{children}</div>;
+	return <div className="atlas-screen" style={{ maxWidth: width }}>{children}</div>;
 }
 export function Loading() {
 	return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}><Loader2 className="spin" size={22} /></div>;
