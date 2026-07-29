@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Home, FileText, Globe, Heart, Grid3x3, BookOpen, Settings, User, Menu, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Home, FileText, Globe, Heart, Grid3x3, BookOpen, Settings, User, Menu, X, Sun, Moon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Brand } from '@/components/ui/brand';
 import './raise-shell.css';
@@ -59,18 +60,45 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 					<button className="raise-rail-close" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20} /></button>
 				</div>
 				<nav className="raise-nav">{NAV.map(renderItem)}</nav>
-				<nav className="raise-nav-bottom">{BOTTOM_NAV.map(renderItem)}</nav>
+				<nav className="raise-nav-bottom">{BOTTOM_NAV.map(renderItem)}<ThemeToggle /></nav>
 			</aside>
 
 			<div className="raise-main">
 				<header className="raise-topbar">
 					<Brand variant="horizontal" height={32} />
-					<button className="raise-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={22} /></button>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+						<ThemeToggle compact />
+						<button className="raise-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={22} /></button>
+					</div>
 				</header>
 				<div className="raise-content">{children}</div>
 			</div>
 
 			{open && <div className="raise-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />}
 		</div>
+	);
+}
+
+/** Light/dark switch — compact icon button for the top bar, labelled row for the sidebar. */
+function ThemeToggle({ compact }: { compact?: boolean }) {
+	const { resolvedTheme, setTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => setMounted(true), []);
+	const isDark = resolvedTheme === 'dark';
+	const toggle = () => setTheme(isDark ? 'light' : 'dark');
+	const Icon = isDark ? Sun : Moon;
+
+	if (compact) {
+		return (
+			<button className="raise-hamburger" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
+				{mounted ? <Icon size={20} /> : <Moon size={20} />}
+			</button>
+		);
+	}
+	return (
+		<button className="raise-nav-item" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
+			{mounted ? <Icon size={18} /> : <Moon size={18} />}
+			<span className="raise-label">{mounted && isDark ? 'Light mode' : 'Dark mode'}</span>
+		</button>
 	);
 }
