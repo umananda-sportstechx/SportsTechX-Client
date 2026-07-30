@@ -73,8 +73,8 @@ export default function RaiseMarketPage() {
 			</div>
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 13, marginTop: 20 }}>
-				<Kpi label="Total market (TAM)" value={estimating ? 'Estimating…' : eur(data.tam)} estimated={data.tam != null} />
-				<Kpi label="Addressable market (SAM)" value={estimating ? 'Estimating…' : eur(data.sam)} estimated={data.sam != null} />
+				<Kpi label="Total market (TAM)" value={estimating || recomputing ? 'Estimating…' : eur(data.tam)} estimated={data.tam != null} />
+				<Kpi label="Addressable market (SAM)" value={estimating || recomputing ? 'Estimating…' : eur(data.sam)} estimated={data.sam != null} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
 				<Kpi label="Competitors tracked" value={String(g?.companies_tracked ?? competitors.length)} />
 				<Kpi label="Total funding raised" value={usd(g?.total_funding_usd)} />

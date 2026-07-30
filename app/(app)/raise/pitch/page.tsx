@@ -11,6 +11,7 @@ import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem, DeckScorecard } from '@/lib/deck-analysis';
 import { Screen, H1, Sub, Card, Button, Badge, Loading } from '@/components/atlas/kit';
+import { StagedLoader, DECK_ANALYSIS_STAGES } from '@/components/atlas/staged-loader';
 
 /**
  * Atlas Raise — Pitch deck (canvas: deckEmpty / deckProcessing / deckSummary).
@@ -88,6 +89,14 @@ export default function RaisePitchPage() {
 
 	if (!list) return <Screen><Loading /></Screen>;
 
+	// Uploading state — covers the upload → analysis-start gap (then we navigate
+	// to the streaming detail page, which shows the analysis loader).
+	if (uploading) return (
+		<Screen>{header}{fileInput}
+			<StagedLoader title="Uploading your deck" stages={['Uploading your file…', 'Starting the analysis…']} note="Hang tight — we'll open your analysis as soon as the upload finishes." />
+		</Screen>
+	);
+
 	// Empty state
 	if (!latest) return (
 		<Screen>{header}{fileInput}
@@ -108,15 +117,17 @@ export default function RaisePitchPage() {
 		</Screen>
 	);
 
-	// Processing state
+	// Processing state — a prior analysis is still running (e.g. user navigated back here).
 	if (latest.status !== 'done') return (
 		<Screen>{header}{fileInput}
-			<Card focus style={{ marginTop: 24, padding: '36px 32px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-				<Loader2 className="spin" size={28} color="var(--a-faint)" />
-				<div style={{ margin: '22px 0 0', fontSize: 16, fontWeight: 600 }}>Analysing {latest.filename ?? 'your deck'}</div>
-				<p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--a-muted)', textAlign: 'center', maxWidth: 520, lineHeight: 1.45 }}>This usually takes about a minute. Feel free to keep working elsewhere — we&apos;ll update this page when it&apos;s ready.</p>
-				<Button variant="outline" size="sm" onClick={() => router.push(`/raise/pitch/${latest.id}`)} style={{ marginTop: 20 }}>View live progress</Button>
-			</Card>
+			<StagedLoader
+				title={`Analysing ${latest.filename ?? 'your deck'}`}
+				stages={DECK_ANALYSIS_STAGES}
+				note="This usually takes about a minute. Feel free to keep working elsewhere — we'll update this page when it's ready."
+			/>
+			<div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+				<Button variant="outline" size="sm" onClick={() => router.push(`/raise/pitch/${latest.id}`)}>View live progress</Button>
+			</div>
 		</Screen>
 	);
 
