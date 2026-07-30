@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
 import { Screen, Card, Badge, Button, Loading } from '@/components/atlas/kit';
+import { StagedLoader, DECK_ANALYSIS_STAGES } from '@/components/atlas/staged-loader';
 
 /**
  * Atlas Raise — Pitch deck full analysis (canvas: deckAnalysis). Same backend as
@@ -86,9 +87,11 @@ export default function PitchAnalysisPage() {
 			</div>
 
 			{streaming && !scorecard && (
-				<Card focus style={{ marginTop: 24, padding: 32, display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
-					<Loader2 className="spin" size={20} /> <span style={{ fontSize: 14, color: 'var(--a-muted)' }}>Analysing your deck…</span>
-				</Card>
+				<StagedLoader
+					title={`Analysing ${row?.filename ?? 'your deck'}`}
+					stages={DECK_ANALYSIS_STAGES}
+					note="This usually takes about a minute. Keep this tab open — the full analysis appears here as soon as it's ready."
+				/>
 			)}
 
 			{overall != null && (
