@@ -10,7 +10,8 @@ import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Button, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
-import { FSelect, useSectorOptions, useSportOptions, SINCE_YEARS, DEALS_BUCKETS } from '@/components/atlas/catalog';
+import { FSelect, LockedFilters, useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, SINCE_YEARS, DEALS_BUCKETS } from '@/components/atlas/catalog';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 /**
  * Atlas Raise — Investors (mock-ups 10/11 / Notion "Investors"). Recommended
@@ -120,8 +121,14 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 	const [category, setCategory] = useState('');
 	const [roundType, setRoundType] = useState('');
 	const [sector, setSector] = useState('');
+	const [subSector, setSubSector] = useState('');
+	const [subSubSector, setSubSubSector] = useState('');
 	const [sport, setSport] = useState('');
 	const [country, setCountry] = useState('');
+	const [city, setCity] = useState('');
+	const [continent, setContinent] = useState('');
+	const [region, setRegion] = useState('');
+	const [techTag, setTechTag] = useState('');
 	const [launched, setLaunched] = useState('');
 	const [deals, setDeals] = useState('');
 	const [verified, setVerified] = useState(false);
@@ -132,8 +139,11 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 
 	const roundsResp = useSWR<RoundRef[] | { data: RoundRef[] }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
 	const rounds = Array.isArray(roundsResp.data) ? roundsResp.data : (roundsResp.data?.data ?? []);
-	const sectorOptions = useSectorOptions();
+	const sectors = useSectorTierData();
 	const sportOptions = useSportOptions();
+	const loc = useLocationFacetOptions();
+	const techTags = useTechTagOptions();
+	const adv = useFeatureAccess('advanced_filters');
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
@@ -143,22 +153,29 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 		if (term) p.q = term;
 		if (category) p.category = category;
 		if (roundType) p.round_type_slug = roundType;
-		if (sector) p.sector_id = sector;
+		const secSlug = sectors.sectorSlug(sector, adv.hasAccess ? subSector : '', adv.hasAccess ? subSubSector : '');
+		if (secSlug) p.sector_slug = secSlug;
 		if (sport) p.sport_id = sport;
 		if (country) p.country = country;
 		if (launched) p.year_launched_min = launched;
 		if (deals) p.deals_min = deals;
 		if (verified) p.is_verified = true;
 		if (active) p.actively_investing = true;
+		if (adv.hasAccess) {
+			if (city) p.city = city;
+			if (continent) p.continent = continent;
+			if (region) p.region = region;
+			if (techTag) p.tech_tag_slug = techTag;
+		}
 		return p;
-	}, [page, sort, dq, category, roundType, sector, sport, country, launched, deals, verified, active]);
+	}, [page, sort, dq, category, roundType, sectors, sector, subSector, subSubSector, sport, country, launched, deals, verified, active, adv.hasAccess, city, continent, region, techTag]);
 
 	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(qk.investors.list(params), { keepPreviousData: true });
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
 	const totalPages = all.data?.totalPages ?? 1;
-	const anyFilter = !!(dq || category || roundType || sector || sport || country || launched || deals || verified || active);
-	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setSector(''); setSport(''); setCountry(''); setLaunched(''); setDeals(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
+	const anyFilter = !!(dq || category || roundType || sector || subSector || subSubSector || sport || country || city || continent || region || techTag || launched || deals || verified || active);
+	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setSector(''); setSubSector(''); setSubSubSector(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setTechTag(''); setLaunched(''); setDeals(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
 
 	return (
 		<>
@@ -169,7 +186,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
 				<FSelect><Select value={category} placeholder="All firm types" options={CATEGORY_OPTIONS} onChange={(e) => { setCategory(e.target.value); reset(); }} /></FSelect>
 				<FSelect><Select value={roundType} placeholder="All stages" options={rounds.map((r) => [r.slug, r.name] as [string, string])} onChange={(e) => { setRoundType(e.target.value); reset(); }} /></FSelect>
-				<FSelect><Select value={sector} placeholder="All sectors" options={sectorOptions} onChange={(e) => { setSector(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sector} placeholder="All sectors" options={sectors.topOptions} onChange={(e) => { setSector(e.target.value); reset(); }} /></FSelect>
 				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
 				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
 				<FSelect minWidth={130}><Select value={launched} placeholder="Any launch year" options={SINCE_YEARS} onChange={(e) => { setLaunched(e.target.value); reset(); }} /></FSelect>
@@ -179,6 +196,18 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 				<FilterChip active={active} onClick={() => { setActive((v) => !v); reset(); }}>Actively investing</FilterChip>
 				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={clearAll}>Clear</button>}
 			</div>
+			{adv.hasAccess ? (
+				<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+					<FSelect><Select value={subSector} placeholder="All sub-sectors" options={sectors.subOptions} onChange={(e) => { setSubSector(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={subSubSector} placeholder="All sub-sub-sectors" options={sectors.subSubOptions} onChange={(e) => { setSubSubSector(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={techTag} placeholder="All tech tags" options={techTags} onChange={(e) => { setTechTag(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={continent} placeholder="All continents" options={loc.continent} onChange={(e) => { setContinent(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={region} placeholder="All regions" options={loc.region} onChange={(e) => { setRegion(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={city} placeholder="All cities" options={loc.city} onChange={(e) => { setCity(e.target.value); reset(); }} /></FSelect>
+				</div>
+			) : adv.isLocked ? (
+				<div style={{ marginBottom: 14 }}><LockedFilters requiredTier={adv.requiredTier} /></div>
+			) : null}
 			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>{total.toLocaleString()} investor{total === 1 ? '' : 's'}</div>
 
 			{all.isLoading && rows.length === 0 ? <Loading />

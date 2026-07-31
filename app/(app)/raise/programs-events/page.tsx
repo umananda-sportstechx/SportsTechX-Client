@@ -7,7 +7,8 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Sub, Card, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
-import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid, FSelect, useSportOptions, MONTHS } from '@/components/atlas/catalog';
+import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid, FSelect, LockedFilters, useSportOptions, useLocationFacetOptions, MONTHS } from '@/components/atlas/catalog';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 /**
  * Atlas Raise — Programs & Events. Two tabs over /api/ecosystem-entities
@@ -53,10 +54,15 @@ function ProgramsTab() {
 	const [category, setCategory] = useState('');
 	const [sport, setSport] = useState('');
 	const [country, setCountry] = useState('');
+	const [city, setCity] = useState('');
+	const [continent, setContinent] = useState('');
+	const [region, setRegion] = useState('');
 	const [entriesOpen, setEntriesOpen] = useState(false);
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
+	const loc = useLocationFacetOptions();
+	const adv = useFeatureAccess('advanced_filters');
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { entity_type: 'program', page, limit: PAGE_SIZE, sort: '-created_at' };
@@ -66,11 +72,16 @@ function ProgramsTab() {
 		if (sport) p.sport_id = sport;
 		if (country) p.country = country;
 		if (entriesOpen) p.entries_open = true;
+		if (adv.hasAccess) {
+			if (city) p.city = city;
+			if (continent) p.continent = continent;
+			if (region) p.region = region;
+		}
 		return p;
-	}, [page, dq, category, sport, country, entriesOpen]);
+	}, [page, dq, category, sport, country, entriesOpen, adv.hasAccess, city, continent, region]);
 	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const anyFilter = !!(dq || category || sport || country || entriesOpen);
+	const anyFilter = !!(dq || category || sport || country || city || continent || region || entriesOpen);
 
 	return (
 		<>
@@ -80,7 +91,13 @@ function ProgramsTab() {
 				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
 				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
 				<FilterChip active={entriesOpen} onClick={() => { setEntriesOpen((v) => !v); reset(); }}>Entries open</FilterChip>
-				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setCategory(''); setSport(''); setCountry(''); setEntriesOpen(false); reset(); }}>Clear</button>}
+				{adv.hasAccess && <>
+					<FSelect><Select value={continent} placeholder="All continents" options={loc.continent} onChange={(e) => { setContinent(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={region} placeholder="All regions" options={loc.region} onChange={(e) => { setRegion(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={city} placeholder="All cities" options={loc.city} onChange={(e) => { setCity(e.target.value); reset(); }} /></FSelect>
+				</>}
+				{adv.isLocked && <LockedFilters requiredTier={adv.requiredTier} />}
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setCategory(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setEntriesOpen(false); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="program" />
 			{res.isLoading && rows.length === 0 ? <Loading />
@@ -98,6 +115,9 @@ function EventsTab() {
 	const [sport, setSport] = useState('');
 	const [month, setMonth] = useState('');
 	const [country, setCountry] = useState('');
+	const [city, setCity] = useState('');
+	const [continent, setContinent] = useState('');
+	const [region, setRegion] = useState('');
 	// Default to upcoming events, soonest first — the useful default. When showing
 	// all events, flip to most-recent first (start_date ASC would surface the
 	// oldest events in the DB on page 1).
@@ -105,6 +125,8 @@ function EventsTab() {
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
+	const loc = useLocationFacetOptions();
+	const adv = useFeatureAccess('advanced_filters');
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { entity_type: 'event', page, limit: PAGE_SIZE, sort: upcoming ? 'start_date' : '-start_date' };
@@ -115,11 +137,16 @@ function EventsTab() {
 		if (month) p.start_month = month;
 		if (country) p.country = country;
 		if (upcoming) p.upcoming_only = true;
+		if (adv.hasAccess) {
+			if (city) p.city = city;
+			if (continent) p.continent = continent;
+			if (region) p.region = region;
+		}
 		return p;
-	}, [page, dq, mode, sport, month, country, upcoming]);
+	}, [page, dq, mode, sport, month, country, upcoming, adv.hasAccess, city, continent, region]);
 	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const anyFilter = !!(dq || mode || sport || month || country);
+	const anyFilter = !!(dq || mode || sport || month || country || city || continent || region);
 
 	return (
 		<>
@@ -130,7 +157,13 @@ function EventsTab() {
 				<FSelect minWidth={140}><Select value={month} placeholder="Any month" options={MONTHS} onChange={(e) => { setMonth(e.target.value); reset(); }} /></FSelect>
 				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
 				<FilterChip active={upcoming} onClick={() => { setUpcoming((v) => !v); reset(); }}>Upcoming only</FilterChip>
-				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setSport(''); setMonth(''); setCountry(''); setUpcoming(true); reset(); }}>Clear</button>}
+				{adv.hasAccess && <>
+					<FSelect><Select value={continent} placeholder="All continents" options={loc.continent} onChange={(e) => { setContinent(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={region} placeholder="All regions" options={loc.region} onChange={(e) => { setRegion(e.target.value); reset(); }} /></FSelect>
+					<FSelect><Select value={city} placeholder="All cities" options={loc.city} onChange={(e) => { setCity(e.target.value); reset(); }} /></FSelect>
+				</>}
+				{adv.isLocked && <LockedFilters requiredTier={adv.requiredTier} />}
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setSport(''); setMonth(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setUpcoming(true); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="event" />
 			{res.isLoading && rows.length === 0 ? <Loading />

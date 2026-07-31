@@ -2,8 +2,10 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useSectorTiers, expandSectorSelection, type SectorRef } from '@/hooks/use-sector-tiers';
+import type { LocationFacets } from '@/lib/location-facets';
 import { Button } from './kit';
 
 /**
@@ -34,21 +36,69 @@ export const COUNTRY_OPTIONS: [string, string][] = [
 ];
 
 // ── Reference-data filter options ────────────────────────────────────────────
-/** Leaf sectors as [id, "Root → Sub → Leaf"] options (filter by sector_id — no
- *  slug dependency, and leaf ids match how companies/theses are tagged). */
-export function useSectorOptions(): [string, string][] {
-	const { data } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+export interface SectorTierData {
+	/** Top-level pillars — the primary (ungated) Sector select. */
+	topOptions: [string, string][];
+	/** Depth-1 sub-sectors (path-labelled) — an advanced (gated) select. */
+	subOptions: [string, string][];
+	/** Depth-2 sub-sub-sectors (path-labelled) — an advanced (gated) select. */
+	subSubOptions: [string, string][];
+	/** Merge tier selections → a deduped, descendant-expanded `sector_slug` value. */
+	sectorSlug: (top: string, sub: string, subSub: string) => string | undefined;
+}
+
+/** Sector hierarchy split into pillar / sub / sub-sub tiers, each filtering by
+ *  `sector_slug` with descendant expansion (picking a pillar matches every leaf
+ *  beneath it — the backends match an exact slug list). */
+export function useSectorTierData(): SectorTierData {
+	const { data } = useSWR<SectorRef[]>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	const list = useMemo<SectorRef[]>(() => data ?? [], [data]);
+	const tiers = useSectorTiers(list);
 	return useMemo(() => {
-		const list = data ?? [];
 		const byId = new Map(list.map((s) => [s.id, s]));
-		const path = (s: { name: string; parent_id: string | null }): string => {
+		const path = (s: SectorRef): string => {
 			const parts = [s.name]; let p = s.parent_id;
-			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
-			return parts.join(' → ');
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id ?? null; }
+			return parts.join(' › ');
 		};
-		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
-		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+		const byLabel = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1]);
+		return {
+			topOptions: tiers.tops.map((s) => [s.slug, s.name] as [string, string]).sort(byLabel),
+			subOptions: tiers.subs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
+			subSubOptions: tiers.subSubs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
+			sectorSlug: (top, sub, subSub) => expandSectorSelection(tiers, top ? [top] : [], sub ? [sub] : [], subSub ? [subSub] : []),
+		};
+	}, [list, tiers]);
+}
+
+/** City / continent / region options from the shared location facets endpoint. */
+export function useLocationFacetOptions() {
+	const { data } = useSWR<LocationFacets>(qk.reference.locationFacets(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => ({
+		city: (data?.cities ?? []).map((c) => [c, c] as [string, string]),
+		continent: (data?.continents ?? []).map((c) => [c, c] as [string, string]),
+		region: (data?.regions ?? []).map((r) => [r, r] as [string, string]),
+	}), [data]);
+}
+
+/** Tech-tag options as [slug, name] (filter by tech_tag_slug). */
+export function useTechTagOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ name: string; slug: string }> | { data: Array<{ name: string; slug: string }> }>(qk.reference.techTags(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const listT = Array.isArray(data) ? data : (data?.data ?? []);
+		return listT.map((t) => [t.slug, t.name] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
 	}, [data]);
+}
+
+/** Locked teaser shown in place of the advanced filters when the user's tier
+ *  doesn't include them (feature slug `advanced_filters`). */
+export function LockedFilters({ requiredTier }: { requiredTier?: string | null }) {
+	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Growth';
+	return (
+		<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', border: '1px dashed var(--a-border-strong)', borderRadius: 999, padding: '6px 12px' }}>
+			<Lock size={13} /> Advanced filters (sector tiers, location, tech tags) · {tier}+
+		</span>
+	);
 }
 
 /** Sports as [id, name] options (filter by sport_id). */
