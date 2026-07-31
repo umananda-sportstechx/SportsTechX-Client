@@ -4,17 +4,20 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { Screen, H1, Card, Tabs, Button, Loading, Empty } from '@/components/atlas/kit';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Screen, H1, Card, Tabs, Button, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
+import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid } from '@/components/atlas/catalog';
 
 /**
- * Atlas Raise — Market (canvas: isMarket → marketSize / marketComp). Reads
- * GET /api/raise/market: grounded aggregates (total funding, competitors, funding
- * CAGR) from our deals dataset + LLM-estimated TAM/SAM with methodology. Numbers
- * are labelled estimated vs grounded per the honesty note.
+ * Atlas Raise — Market. Two top-level tabs:
+ *   • Analysis    — the founder's own market: LLM-estimated TAM/SAM + grounded
+ *                   funding/CAGR/competitor aggregates for their sector.
+ *   • All companies — browse the full sports-tech company database (search +
+ *                   filters + pagination), reusing /api/companies.
  */
 interface Grounded { sector?: string; total_funding_usd?: number; funded_companies?: number; companies_tracked?: number; deals?: number; funding_cagr_pct?: number | null }
 interface Methodology { approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
@@ -25,18 +28,43 @@ interface Market {
 	classification: string | null; insight_md: string | null;
 	methodology: Methodology | null; competitors: Competitor[] | null; updated_at?: string;
 }
+interface Company {
+	id: string; name: string; slug: string | null; website: string | null;
+	custom_logo_url?: string | null; business_model?: string | null; description?: string | null;
+	hq_country?: string | null; primary_sector?: string | null; total_funding_usd?: string | number | null;
+}
+
+const PAGE_SIZE = 24;
+const BUSINESS_MODELS: [string, string][] = [['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C'], ['d2c', 'D2C'], ['b2g', 'B2G'], ['other', 'Other']];
+const COMPANY_SORTS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-total_funding', 'Most funded']];
 
 const eur = (v: string | null) => {
 	if (v == null) return '—';
 	const n = Number(v);
 	return n >= 1e9 ? `EUR ${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `EUR ${(n / 1e6).toFixed(0)}m` : `EUR ${n.toLocaleString()}`;
 };
-const usd = (n?: number) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}m` : `$${n.toLocaleString()}`);
+const usd = (n?: number | null) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}m` : n > 0 ? `$${n.toLocaleString()}` : '—');
 
 export default function RaiseMarketPage() {
+	const [view, setView] = useState<'analysis' | 'companies'>('analysis');
+	return (
+		<Screen width={1400}>
+			<H1>Market</H1>
+			<div style={{ marginTop: 16 }}>
+				<Tabs tabs={[{ key: 'analysis', label: 'Analysis' }, { key: 'companies', label: 'All companies' }]} value={view} onChange={setView} />
+			</div>
+			<div style={{ marginTop: 20 }}>
+				{view === 'analysis' ? <MarketAnalysis /> : <AllCompaniesTab />}
+			</div>
+		</Screen>
+	);
+}
+
+// ── Analysis tab ────────────────────────────────────────────────────────────
+function MarketAnalysis() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
 	const [recomputing, setRecomputing] = useState(false);
-	// Poll while the (async) TAM/SAM estimate is generating — but cap attempts so a
+	// Poll while the (async) TAM/SAM estimate is generating — capped so a
 	// never-resolving estimate (LLM off / unparseable) doesn't poll forever.
 	const [attempts, setAttempts] = useState(0);
 	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market(), {
@@ -44,7 +72,6 @@ export default function RaiseMarketPage() {
 		onSuccess: (d) => setAttempts((a) => (d && !d.unavailable && d.tam == null ? a + 1 : 0)),
 	});
 	const estimating = !!data && !data.unavailable && data.tam == null && attempts < 6;
-
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
 
@@ -60,19 +87,21 @@ export default function RaiseMarketPage() {
 		finally { setRecomputing(false); }
 	};
 
-	if (isLoading) return <Screen><Loading /></Screen>;
-	if (!data || data.unavailable) return <Screen><H1>Market</H1><div style={{ marginTop: 20 }}><Empty>Atlas needs your company category to map your market. Set it under{' '}<Link href="/raise/settings" style={{ color: 'var(--a-navy)' }}>Raise settings → Category</Link>.</Empty></div></Screen>;
+	if (isLoading) return <Loading />;
+	if (!data || data.unavailable) return (
+		<Empty>Atlas needs your company category to map your market. Set it under{' '}
+			<Link href="/raise/settings" style={{ color: 'var(--a-navy)' }}>Raise settings → Category</Link>.</Empty>
+	);
 
 	return (
-		<Screen width={1400}>
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-				<H1>Market</H1>
+		<>
+			<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
 				<Button variant="outline" size="sm" disabled={recomputing} onClick={() => void recompute()}>
 					{recomputing ? <Loader2 className="spin" size={13} /> : <RefreshCw size={13} />} Recompute
 				</Button>
 			</div>
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 13, marginTop: 20 }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 13 }}>
 				<Kpi label="Total market (TAM)" value={estimating || recomputing ? 'Estimating…' : eur(data.tam)} estimated={data.tam != null} />
 				<Kpi label="Addressable market (SAM)" value={estimating || recomputing ? 'Estimating…' : eur(data.sam)} estimated={data.sam != null} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
@@ -132,7 +161,7 @@ export default function RaiseMarketPage() {
 					)}
 				</div>
 			)}
-		</Screen>
+		</>
 	);
 }
 
@@ -142,5 +171,87 @@ function Kpi({ label, value, estimated }: { label: string; value: string; estima
 			<div className="atlas-stat__label">{label}{estimated && <span style={{ color: 'var(--a-faint)', fontWeight: 400 }}> · est.</span>}</div>
 			<div className="atlas-stat__value">{value}</div>
 		</div>
+	);
+}
+
+// ── All companies tab ───────────────────────────────────────────────────────
+function AllCompaniesTab() {
+	const [q, setQ] = useState('');
+	const dq = useDebouncedValue(q);
+	const [model, setModel] = useState('');
+	const [country, setCountry] = useState('');
+	const [verified, setVerified] = useState(false);
+	const [raising, setRaising] = useState(false);
+	const [sort, setSort] = useState('-created_at');
+	const [page, setPage] = useState(1);
+	const reset = () => setPage(1);
+
+	const params = useMemo(() => {
+		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
+		const term = dq.trim().slice(0, 120);
+		if (term) p.q = term;
+		if (model) p.business_model = model;
+		if (country) p.country = country;
+		if (verified) p.is_verified = true;
+		if (raising) p.is_actively_raising = true;
+		return p;
+	}, [page, sort, dq, model, country, verified, raising]);
+
+	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(qk.companies.list(params), { keepPreviousData: true });
+	const rows = all.data?.data ?? [];
+	const total = all.data?.total ?? 0;
+	const anyFilter = !!(dq || model || country || verified || raising);
+	const clearAll = () => { setQ(''); setModel(''); setCountry(''); setVerified(false); setRaising(false); setSort('-created_at'); setPage(1); };
+
+	return (
+		<>
+			<div style={{ position: 'relative', marginBottom: 12 }}>
+				<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
+				<Input placeholder="Search companies by name or website" value={q} onChange={(e) => { setQ(e.target.value); reset(); }} style={{ paddingLeft: 34 }} />
+			</div>
+			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+				<div style={{ minWidth: 150 }}><Select value={model} placeholder="All business models" options={BUSINESS_MODELS} onChange={(e) => { setModel(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 140 }}><Select value={sort} options={COMPANY_SORTS} onChange={(e) => { setSort(e.target.value); reset(); }} /></div>
+				<FilterChip active={verified} onClick={() => { setVerified((v) => !v); reset(); }}>Verified</FilterChip>
+				<FilterChip active={raising} onClick={() => { setRaising((v) => !v); reset(); }}>Raising now</FilterChip>
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={clearAll}>Clear</button>}
+			</div>
+			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>{total.toLocaleString()} compan{total === 1 ? 'y' : 'ies'}</div>
+
+			{all.isLoading && rows.length === 0 ? <Loading />
+				: rows.length === 0 ? <Empty>No companies match your filters.</Empty>
+					: <CardGrid>{rows.map((c) => <CompanyCard key={c.id} c={c} />)}</CardGrid>}
+
+			<Pager page={page} totalPages={all.data?.totalPages ?? 1} onPage={setPage} />
+		</>
+	);
+}
+
+function CompanyCard({ c }: { c: Company }) {
+	const meta = [c.business_model ? c.business_model.toUpperCase() : null, c.primary_sector].filter(Boolean).join(' · ');
+	const funding = usd(c.total_funding_usd == null ? null : Number(c.total_funding_usd));
+	return (
+		<Card style={{ display: 'flex', flexDirection: 'column' }}>
+			<div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+				<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={36} />
+				<div style={{ minWidth: 0 }}>
+					<div style={{ fontWeight: 600, fontSize: 15 }}>{c.name}</div>
+					{(meta || c.hq_country) && (
+						<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', marginTop: 2, flexWrap: 'wrap' }}>
+							{meta && <span>{meta}</span>}
+							{meta && c.hq_country && <span>·</span>}
+							{c.hq_country && <Flag cc={c.hq_country} size={13} />}
+							{c.hq_country && <span>{c.hq_country}</span>}
+						</div>
+					)}
+				</div>
+			</div>
+			{c.description && <div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.description}</div>}
+			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
+				<span style={{ fontSize: 12, color: 'var(--a-muted)' }}>{funding !== '—' ? `${funding} raised` : ''}</span>
+				{c.website && <a className="atlas-btn atlas-btn--ghost atlas-btn--sm" href={c.website} target="_blank" rel="noreferrer">Website</a>}
+			</div>
+		</Card>
 	);
 }
