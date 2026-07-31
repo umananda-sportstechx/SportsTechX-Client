@@ -51,8 +51,10 @@ export interface SectorTierData {
  *  `sector_slug` with descendant expansion (picking a pillar matches every leaf
  *  beneath it — the backends match an exact slug list). */
 export function useSectorTierData(): SectorTierData {
-	const { data } = useSWR<SectorRef[]>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
-	const list = useMemo<SectorRef[]>(() => data ?? [], [data]);
+	// Sibling hooks tolerate both shapes; /api/sectors is a bare array today, but
+	// guard anyway so an envelope switch can't crash useSectorTiers(list).
+	const { data } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	const list = useMemo<SectorRef[]>(() => (Array.isArray(data) ? data : (data?.data ?? [])), [data]);
 	const tiers = useSectorTiers(list);
 	return useMemo(() => {
 		const byId = new Map(list.map((s) => [s.id, s]));
@@ -66,7 +68,13 @@ export function useSectorTierData(): SectorTierData {
 			topOptions: tiers.tops.map((s) => [s.slug, s.name] as [string, string]).sort(byLabel),
 			subOptions: tiers.subs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
 			subSubOptions: tiers.subSubs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
-			sectorSlug: (top, sub, subSub) => expandSectorSelection(tiers, top ? [top] : [], sub ? [sub] : [], subSub ? [subSub] : []),
+			// Most-specific selected tier wins so a sub-sector narrows *within* its
+			// pillar. Unioning all three would keep the whole pillar, since a chosen
+			// sub/sub-sub is already a descendant of the chosen pillar.
+			sectorSlug: (top, sub, subSub) => {
+				const chosen = subSub || sub || top;
+				return chosen ? expandSectorSelection(tiers, [chosen]) : undefined;
+			},
 		};
 	}, [list, tiers]);
 }
