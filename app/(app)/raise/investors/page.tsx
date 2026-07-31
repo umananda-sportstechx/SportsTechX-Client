@@ -30,10 +30,21 @@ const CATEGORY_OPTIONS: [string, string][] = [
 	['private_equity', 'Private Equity'], ['family_investment_office', 'Family Office'],
 	['sovereign_wealth_fund', 'Sovereign Wealth Fund'], ['angel', 'Angel'], ['other', 'Other'],
 ];
-const COMMON_COUNTRIES = [
-	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands',
-	'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India', 'China', 'Japan', 'Singapore',
-	'Australia', 'Brazil', 'Canada', 'Israel', 'Ireland',
+// Country options — the OPTION VALUE is a CSV of every spelling that country
+// appears under in the data (the backend `country` filter splits CSV and matches
+// any), so one option catches all variants. Ordered by investor frequency.
+// e.g. the DB stores both "USA" and "United States"; "UK" and "United Kingdom".
+const COUNTRY_OPTIONS: [string, string][] = [
+	['USA,United States', 'United States'],
+	['UK,United Kingdom', 'United Kingdom'],
+	['India', 'India'], ['Singapore', 'Singapore'], ['France', 'France'],
+	['Australia', 'Australia'], ['Germany', 'Germany'], ['Hong Kong', 'Hong Kong'],
+	['Canada', 'Canada'], ['Israel', 'Israel'], ['Spain', 'Spain'], ['Brazil', 'Brazil'],
+	['UAE,United Arab Emirates', 'United Arab Emirates'], ['The Netherlands,Netherlands', 'Netherlands'],
+	['Sweden', 'Sweden'], ['China', 'China'], ['Switzerland', 'Switzerland'], ['Belgium', 'Belgium'],
+	['Japan', 'Japan'], ['Italy', 'Italy'], ['Denmark', 'Denmark'], ['South Korea', 'South Korea'],
+	['Ireland', 'Ireland'], ['Portugal', 'Portugal'], ['Finland', 'Finland'], ['Luxembourg', 'Luxembourg'],
+	['Saudi Arabia', 'Saudi Arabia'],
 ];
 const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
@@ -119,7 +130,10 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
-		if (dq) p.q = dq;
+		// Backend `q` is min(1).max(120): trim (drop whitespace-only) and cap so a
+		// spaces-only or over-long search never 400s the whole list request.
+		const term = dq.trim().slice(0, 120);
+		if (term) p.q = term;
 		if (category) p.category = category;
 		if (roundType) p.round_type_slug = roundType;
 		if (country) p.country = country;
@@ -144,7 +158,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
 				<div style={{ minWidth: 150 }}><Select value={category} placeholder="All firm types" options={CATEGORY_OPTIONS} onChange={(e) => { setCategory(e.target.value); reset(); }} /></div>
 				<div style={{ minWidth: 150 }}><Select value={roundType} placeholder="All stages" options={rounds.map((r) => [r.slug, r.name] as [string, string])} onChange={(e) => { setRoundType(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COMMON_COUNTRIES.map((c) => [c, c] as [string, string])} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
 				<div style={{ minWidth: 140 }}><Select value={sort} options={SORT_OPTIONS} onChange={(e) => { setSort(e.target.value); reset(); }} /></div>
 				<FilterChip active={verified} onClick={() => { setVerified((v) => !v); reset(); }}>Verified</FilterChip>
 				<FilterChip active={active} onClick={() => { setActive((v) => !v); reset(); }}>Actively investing</FilterChip>
