@@ -7,7 +7,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Sub, Card, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
-import { FilterChip, Pager, CardGrid } from '@/components/atlas/catalog';
+import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid } from '@/components/atlas/catalog';
 
 /**
  * Atlas Raise — Programs & Events. Two tabs over /api/ecosystem-entities
@@ -23,13 +23,6 @@ interface Eco {
 }
 
 const PAGE_SIZE = 24;
-const COUNTRY_FILTER: [string, string][] = [
-	['USA,United States', 'United States'], ['UK,United Kingdom', 'United Kingdom'],
-	['India', 'India'], ['Germany', 'Germany'], ['France', 'France'], ['Spain', 'Spain'],
-	['Singapore', 'Singapore'], ['Australia', 'Australia'], ['Canada', 'Canada'],
-	['The Netherlands,Netherlands', 'Netherlands'], ['UAE,United Arab Emirates', 'United Arab Emirates'],
-	['Israel', 'Israel'], ['Italy', 'Italy'], ['Switzerland', 'Switzerland'],
-];
 const PROGRAM_CATEGORIES: [string, string][] = [
 	['Accelerator', 'Accelerator'], ['Incubator', 'Incubator'], ['Competition', 'Challenge / Competition'],
 	['Grant', 'Grant'], ['Venture Studio', 'Venture Studio'], ['Fellowship', 'Fellowship'],
@@ -79,7 +72,7 @@ function ProgramsTab() {
 			<SearchBar value={q} onChange={(v) => { setQ(v); reset(); }} placeholder="Search programs by name or website" />
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
 				<div style={{ minWidth: 160 }}><Select value={category} placeholder="All program types" options={PROGRAM_CATEGORIES} onChange={(e) => { setCategory(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_FILTER} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
 				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setCategory(''); setCountry(''); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="program" />
@@ -96,12 +89,15 @@ function EventsTab() {
 	const dq = useDebouncedValue(q);
 	const [mode, setMode] = useState('');
 	const [country, setCountry] = useState('');
-	const [upcoming, setUpcoming] = useState(false);
+	// Default to upcoming events, soonest first — the useful default. When showing
+	// all events, flip to most-recent first (start_date ASC would surface the
+	// oldest events in the DB on page 1).
+	const [upcoming, setUpcoming] = useState(true);
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 
 	const params = useMemo(() => {
-		const p: Record<string, unknown> = { entity_type: 'event', page, limit: PAGE_SIZE, sort: 'start_date' };
+		const p: Record<string, unknown> = { entity_type: 'event', page, limit: PAGE_SIZE, sort: upcoming ? 'start_date' : '-start_date' };
 		const term = dq.trim().slice(0, 120);
 		if (term) p.q = term;
 		if (mode) p.mode = mode;
@@ -111,16 +107,16 @@ function EventsTab() {
 	}, [page, dq, mode, country, upcoming]);
 	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const anyFilter = !!(dq || mode || country || upcoming);
+	const anyFilter = !!(dq || mode || country);
 
 	return (
 		<>
 			<SearchBar value={q} onChange={(v) => { setQ(v); reset(); }} placeholder="Search events by name or website" />
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
 				<div style={{ minWidth: 140 }}><Select value={mode} placeholder="All formats" options={EVENT_MODES} onChange={(e) => { setMode(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_FILTER} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
 				<FilterChip active={upcoming} onClick={() => { setUpcoming((v) => !v); reset(); }}>Upcoming only</FilterChip>
-				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setCountry(''); setUpcoming(false); reset(); }}>Clear</button>}
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setCountry(''); setUpcoming(true); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="event" />
 			{res.isLoading && rows.length === 0 ? <Loading />
