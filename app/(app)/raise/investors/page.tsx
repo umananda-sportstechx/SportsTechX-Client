@@ -4,31 +4,44 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { Check, Plus, ExternalLink, Loader2, Search } from 'lucide-react';
+import { Check, Plus, ExternalLink, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Screen, H1, Card, Button, Tabs, Input, Loading, Empty } from '@/components/atlas/kit';
+import { Screen, H1, Card, Button, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
 
 /**
  * Atlas Raise — Investors (mock-ups 10/11 / Notion "Investors"). Recommended
  * (reuses the investor-matching engine at /api/recommendations/investors) and All
- * (the investor database). Recommendations lead with the *reasons* Atlas matched
- * them — not a mystery % score (Notion). "Add to pipeline" posts to raise Pipeline.
+ * (the investor database, with search + filters + pagination). Recommendations
+ * lead with the *reasons* Atlas matched them — not a mystery % score (Notion).
+ * "Add to pipeline" posts to raise Pipeline.
  */
 interface Match { id: string; name: string; slug: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null; category: string | null; description: string | null; score: number; match_reasons: string[] }
 interface MatchResult { company: { id: string; name: string } | null; reason?: string; results: Match[] }
 interface Investor { id: string; name: string; slug: string | null; category: string | null; description: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null }
+interface RoundRef { id: string; name: string; slug: string }
+
+const PAGE_SIZE = 24;
+// Firm-type enum → founder-facing label (mirrors the investors.category enum).
+const CATEGORY_OPTIONS: [string, string][] = [
+	['venture_capital', 'Venture Capital'], ['financial_services', 'Corporate VC'],
+	['private_equity', 'Private Equity'], ['family_investment_office', 'Family Office'],
+	['sovereign_wealth_fund', 'Sovereign Wealth Fund'], ['angel', 'Angel'], ['other', 'Other'],
+];
+const COMMON_COUNTRIES = [
+	'United States', 'United Kingdom', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands',
+	'Sweden', 'Switzerland', 'Belgium', 'Portugal', 'India', 'China', 'Japan', 'Singapore',
+	'Australia', 'Brazil', 'Canada', 'Israel', 'Ireland',
+];
+const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
 export default function RaiseInvestorsPage() {
 	const [tab, setTab] = useState<'recommended' | 'all'>('recommended');
-	const [q, setQ] = useState('');
-	const dq = useDebouncedValue(q);
 
 	const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 	const matches = useSWR<MatchResult>(['/api/recommendations/investors', { limit: 24 }]);
-	const all = useSWR<{ data: Investor[]; meta?: { total?: number } }>(tab === 'all' ? qk.investors.list({ q: dq || undefined, limit: 40 }) : null);
 	const pipe = useSWR<{ data: Array<{ investor_id: string | null }> }>(qk.raise.pipeline());
 	const criteria = useSWR<{ criteria: { investor_types?: string[]; geographies?: string[]; cheque_min?: string | null; cheque_max?: string | null } | null }>(qk.raise.current());
 	const inPipeline = useMemo(() => new Set((pipe.data?.data ?? []).map((r) => r.investor_id).filter(Boolean) as string[]), [pipe.data]);
@@ -81,18 +94,85 @@ export default function RaiseInvestorsPage() {
 								</Grid>
 							</>
 				) : (
-					<>
-						<div style={{ position: 'relative', marginBottom: 16 }}>
-							<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
-							<Input placeholder="Search investors by name" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
-						</div>
-						<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>{all.data?.meta?.total ?? all.data?.data.length ?? 0} investors</div>
-						{all.isLoading ? <Loading /> : (all.data?.data.length ?? 0) === 0 ? <Empty>No investors found.</Empty>
-							: <Grid>{all.data!.data.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => add(inv.id)} />)}</Grid>}
-					</>
+					<AllInvestorsTab inPipeline={inPipeline} onAdd={add} />
 				)}
 			</div>
 		</Screen>
+	);
+}
+
+/** The "All investors" tab — search + filters + sort + pagination over /api/investors. */
+function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd: (id: string) => void }) {
+	const [q, setQ] = useState('');
+	const dq = useDebouncedValue(q);
+	const [category, setCategory] = useState('');
+	const [roundType, setRoundType] = useState('');
+	const [country, setCountry] = useState('');
+	const [verified, setVerified] = useState(false);
+	const [active, setActive] = useState(false);
+	const [sort, setSort] = useState('-created_at');
+	const [page, setPage] = useState(1);
+	const reset = () => setPage(1); // any filter/search change returns to page 1
+
+	const roundsResp = useSWR<RoundRef[] | { data: RoundRef[] }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
+	const rounds = Array.isArray(roundsResp.data) ? roundsResp.data : (roundsResp.data?.data ?? []);
+
+	const params = useMemo(() => {
+		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
+		if (dq) p.q = dq;
+		if (category) p.category = category;
+		if (roundType) p.round_type_slug = roundType;
+		if (country) p.country = country;
+		if (verified) p.is_verified = true;
+		if (active) p.actively_investing = true;
+		return p;
+	}, [page, sort, dq, category, roundType, country, verified, active]);
+
+	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(qk.investors.list(params), { keepPreviousData: true });
+	const rows = all.data?.data ?? [];
+	const total = all.data?.total ?? 0;
+	const totalPages = all.data?.totalPages ?? 1;
+	const anyFilter = !!(dq || category || roundType || country || verified || active);
+	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setCountry(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
+
+	return (
+		<>
+			<div style={{ position: 'relative', marginBottom: 12 }}>
+				<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
+				<Input placeholder="Search investors by name or website" value={q} onChange={(e) => { setQ(e.target.value); reset(); }} style={{ paddingLeft: 34 }} />
+			</div>
+			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+				<div style={{ minWidth: 150 }}><Select value={category} placeholder="All firm types" options={CATEGORY_OPTIONS} onChange={(e) => { setCategory(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={roundType} placeholder="All stages" options={rounds.map((r) => [r.slug, r.name] as [string, string])} onChange={(e) => { setRoundType(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COMMON_COUNTRIES.map((c) => [c, c] as [string, string])} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<div style={{ minWidth: 140 }}><Select value={sort} options={SORT_OPTIONS} onChange={(e) => { setSort(e.target.value); reset(); }} /></div>
+				<FilterChip active={verified} onClick={() => { setVerified((v) => !v); reset(); }}>Verified</FilterChip>
+				<FilterChip active={active} onClick={() => { setActive((v) => !v); reset(); }}>Actively investing</FilterChip>
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={clearAll}>Clear</button>}
+			</div>
+			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>{total.toLocaleString()} investor{total === 1 ? '' : 's'}</div>
+
+			{all.isLoading && rows.length === 0 ? <Loading />
+				: rows.length === 0 ? <Empty>No investors match your filters.</Empty>
+					: <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => onAdd(inv.id)} />)}</Grid>}
+
+			{totalPages > 1 && (
+				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 22 }}>
+					<span style={{ fontSize: 12, color: 'var(--a-faint)', marginRight: 6 }}>Page {page} of {totalPages}</span>
+					<Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft size={14} /></Button>
+					<Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRight size={14} /></Button>
+				</div>
+			)}
+		</>
+	);
+}
+
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+	return (
+		<button className="atlas-btn atlas-btn--outline atlas-btn--sm" aria-pressed={active} onClick={onClick}
+			style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)', background: 'var(--a-navy-soft)' } : undefined}>
+			{children}
+		</button>
 	);
 }
 
