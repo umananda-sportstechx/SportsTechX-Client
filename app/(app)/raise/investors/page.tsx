@@ -10,6 +10,7 @@ import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Button, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
+import { FSelect, useSectorOptions, useSportOptions, SINCE_YEARS, DEALS_BUCKETS } from '@/components/atlas/catalog';
 
 /**
  * Atlas Raise — Investors (mock-ups 10/11 / Notion "Investors"). Recommended
@@ -118,7 +119,11 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState('');
 	const [roundType, setRoundType] = useState('');
+	const [sector, setSector] = useState('');
+	const [sport, setSport] = useState('');
 	const [country, setCountry] = useState('');
+	const [launched, setLaunched] = useState('');
+	const [deals, setDeals] = useState('');
 	const [verified, setVerified] = useState(false);
 	const [active, setActive] = useState(false);
 	const [sort, setSort] = useState('-created_at');
@@ -127,6 +132,8 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 
 	const roundsResp = useSWR<RoundRef[] | { data: RoundRef[] }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
 	const rounds = Array.isArray(roundsResp.data) ? roundsResp.data : (roundsResp.data?.data ?? []);
+	const sectorOptions = useSectorOptions();
+	const sportOptions = useSportOptions();
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
@@ -136,18 +143,22 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 		if (term) p.q = term;
 		if (category) p.category = category;
 		if (roundType) p.round_type_slug = roundType;
+		if (sector) p.sector_id = sector;
+		if (sport) p.sport_id = sport;
 		if (country) p.country = country;
+		if (launched) p.year_launched_min = launched;
+		if (deals) p.deals_min = deals;
 		if (verified) p.is_verified = true;
 		if (active) p.actively_investing = true;
 		return p;
-	}, [page, sort, dq, category, roundType, country, verified, active]);
+	}, [page, sort, dq, category, roundType, sector, sport, country, launched, deals, verified, active]);
 
 	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(qk.investors.list(params), { keepPreviousData: true });
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
 	const totalPages = all.data?.totalPages ?? 1;
-	const anyFilter = !!(dq || category || roundType || country || verified || active);
-	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setCountry(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
+	const anyFilter = !!(dq || category || roundType || sector || sport || country || launched || deals || verified || active);
+	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setSector(''); setSport(''); setCountry(''); setLaunched(''); setDeals(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
 
 	return (
 		<>
@@ -156,10 +167,14 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 				<Input placeholder="Search investors by name or website" value={q} onChange={(e) => { setQ(e.target.value); reset(); }} style={{ paddingLeft: 34 }} />
 			</div>
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-				<div style={{ minWidth: 150 }}><Select value={category} placeholder="All firm types" options={CATEGORY_OPTIONS} onChange={(e) => { setCategory(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={roundType} placeholder="All stages" options={rounds.map((r) => [r.slug, r.name] as [string, string])} onChange={(e) => { setRoundType(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 140 }}><Select value={sort} options={SORT_OPTIONS} onChange={(e) => { setSort(e.target.value); reset(); }} /></div>
+				<FSelect><Select value={category} placeholder="All firm types" options={CATEGORY_OPTIONS} onChange={(e) => { setCategory(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={roundType} placeholder="All stages" options={rounds.map((r) => [r.slug, r.name] as [string, string])} onChange={(e) => { setRoundType(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sector} placeholder="All sectors" options={sectorOptions} onChange={(e) => { setSector(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={launched} placeholder="Any launch year" options={SINCE_YEARS} onChange={(e) => { setLaunched(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={deals} placeholder="Any deal count" options={DEALS_BUCKETS} onChange={(e) => { setDeals(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={sort} options={SORT_OPTIONS} onChange={(e) => { setSort(e.target.value); reset(); }} /></FSelect>
 				<FilterChip active={verified} onClick={() => { setVerified((v) => !v); reset(); }}>Verified</FilterChip>
 				<FilterChip active={active} onClick={() => { setActive((v) => !v); reset(); }}>Actively investing</FilterChip>
 				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={clearAll}>Clear</button>}

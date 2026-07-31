@@ -7,7 +7,7 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Sub, Card, Tabs, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
-import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid } from '@/components/atlas/catalog';
+import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid, FSelect, useSportOptions, MONTHS } from '@/components/atlas/catalog';
 
 /**
  * Atlas Raise — Programs & Events. Two tabs over /api/ecosystem-entities
@@ -51,29 +51,36 @@ function ProgramsTab() {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState('');
+	const [sport, setSport] = useState('');
 	const [country, setCountry] = useState('');
+	const [entriesOpen, setEntriesOpen] = useState(false);
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
+	const sportOptions = useSportOptions();
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { entity_type: 'program', page, limit: PAGE_SIZE, sort: '-created_at' };
 		const term = dq.trim().slice(0, 120);
 		if (term) p.q = term;
 		if (category) p.category = category;
+		if (sport) p.sport_id = sport;
 		if (country) p.country = country;
+		if (entriesOpen) p.entries_open = true;
 		return p;
-	}, [page, dq, category, country]);
+	}, [page, dq, category, sport, country, entriesOpen]);
 	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const anyFilter = !!(dq || category || country);
+	const anyFilter = !!(dq || category || sport || country || entriesOpen);
 
 	return (
 		<>
 			<SearchBar value={q} onChange={(v) => { setQ(v); reset(); }} placeholder="Search programs by name or website" />
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-				<div style={{ minWidth: 160 }}><Select value={category} placeholder="All program types" options={PROGRAM_CATEGORIES} onChange={(e) => { setCategory(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
-				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setCategory(''); setCountry(''); reset(); }}>Clear</button>}
+				<FSelect minWidth={160}><Select value={category} placeholder="All program types" options={PROGRAM_CATEGORIES} onChange={(e) => { setCategory(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
+				<FilterChip active={entriesOpen} onClick={() => { setEntriesOpen((v) => !v); reset(); }}>Entries open</FilterChip>
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setCategory(''); setSport(''); setCountry(''); setEntriesOpen(false); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="program" />
 			{res.isLoading && rows.length === 0 ? <Loading />
@@ -88,6 +95,8 @@ function EventsTab() {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [mode, setMode] = useState('');
+	const [sport, setSport] = useState('');
+	const [month, setMonth] = useState('');
 	const [country, setCountry] = useState('');
 	// Default to upcoming events, soonest first — the useful default. When showing
 	// all events, flip to most-recent first (start_date ASC would surface the
@@ -95,28 +104,33 @@ function EventsTab() {
 	const [upcoming, setUpcoming] = useState(true);
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
+	const sportOptions = useSportOptions();
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { entity_type: 'event', page, limit: PAGE_SIZE, sort: upcoming ? 'start_date' : '-start_date' };
 		const term = dq.trim().slice(0, 120);
 		if (term) p.q = term;
 		if (mode) p.mode = mode;
+		if (sport) p.sport_id = sport;
+		if (month) p.start_month = month;
 		if (country) p.country = country;
 		if (upcoming) p.upcoming_only = true;
 		return p;
-	}, [page, dq, mode, country, upcoming]);
+	}, [page, dq, mode, sport, month, country, upcoming]);
 	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const anyFilter = !!(dq || mode || country);
+	const anyFilter = !!(dq || mode || sport || month || country);
 
 	return (
 		<>
 			<SearchBar value={q} onChange={(v) => { setQ(v); reset(); }} placeholder="Search events by name or website" />
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-				<div style={{ minWidth: 140 }}><Select value={mode} placeholder="All formats" options={EVENT_MODES} onChange={(e) => { setMode(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
+				<FSelect minWidth={140}><Select value={mode} placeholder="All formats" options={EVENT_MODES} onChange={(e) => { setMode(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={140}><Select value={month} placeholder="Any month" options={MONTHS} onChange={(e) => { setMonth(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
 				<FilterChip active={upcoming} onClick={() => { setUpcoming((v) => !v); reset(); }}>Upcoming only</FilterChip>
-				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setCountry(''); setUpcoming(true); reset(); }}>Clear</button>}
+				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={() => { setQ(''); setMode(''); setSport(''); setMonth(''); setCountry(''); setUpcoming(true); reset(); }}>Clear</button>}
 			</div>
 			<CountLine total={res.data?.total ?? 0} noun="event" />
 			{res.isLoading && rows.length === 0 ? <Loading />

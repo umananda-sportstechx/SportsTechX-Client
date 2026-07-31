@@ -10,7 +10,7 @@ import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Tabs, Button, Input, Select, Loading, Empty } from '@/components/atlas/kit';
 import { Logo, Flag } from '@/components/atlas/entity-logo';
-import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid } from '@/components/atlas/catalog';
+import { COUNTRY_OPTIONS, FilterChip, Pager, CardGrid, FSelect, useSectorOptions, useSportOptions, FUNDING_BUCKETS, SINCE_YEARS } from '@/components/atlas/catalog';
 
 /**
  * Atlas Raise — Market. Two top-level tabs:
@@ -179,29 +179,41 @@ function AllCompaniesTab() {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [model, setModel] = useState('');
+	const [sector, setSector] = useState('');
+	const [sport, setSport] = useState('');
 	const [country, setCountry] = useState('');
+	const [funding, setFunding] = useState('');
+	const [founded, setFounded] = useState('');
 	const [verified, setVerified] = useState(false);
 	const [raising, setRaising] = useState(false);
+	const [unicorn, setUnicorn] = useState(false);
 	const [sort, setSort] = useState('-created_at');
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
+	const sectorOptions = useSectorOptions();
+	const sportOptions = useSportOptions();
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
 		const term = dq.trim().slice(0, 120);
 		if (term) p.q = term;
 		if (model) p.business_model = model;
+		if (sector) p.sector_id = sector;
+		if (sport) p.sport_id = sport;
 		if (country) p.country = country;
+		if (funding) p.min_funding = funding;
+		if (founded) p.founded_year_min = founded;
 		if (verified) p.is_verified = true;
 		if (raising) p.is_actively_raising = true;
+		if (unicorn) p.is_unicorn = true;
 		return p;
-	}, [page, sort, dq, model, country, verified, raising]);
+	}, [page, sort, dq, model, sector, sport, country, funding, founded, verified, raising, unicorn]);
 
 	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(qk.companies.list(params), { keepPreviousData: true });
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
-	const anyFilter = !!(dq || model || country || verified || raising);
-	const clearAll = () => { setQ(''); setModel(''); setCountry(''); setVerified(false); setRaising(false); setSort('-created_at'); setPage(1); };
+	const anyFilter = !!(dq || model || sector || sport || country || funding || founded || verified || raising || unicorn);
+	const clearAll = () => { setQ(''); setModel(''); setSector(''); setSport(''); setCountry(''); setFunding(''); setFounded(''); setVerified(false); setRaising(false); setUnicorn(false); setSort('-created_at'); setPage(1); };
 
 	return (
 		<>
@@ -210,11 +222,16 @@ function AllCompaniesTab() {
 				<Input placeholder="Search companies by name or website" value={q} onChange={(e) => { setQ(e.target.value); reset(); }} style={{ paddingLeft: 34 }} />
 			</div>
 			<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-				<div style={{ minWidth: 150 }}><Select value={model} placeholder="All business models" options={BUSINESS_MODELS} onChange={(e) => { setModel(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 150 }}><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></div>
-				<div style={{ minWidth: 140 }}><Select value={sort} options={COMPANY_SORTS} onChange={(e) => { setSort(e.target.value); reset(); }} /></div>
+				<FSelect><Select value={sector} placeholder="All sectors" options={sectorOptions} onChange={(e) => { setSector(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={sport} placeholder="All sports" options={sportOptions} onChange={(e) => { setSport(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={model} placeholder="All business models" options={BUSINESS_MODELS} onChange={(e) => { setModel(e.target.value); reset(); }} /></FSelect>
+				<FSelect><Select value={country} placeholder="All countries" options={COUNTRY_OPTIONS} onChange={(e) => { setCountry(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={funding} placeholder="Any funding" options={FUNDING_BUCKETS} onChange={(e) => { setFunding(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={founded} placeholder="Any founding year" options={SINCE_YEARS} onChange={(e) => { setFounded(e.target.value); reset(); }} /></FSelect>
+				<FSelect minWidth={130}><Select value={sort} options={COMPANY_SORTS} onChange={(e) => { setSort(e.target.value); reset(); }} /></FSelect>
 				<FilterChip active={verified} onClick={() => { setVerified((v) => !v); reset(); }}>Verified</FilterChip>
 				<FilterChip active={raising} onClick={() => { setRaising((v) => !v); reset(); }}>Raising now</FilterChip>
+				<FilterChip active={unicorn} onClick={() => { setUnicorn((v) => !v); reset(); }}>Unicorn</FilterChip>
 				{anyFilter && <button className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={clearAll}>Clear</button>}
 			</div>
 			<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>{total.toLocaleString()} compan{total === 1 ? 'y' : 'ies'}</div>

@@ -1,6 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
+import useSWR from 'swr';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
 import { Button } from './kit';
 
 /**
@@ -29,6 +32,56 @@ export const COUNTRY_OPTIONS: [string, string][] = [
 	['Ireland', 'Ireland'], ['Portugal', 'Portugal'], ['Finland', 'Finland'], ['Luxembourg', 'Luxembourg'],
 	['Saudi Arabia', 'Saudi Arabia'],
 ];
+
+// ── Reference-data filter options ────────────────────────────────────────────
+/** Leaf sectors as [id, "Root → Sub → Leaf"] options (filter by sector_id — no
+ *  slug dependency, and leaf ids match how companies/theses are tagged). */
+export function useSectorOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const list = data ?? [];
+		const byId = new Map(list.map((s) => [s.id, s]));
+		const path = (s: { name: string; parent_id: string | null }): string => {
+			const parts = [s.name]; let p = s.parent_id;
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
+			return parts.join(' → ');
+		};
+		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
+		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [data]);
+}
+
+/** Sports as [id, name] options (filter by sport_id). */
+export function useSportOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ id: string; name: string }> | { data: Array<{ id: string; name: string }> }>(qk.reference.sports(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const list = Array.isArray(data) ? data : (data?.data ?? []);
+		return list.map((s) => [s.id, s.name] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [data]);
+}
+
+/** Round types as [slug, name] options (filter by round_type_slug). */
+export function useRoundTypeOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ name: string; slug: string }> | { data: Array<{ name: string; slug: string }> }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const list = Array.isArray(data) ? data : (data?.data ?? []);
+		return list.map((r) => [r.slug, r.name] as [string, string]);
+	}, [data]);
+}
+
+/** Bucket options that map to a `*_min` numeric filter. */
+export const FUNDING_BUCKETS: [string, string][] = [['1000000', '$1M+'], ['10000000', '$10M+'], ['50000000', '$50M+'], ['100000000', '$100M+']];
+export const DEALS_BUCKETS: [string, string][] = [['1', '1+ deals'], ['3', '3+ deals'], ['5', '5+ deals'], ['10', '10+ deals']];
+export const SINCE_YEARS: [string, string][] = [['2024', 'Since 2024'], ['2022', 'Since 2022'], ['2020', 'Since 2020'], ['2015', 'Since 2015'], ['2010', 'Since 2010']];
+export const MONTHS: [string, string][] = [
+	['1', 'January'], ['2', 'February'], ['3', 'March'], ['4', 'April'], ['5', 'May'], ['6', 'June'],
+	['7', 'July'], ['8', 'August'], ['9', 'September'], ['10', 'October'], ['11', 'November'], ['12', 'December'],
+];
+
+/** A fixed-min-width wrapper so a select doesn't collapse in the flex filter bar. */
+export function FSelect({ children, minWidth = 150 }: { children: React.ReactNode; minWidth?: number }) {
+	return <div style={{ minWidth }}>{children}</div>;
+}
 
 /** A toggle filter rendered as an outline button that highlights when active. */
 export function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
