@@ -1,6 +1,11 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo } from 'react';
+import useSWR from 'swr';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { qk } from '@/lib/query-keys';
+import { useSectorTiers, expandSectorSelection, type SectorRef } from '@/hooks/use-sector-tiers';
+import type { LocationFacets } from '@/lib/location-facets';
 import { Button } from './kit';
 
 /**
@@ -29,6 +34,112 @@ export const COUNTRY_OPTIONS: [string, string][] = [
 	['Ireland', 'Ireland'], ['Portugal', 'Portugal'], ['Finland', 'Finland'], ['Luxembourg', 'Luxembourg'],
 	['Saudi Arabia', 'Saudi Arabia'],
 ];
+
+// ── Reference-data filter options ────────────────────────────────────────────
+export interface SectorTierData {
+	/** Top-level pillars — the primary (ungated) Sector select. */
+	topOptions: [string, string][];
+	/** Depth-1 sub-sectors (path-labelled) — an advanced (gated) select. */
+	subOptions: [string, string][];
+	/** Depth-2 sub-sub-sectors (path-labelled) — an advanced (gated) select. */
+	subSubOptions: [string, string][];
+	/** Merge tier selections → a deduped, descendant-expanded `sector_slug` value. */
+	sectorSlug: (top: string, sub: string, subSub: string) => string | undefined;
+}
+
+/** Sector hierarchy split into pillar / sub / sub-sub tiers, each filtering by
+ *  `sector_slug` with descendant expansion (picking a pillar matches every leaf
+ *  beneath it — the backends match an exact slug list). */
+export function useSectorTierData(): SectorTierData {
+	// Sibling hooks tolerate both shapes; /api/sectors is a bare array today, but
+	// guard anyway so an envelope switch can't crash useSectorTiers(list).
+	const { data } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	const list = useMemo<SectorRef[]>(() => (Array.isArray(data) ? data : (data?.data ?? [])), [data]);
+	const tiers = useSectorTiers(list);
+	return useMemo(() => {
+		const byId = new Map(list.map((s) => [s.id, s]));
+		const path = (s: SectorRef): string => {
+			const parts = [s.name]; let p = s.parent_id;
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id ?? null; }
+			return parts.join(' › ');
+		};
+		const byLabel = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1]);
+		return {
+			topOptions: tiers.tops.map((s) => [s.slug, s.name] as [string, string]).sort(byLabel),
+			subOptions: tiers.subs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
+			subSubOptions: tiers.subSubs.map((s) => [s.slug, path(s)] as [string, string]).sort(byLabel),
+			// Most-specific selected tier wins so a sub-sector narrows *within* its
+			// pillar. Unioning all three would keep the whole pillar, since a chosen
+			// sub/sub-sub is already a descendant of the chosen pillar.
+			sectorSlug: (top, sub, subSub) => {
+				const chosen = subSub || sub || top;
+				return chosen ? expandSectorSelection(tiers, [chosen]) : undefined;
+			},
+		};
+	}, [list, tiers]);
+}
+
+/** City / continent / region options from the shared location facets endpoint. */
+export function useLocationFacetOptions() {
+	const { data } = useSWR<LocationFacets>(qk.reference.locationFacets(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => ({
+		city: (data?.cities ?? []).map((c) => [c, c] as [string, string]),
+		continent: (data?.continents ?? []).map((c) => [c, c] as [string, string]),
+		region: (data?.regions ?? []).map((r) => [r, r] as [string, string]),
+	}), [data]);
+}
+
+/** Tech-tag options as [slug, name] (filter by tech_tag_slug). */
+export function useTechTagOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ name: string; slug: string }> | { data: Array<{ name: string; slug: string }> }>(qk.reference.techTags(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const listT = Array.isArray(data) ? data : (data?.data ?? []);
+		return listT.map((t) => [t.slug, t.name] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [data]);
+}
+
+/** Locked teaser shown in place of the advanced filters when the user's tier
+ *  doesn't include them (feature slug `advanced_filters`). */
+export function LockedFilters({ requiredTier }: { requiredTier?: string | null }) {
+	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Growth';
+	return (
+		<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', border: '1px dashed var(--a-border-strong)', borderRadius: 999, padding: '6px 12px' }}>
+			<Lock size={13} /> Advanced filters (sector tiers, location, tech tags) · {tier}+
+		</span>
+	);
+}
+
+/** Sports as [id, name] options (filter by sport_id). */
+export function useSportOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ id: string; name: string }> | { data: Array<{ id: string; name: string }> }>(qk.reference.sports(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const list = Array.isArray(data) ? data : (data?.data ?? []);
+		return list.map((s) => [s.id, s.name] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [data]);
+}
+
+/** Round types as [slug, name] options (filter by round_type_slug). */
+export function useRoundTypeOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ name: string; slug: string }> | { data: Array<{ name: string; slug: string }> }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
+	return useMemo(() => {
+		const list = Array.isArray(data) ? data : (data?.data ?? []);
+		return list.map((r) => [r.slug, r.name] as [string, string]);
+	}, [data]);
+}
+
+/** Bucket options that map to a `*_min` numeric filter. */
+export const FUNDING_BUCKETS: [string, string][] = [['1000000', '$1M+'], ['10000000', '$10M+'], ['50000000', '$50M+'], ['100000000', '$100M+']];
+export const DEALS_BUCKETS: [string, string][] = [['1', '1+ deals'], ['3', '3+ deals'], ['5', '5+ deals'], ['10', '10+ deals']];
+export const SINCE_YEARS: [string, string][] = [['2024', 'Since 2024'], ['2022', 'Since 2022'], ['2020', 'Since 2020'], ['2015', 'Since 2015'], ['2010', 'Since 2010']];
+export const MONTHS: [string, string][] = [
+	['1', 'January'], ['2', 'February'], ['3', 'March'], ['4', 'April'], ['5', 'May'], ['6', 'June'],
+	['7', 'July'], ['8', 'August'], ['9', 'September'], ['10', 'October'], ['11', 'November'], ['12', 'December'],
+];
+
+/** A fixed-min-width wrapper so a select doesn't collapse in the flex filter bar. */
+export function FSelect({ children, minWidth = 150 }: { children: React.ReactNode; minWidth?: number }) {
+	return <div style={{ minWidth }}>{children}</div>;
+}
 
 /** A toggle filter rendered as an outline button that highlights when active. */
 export function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
