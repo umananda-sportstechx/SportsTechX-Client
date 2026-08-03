@@ -1,5 +1,7 @@
 'use client';
 
+import type { ClaimForm } from '@/components/claim/claim-form';
+
 // Global trigger for the claim/verify modal, mirroring the existing `stx:*`
 // CustomEvent idiom used by the app shell (e.g. `stx:open-ai`). Any component
 // — a "Get verified" pill, a company-detail footer, the onboarding flow — can
@@ -7,6 +9,10 @@
 // <ClaimModalHost> (in app/providers.tsx) listens and renders it.
 
 export type ClaimRole = 'founder' | 'investor' | 'operator';
+
+/** Fields to pre-fill the claim form with — e.g. from the Raise Setup answers,
+ *  so a founder verifying right after setup only fills the remaining fields. */
+export type ClaimPrefill = Partial<ClaimForm>;
 
 // Minimal pre-selected entity passed when launching a claim from a detail page
 // or drawer (e.g. "Is this you? Verify" on a company). Maps onto the wizard's
@@ -22,6 +28,7 @@ export interface ClaimTarget {
 export interface OpenClaimDetail {
   target: ClaimTarget | null;
   role: ClaimRole | null;
+  prefill?: ClaimPrefill;
 }
 
 export const CLAIM_EVENT = 'stx:open-claim';
@@ -31,12 +38,13 @@ export const CLAIM_EVENT = 'stx:open-claim';
  *  - `openClaim()`                       → role chooser → search → form
  *  - `openClaim(null, 'investor')`       → jump straight into a role's search
  *  - `openClaim({ role:'founder', id, name })` → pre-selected founder claim
+ *  - `openClaim({ role:'founder', id }, 'founder', prefill)` → pre-filled from Raise Setup
  */
-export function openClaim(target: ClaimTarget | null = null, role: ClaimRole | null = null): void {
+export function openClaim(target: ClaimTarget | null = null, role: ClaimRole | null = null, prefill?: ClaimPrefill): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
     new CustomEvent<OpenClaimDetail>(CLAIM_EVENT, {
-      detail: { target, role: role ?? target?.role ?? null },
+      detail: { target, role: role ?? target?.role ?? null, prefill },
     }),
   );
 }

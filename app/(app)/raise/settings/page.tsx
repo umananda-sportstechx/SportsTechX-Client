@@ -41,6 +41,12 @@ export default function RaiseSettingsPage() {
 	const set = (k: string, v: unknown) => { dirty.current.add(k); setForm((f) => ({ ...f, [k]: v })); };
 	const setC = (k: string, v: unknown) => { dirtyC.current.add(k); setCrit((c) => ({ ...c, [k]: v })); };
 
+	// When linked to a master company, its canonical facts are read-only here —
+	// changes go through the verification / data-change flow (admin-approved).
+	// Only lock fields the company already provides, so gaps can still be filled.
+	const linked = !!form.company_id;
+	const coLock = (k: string) => linked && form[k] != null && form[k] !== '';
+
 	// Atlas taxonomy picker — lets a founder set/correct the sector that drives Market + matching.
 	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
 	const sectorOptions = useMemo<[string, string][]>(() => {
@@ -95,15 +101,16 @@ export default function RaiseSettingsPage() {
 
 			<div style={{ display: 'grid', gap: 18, marginTop: 24 }}>
 				<Section title="Company profile">
-					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} /></Field></Grid>
+					{linked && <div style={{ fontSize: 12, color: 'var(--a-muted)', border: '1px solid var(--a-border)', borderRadius: 8, padding: '10px 14px', background: 'var(--a-navy-soft)' }}>Your company is linked to the Atlas database. Its public details are read-only here — use Get verified to request changes.</div>}
+					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field></Grid>
 					<Grid n={3}>
-						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} /></Field>
-						<Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} /></Field>
+						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field>
+						<Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} disabled={coLock('hq_country')} /></Field>
 						<Field label="Current stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 					</Grid>
-					<Field label="Company description"><Input value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} /></Field>
+					<Field label="Company description"><Input value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
 					<Grid n={2}>
-						<Field label="Category (Atlas taxonomy)"><Select placeholder="Select the closest category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} /></Field>
+						<Field label="Category (Atlas taxonomy)"><Select placeholder="Select the closest category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
 						<Field label="Revenue status"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Generating revenue']]} /></Field>
 					</Grid>
 				</Section>
