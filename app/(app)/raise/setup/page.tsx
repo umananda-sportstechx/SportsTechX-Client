@@ -24,6 +24,21 @@ interface CoRow { id: string; name: string; website: string | null; description:
 type Rec = Record<string, unknown>;
 const STEPS = ['Company', 'Your raise', 'History & traction', 'What’s ready', 'Investors'] as const;
 
+// Required fields per step (Notion "Required: Yes"). Validated client-side so setup
+// can't complete with gaps (e.g. an empty Category → no sector → dead Market). Also
+// drives resume-at-first-incomplete-step. Module-level: static, no component deps.
+const REQUIRED: { key: string; label: string; kind?: 'array' | 'bool' }[][] = [
+	[{ key: 'company_name', label: 'Company name' }, { key: 'company_website', label: 'Website' }, { key: 'hq_country', label: 'Country' }, { key: 'hq_city', label: 'City' }, { key: 'company_description', label: 'What the company does' }, { key: 'company_sector_id', label: 'Category' }, { key: 'company_stage', label: 'Stage' }, { key: 'revenue_status', label: 'Revenue status' }],
+	[{ key: 'fundraising_process', label: 'Fundraising process' }, { key: 'round_type', label: 'Round' }, { key: 'target_amount', label: 'Amount raising' }, { key: 'committed_amount', label: 'Already committed' }, { key: 'target_close_date', label: 'Target close date' }, { key: 'lead_investor_status', label: 'Lead investor' }, { key: 'structure', label: 'Structure' }],
+	[{ key: 'prior_capital_raised', label: 'Prior capital raised' }, { key: 'last_round_date', label: 'Last round date' }, { key: 'annual_revenue', label: 'Annual revenue / ARR' }, { key: 'monthly_burn', label: 'Monthly burn' }, { key: 'runway_months', label: 'Runway months' }],
+	[{ key: 'pitch_deck_status', label: 'Pitch deck' }, { key: 'financial_model_status', label: 'Financial model' }, { key: 'data_room_status', label: 'Data room' }, { key: 'has_target_list', label: 'Investor target list', kind: 'bool' }],
+	[{ key: 'investor_types', label: 'Investor types', kind: 'array' }, { key: 'geographies', label: 'Geographies', kind: 'array' }, { key: 'cheque_min', label: 'Cheque minimum' }, { key: 'cheque_max', label: 'Cheque maximum' }, { key: 'lead_preference', label: 'Lead/follower preference' }, { key: 'strategic_ok', label: 'Strategic preference', kind: 'bool' }],
+];
+const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
+	kind === 'array' ? !Array.isArray(v) || v.length === 0
+		: kind === 'bool' ? v !== true && v !== false
+			: v === undefined || v === null || v === '';
+
 export default function RaiseSetupPage() {
 	const router = useRouter();
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
@@ -47,7 +62,13 @@ export default function RaiseSetupPage() {
 		if (data.criteria) setCrit(data.criteria);
 		// Restore the linked-company banner from a resumed draft.
 		if (data.raise?.company_id) setLinked({ id: String(data.raise.company_id), name: String(data.raise.company_name ?? 'your company') });
+		// Resume where they left off — jump to the first step still missing a required field.
+		const src = (i: number): Rec => (i === STEPS.length - 1 ? data.criteria : data.raise) ?? {};
+		for (let i = 0; i < STEPS.length; i++) {
+			if ((REQUIRED[i] ?? []).some((rr) => isEmpty(src(i)[rr.key], rr.kind))) { setStep(i); break; }
+		}
 		hydrated.current = true;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [data]);
 
 	// Track edited fields so a step's save submits only what the founder changed —
@@ -104,19 +125,6 @@ export default function RaiseSetupPage() {
 		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
 	], []);
 
-	// Required fields per step (Notion "Required: Yes"). Validated client-side so
-	// setup can't complete with gaps (e.g. an empty Category → no sector → dead Market).
-	const REQUIRED: { key: string; label: string; kind?: 'array' | 'bool' }[][] = [
-		[{ key: 'company_name', label: 'Company name' }, { key: 'company_website', label: 'Website' }, { key: 'hq_country', label: 'Country' }, { key: 'hq_city', label: 'City' }, { key: 'company_description', label: 'What the company does' }, { key: 'company_sector_id', label: 'Category' }, { key: 'company_stage', label: 'Stage' }, { key: 'revenue_status', label: 'Revenue status' }],
-		[{ key: 'fundraising_process', label: 'Fundraising process' }, { key: 'round_type', label: 'Round' }, { key: 'target_amount', label: 'Amount raising' }, { key: 'committed_amount', label: 'Already committed' }, { key: 'target_close_date', label: 'Target close date' }, { key: 'lead_investor_status', label: 'Lead investor' }, { key: 'structure', label: 'Structure' }],
-		[{ key: 'prior_capital_raised', label: 'Prior capital raised' }, { key: 'last_round_date', label: 'Last round date' }, { key: 'annual_revenue', label: 'Annual revenue / ARR' }, { key: 'monthly_burn', label: 'Monthly burn' }, { key: 'runway_months', label: 'Runway months' }],
-		[{ key: 'pitch_deck_status', label: 'Pitch deck' }, { key: 'financial_model_status', label: 'Financial model' }, { key: 'data_room_status', label: 'Data room' }, { key: 'has_target_list', label: 'Investor target list', kind: 'bool' }],
-		[{ key: 'investor_types', label: 'Investor types', kind: 'array' }, { key: 'geographies', label: 'Geographies', kind: 'array' }, { key: 'cheque_min', label: 'Cheque minimum' }, { key: 'cheque_max', label: 'Cheque maximum' }, { key: 'lead_preference', label: 'Lead/follower preference' }, { key: 'strategic_ok', label: 'Strategic preference', kind: 'bool' }],
-	];
-	const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
-		kind === 'array' ? !Array.isArray(v) || v.length === 0
-			: kind === 'bool' ? v !== true && v !== false
-				: v === undefined || v === null || v === '';
 	const validate = (i: number): { key: string; label: string }[] => {
 		const src = i === STEPS.length - 1 ? crit : form;
 		const missing = (REQUIRED[i] ?? []).filter((r) => isEmpty(src[r.key], r.kind));
