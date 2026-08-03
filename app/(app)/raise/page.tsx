@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ArrowRight, Check, Lock, Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -37,13 +35,13 @@ const money = (v: string | null, ccy: string | null) => {
 };
 
 export default function RaiseHomePage() {
-	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const { data, isLoading } = useSWR<Home>(qk.raise.home());
 
-	useEffect(() => { if (data && data.needs_setup && !data.raise) router.replace('/raise/setup'); }, [data, router]);
-
-	if (isLoading || !data || (data.needs_setup && !data.raise)) return <Wrap><Center><Loader2 className="spin" size={22} /></Center></Wrap>;
+	// No hard redirect to setup: founders land in the workspace and are prompted to
+	// finish setup (resumable). Individual pages (Market, Investors) gate their own
+	// features when the data they need is missing.
+	if (isLoading || !data) return <Wrap><Center><Loader2 className="spin" size={22} /></Center></Wrap>;
 
 	const r = data.raise;
 	const greetName = profile?.display_name?.split(' ')[0] ?? profile?.full_name?.split(' ')[0] ?? 'there';
@@ -66,6 +64,16 @@ export default function RaiseHomePage() {
 					</div>
 				)}
 			</div>
+
+			{data.needs_setup && (
+				<Card focus style={{ marginBottom: 20 }}>
+					<div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Finish setting up your raise</div>
+					<p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, maxWidth: 640 }}>
+						Atlas needs a few details to build your plan, size your market and match you with investors. Pick up where you left off — it takes about five minutes.
+					</p>
+					<Button href="/raise/setup">{data.raise ? 'Continue setup' : 'Set up my raise'} <ArrowRight size={13} /></Button>
+				</Card>
+			)}
 
 			{r && r.target_amount && (
 				<Card variant="cream" style={{ marginBottom: 20 }}>
