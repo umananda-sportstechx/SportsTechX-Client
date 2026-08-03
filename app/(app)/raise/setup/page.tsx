@@ -93,6 +93,9 @@ export default function RaiseSetupPage() {
 	};
 	// Unlink → treat as a new company (admins approve it later via verification).
 	const unlinkCompany = () => { set('company_id', null); setLinked(null); };
+	// A canonical company fact is read-only when linked AND the company already has
+	// it (so gaps the company leaves empty can still be filled into the snapshot).
+	const coLock = (k: string) => !!linked && !!s(form[k]);
 
 	const stepFields = useMemo<string[][]>(() => [
 		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
@@ -195,11 +198,12 @@ export default function RaiseSetupPage() {
 						) : (
 							<CompanySearch onPick={pickCompany} />
 						)}
-						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} /></Field>
-						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} /></Field>
-						<Grid><Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} /></Field><Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} /></Field></Grid>
-						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} /></Field>
-						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} /></Field>
+						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field>
+						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field>
+						<Grid><Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} disabled={coLock('hq_country')} /></Field><Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field></Grid>
+						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
+						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
+						{linked && <div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: -6 }}>Company details come from the Atlas profile. Verify your company to request changes.</div>}
 						<Grid>
 							<Field label="Stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 							<Field label="Generating revenue?"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Yes']]} /></Field>
