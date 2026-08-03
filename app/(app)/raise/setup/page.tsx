@@ -4,11 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Loader2, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading } from '@/components/atlas/kit';
+import { Logo } from '@/components/atlas/entity-logo';
 import { InvestorExclude } from '@/components/atlas/investor-exclude';
+
+/** A company row from /api/companies used to prefill + link Step 1. */
+interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
 
 /**
  * Atlas Raise — first-login setup wizard (Notion "Raise Setup Questionnaire") +
@@ -27,6 +32,10 @@ export default function RaiseSetupPage() {
 	const [form, setForm] = useState<Rec>({});
 	const [crit, setCrit] = useState<Rec>({});
 	const [errors, setErrors] = useState<Set<string>>(new Set());
+	// When set, the founder's raise is LINKED to an existing master company (company_id).
+	// Company facts are prefilled from it; editing them here only updates the founder's
+	// raise snapshot — the master company is changed only via admin-approved verification.
+	const [linked, setLinked] = useState<{ id: string; name: string } | null>(null);
 
 	// Seed the wizard from any saved draft ONCE — later background revalidations must
 	// not clobber the founder's in-progress edits on the current step.
@@ -35,6 +44,8 @@ export default function RaiseSetupPage() {
 		if (hydrated.current || !data) return;
 		if (data.raise) setForm(data.raise);
 		if (data.criteria) setCrit(data.criteria);
+		// Restore the linked-company banner from a resumed draft.
+		if (data.raise?.company_id) setLinked({ id: String(data.raise.company_id), name: String(data.raise.company_name ?? 'your company') });
 		hydrated.current = true;
 	}, [data]);
 
@@ -66,8 +77,24 @@ export default function RaiseSetupPage() {
 		set('company_category', id && label ? label.split(' → ') : null);
 	};
 
+	// Link an existing master company: prefill the company facts into the raise
+	// snapshot + store company_id. Editing them afterwards only touches the raise
+	// snapshot; the master company is edited only via admin-approved verification.
+	const pickCompany = (c: CoRow) => {
+		set('company_id', c.id);
+		set('company_name', c.name);
+		set('company_website', c.website ?? '');
+		set('company_description', c.description ?? '');
+		set('hq_country', c.hq_country ?? '');
+		set('hq_city', c.hq_city ?? '');
+		if (c.sector_id) pickSector(c.sector_id);
+		setLinked({ id: c.id, name: c.name });
+	};
+	// Unlink → treat as a new company (admins approve it later via verification).
+	const unlinkCompany = () => { set('company_id', null); setLinked(null); };
+
 	const stepFields = useMemo<string[][]>(() => [
-		['company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
+		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
 		['fundraising_process', 'round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
 		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
 		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
@@ -148,6 +175,14 @@ export default function RaiseSetupPage() {
 				)}
 				<div style={{ display: 'grid', gap: 16 }}>
 					{step === 0 && <>
+						{linked ? (
+							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid var(--a-border)', borderRadius: 10, padding: '12px 14px', background: 'var(--a-navy-soft)' }}>
+								<div style={{ fontSize: 13, color: 'var(--a-ink)' }}>Linked to <strong>{linked.name}</strong> from the Atlas database. You can verify your company later to manage its public profile.</div>
+								<button type="button" className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={unlinkCompany} style={{ flexShrink: 0 }}>Not your company?</button>
+							</div>
+						) : (
+							<CompanySearch onPick={pickCompany} />
+						)}
 						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} /></Field>
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} /></Field>
 						<Grid><Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} /></Field><Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} /></Field></Grid>
@@ -242,6 +277,35 @@ function TransitionScreen({ onEnter }: { onEnter: () => void }) {
 			</div>
 			<Button onClick={onEnter}>Enter your fundraising workspace <ArrowRight size={13} /></Button>
 		</div>
+	);
+}
+
+/** Step 1 typeahead over /api/companies — pick to prefill + link an existing company. */
+function CompanySearch({ onPick }: { onPick: (c: CoRow) => void }) {
+	const [q, setQ] = useState('');
+	const dq = useDebouncedValue(q);
+	const term = dq.trim();
+	const res = useSWR<{ data: CoRow[] }>(term.length >= 2 ? qk.companies.list({ q: term, limit: 6 }) : null);
+	const rows = res.data?.data ?? [];
+	return (
+		<Field label="Find your company">
+			<div style={{ position: 'relative' }}>
+				<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
+				<Input placeholder="Search the Atlas database by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
+				{term.length >= 2 && rows.length > 0 && (
+					<div style={{ position: 'absolute', zIndex: 5, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--a-surface)', border: '1px solid var(--a-border)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.10)' }}>
+						{rows.map((c) => (
+							<button key={c.id} type="button" onClick={() => { onPick(c); setQ(''); }}
+								style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--a-border)', cursor: 'pointer', textAlign: 'left' }}>
+								<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={26} radius={6} />
+								<span style={{ minWidth: 0 }}><span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{c.name}</span>{c.website && <span style={{ fontSize: 11, color: 'var(--a-faint)', marginLeft: 6 }}>{c.website.replace(/^https?:\/\//, '')}</span>}</span>
+							</button>
+						))}
+					</div>
+				)}
+			</div>
+			<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 6 }}>Find your company to prefill its details. Can’t find it? Just fill in the form below to add it as new.</div>
+		</Field>
 	);
 }
 
