@@ -43,10 +43,11 @@ type Step =
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
 
 export function ClaimModal({
-  target, initialRole, onClose, onSubmitted,
+  target, initialRole, prefill, onClose, onSubmitted,
 }: {
   target: ClaimTarget | null;
   initialRole: ClaimRole | null;
+  prefill?: Partial<ClaimForm>;
   onClose: () => void;
   onSubmitted?: () => void;
 }) {
@@ -55,15 +56,24 @@ export function ClaimModal({
 
   const lockedTarget = !!target?.id;
   const startRole = target?.role ?? initialRole ?? null;
+  const hasPrefill = !!prefill && Object.keys(prefill).length > 0;
   const [role, setRole] = useState<ClaimRole | null>(startRole);
-  const [step, setStep] = useState<Step>(target?.id ? 'identity' : startRole ? 'search' : 'role');
+  // With a prefill (e.g. verifying a brand-new company straight after Raise Setup)
+  // open directly on the prefilled data form instead of the search step, so the
+  // pre-filled answers aren't discarded.
+  const [step, setStep] = useState<Step>(target?.id ? 'identity' : (hasPrefill && startRole ? 'identity' : startRole ? 'search' : 'role'));
   const [selItem, setSelItem] = useState<SelectedEntity | null>(
     target ? { id: target.id ?? null, name: target.name ?? '', website: target.website ?? null } : null,
   );
   const [selMode, setSelMode] = useState<'claim' | 'add'>(target?.id ? 'claim' : 'add');
   const [q, setQ] = useState('');
   const [editTab, setEditTab] = useState<'info' | 'funding' | 'mna' | 'org' | 'thesis'>('info');
-  const [form, setForm] = useState<ClaimForm>(() => blankClaimForm(target ? { id: target.id, name: target.name ?? '', website: target.website } : null));
+  // Seed from the target entity, then overlay any prefill (e.g. Raise Setup answers)
+  // so a founder verifying right after setup only fills the remaining fields.
+  const [form, setForm] = useState<ClaimForm>(() => ({
+    ...blankClaimForm(target ? { id: target.id, name: target.name ?? '', website: target.website } : null),
+    ...(prefill ?? {}),
+  }));
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
