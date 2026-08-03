@@ -56,8 +56,12 @@ export function ClaimModal({
 
   const lockedTarget = !!target?.id;
   const startRole = target?.role ?? initialRole ?? null;
+  const hasPrefill = !!prefill && Object.keys(prefill).length > 0;
   const [role, setRole] = useState<ClaimRole | null>(startRole);
-  const [step, setStep] = useState<Step>(target?.id ? 'identity' : startRole ? 'search' : 'role');
+  // With a prefill (e.g. verifying a brand-new company straight after Raise Setup)
+  // open directly on the prefilled data form instead of the search step, so the
+  // pre-filled answers aren't discarded.
+  const [step, setStep] = useState<Step>(target?.id ? 'identity' : (hasPrefill && startRole ? 'identity' : startRole ? 'search' : 'role'));
   const [selItem, setSelItem] = useState<SelectedEntity | null>(
     target ? { id: target.id ?? null, name: target.name ?? '', website: target.website ?? null } : null,
   );

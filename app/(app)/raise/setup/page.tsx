@@ -277,16 +277,18 @@ const ROUND_LABEL: Record<string, string> = { pre_seed: 'Pre Seed Round', seed: 
 function buildVerifyPrefill(form: Rec): ClaimPrefill {
 	const cat = Array.isArray(form.company_category) ? (form.company_category as string[]) : [];
 	const sectorName = cat.length ? cat[cat.length - 1] : '';
-	const amount = form.target_amount ? String(form.target_amount) : '';
 	const roundLabel = ROUND_LABEL[String(form.round_type ?? '')] ?? '';
+	// Amount is intentionally NOT prefilled: setup captures a single number in the
+	// founder's currency, while the claim form uses a USD bucket dropdown — the
+	// founder picks it there. Description is capped to the claim's 150-char limit.
 	return {
 		raising: true,
-		description: s(form.company_description),
+		name: s(form.company_name),
+		website: s(form.company_website).replace(/^https?:\/\//, ''),
+		description: s(form.company_description).slice(0, 150),
 		sector: sectorName,
 		coCity: s(form.hq_city),
 		coCountry: s(form.hq_country),
-		raiseMin: amount,
-		raiseMax: amount,
 		roundNames: roundLabel ? [roundLabel] : [],
 		valuation: s(form.valuation),
 	};
