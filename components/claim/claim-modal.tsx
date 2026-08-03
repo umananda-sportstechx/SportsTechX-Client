@@ -43,10 +43,11 @@ type Step =
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
 
 export function ClaimModal({
-  target, initialRole, onClose, onSubmitted,
+  target, initialRole, prefill, onClose, onSubmitted,
 }: {
   target: ClaimTarget | null;
   initialRole: ClaimRole | null;
+  prefill?: Partial<ClaimForm>;
   onClose: () => void;
   onSubmitted?: () => void;
 }) {
@@ -63,7 +64,12 @@ export function ClaimModal({
   const [selMode, setSelMode] = useState<'claim' | 'add'>(target?.id ? 'claim' : 'add');
   const [q, setQ] = useState('');
   const [editTab, setEditTab] = useState<'info' | 'funding' | 'mna' | 'org' | 'thesis'>('info');
-  const [form, setForm] = useState<ClaimForm>(() => blankClaimForm(target ? { id: target.id, name: target.name ?? '', website: target.website } : null));
+  // Seed from the target entity, then overlay any prefill (e.g. Raise Setup answers)
+  // so a founder verifying right after setup only fills the remaining fields.
+  const [form, setForm] = useState<ClaimForm>(() => ({
+    ...blankClaimForm(target ? { id: target.id, name: target.name ?? '', website: target.website } : null),
+    ...(prefill ?? {}),
+  }));
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);

@@ -23,6 +23,7 @@ export function ClaimModalHost() {
     <ClaimModal
       target={state.target}
       initialRole={state.role}
+      prefill={state.prefill}
       onClose={() => setState(null)}
     />
   );

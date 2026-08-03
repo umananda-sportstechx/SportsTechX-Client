@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowRight, ArrowLeft, Check, Loader2, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading } from '@/components/atlas/kit';
 import { Logo } from '@/components/atlas/entity-logo';
@@ -152,8 +153,19 @@ export default function RaiseSetupPage() {
 		finally { setSaving(false); }
 	};
 
+	// Offer verification right after setup, pre-filled from the raise answers so the
+	// founder only adds the verification-only fields (name, position, LinkedIn, email).
+	// Links to the master company when one was picked; otherwise starts an "add new"
+	// company request that admins approve.
+	const verify = () => {
+		const target = form.company_id
+			? { role: 'founder' as const, id: String(form.company_id), name: s(form.company_name), website: s(form.company_website) || null }
+			: { role: 'founder' as const };
+		openClaim(target, 'founder', buildVerifyPrefill(form));
+	};
+
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (done) return <Screen width={620}><TransitionScreen onEnter={() => router.push('/raise')} /></Screen>;
+	if (done) return <Screen width={620}><TransitionScreen onEnter={() => router.push('/raise')} onVerify={verify} /></Screen>;
 
 	return (
 		<Screen width={720}>
@@ -256,7 +268,27 @@ export default function RaiseSetupPage() {
 	);
 }
 
-function TransitionScreen({ onEnter }: { onEnter: () => void }) {
+/** Raise Setup answers → claim-form prefill (the fields the two forms share). */
+const ROUND_LABEL: Record<string, string> = { pre_seed: 'Pre Seed Round', seed: 'Seed Round', series_a: 'Series A', series_b_plus: 'Series B', bridge: 'Venture Round', other: '' };
+function buildVerifyPrefill(form: Rec): ClaimPrefill {
+	const cat = Array.isArray(form.company_category) ? (form.company_category as string[]) : [];
+	const sectorName = cat.length ? cat[cat.length - 1] : '';
+	const amount = form.target_amount ? String(form.target_amount) : '';
+	const roundLabel = ROUND_LABEL[String(form.round_type ?? '')] ?? '';
+	return {
+		raising: true,
+		description: s(form.company_description),
+		sector: sectorName,
+		coCity: s(form.hq_city),
+		coCountry: s(form.hq_country),
+		raiseMin: amount,
+		raiseMax: amount,
+		roundNames: roundLabel ? [roundLabel] : [],
+		valuation: s(form.valuation),
+	};
+}
+
+function TransitionScreen({ onEnter, onVerify }: { onEnter: () => void; onVerify: () => void }) {
 	return (
 		<div style={{ textAlign: 'center', padding: '32px 0' }}>
 			<H1>Your raise workspace is ready.</H1>
@@ -275,7 +307,14 @@ function TransitionScreen({ onEnter }: { onEnter: () => void }) {
 					<Card key={t}><div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.5 }}>{d}</div></Card>
 				))}
 			</div>
-			<Button onClick={onEnter}>Enter your fundraising workspace <ArrowRight size={13} /></Button>
+			<Card variant="cream" style={{ textAlign: 'left', marginBottom: 20 }}>
+				<div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>Verify your company</div>
+				<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, marginBottom: 14 }}>
+					Get your company verified on SportsTechX. We&apos;ve pre-filled everything you told us — you just add a few details and our team reviews it. Optional, and you can do it later from settings.
+				</div>
+				<Button onClick={onVerify}>Verify your company <ArrowRight size={13} /></Button>
+			</Card>
+			<Button variant="ghost" onClick={onEnter}>Skip for now — enter your workspace <ArrowRight size={13} /></Button>
 		</div>
 	);
 }
