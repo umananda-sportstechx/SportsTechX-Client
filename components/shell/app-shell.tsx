@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { Loader2 } from 'lucide-react';
+import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { SidebarRail } from './sidebar-rail';
 import { Topbar } from './topbar';
 import { TickerStrip } from './ticker-strip';
@@ -53,6 +55,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const isRaiseWorkspace = pathname === '/raise' || pathname.startsWith('/raise/');
 
+	// The Raise workspace is gated to the `raise` plan (admins bypass). Everyone
+	// else (free / general / scout) is sent to the shared coming-soon page.
+	const router = useRouter();
+	const { data: profile } = useUserProfile();
+	const isAdmin = profile?.user_role === 'admin';
+	const raiseAllowed = isAdmin || getUserType(profile) === 'raise';
+	useEffect(() => {
+		if (isRaiseWorkspace && profile && !raiseAllowed) router.replace('/coming-soon');
+	}, [isRaiseWorkspace, profile, raiseAllowed, router]);
+
 	// Cmd+K shortcut for the command palette.
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
@@ -79,7 +91,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		aiOpen ? 'ai-open' : '',
 	].filter(Boolean).join(' ');
 
+	// Plan-agnostic surfaces (coming-soon placeholder + billing/subscriptions) —
+	// rendered on the Atlas palette with no legacy chrome, reachable by any plan.
+	if (pathname === '/coming-soon' || pathname.startsWith('/billing')) {
+		return <div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}<PaywallGate /></div>;
+	}
+
 	if (isRaiseWorkspace) {
+		// Gate to the raise plan: show a loader while the profile loads or while a
+		// non-raise user is being redirected to /coming-soon.
+		if (!profile || !raiseAllowed) {
+			return <div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: 'var(--a-page)' }}><Loader2 className="spin" size={22} /></div>;
+		}
 		// Founder-only shell — no legacy CommandPalette (its nav points at removed routes).
 		return (
 			<>
