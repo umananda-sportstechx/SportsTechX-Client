@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Check, Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { apiRequest } from '@/lib/query-client';
@@ -16,18 +15,17 @@ import { apiRequest } from '@/lib/query-client';
 // Atlas identity palette (from the mockup SVGs).
 const INK = '#1F1E1C', MUTED = '#6B6A64', FAINT = '#9B9A93', BORDER = '#E4E2DB', NAVY = '#1B4C78', SURFACE = '#FFFFFF', PAGE = '#F4F2EC';
 
-type Plan = 'free' | 'starter' | 'founder' | 'investor';
+type Plan = 'free' | 'general' | 'raise' | 'scout';
 interface PlanDef { key: Plan; name: string; price: string; tagline: string; features: string[]; highlight?: boolean }
 const PLANS: PlanDef[] = [
-	{ key: 'free', name: 'Free', price: '€0', tagline: 'Explore the ecosystem', features: ['Events & monthly roundup', 'Newsletter', '100 companies', 'Basic filters', 'Favourites & saved searches', 'Industry reports'] },
-	{ key: 'starter', name: 'Professional', price: 'Flexible', tagline: 'Credit-based access for operators', features: ['Everything in Free', 'Credit system', 'Extended database access', 'Pay for what you use'] },
-	{ key: 'founder', name: 'Founder', price: '€699', tagline: 'Raise capital like a pro', features: ['Atlas Raise fundraising workspace', 'Investor database + contacts', 'Full 8k+ companies', 'PRO reports', 'AI pitch-deck analysis', 'Quarterly 1:1 with STX leadership'], highlight: true },
-	{ key: 'investor', name: 'Investor', price: '€2,500', tagline: 'Sourcing & dealflow intelligence', features: ['Community & founder intros', 'Dealflow & M&A databases', 'Full contacts + export', 'Deep-dive analytics', 'PRO reports archive'] },
+	{ key: 'free', name: 'Free', price: '€0', tagline: 'Explore the ecosystem', features: ['Browse the public directory', 'Events & newsletter', 'Basic filters'] },
+	{ key: 'general', name: 'General', price: '€500', tagline: 'Full platform access', features: ['Everything in Free', 'Companies, investors & deals directories', 'Advanced filters', 'Market reports'] },
+	{ key: 'raise', name: 'Raise', price: '€600', tagline: 'Raise capital like a pro', features: ['Atlas Raise fundraising workspace', 'Investor database + matching', 'AI pitch-deck analysis', 'Pipeline & market sizing', 'Quarterly 1:1 with STX leadership'], highlight: true },
+	{ key: 'scout', name: 'Scout', price: '€2,500', tagline: 'Sourcing & dealflow intelligence', features: ['Everything in General', 'Dealflow & M&A intelligence', 'Full contacts + export', 'Deep-dive analytics'] },
 ];
 
 export function PaywallGate() {
 	const { data: profile, mutate } = useUserProfile();
-	const router = useRouter();
 	const [busy, setBusy] = useState<Plan | 'dismiss' | null>(null);
 
 	// Show once: until the wall has been stamped. (Undefined while loading → hidden.)
@@ -36,10 +34,20 @@ export function PaywallGate() {
 	const choose = async (plan: Plan | null) => {
 		setBusy(plan ?? 'dismiss');
 		try {
-			await apiRequest('POST', '/api/profiles/plan', plan ? { plan } : {});
-			await mutate();
-			if (plan === 'founder') router.push('/raise/setup');
-			else if (plan === 'investor') router.push('/raise');
+			// Free / dismiss: set the tier directly and close the wall (no payment).
+			if (!plan || plan === 'free') {
+				await apiRequest('POST', '/api/profiles/plan', plan ? { plan } : {});
+				await mutate();
+				return;
+			}
+			// Paid plans: stamp the wall as seen, then hand off to Stripe Checkout.
+			// The billing webhook sets the tier on successful payment.
+			await apiRequest('POST', '/api/profiles/plan', {});
+			const res = await apiRequest('POST', '/api/billing/checkout', { plan });
+			if (!res.ok) throw new Error('checkout failed');
+			const body = (await res.json()) as { url?: string | null };
+			if (body.url) { window.location.assign(body.url); return; }
+			setBusy(null);
 		} catch { setBusy(null); }
 	};
 
