@@ -112,16 +112,22 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
     let hasAccess = false;
     let requiredTier: UserType | null = null;
 
-    if (userType === 'pro') {
-      // Pro is the top tier — it inherits everything free/growth unlock too, so a
-      // feature that's only marked free/growth (not explicitly pro) stays open.
+    // The feature matrix stays in access-LEVELS (free/growth/pro). Plans map onto
+    // a level: raise/scout (and legacy pro) → full; general (and legacy growth) →
+    // mid; free → base. Upgrade targets are surfaced as plan names.
+    const level: 'free' | 'growth' | 'pro' =
+      (userType === 'raise' || userType === 'scout' || userType === 'pro') ? 'pro'
+        : (userType === 'general' || userType === 'growth') ? 'growth'
+          : 'free';
+
+    if (level === 'pro') {
       hasAccess = feature.free || feature.growth || feature.pro;
-    } else if (userType === 'growth') {
+    } else if (level === 'growth') {
       hasAccess = feature.free || feature.growth;
-      if (!hasAccess) requiredTier = 'pro';
+      if (!hasAccess) requiredTier = 'raise'; // a pro-level feature — cheapest unlock is raise
     } else {
       hasAccess = feature.free;
-      if (!hasAccess) requiredTier = feature.growth ? 'growth' : 'pro';
+      if (!hasAccess) requiredTier = feature.growth ? 'general' : 'raise';
     }
 
     return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false, error: false };
