@@ -47,8 +47,8 @@ export function PaywallGate() {
 			if (!res.ok) throw new Error('checkout failed');
 			const body = (await res.json()) as { url?: string | null };
 			if (body.url) { window.location.assign(body.url); return; }
-			setBusy(null);
-		} catch { setBusy(null); }
+		} catch { /* fall through to reset */ }
+		finally { setBusy(null); }
 	};
 
 	const current = profile.user_type ?? 'free';
