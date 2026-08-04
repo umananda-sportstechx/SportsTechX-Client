@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Home, FileText, Globe, Heart, Grid3x3, CalendarDays, BookOpen, Settings, User, Menu, X, Sun, Moon } from 'lucide-react';
+import { Home, FileText, Globe, Heart, Grid3x3, CalendarDays, BookOpen, Settings, User, CreditCard, Menu, X, Sun, Moon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Brand } from '@/components/ui/brand';
 import { RaiseChat } from '@/components/atlas/raise-chat';
@@ -32,6 +32,7 @@ const NAV: RaiseNavItem[] = [
 
 const BOTTOM_NAV: RaiseNavItem[] = [
 	{ name: 'Raise settings', icon: Settings, path: '/raise/settings' },
+	{ name: 'Subscription', icon: CreditCard, path: '/billing' },
 	{ name: 'Account', icon: User, path: '/raise/account' },
 ];
 
