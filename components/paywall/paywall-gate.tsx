@@ -40,9 +40,9 @@ export function PaywallGate() {
 				await mutate();
 				return;
 			}
-			// Paid plans: stamp the wall as seen, then hand off to Stripe Checkout.
-			// The billing webhook sets the tier on successful payment.
-			await apiRequest('POST', '/api/profiles/plan', {});
+			// Paid plans: hand off to Stripe Checkout WITHOUT stamping the wall — a
+			// cancel/failure must not burn the one-time paywall. The success page
+			// stamps paywall_shown_at once payment is confirmed.
 			const res = await apiRequest('POST', '/api/billing/checkout', { plan });
 			if (!res.ok) throw new Error('checkout failed');
 			const body = (await res.json()) as { url?: string | null };

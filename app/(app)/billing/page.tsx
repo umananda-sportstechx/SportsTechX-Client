@@ -77,19 +77,17 @@ export default function BillingPage() {
 				</div>
 			</Card>
 
-			{plan !== 'raise' && (
-				<Card style={{ marginBottom: 20 }}>
-					<div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Change plan</div>
-					<p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--a-muted)' }}>Upgrade to unlock more of SportsTechX.</p>
-					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-						{UPGRADES.filter(([k]) => k !== plan).map(([k, label]) => (
-							<Button key={k} size="sm" variant={k === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void upgrade(k)}>
-								{busy === k ? <Loader2 className="spin" size={13} /> : `${label} — ${PLAN[k].price}`}
-							</Button>
-						))}
-					</div>
-				</Card>
-			)}
+			<Card style={{ marginBottom: 20 }}>
+				<div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Change plan</div>
+				<p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--a-muted)' }}>Switch to a different SportsTechX plan.</p>
+				<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+					{UPGRADES.filter(([k]) => k !== plan).map(([k, label]) => (
+						<Button key={k} size="sm" variant={k === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void upgrade(k)}>
+							{busy === k ? <Loader2 className="spin" size={13} /> : `Switch to ${label} — ${PLAN[k].price}`}
+						</Button>
+					))}
+				</div>
+			</Card>
 
 			<div style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 10px' }}>Billing history</div>
 			{invoices.isLoading ? <Loading />

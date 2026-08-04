@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
+import { apiRequest } from '@/lib/query-client';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { Brand } from '@/components/ui/brand';
 import { Button } from '@/components/atlas/kit';
@@ -12,7 +13,15 @@ import { Button } from '@/components/atlas/kit';
 export default function BillingSuccessPage() {
 	const router = useRouter();
 	const { data: profile, mutate } = useUserProfile();
-	useEffect(() => { void mutate(); }, [mutate]); // pick up the webhook-set plan
+	useEffect(() => {
+		// Confirmed payment → stamp the paywall as seen so it doesn't reappear,
+		// then poll the profile a few times to catch the webhook-set tier (it lands
+		// asynchronously) so "Continue" routes to the right place.
+		void apiRequest('POST', '/api/profiles/plan', {}).finally(() => void mutate());
+		let n = 0;
+		const t = setInterval(() => { void mutate(); if (++n >= 4) clearInterval(t); }, 2000);
+		return () => clearInterval(t);
+	}, [mutate]);
 
 	const plan = getUserType(profile);
 	return (
