@@ -4,7 +4,9 @@ import useSWR from 'swr';
 import { useAuthSession } from './use-auth-session';
 import { qk } from '@/lib/query-keys';
 
-export type UserType = 'free' | 'growth' | 'pro';
+// Active plans (also persona): free / general / raise / scout. growth & pro are
+// legacy tiers retained only for historical subscription records.
+export type UserType = 'free' | 'general' | 'raise' | 'scout' | 'growth' | 'pro';
 
 // Self-declared persona, orthogonal to user_role (RBAC) and user_type (tier).
 // null = undeclared (treated as a regular 'user'). A verified claim is the
