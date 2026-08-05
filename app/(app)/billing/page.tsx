@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
+import { qk } from '@/lib/query-keys';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { Brand } from '@/components/ui/brand';
@@ -32,6 +33,7 @@ interface Invoice { id: string; number: string | null; status: string | null; am
 interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
 interface SubRow { stripe_subscription_id: string; subscription_status: string; is_active: boolean; is_trial: boolean; plan_name: string | null; user_type: string; subscription_current_period_end: string | null; subscription_cancel_at: string | null; updated_at: string }
 interface Pack { id: string; name: string; credit_amount: number; price_amount: number; currency_code: string }
+interface LedgerRow { id: string; transaction_type: string; amount: number; description: string | null; display_name: string | null; occurred_at: string }
 
 const fmtMoney = (cents: number, ccy: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase() }).format((cents ?? 0) / 100);
 const fmtDate = (unixSec: number) => new Date(unixSec * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -47,6 +49,7 @@ export default function BillingPage() {
 	const allSubs = useSWR<SubRow[]>(['/api/billing/subscriptions']);
 	const invoices = useSWR<Invoice[]>(['/api/billing/invoices']);
 	const packs = useSWR<{ data: Pack[] }>(['/api/billing/credit-packs']);
+	const ledger = useSWR<{ data: LedgerRow[] }>(qk.credits.ledger('ai', undefined, 25));
 	const { balance: bal } = useCreditBalance('ai');
 	const [busy, setBusy] = useState<string | null>(null);
 
@@ -95,6 +98,7 @@ export default function BillingPage() {
 	const rows = invoices.data ?? [];
 	const pastSubs = (allSubs.data ?? []).filter((s) => !s.is_active);
 	const packList = packs.data?.data ?? [];
+	const ledgerRows = ledger.data?.data ?? [];
 
 	return (
 		<div className="atlas" style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px 56px' }}>
@@ -155,6 +159,24 @@ export default function BillingPage() {
 					</div>
 				)}
 			</Card>
+
+			<div style={{ fontSize: 14, fontWeight: 600, margin: '4px 0 10px' }}>AI credit history</div>
+			{ledger.isLoading ? <Loading />
+				: ledger.error ? <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>Couldn&apos;t load credit history.</div></Card>
+					: ledgerRows.length === 0 ? <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No AI credit activity yet.</div></Card>
+						: (
+							<Card style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
+								{ledgerRows.map((r, i) => (
+									<div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px', borderTop: i ? '1px solid var(--a-border)' : 'none' }}>
+										<div>
+											<div style={{ fontSize: 13, fontWeight: 500 }}>{r.display_name ?? r.description ?? r.transaction_type.replace(/_/g, ' ')}</div>
+											<div style={{ fontSize: 12, color: 'var(--a-faint)' }}>{fmtISO(r.occurred_at)}</div>
+										</div>
+										<div style={{ fontSize: 13, fontWeight: 600, color: r.amount >= 0 ? '#3B6D11' : 'var(--a-muted)' }}>{r.amount >= 0 ? '+' : ''}{r.amount.toLocaleString()}</div>
+									</div>
+								))}
+							</Card>
+						)}
 
 			{pastSubs.length > 0 && (
 				<>
