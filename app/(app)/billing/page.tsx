@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import useSWRInfinite from 'swr/infinite';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
@@ -49,7 +50,9 @@ export default function BillingPage() {
 	const allSubs = useSWR<SubRow[]>(['/api/billing/subscriptions']);
 	const invoices = useSWR<Invoice[]>(['/api/billing/invoices']);
 	const packs = useSWR<{ data: Pack[] }>(['/api/billing/credit-packs']);
-	const ledger = useSWR<{ data: LedgerRow[] }>(qk.credits.ledger('ai', undefined, 25));
+	const ledger = useSWRInfinite<{ data: LedgerRow[]; nextCursor: string | null }>(
+		(index, prev) => (prev && !prev.nextCursor) ? null : qk.credits.ledger('ai', index === 0 ? undefined : (prev?.nextCursor ?? undefined), 25),
+	);
 	const { balance: bal } = useCreditBalance('ai');
 	const [busy, setBusy] = useState<string | null>(null);
 
@@ -98,7 +101,8 @@ export default function BillingPage() {
 	const rows = invoices.data ?? [];
 	const pastSubs = (allSubs.data ?? []).filter((s) => !s.is_active);
 	const packList = packs.data?.data ?? [];
-	const ledgerRows = ledger.data?.data ?? [];
+	const ledgerRows = ledger.data?.flatMap((p) => p.data) ?? [];
+	const ledgerHasMore = !!ledger.data?.[ledger.data.length - 1]?.nextCursor;
 
 	return (
 		<div className="atlas" style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px 56px' }}>
@@ -175,6 +179,13 @@ export default function BillingPage() {
 										<div style={{ fontSize: 13, fontWeight: 600, color: r.amount >= 0 ? '#3B6D11' : 'var(--a-muted)' }}>{r.amount >= 0 ? '+' : ''}{r.amount.toLocaleString()}</div>
 									</div>
 								))}
+								{ledgerHasMore && (
+									<div style={{ padding: '10px 16px', borderTop: '1px solid var(--a-border)', textAlign: 'center' }}>
+										<Button variant="outline" size="sm" disabled={ledger.isValidating} onClick={() => void ledger.setSize(ledger.size + 1)}>
+											{ledger.isValidating ? <Loader2 className="spin" size={13} /> : 'Load more'}
+										</Button>
+									</div>
+								)}
 							</Card>
 						)}
 
