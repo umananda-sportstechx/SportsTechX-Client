@@ -72,7 +72,7 @@ export function RaiseChat() {
 		greeting: GREETING,
 		actionFromTool: founderActionFromTool,
 		pageContext: () => founderPageContext(pathname),
-		insufficientCreditsMd: "_⚠️ You're out of AI credits._ [Top up or upgrade →](/billing) to keep chatting.",
+		insufficientCreditsMd: "_You're out of AI credits._ [Top up or upgrade](/billing) to keep chatting.",
 	});
 
 	const {
