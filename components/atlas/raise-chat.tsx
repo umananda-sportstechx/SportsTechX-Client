@@ -47,8 +47,21 @@ function founderActionFromTool(tool: string, input: unknown): ChatAction | null 
 	}
 	if (tool === 'navigate_and_filter') {
 		const p = input as { page?: string };
-		if (p?.page === 'investors') return { kind: 'navigate', label: 'View Investors', href: '/raise/investors' };
-		return null;
+		// Founder workspace pages → an "Open" chip. Market-intel catalog pages
+		// (companies/funding/ma/ecosystem/analytics) have no page in this shell, so
+		// they map to nothing and no chip is shown.
+		const NAV: Record<string, { label: string; href: string }> = {
+			home: { label: 'Open Home', href: '/raise' },
+			pitch: { label: 'Open Pitch deck', href: '/raise/pitch' },
+			market: { label: 'Open Market', href: '/raise/market' },
+			investors: { label: 'View Investors', href: '/raise/investors' },
+			pipeline: { label: 'Open Pipeline', href: '/raise/pipeline' },
+			programs: { label: 'Open Programs & Events', href: '/raise/programs-events' },
+			events: { label: 'Open Programs & Events', href: '/raise/programs-events' },
+			resources: { label: 'Open Resources', href: '/raise/resources' },
+		};
+		const m = p?.page ? NAV[p.page] : undefined;
+		return m ? { kind: 'navigate', label: m.label, href: m.href } : null;
 	}
 	return null;
 }
