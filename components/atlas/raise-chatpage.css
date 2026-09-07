@@ -37,7 +37,6 @@
 .raise-chatpage-composer {
 	flex-shrink: 0;
 	padding: 12px 24px 20px;
-	border-top: 1px solid var(--a-border);
 	background: var(--a-page);
 }
 .raise-chatpage-composer .raise-search { max-width: 760px; margin: 0 auto; }
