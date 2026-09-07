@@ -157,3 +157,86 @@
 /* ── Progress ───────────────────────────────────────────────────────────── */
 .atlas-progress { height: 8px; border-radius: 4px; background: var(--a-inset); overflow: hidden; }
 .atlas-progress__fill { height: 100%; background: var(--a-blue); border-radius: 4px; }
+
+/* ── Raise home: search-first layout ─────────────────────────────────────── */
+/* The hero fills the viewport minus a peek so the attention panel pokes up from
+   the bottom edge; scrolling the .raise-content container reveals the rest. */
+.raise-home { --raise-peek: 150px; padding: 0 40px; }
+.raise-hero {
+	min-height: calc(100dvh - var(--raise-peek));
+	display: grid;
+	place-items: center;
+}
+.raise-hero-inner {
+	width: 100%; max-width: 720px;
+	display: flex; flex-direction: column; align-items: center;
+	text-align: center; padding: 24px 0;
+}
+.raise-hero-title { text-align: center; margin: 0; }
+.raise-hero-sub { color: var(--a-muted); font-size: 15px; margin: 8px 0 24px; }
+
+/* Search composer (the focal point) */
+.raise-search { width: 100%; max-width: 680px; }
+.raise-search-box {
+	display: flex; align-items: flex-end; gap: 8px;
+	background: var(--a-surface);
+	border: 1px solid var(--a-border-strong);
+	border-radius: 16px;
+	padding: 10px 10px 10px 14px;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+.raise-search-box:focus-within {
+	border-color: var(--a-navy);
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10), 0 0 0 3px color-mix(in srgb, var(--a-navy) 18%, transparent);
+}
+.raise-search-glyph { color: var(--a-faint); flex-shrink: 0; margin-bottom: 9px; }
+.raise-search-input {
+	flex: 1; resize: none; border: none; outline: none; background: transparent;
+	color: var(--a-ink); font-family: var(--a-font); font-size: 15px; line-height: 1.5;
+	max-height: 200px; padding: 7px 0;
+}
+.raise-search-input::placeholder { color: var(--a-faint); }
+.raise-search-send {
+	width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+	display: inline-flex; align-items: center; justify-content: center;
+	background: var(--a-primary); color: var(--a-primary-ink); border: none; cursor: pointer;
+	transition: opacity 0.15s, transform 0.15s;
+}
+.raise-search-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.raise-search-send:not(:disabled):hover { transform: translateY(-1px); }
+
+.raise-search-suggest { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+.raise-search-chip {
+	font-size: 13px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+	border: 1px solid var(--a-border); background: var(--a-surface); color: var(--a-muted);
+	font-family: var(--a-font); transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.raise-search-chip:hover { background: var(--a-inset); color: var(--a-ink); border-color: var(--a-border-strong); }
+
+/* Attention peek panel */
+.raise-attn { max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 0 96px; }
+.raise-attn-head {
+	font-family: var(--a-mono); font-size: 11px; font-weight: 600;
+	letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint);
+	text-align: center; margin-bottom: 14px;
+}
+.raise-attn-empty { text-align: center; color: var(--a-faint); font-size: 14px; padding: 20px; }
+.raise-attn-list { display: flex; flex-direction: column; gap: 12px; }
+.raise-attn-card {
+	display: flex; align-items: center; justify-content: space-between; gap: 16px;
+	background: var(--a-surface); border: 1px solid var(--a-border);
+	border-radius: var(--a-radius); padding: 18px 20px;
+	transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.raise-attn-card:hover { border-color: var(--a-border-strong); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06); transform: translateY(-1px); }
+.raise-attn-card-main { min-width: 0; }
+.raise-attn-card-title { font-size: 15px; font-weight: 600; color: var(--a-ink); margin-bottom: 5px; }
+.raise-attn-card-why { font-size: 13px; color: var(--a-muted); line-height: 1.5; }
+
+@media (max-width: 860px) {
+	.raise-home { padding: 0 20px; }
+	.raise-hero { min-height: 60vh; }
+	.raise-attn { padding-bottom: 88px; }
+	.raise-attn-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
