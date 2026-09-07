@@ -23,7 +23,7 @@ import '@/components/atlas/raise-chatpage.css';
 export default function RaiseChatPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const seededRef = useRef(false);
+	const initRef = useRef(false);
 
 	const chat = useChat({
 		greeting: FOUNDER_GREETING,
@@ -38,22 +38,26 @@ export default function RaiseChatPage() {
 
 	const { data: conversations } = useSWR<ConversationListItem[]>(qk.chat.conversations());
 
-	// Seed from the home search (?q=) exactly once, then strip the param so a
-	// refresh doesn't re-send. seededRef guards the StrictMode double-mount.
+	// One-time init from the URL: open an existing conversation (?c=<id>) or seed a
+	// new one from the home search (?q=…). initRef guards the StrictMode remount.
 	useEffect(() => {
+		if (initRef.current) return;
+		initRef.current = true;
+		const c = searchParams.get('c');
 		const q = searchParams.get('q');
-		if (q && !seededRef.current) {
-			seededRef.current = true;
-			void send(q);
-			router.replace('/raise/chat');
-		}
-	}, [searchParams, send, router]);
+		if (c) void loadConversation(c);
+		else if (q) void send(q);
+	}, [searchParams, loadConversation, send]);
 
-	// A new conversation just got an id → refresh the rail so it shows up.
+	// Reflect the active conversation in the URL so a refresh restores it, and
+	// refresh the rail whenever a (new) conversation becomes active.
 	useEffect(() => {
-		if (conversationId) void mutate(qk.chat.conversations());
-	}, [conversationId]);
+		if (!conversationId) return;
+		router.replace(`/raise/chat?c=${conversationId}`);
+		void mutate(qk.chat.conversations());
+	}, [conversationId, router]);
 
+	const newChat = () => { resetConversation(); router.replace('/raise/chat'); };
 	const hasThread = messages.length > 1 || streaming;
 
 	return (
@@ -88,7 +92,7 @@ export default function RaiseChatPage() {
 			</div>
 
 			<aside className="raise-chatpage-rail">
-				<button className="raise-chatpage-new" onClick={resetConversation}>
+				<button className="raise-chatpage-new" onClick={newChat}>
 					<Plus size={15} /> New chat
 				</button>
 				<div className="raise-chatpage-convos">
