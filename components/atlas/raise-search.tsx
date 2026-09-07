@@ -1,23 +1,44 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Search, Send } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Search, Send, Square } from 'lucide-react';
 
 /**
- * Atlas Raise home search — the centred, Claude/ChatGPT-style composer that is
- * the focal point of the /raise home. UI only for now: input is local state and
- * submit is a stub. Wire to useChat / the RaiseChat drawer later.
+ * Controlled search/composer, used both as the /raise home hero search (fires a
+ * navigation to /raise/chat) and as the bottom composer on the chat page (fires
+ * useChat.send). Identical visuals; behaviour comes from props.
  */
 
-const SUGGESTIONS = [
+export const RAISE_SUGGESTIONS = [
 	'Find investors for my round',
 	"How's my pipeline looking?",
 	'Review my pitch deck',
 	'Size my market',
 ];
 
-export function RaiseSearch() {
-	const [value, setValue] = useState('');
+export function RaiseSearch({
+	value,
+	onChange,
+	onSubmit,
+	placeholder = 'Ask Atlas about investors, your market, your raise…',
+	disabled = false,
+	autoFocus = false,
+	streaming = false,
+	onStop,
+	suggestions,
+	onSuggestion,
+}: {
+	value: string;
+	onChange: (v: string) => void;
+	onSubmit: () => void;
+	placeholder?: string;
+	disabled?: boolean;
+	autoFocus?: boolean;
+	streaming?: boolean;
+	onStop?: () => void;
+	suggestions?: string[];
+	onSuggestion?: (s: string) => void;
+}) {
 	const taRef = useRef<HTMLTextAreaElement>(null);
 
 	const grow = (el: HTMLTextAreaElement) => {
@@ -25,10 +46,10 @@ export function RaiseSearch() {
 		el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
 	};
 
-	const submit = () => {
-		if (!value.trim()) return;
-		// TODO: wire to useChat / open the RaiseChat drawer with this query. UI-only for now.
-	};
+	// Re-fit height when the value changes externally (suggestion click, reset).
+	useEffect(() => { if (taRef.current) grow(taRef.current); }, [value]);
+
+	const submit = () => { if (value.trim() && !disabled) onSubmit(); };
 
 	return (
 		<div className="raise-search">
@@ -36,24 +57,33 @@ export function RaiseSearch() {
 				<textarea
 					ref={taRef}
 					className="raise-search-input"
-					placeholder="Ask Atlas about investors, your market, your raise…"
+					placeholder={placeholder}
 					value={value}
 					rows={1}
-					onChange={(e) => { setValue(e.target.value); grow(e.target); }}
+					autoFocus={autoFocus}
+					onChange={(e) => { onChange(e.target.value); grow(e.target); }}
 					onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
 				/>
 				<div className="raise-search-actions">
 					<Search size={16} className="raise-search-glyph" />
-					<button className="raise-search-send" aria-label="Send" disabled={!value.trim()} onClick={submit}>
-						<Send size={16} />
-					</button>
+					{streaming && onStop ? (
+						<button className="raise-search-send" aria-label="Stop" onClick={onStop}>
+							<Square size={15} />
+						</button>
+					) : (
+						<button className="raise-search-send" aria-label="Send" disabled={disabled || !value.trim()} onClick={submit}>
+							<Send size={16} />
+						</button>
+					)}
 				</div>
 			</div>
-			<div className="raise-search-suggest">
-				{SUGGESTIONS.map((s) => (
-					<button key={s} type="button" className="raise-search-chip" onClick={() => { setValue(s); taRef.current?.focus(); }}>{s}</button>
-				))}
-			</div>
+			{suggestions && suggestions.length > 0 && (
+				<div className="raise-search-suggest">
+					{suggestions.map((s) => (
+						<button key={s} type="button" className="raise-search-chip" onClick={() => { (onSuggestion ?? onChange)(s); taRef.current?.focus(); }}>{s}</button>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }
