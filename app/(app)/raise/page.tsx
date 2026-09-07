@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import { H1, Badge, Button } from '@/components/atlas/kit';
-import { RaiseSearch } from '@/components/atlas/raise-search';
+import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/atlas/raise-search';
 
 /**
  * Atlas Raise — Home. Search-first: a centred composer as the focal point, with
@@ -18,8 +20,11 @@ interface Attention { id: string; title: string; why: string; cta_label: string;
 interface Home { attention: Attention[] }
 
 export default function RaiseHomePage() {
+	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const { data, isLoading } = useSWR<Home>(qk.raise.home());
+	const [q, setQ] = useState('');
+	const goChat = (text: string) => { const t = text.trim(); if (t) router.push(`/raise/chat?q=${encodeURIComponent(t)}`); };
 
 	if (isLoading || !data) {
 		return <div className="raise-home"><div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}><Loader2 className="spin" size={22} /></div></div>;
@@ -35,7 +40,7 @@ export default function RaiseHomePage() {
 				<div className="raise-hero-inner">
 					<H1 className="raise-hero-title">{greeting}, {greetName}</H1>
 					<p className="raise-hero-sub">What would you like to work on?</p>
-					<RaiseSearch />
+					<RaiseSearch value={q} onChange={setQ} onSubmit={() => goChat(q)} suggestions={RAISE_SUGGESTIONS} onSuggestion={goChat} />
 				</div>
 			</section>
 

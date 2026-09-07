@@ -79,7 +79,8 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 
 			{open && <div className="raise-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />}
 
-			<RaiseChat />
+			{/* The full chat page is itself the co-pilot — don't show the FAB drawer there. */}
+			{!pathname.startsWith('/raise/chat') && <RaiseChat />}
 		</div>
 	);
 }
