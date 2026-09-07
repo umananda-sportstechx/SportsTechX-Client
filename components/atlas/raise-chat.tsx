@@ -2,79 +2,19 @@
 
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Send, X, Download, Plus, History, ArrowUpRight, Sparkles, MessageSquare } from 'lucide-react';
+import { Send, X, Download, Plus, History, Sparkles, MessageSquare } from 'lucide-react';
+import { useChat, AI_MD_CSS } from '@/components/chat/chat-core';
 import {
-	useChat, MarkdownMessage, ThinkingDots, AI_MD_CSS,
-	currentFilters, type ChatAction, type PageContext, type RewritePath,
-} from '@/components/chat/chat-core';
+	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS,
+	founderPageContext, founderActionFromTool, FounderMessages,
+} from './founder-chat';
 import './raise-chat.css';
 
 /**
- * Atlas founder chat — the streaming agent, restyled for the raise workspace.
- * Desktop: a right-side drawer (~400px). Mobile (≤720px): a full-screen modal.
- * A launcher FAB (bottom-right) opens it on every `/raise` page. Mechanics
- * (SSE, markdown, history, export) come from components/chat/chat-core.
+ * Atlas founder chat — the streaming agent as a right-side drawer opened by a
+ * bottom-right FAB on every `/raise` page except the full chat page. Route policy
+ * + transcript render are shared with the chat page via founder-chat.tsx.
  */
-
-const GREETING =
-	"I'm your fundraising co-pilot. Ask me to research investors, size your market, sanity-check your raise, or find your way around the workspace — e.g. “find seed investors in Germany” or “what does the Market page do?”";
-
-/* ── Founder route policy ────────────────────────────────────────────────── */
-
-/** Page context sent with each message. Only the investor detail page maps to a
- *  known entity; everything else sends just the path (+ any active filters). */
-function founderPageContext(path: string | null): PageContext | undefined {
-	if (!path) return undefined;
-	const segs = path.split('?')[0]!.split('/').filter(Boolean); // ['raise','investors','id']
-	const filters = currentFilters();
-	if (segs[0] === 'raise' && segs[2]) {
-		if (segs[1] === 'investors') return { path, entityType: 'investor', entityId: segs[2] };
-		if (segs[1] === 'pitch') return { path, entityType: 'deck_analysis', entityId: segs[2] };
-	}
-	return filters ? { path, filters } : { path };
-}
-
-/** Turn a client-side nav tool call into a chip. Founders only have investor
- *  profiles + the investors list as navigable targets; other intents are dropped. */
-function founderActionFromTool(tool: string, input: unknown): ChatAction | null {
-	if (tool === 'open_entity') {
-		const p = input as { entity_type?: string; id_or_slug?: string };
-		if (p?.entity_type === 'investor' && p?.id_or_slug) {
-			const name = p.id_or_slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-			return { kind: 'open_entity', label: `Open ${name}`, href: `/raise/investors/${encodeURIComponent(p.id_or_slug)}` };
-		}
-		return null;
-	}
-	if (tool === 'navigate_and_filter') {
-		const p = input as { page?: string };
-		// Founder workspace pages → an "Open" chip. Market-intel catalog pages
-		// (companies/funding/ma/ecosystem/analytics) have no page in this shell, so
-		// they map to nothing and no chip is shown.
-		const NAV: Record<string, { label: string; href: string }> = {
-			home: { label: 'Open Home', href: '/raise' },
-			pitch: { label: 'Open Pitch deck', href: '/raise/pitch' },
-			market: { label: 'Open Market', href: '/raise/market' },
-			investors: { label: 'View Investors', href: '/raise/investors' },
-			pipeline: { label: 'Open Pipeline', href: '/raise/pipeline' },
-			programs: { label: 'Open Programs & Events', href: '/raise/programs-events' },
-			events: { label: 'Open Programs & Events', href: '/raise/programs-events' },
-			resources: { label: 'Open Resources', href: '/raise/resources' },
-		};
-		const m = p?.page ? NAV[p.page] : undefined;
-		return m ? { kind: 'navigate', label: m.label, href: m.href } : null;
-	}
-	return null;
-}
-
-/** Remap markdown in-app links for the founder shell: company pages don't exist
- *  here (flatten to text); investor links point at the raise workspace. */
-const founderRewritePath: RewritePath = (href) => {
-	if (href.startsWith('/companies/')) return null;
-	if (href.startsWith('/investors/')) return '/raise' + href;
-	return href;
-};
-
-/* ── Component ───────────────────────────────────────────────────────────── */
 
 export function RaiseChat() {
 	const [open, setOpen] = useState(false);
@@ -82,10 +22,10 @@ export function RaiseChat() {
 	const router = useRouter();
 
 	const chat = useChat({
-		greeting: GREETING,
+		greeting: FOUNDER_GREETING,
 		actionFromTool: founderActionFromTool,
 		pageContext: () => founderPageContext(pathname),
-		insufficientCreditsMd: "_You're out of AI credits._ [Top up or upgrade](/billing) to keep chatting.",
+		insufficientCreditsMd: FOUNDER_INSUFFICIENT_CREDITS,
 	});
 
 	const {
@@ -156,36 +96,7 @@ export function RaiseChat() {
 				)}
 
 				<div className="raise-chat-body" ref={bodyRef}>
-					{messages.map((m, i) => (
-						<div key={i} className={`raise-chat-msg ${m.role}`}>
-							<MarkdownMessage text={m.content} sources={m.sources ?? []} rewritePath={founderRewritePath} />
-							{m.role === 'assistant' && (m.actions?.length ?? 0) > 0 && (
-								<div className="raise-chat-chips">
-									{m.actions!.map((a, ai) => (
-										<button key={ai} className="raise-chat-chip" onClick={() => { router.push(a.href); close(); }} title={a.href}>
-											<ArrowUpRight size={13} /> {a.label}
-										</button>
-									))}
-								</div>
-							)}
-							{m.role === 'assistant' && (m.sources?.length ?? 0) > 0 && (
-								<div className="raise-chat-sources">
-									<div className="raise-chat-sources-head">Sources</div>
-									{m.sources!.map((s) => (
-										<a key={s.index} href={s.url} target="_blank" rel="noopener noreferrer" className="raise-chat-source">
-											<sup>[{s.index}]</sup> {s.title ?? s.url}
-										</a>
-									))}
-								</div>
-							)}
-						</div>
-					))}
-					{streaming && messages[messages.length - 1]?.content === '' && (
-						<div className="raise-chat-thinking">
-							<ThinkingDots />
-							<span>{stage || 'Thinking'}…</span>
-						</div>
-					)}
+					<FounderMessages messages={messages} streaming={streaming} stage={stage} onAction={(href) => { router.push(href); close(); }} />
 				</div>
 
 				<div className="raise-chat-input-row">
