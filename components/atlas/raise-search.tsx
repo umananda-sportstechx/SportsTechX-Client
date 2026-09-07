@@ -22,7 +22,7 @@ export function RaiseSearch() {
 
 	const grow = (el: HTMLTextAreaElement) => {
 		el.style.height = 'auto';
-		el.style.height = `${Math.min(Math.max(el.scrollHeight, 54), 240)}px`;
+		el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
 	};
 
 	const submit = () => {
@@ -33,7 +33,6 @@ export function RaiseSearch() {
 	return (
 		<div className="raise-search">
 			<div className="raise-search-box">
-				<Search size={18} className="raise-search-glyph" />
 				<textarea
 					ref={taRef}
 					className="raise-search-input"
@@ -43,9 +42,12 @@ export function RaiseSearch() {
 					onChange={(e) => { setValue(e.target.value); grow(e.target); }}
 					onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
 				/>
-				<button className="raise-search-send" aria-label="Send" disabled={!value.trim()} onClick={submit}>
-					<Send size={17} />
-				</button>
+				<div className="raise-search-actions">
+					<Search size={16} className="raise-search-glyph" />
+					<button className="raise-search-send" aria-label="Send" disabled={!value.trim()} onClick={submit}>
+						<Send size={16} />
+					</button>
+				</div>
 			</div>
 			<div className="raise-search-suggest">
 				{SUGGESTIONS.map((s) => (
