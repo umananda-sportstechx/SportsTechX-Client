@@ -22,7 +22,7 @@ export function RaiseSearch() {
 
 	const grow = (el: HTMLTextAreaElement) => {
 		el.style.height = 'auto';
-		el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+		el.style.height = `${Math.min(Math.max(el.scrollHeight, 54), 240)}px`;
 	};
 
 	const submit = () => {
