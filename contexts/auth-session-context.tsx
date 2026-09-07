@@ -139,6 +139,10 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		// existing session — we only want to invalidate on actual NEW sign-ins,
 		// not on this first synthesized one.
 		let hasFiredInitialSignIn = false;
+		// The currently-authenticated user id. Supabase re-emits SIGNED_IN on every
+		// tab focus; we only wipe + revalidate the whole cache on a genuine login (a
+		// different user, or after a sign-out), never on a same-user focus re-emit.
+		let authedUserId: string | null = null;
 
 		const init = async () => {
 			const { data: { session }, error } = await supabase.auth.getSession();
@@ -164,6 +168,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 			// event from onAuthStateChange (synthesized for existing session)
 			// is treated as the initial event, not a real sign-in.
 			hasFiredInitialSignIn = true;
+			authedUserId = session.user.id;
 		};
 
 		init();
@@ -178,6 +183,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 					monitorIntervalRef.current = null;
 				}
 				setState({ user: null, loading: false, sessionValid: false });
+				authedUserId = null;
 				if (!logoutState.isLoggingOut()) void globalMutate(() => true, undefined, { revalidate: false });
 				if (logoutState.isLoggingOut()) {
 					logoutState.setLoggingOut(false);
@@ -190,21 +196,24 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 				if (session!.expires_at) scheduleRefresh(session!.expires_at);
 				startMonitoring();
 				if (event === 'SIGNED_IN') {
-					if (hasFiredInitialSignIn) {
-						// Real sign-in (after a SIGNED_OUT or fresh login flow).
-						// Revalidate EVERY query (not just the profile) with the fresh
-						// session so the whole page loads in one shot. Previously only
-						// the profile was refetched, so other data (companies, favorites,
-						// credits, …) stayed empty until a manual refresh — the "needs 2
-						// refreshes after login" bug (BUG-035, also BUG-028/032/004).
-						clearAuthCache();
-						void globalMutate(() => true, undefined, { revalidate: true });
-					} else {
+					const uid = session!.user.id;
+					if (!hasFiredInitialSignIn) {
 						// First SIGNED_IN at subscription = the existing-session
 						// synthesized event. The initial fetch is already gated
 						// by `enabled: sessionValid && !loading` in useUserProfile,
 						// so no invalidate needed.
 						hasFiredInitialSignIn = true;
+						authedUserId = uid;
+					} else if (uid !== authedUserId) {
+						// Genuine new sign-in (after a SIGNED_OUT, or a different user).
+						// Revalidate EVERY query with the fresh session so the whole page
+						// loads in one shot (BUG-035, also BUG-028/032/004). A same-user
+						// re-emit — Supabase fires SIGNED_IN on every tab focus — falls
+						// through and does NOT wipe the cache, so pages don't flash
+						// loaders on every tab switch.
+						authedUserId = uid;
+						clearAuthCache();
+						void globalMutate(() => true, undefined, { revalidate: true });
 					}
 				}
 			}
