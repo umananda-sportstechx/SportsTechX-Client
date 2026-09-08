@@ -276,10 +276,20 @@ interface ComboBarLineProps {
 	height?: number;
 	valueFormatter?: (v: number) => string;
 	lineFormatter?: (v: number) => string;
+	/** Alternating bar fills. Defaults to the legacy mint pair. */
+	barColors?: [string, string];
+	/** Trend line + dot colour. Defaults to `var(--accent)`. */
+	lineColor?: string;
+	/** Legend label for the bars (default "Funding"). */
+	barLabel?: string;
+	/** Legend label for the line (default "Rounds"). */
+	lineLabel?: string;
 }
 
 export function ComboBarLine({
 	data, height = 280, valueFormatter, lineFormatter,
+	barColors = ['#79CABD', '#C0F4DE'], lineColor = 'var(--accent)',
+	barLabel = 'Funding', lineLabel = 'Rounds',
 }: ComboBarLineProps) {
 	const [hover, setHover] = useState<number | null>(null);
 	const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -342,7 +352,7 @@ export function ComboBarLine({
 					const x = xFor(i) - bw / 2;
 					const y = yBar(d.amt);
 					const h = PAD_T + innerH - y;
-					const fill = i % 2 === 0 ? '#79CABD' : '#C0F4DE';
+					const fill = i % 2 === 0 ? barColors[0] : barColors[1];
 					return (
 						<g key={i}>
 							<rect
@@ -386,7 +396,7 @@ export function ComboBarLine({
 				{/* Trend line */}
 				<path
 					d={data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xFor(i)},${yLine(d.deals)}`).join(' ')}
-					stroke="var(--accent)"
+					stroke={lineColor}
 					strokeWidth="1.8"
 					fill="none"
 				/>
@@ -396,7 +406,7 @@ export function ComboBarLine({
 						cx={xFor(i)}
 						cy={yLine(d.deals)}
 						r="3"
-						fill="var(--accent)"
+						fill={lineColor}
 						onMouseEnter={() => setHover(i)}
 						onMouseMove={onMove}
 						onMouseLeave={() => setHover(null)}
@@ -406,20 +416,20 @@ export function ComboBarLine({
 			</svg>
 			<div className="cbl-legend">
 				<span className="cbl-legend-item">
-					<span style={{ width: 12, height: 8, background: '#79CABD' }} />
-					Funding
+					<span style={{ width: 12, height: 8, background: barColors[0] }} />
+					{barLabel}
 				</span>
 				<span className="cbl-legend-item">
 					<svg width="14" height="6">
-						<line x1="0" y1="3" x2="14" y2="3" stroke="var(--accent)" strokeWidth="2" />
+						<line x1="0" y1="3" x2="14" y2="3" stroke={lineColor} strokeWidth="2" />
 					</svg>
-					Rounds
+					{lineLabel}
 				</span>
 			</div>
 			{hover !== null && data[hover] && (
 				<div className="pie-tip" style={{ left: pos.x, top: pos.y }}>
 					<div className="pie-tip-l">{data[hover].year ?? data[hover].label}</div>
-					<div className="pie-tip-v">{fmtAmt(data[hover].amt)} · {fmtLine(data[hover].deals)} rounds</div>
+					<div className="pie-tip-v">{fmtAmt(data[hover].amt)} · {fmtLine(data[hover].deals)} {lineLabel.toLowerCase()}</div>
 				</div>
 			)}
 		</div>

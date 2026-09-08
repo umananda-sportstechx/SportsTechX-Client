@@ -182,6 +182,11 @@ export const qk = {
     maTypeBreakdown: (period: 'ytd' | '12m' | 'all' = 'ytd') => ['/api/analytics/ma-type-breakdown', { period }] as const,
   },
 
+  // ── Market Monthly Roundup (editorial + live deal aggregates) ───────────
+  market: {
+    roundup: (params: { year?: number; month?: number } = {}) => ['/api/market/roundup', params] as const,
+  },
+
   // ── Comparison (URL-driven, stateless `?ids=a,b,c`) ─────────────────────
   // Wraps existing list endpoints with a fixed `?ids=` filter. The server
   // already supports `ids` on /api/companies; the investors/deals endpoints
