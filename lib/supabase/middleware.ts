@@ -8,6 +8,7 @@ import { type NextRequest, NextResponse } from 'next/server';
  * /login when the user has no auth cookie.
  */
 const PUBLIC_PATHS = [
+  '/',                // public marketing landing page (app/page.tsx)
   '/login',
   '/signup',
   '/forgot-password',
