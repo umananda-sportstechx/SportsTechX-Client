@@ -1,19 +1,27 @@
 import Link from 'next/link';
 
-/** Intro Hero — dark plum, pink radial glow + decorative arcs, Atlas wordmark,
- *  headline and two CTAs. */
+/* eslint-disable @next/next/no-img-element */
+
+/** Intro Hero — full-height dark plum with the design's background detail
+ *  (concentric ring outlines + a pink-radial circle + a dark circle, all
+ *  centred off the bottom-left, matching the Figma transforms on a 1512×1007
+ *  stage anchored to the hero's bottom), the Atlas wordmark, headline and CTAs. */
 export function IntroHero() {
 	return (
-		<header className="lp-hero" id="top">
+		<header className="lp-hero lp-hero--intro" id="top">
+			<div className="lp-hero-bg" aria-hidden>
+				{/* dark circle (Ellipse 3) — centre (-146.5, 1357.5), r 785.5 */}
+				<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
+					style={{ left: -932, top: 572, width: 1571, height: 1571, transform: 'rotate(144.3deg)' }} />
+				{/* pink radial circle (Ellipse 2) — same centre */}
+				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
+					style={{ left: -932, top: 572, width: 1571, height: 1571, transform: 'rotate(-25.65deg)' }} />
+				{/* concentric ring outlines (Vector) */}
+				<img className="lp-hero-orb" src="/landing/hero-arc-lines.svg" alt=""
+					style={{ left: -1853, top: -469, width: 3554, height: 3554 }} />
+			</div>
 			<div className="lp-hero-glow lp-intro-glow" />
-			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img className="lp-hero-arc" src="/landing/hero-ellipse-1.svg" alt="" aria-hidden
-				style={{ width: 1200, left: -620, top: 220, transform: 'rotate(-26deg)' }} />
-			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img className="lp-hero-arc" src="/landing/hero-arc-lines.svg" alt="" aria-hidden
-				style={{ width: 1700, right: -700, top: -140, opacity: 0.35 }} />
 			<div className="lp-hero-inner">
-				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img className="lp-hero-wordmark" src="/landing/atlas-wordmark.svg" alt="Atlas" />
 				<h1 className="lp-display lp-hero-headline">Your insider guide to<br />sports tech &amp; venture</h1>
 				<div className="lp-hero-ctas">

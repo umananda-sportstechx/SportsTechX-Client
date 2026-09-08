@@ -1,4 +1,4 @@
-import { Anton, Azeret_Mono } from 'next/font/google';
+import { Oswald, Azeret_Mono } from 'next/font/google';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { IntroHero } from '@/components/landing/intro-hero';
 import { TrustedBy } from '@/components/landing/trusted-by';
@@ -18,11 +18,11 @@ import '@/components/landing/landing.css';
  * `redirect('/raise')`; `/` is whitelisted in lib/supabase/middleware.ts so it's
  * reachable while logged out.
  *
- * Fonts: display headings use Anton as a free stand-in for the design's licensed
+ * Fonts: display headings use Oswald as a free stand-in for the design's licensed
  * "Zuume" (swap by pointing --lp-display at the real font); eyebrows/buttons use
  * Azeret Mono (exact); body reuses the app's Inter.
  */
-const display = Anton({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
+const display = Oswald({ weight: ['500', '600', '700'], subsets: ['latin'], variable: '--lp-display', display: 'swap' });
 const mono = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
 
 export default function LandingPage() {
