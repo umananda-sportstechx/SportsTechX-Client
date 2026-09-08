@@ -1,13 +1,19 @@
 import Link from 'next/link';
 
+/* eslint-disable @next/next/no-img-element */
+
 /** Final Hero — dark plum + arc detail, wordmark, closing headline + Apply CTA. */
 export function FinalHero() {
 	return (
 		<section className="lp-hero" id="apply">
-			<div className="lp-hero-glow lp-final-glow" />
 			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img className="lp-hero-arc" src="/landing/hero-ellipse-2.svg" alt="" aria-hidden
-				style={{ width: 1100, right: -520, bottom: -260, transform: 'rotate(20deg)' }} />
+			<div className="lp-hero-bg lp-hero-bg--final" aria-hidden>
+				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
+					style={{ right: -760, bottom: -700, width: 1571, height: 1571, transform: 'rotate(30deg)' }} />
+				<img className="lp-hero-orb" src="/landing/hero-arc-lines.svg" alt=""
+					style={{ right: -2100, bottom: -1500, width: 3554, height: 3554 }} />
+			</div>
+			<div className="lp-hero-glow lp-final-glow" />
 			<div className="lp-hero-inner" style={{ padding: '110px 24px' }}>
 				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img className="lp-hero-wordmark lp-hero-wordmark--sm" src="/landing/atlas-wordmark.svg" alt="Atlas" />

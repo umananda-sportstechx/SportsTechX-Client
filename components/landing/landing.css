@@ -4,8 +4,8 @@
    (Azeret Mono) come from next/font in app/page.tsx; body reuses Inter. */
 
 .lp {
-	--lp-dark: #0a0e1a;
-	--lp-dark-2: #0e1120;
+	--lp-dark: #060a17;
+	--lp-dark-2: #0a0e1a;
 	--lp-panel: #11141f;
 	--lp-card: #191c28;
 	--lp-slate: #2c2e39;
@@ -38,9 +38,9 @@
 
 .lp-display {
 	font-family: var(--lp-display), "Arial Narrow", sans-serif;
-	font-weight: 400;
+	font-weight: 600;
 	text-transform: uppercase;
-	line-height: 0.98;
+	line-height: 1;
 	letter-spacing: 0.01em;
 	margin: 0;
 }
@@ -98,20 +98,28 @@
 
 /* ── Nav ───────────────────────────────────────────────────────────────── */
 .lp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 30; }
-.lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 32px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 30px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
-.lp-nav-mark span { font-family: var(--lp-display), sans-serif; font-size: 34px; color: #fff; line-height: 1; }
-.lp-nav-links { display: flex; align-items: center; gap: 40px; }
-.lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-on-dark-soft); text-decoration: none; transition: color 0.12s ease; }
+.lp-nav-mark img { height: 44px; width: auto; }
+/* Nav links + LOG IN live inside one rounded capsule (per the design). */
+.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 99px; padding: 8px 8px 8px 30px; }
+.lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
-.lp-nav-right { display: flex; align-items: center; gap: 24px; }
+.lp-nav-right { display: flex; align-items: center; gap: 16px; }
 .lp-nav-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; }
 
 /* ── Hero (Intro + Final share .lp-hero) ───────────────────────────────── */
 .lp-hero { position: relative; background: var(--lp-dark); overflow: hidden; }
-.lp-hero-glow { position: absolute; inset: 0; pointer-events: none; }
-.lp-hero-arc { position: absolute; pointer-events: none; opacity: 0.5; }
-.lp-hero-inner { position: relative; z-index: 2; max-width: 1128px; margin: 0 auto; padding: 220px 24px 150px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 44px; }
+/* Intro hero fills the viewport on first load, content vertically centred. */
+.lp-hero--intro { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; }
+.lp-hero-glow { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+/* Background stage: a 1512×1007 box pinned to the hero bottom + horizontally
+   centred, so the design's off-canvas circles/rings land in the same place. */
+.lp-hero-bg { position: absolute; left: 50%; bottom: 0; width: 1512px; height: 1007px; transform: translateX(-50%); pointer-events: none; z-index: 0; }
+.lp-hero-orb { position: absolute; max-width: none; }
+.lp-hero-bg--final { height: 689px; }
+.lp-hero-inner { position: relative; z-index: 2; width: 100%; max-width: 1128px; margin: 0 auto; padding: 150px 24px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 44px; }
+.lp-hero--intro .lp-hero-inner { padding: 120px 24px; }
 .lp-hero-wordmark { width: 392px; max-width: 70%; }
 .lp-hero-wordmark--sm { width: 284px; }
 .lp-hero-headline { color: #fff; font-size: clamp(44px, 6.2vw, 78px); }
