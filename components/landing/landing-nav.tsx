@@ -16,7 +16,10 @@ export function LandingNav() {
 	return (
 		<nav className={`lp-nav ${open ? 'menu-open' : ''}`}>
 			<div className="lp-nav-inner">
-				<Link href="/" className="lp-nav-mark" aria-label="Atlas"><span>A</span></Link>
+				<Link href="/" className="lp-nav-mark" aria-label="Atlas">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img src="/landing/atlas-a.svg" alt="Atlas" />
+				</Link>
 				<div className="lp-nav-right">
 					<div className="lp-nav-links">
 						{LINKS.map(([label, href]) => (
