@@ -1,4 +1,4 @@
-import { Bebas_Neue, Azeret_Mono } from 'next/font/google';
+import { Anton, Azeret_Mono } from 'next/font/google';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { IntroHero } from '@/components/landing/intro-hero';
 import { TrustedBy } from '@/components/landing/trusted-by';
@@ -18,11 +18,12 @@ import '@/components/landing/landing.css';
  * `redirect('/raise')`; `/` is whitelisted in lib/supabase/middleware.ts so it's
  * reachable while logged out.
  *
- * Fonts: display headings use Bebas Neue as a free stand-in for the design's
- * licensed "Zuume" (swap by pointing --lp-display at the real font); eyebrows/
- * buttons/nav use Azeret Mono (exact, from the design); body reuses the app's Inter.
+ * Fonts: headings use the design's licensed "Zuume" as soon as its file exists at
+ * public/fonts/zuume-regular.woff2 (see the @font-face in landing.css); until then
+ * they fall through to Anton, the closest free match. Eyebrows/buttons/nav use
+ * Azeret Mono (exact, from the design); body reuses the app's Inter.
  */
-const display = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
+const display = Anton({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
 const mono = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
 
 export default function LandingPage() {
