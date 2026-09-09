@@ -1,4 +1,4 @@
-import { Anton, Azeret_Mono } from 'next/font/google';
+import { Anton, Azeret_Mono, Newsreader } from 'next/font/google';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { IntroHero } from '@/components/landing/intro-hero';
 import { TrustedBy } from '@/components/landing/trusted-by';
@@ -25,10 +25,12 @@ import '@/components/landing/landing.css';
  */
 const display = Anton({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
 const mono = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
+/* Editorial serif used for eyebrows, body copy and the tier-card labels. */
+const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--lp-serif', display: 'swap' });
 
 export default function LandingPage() {
 	return (
-		<div className={`lp ${display.variable} ${mono.variable}`}>
+		<div className={`lp ${display.variable} ${mono.variable} ${serif.variable}`}>
 			<LandingNav />
 			<main>
 				<IntroHero />
