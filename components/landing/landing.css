@@ -222,24 +222,37 @@
 .lp-carousel-arrow--next { right: 8px; }
 
 /* ── How to join ───────────────────────────────────────────────────────── */
-.lp-howjoin { padding: 96px 0; }
-.lp-howjoin-grid { display: grid; grid-template-columns: 1fr 509px; gap: 60px; align-items: start; }
-.lp-howjoin-intro h2 { font-size: clamp(36px, 4.4vw, 60px); margin: 22px 0 20px; }
-.lp-howjoin-intro p { color: var(--lp-ink-soft); font-size: 17px; line-height: 1.55; max-width: 520px; }
-.lp-switcher { display: inline-flex; gap: 8px; margin-top: 34px; flex-wrap: wrap; }
-.lp-switch-tag { display: inline-flex; align-items: center; gap: 10px; padding: 9px 18px; border-radius: 99px; border: 1px solid var(--lp-border-cream); background: transparent; cursor: pointer; font-family: var(--lp-mono), monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-ink-soft); transition: all 0.12s ease; }
-.lp-switch-tag .dot { width: 12px; height: 12px; border-radius: 3px; background: var(--lp-border-cream); }
-.lp-switch-tag.active { background: var(--lp-ink); color: #fff; border-color: var(--lp-ink); }
-.lp-switch-tag.active .dot { background: var(--lp-pink); }
-.lp-stack { position: relative; }
-.lp-stack-card { border-radius: 18px; padding: 32px; color: #fff; position: relative; overflow: hidden; background: var(--lp-panel); border: 1px solid var(--lp-border-dark); margin-bottom: 14px; }
-.lp-stack-card--active { background: linear-gradient(150deg, #2a1430 0%, #12131f 60%); box-shadow: 0 30px 60px -30px rgba(243, 33, 99, 0.5); }
-.lp-stack-head { font-family: var(--lp-display-stack); letter-spacing: 0.06em; font-size: 22px; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-.lp-stack-sub { color: var(--lp-on-dark-soft); font-size: 15px; margin-bottom: 20px; }
-.lp-points { display: grid; gap: 16px; }
-.lp-point { display: flex; align-items: center; gap: 14px; font-size: 15px; }
-.lp-point-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(243, 33, 99, 0.16); color: var(--lp-pink-2); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.lp-collapsed-head { font-family: var(--lp-display-stack); letter-spacing: 0.06em; font-size: 22px; }
+.lp-howjoin { padding: 104px 0 112px; }
+.lp-howjoin-grid { display: grid; grid-template-columns: minmax(0, 1fr) 509px; gap: 72px; align-items: start; }
+
+/* Eyebrow: serif label followed by a rule running to the column edge. */
+.lp-howjoin-eyebrow { display: flex; align-items: center; gap: 22px; margin-bottom: 26px; }
+.lp-howjoin-eyebrow span { font-family: var(--lp-serif), Georgia, serif; font-size: 16px; color: var(--lp-ink); white-space: nowrap; }
+.lp-howjoin-eyebrow i { flex: 1; height: 1px; background: rgba(20, 18, 26, 0.22); }
+
+.lp-howjoin-title { font-size: clamp(34px, 4.1vw, 62px); color: var(--lp-ink); margin-bottom: 26px; }
+.lp-howjoin-desc { font-family: var(--lp-serif), Georgia, serif; font-size: 18px; line-height: 1.58; color: var(--lp-ink); max-width: 440px; margin: 0 0 34px; }
+.lp-howjoin-rule { height: 1px; background: rgba(20, 18, 26, 0.16); margin-top: 46px; }
+
+/* Switcher — one rounded container holding the three tier tags (design). */
+.lp-howjoin .lp-switcher { display: inline-flex; gap: 4px; padding: 6px; border: 1px solid rgba(20, 18, 26, 0.16); border-radius: 99px; background: rgba(255, 255, 255, 0.55); }
+.lp-switcher { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.lp-switch-tag { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 99px; border: none; background: transparent; cursor: pointer; font-family: var(--lp-mono), monospace; font-size: 13px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--lp-ink-soft); transition: background 0.12s ease, color 0.12s ease; }
+.lp-switch-tag .dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.lp-howjoin .lp-switch-tag.active { background: var(--lp-ink); color: #fff; }
+
+/* Tier cards — a deck: the active one expands, the others stay as a bar. */
+.lp-stack { display: flex; flex-direction: column; gap: 8px; }
+.lp-tier { display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; transition: box-shadow 0.18s ease; }
+.lp-tier--open { padding-bottom: 32px; box-shadow: 0 26px 50px -30px rgba(0, 0, 0, 0.75); }
+.lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
+.lp-tier-brand img { width: 132px; height: auto; }
+.lp-tier-brand em { font-family: var(--lp-serif), Georgia, serif; font-style: italic; font-size: 15px; letter-spacing: 0.04em; line-height: 1; margin-top: 4px; }
+.lp-tier-body { display: block; margin-top: 26px; }
+.lp-tier-sub { display: block; font-family: var(--lp-display-stack); font-weight: 600; text-transform: uppercase; font-size: 26px; line-height: 1.05; margin-bottom: 22px; }
+.lp-points { display: grid; gap: 15px; }
+.lp-point { display: flex; align-items: center; gap: 14px; font-family: var(--lp-serif), Georgia, serif; font-size: 15px; line-height: 1.35; color: rgba(255, 255, 255, 0.92); }
+.lp-point-ico { width: 24px; height: 24px; border-radius: 6px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.16); color: #fff; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
 .lp-gallery-wrap { background: var(--lp-dark); }
