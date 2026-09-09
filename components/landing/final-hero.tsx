@@ -10,9 +10,10 @@ export function FinalHero() {
 			<div className="lp-hero-bg lp-hero-bg--final" aria-hidden>
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
 					style={{ right: -760, bottom: -700, width: 1571, height: 1571, transform: 'rotate(30deg)' }} />
+				<div className="lp-hero-glow lp-final-glow" />
+				<img className="lp-hero-orb lp-hero-ringimg" src="/landing/hero-rings.svg" alt=""
+					style={{ left: -277, top: -777, width: 3554, height: 3554 }} />
 			</div>
-			<div className="lp-hero-rings lp-hero-rings--final" aria-hidden />
-			<div className="lp-hero-glow lp-final-glow" />
 			<div className="lp-hero-inner" style={{ padding: '110px 24px' }}>
 				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img className="lp-hero-wordmark lp-hero-wordmark--sm" src="/landing/atlas-wordmark.svg" alt="Atlas" />
