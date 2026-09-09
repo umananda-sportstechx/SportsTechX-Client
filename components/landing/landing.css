@@ -223,7 +223,7 @@
 
 /* ── How to join ───────────────────────────────────────────────────────── */
 .lp-howjoin { padding: 104px 0 112px; }
-.lp-howjoin-grid { display: grid; grid-template-columns: minmax(0, 1fr) 509px; gap: 72px; align-items: start; }
+.lp-howjoin-grid { display: grid; grid-template-columns: minmax(0, 1fr) 509px; gap: 72px; align-items: center; }
 
 /* Eyebrow: serif label followed by a rule running to the column edge. */
 .lp-howjoin-eyebrow { display: flex; align-items: center; gap: 22px; margin-bottom: 26px; }
@@ -242,9 +242,16 @@
 .lp-howjoin .lp-switch-tag.active { background: var(--lp-ink); color: #fff; }
 
 /* Tier cards — a deck: the active one expands, the others stay as a bar. */
-.lp-stack { display: flex; flex-direction: column; gap: 8px; }
-.lp-tier { display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; transition: box-shadow 0.18s ease; }
-.lp-tier--open { padding-bottom: 32px; box-shadow: 0 26px 50px -30px rgba(0, 0, 0, 0.75); }
+/* Overlapping deck — each card tucks under the one below it; the active card
+   lifts to the front and expands, so promoting a tier reads as a vertical
+   carousel rather than three separate boxes. */
+.lp-stack { display: flex; flex-direction: column; }
+.lp-tier { position: relative; z-index: 1; display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; min-height: 138px; margin-top: -42px; box-shadow: 0 -14px 34px -20px rgba(0, 0, 0, 0.9); transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease; }
+.lp-stack > .lp-tier:first-child { margin-top: 0; }
+/* The card directly under an open one doesn't tuck into it, so the expanded
+   card's bottom stays clear and the next card's wordmark isn't covered. */
+.lp-tier--open + .lp-tier { margin-top: 0; }
+.lp-tier--open { z-index: 10; min-height: 348px; padding-bottom: 32px; transform: translateY(-2px); box-shadow: 0 30px 62px -26px rgba(0, 0, 0, 0.85); }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 132px; height: auto; }
 .lp-tier-brand em { font-family: var(--lp-serif), Georgia, serif; font-style: italic; font-size: 15px; letter-spacing: 0.04em; line-height: 1; margin-top: 4px; }
