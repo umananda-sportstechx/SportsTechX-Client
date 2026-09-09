@@ -195,21 +195,26 @@
 .lp-cream { background: var(--lp-cream); color: var(--lp-ink); }
 .lp-trusted { padding: 96px 0 104px; }
 .lp-trusted-head { text-align: center; margin: 0 auto 52px; }
-.lp-trusted-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(28px, 3.05vw, 46px); line-height: 1.1; margin: 0 0 16px; color: var(--lp-ink); }
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 700; text-transform: uppercase; font-size: clamp(28px, 3.05vw, 46px); line-height: 1.1; margin: 0 0 16px; color: var(--lp-ink); }
 .lp-trusted-head p { color: var(--lp-ink-soft); font-size: 17px; line-height: 1.62; margin: 0 auto; max-width: 720px; }
 
 /* Auto-scrolling partner carousel. Design: 210px card on a 286px stride, with a
    dashed divider sitting in the middle of each 76px gap. */
 .lp-carousel { position: relative; padding: 0 62px; }
-.lp-carousel-track { display: flex; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-.lp-carousel-track::-webkit-scrollbar { display: none; }
+.lp-carousel-viewport { overflow: hidden; }
+/* Pure-CSS marquee: the track holds the list twice, so translating it by
+   exactly -50% lands on an identical frame and the loop is seamless. Composited
+   by the browser, so unlike a rAF + scrollLeft loop it cannot stall. */
+.lp-carousel-marquee { display: flex; width: max-content; animation-name: lp-marquee; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; }
+@keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.lp-carousel:hover .lp-carousel-marquee { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .lp-carousel-marquee { animation: none; } }
 .lp-partner { flex: 0 0 286px; padding: 0 38px; position: relative; }
 .lp-partner::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px dashed rgba(20, 18, 26, 0.18); }
 .lp-partner-photo { position: relative; height: 232px; border-radius: 10px; overflow: hidden; }
-.lp-partner-photo::before { content: ""; position: absolute; inset: 0; background: radial-gradient(58% 46% at 50% 34%, rgba(255,255,255,0.14), rgba(255,255,255,0) 72%); }
 .lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(8, 10, 18, 0.9), rgba(8, 10, 18, 0)); }
 .lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 15px; z-index: 2; text-align: center; color: #fff; font-family: var(--lp-display-stack); font-weight: 700; font-size: 25px; letter-spacing: 0.04em; line-height: 1; }
-.lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); text-transform: uppercase; font-size: 15px; line-height: 1.2; color: var(--lp-ink); }
+.lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); font-weight: 700; text-transform: uppercase; font-size: 15px; line-height: 1.2; color: var(--lp-ink); }
 .lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 11px; line-height: 1.4; color: var(--lp-ink-soft); }
 .lp-carousel-arrow { position: absolute; top: 116px; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 6px; line-height: 0; transition: color 0.12s ease; }
 .lp-carousel-arrow:hover { color: var(--lp-ink); }

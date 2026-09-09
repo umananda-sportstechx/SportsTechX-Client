@@ -1,67 +1,47 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Trusted by — cream section with a continuously auto-scrolling partner
- * carousel. The track holds the list twice so the scroll can wrap seamlessly:
- * once scrollLeft passes half the track it is rolled back by exactly half,
- * which lands on an identical frame. Arrows nudge by one card stride and
- * briefly pause the drift; hover/focus pauses it too, and it never starts for
- * users who prefer reduced motion.
+ * carousel.
+ *
+ * The drift is a pure CSS keyframes marquee (translateX 0 → -50% on a track
+ * that renders the list twice, so the loop is seamless). It deliberately does
+ * NOT use requestAnimationFrame + scrollLeft: that approach stalled, because
+ * reading scrollLeft back snaps to whole device pixels so sub-pixel steps were
+ * rounded away. A CSS animation is composited by the browser and can't stall.
+ *
+ * The arrows shift the animation's phase via a negative `animation-delay`
+ * (one card stride = STRIDE/COPY_W of the duration), so stepping keeps the
+ * drift running rather than fighting it. Hover pauses; reduced-motion stops it.
+ *
+ * Photos: each card paints `url(...) , <gradient>`. If the photo file isn't
+ * present the request 404s and the gradient underneath still shows — no broken
+ * image icon — so dropping the real files in is all that's needed.
  */
 const PARTNERS = [
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#8d7f6f,#3d3630)' },
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#9a6f56,#3a2a22)' },
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#7e8a93,#2f363b)' },
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#8a7a86,#332c33)' },
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#6f8479,#2b332f)' },
-	{ name: 'Alexander Janssen', title: 'CEO, Dutch SportsTech Fund', logo: 'BCG', tone: 'linear-gradient(150deg,#94816b,#38312a)' },
+	{ img: '/landing/partner-1.jpg', tone: 'linear-gradient(160deg,#8d7f6f,#332c26)' },
+	{ img: '/landing/partner-2.jpg', tone: 'linear-gradient(160deg,#9a6f56,#31241d)' },
+	{ img: '/landing/partner-3.jpg', tone: 'linear-gradient(160deg,#7e8a93,#282e33)' },
+	{ img: '/landing/partner-4.jpg', tone: 'linear-gradient(160deg,#8a7a86,#2c262c)' },
+	{ img: '/landing/partner-5.jpg', tone: 'linear-gradient(160deg,#6f8479,#242b28)' },
+	{ img: '/landing/partner-6.jpg', tone: 'linear-gradient(160deg,#94816b,#302a24)' },
 ];
+const NAME = 'Alexander Janssen';
+const TITLE = 'CEO, Dutch SportsTech Fund';
 
-/** card (210) + gap (76) — matches the design's 286px stride */
-const STRIDE = 286;
+const STRIDE = 286;                          // card 210 + gap 76 (design)
+const COPY_W = PARTNERS.length * STRIDE;     // width of one copy of the list
+const DURATION = COPY_W / 46;                // ≈46px per second
+const STEP = (STRIDE / COPY_W) * DURATION;   // seconds equal to one card
 
 export function TrustedBy() {
-	const track = useRef<HTMLDivElement | null>(null);
-	const paused = useRef(false);
-	const resume = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [phase, setPhase] = useState(0); // seconds into the loop
+	const step = (dir: number) => setPhase((p) => (p + dir * STEP + DURATION) % DURATION);
 
-	useEffect(() => {
-		const el = track.current;
-		if (!el) return;
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		let raf = 0;
-		const step = () => {
-			if (!paused.current && el.scrollWidth > 0) {
-				el.scrollLeft += 0.45;
-				const half = el.scrollWidth / 2;
-				if (el.scrollLeft >= half) el.scrollLeft -= half;
-			}
-			raf = requestAnimationFrame(step);
-		};
-		raf = requestAnimationFrame(step);
-		return () => {
-			cancelAnimationFrame(raf);
-			if (resume.current) clearTimeout(resume.current);
-		};
-	}, []);
-
-	const nudge = (dir: number) => {
-		const el = track.current;
-		if (!el) return;
-		// wrap before stepping back past the start so the loop stays seamless
-		const half = el.scrollWidth / 2;
-		if (dir < 0 && el.scrollLeft < STRIDE) el.scrollLeft += half;
-		paused.current = true;
-		el.scrollBy({ left: dir * STRIDE, behavior: 'smooth' });
-		if (resume.current) clearTimeout(resume.current);
-		resume.current = setTimeout(() => { paused.current = false; }, 700);
-	};
-
-	// rendered twice for the seamless wrap
-	const items = [...PARTNERS, ...PARTNERS];
+	const items = [...PARTNERS, ...PARTNERS]; // duplicated for the seamless wrap
 
 	return (
 		<section className="lp-cream lp-trusted" id="trusted">
@@ -72,28 +52,32 @@ export function TrustedBy() {
 				</div>
 			</div>
 
-			<div
-				className="lp-carousel"
-				onMouseEnter={() => { paused.current = true; }}
-				onMouseLeave={() => { paused.current = false; }}
-			>
-				<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => nudge(-1)}>
+			<div className="lp-carousel">
+				<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => step(-1)}>
 					<ChevronLeft size={30} strokeWidth={1.5} />
 				</button>
 
-				<div className="lp-carousel-track" ref={track} aria-label="Partners">
-					{items.map((p, i) => (
-						<div className="lp-partner" key={i} aria-hidden={i >= PARTNERS.length}>
-							<div className="lp-partner-photo" style={{ background: p.tone }}>
-								<span className="lp-partner-logo">{p.logo}</span>
+				<div className="lp-carousel-viewport">
+					<div
+						className="lp-carousel-marquee"
+						style={{ animationDuration: `${DURATION}s`, animationDelay: `${-phase}s` }}
+					>
+						{items.map((p, i) => (
+							<div className="lp-partner" key={i} aria-hidden={i >= PARTNERS.length}>
+								<div
+									className="lp-partner-photo"
+									style={{ background: `url('${p.img}') center/cover no-repeat, ${p.tone}` }}
+								>
+									<span className="lp-partner-logo">BCG</span>
+								</div>
+								<div className="lp-partner-name">{NAME}</div>
+								<div className="lp-partner-title">{TITLE}</div>
 							</div>
-							<div className="lp-partner-name">{p.name}</div>
-							<div className="lp-partner-title">{p.title}</div>
-						</div>
-					))}
+						))}
+					</div>
 				</div>
 
-				<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => nudge(1)}>
+				<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => step(1)}>
 					<ChevronRight size={30} strokeWidth={1.5} />
 				</button>
 			</div>
