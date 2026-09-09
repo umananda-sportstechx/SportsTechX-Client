@@ -15,13 +15,15 @@ const CONNECT: [string, React.ReactNode][] = [
 export function LandingFooter() {
 	return (
 		<footer className="lp-footer">
-			<div className="lp-footer-grid-lines" />
+			<div className="lp-footer-top-rule" />
 			<div className="lp-footer-inner">
 				<div className="lp-inner">
 					<div className="lp-footer-cols">
 						<div>
+							{/* Dark-ink wordmark — the stock file is a white→pink gradient
+							    and would vanish on the light footer. */}
 							{/* eslint-disable-next-line @next/next/no-img-element */}
-							<img className="lp-footer-wordmark" src="/landing/atlas-wordmark.svg" alt="Atlas" />
+							<img className="lp-footer-wordmark" src="/landing/atlas-wordmark-dark.svg" alt="Atlas" />
 							<p className="lp-footer-desc">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam.</p>
 							<div className="lp-footer-meta">
 								<div><Mail size={16} /> hello@playmakers.com</div>
