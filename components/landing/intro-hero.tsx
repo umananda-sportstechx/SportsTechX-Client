@@ -30,7 +30,7 @@ export function IntroHero() {
 				    this is a normal 1512×1007 image rather than a 12.6-megapixel one
 				    that Chrome refuses to rasterise inside the composited page. */}
 				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
-					style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
+					style={{ left: '12%', top: 0, width: '112.500%', height: '100%' }} />
 				{/* The sphere. The wrapper is exactly the stage box (inset: 0), so the
 				    children's % offsets resolve against the same box as before and
 				    their placement is unchanged — it exists only to drift both
@@ -41,6 +41,12 @@ export function IntroHero() {
 						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
 					{/* Ellipse 3 — linear dark, on top */}
 					<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
+						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(144.3deg)' }} />
+					{/* Thin rim tracing the sphere's silhouette. Same box and rotation
+					    as Ellipse 3 above, so `border-radius: 50%` lands exactly on
+					    that ellipse. Only its upper-right arc is ever on-screen — the
+					    rest of the circle sits off-canvas bottom-left. */}
+					<span className="lp-hero-rim"
 						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(144.3deg)' }} />
 				</div>
 			</div>
