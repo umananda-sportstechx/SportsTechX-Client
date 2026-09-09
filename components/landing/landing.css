@@ -246,12 +246,17 @@
    lifts to the front and expands, so promoting a tier reads as a vertical
    carousel rather than three separate boxes. */
 .lp-stack { display: flex; flex-direction: column; }
-.lp-tier { position: relative; z-index: 1; display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; min-height: 138px; margin-top: -42px; box-shadow: 0 -14px 34px -20px rgba(0, 0, 0, 0.9); transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease; }
+.lp-tier { position: relative; display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; min-height: 138px; margin-top: -22px; box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85); transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease; }
+/* Deck seen from the top: the FIRST card sits above, each following one tucks
+   in behind it. The overlap (22px) stays clear of the wordmark, so every tier
+   label is still readable. */
+.lp-stack > .lp-tier:nth-child(1) { z-index: 3; }
+.lp-stack > .lp-tier:nth-child(2) { z-index: 2; }
+.lp-stack > .lp-tier:nth-child(3) { z-index: 1; }
 .lp-stack > .lp-tier:first-child { margin-top: 0; }
-/* The card directly under an open one doesn't tuck into it, so the expanded
-   card's bottom stays clear and the next card's wordmark isn't covered. */
-.lp-tier--open + .lp-tier { margin-top: 0; }
-.lp-tier--open { z-index: 10; min-height: 348px; padding-bottom: 32px; transform: translateY(-2px); box-shadow: 0 30px 62px -26px rgba(0, 0, 0, 0.85); }
+
+/* Clicking a tier brings it in front of the whole deck. */
+.lp-stack > .lp-tier--open { z-index: 10; min-height: 348px; padding-bottom: 32px; transform: translateY(-2px); box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9); }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 132px; height: auto; }
 .lp-tier-brand em { font-family: var(--lp-serif), Georgia, serif; font-style: italic; font-size: 15px; letter-spacing: 0.04em; line-height: 1; margin-top: 4px; }
