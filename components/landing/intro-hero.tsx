@@ -3,22 +3,22 @@ import Link from 'next/link';
 /* eslint-disable @next/next/no-img-element */
 
 /**
- * Intro Hero — built on the Figma frame `6018:2804` (1512×1007, #060a17).
+ * Intro Hero — a 1:1 rebuild of the Figma frame `6018:2804` (1512×1007, #060a17).
  *
- * The background reads as a planet with orbits around it:
- *   1. Gradient Overlay — radial pink wash, spanning the whole hero
- *   2. Rings            — concentric orbits, centred on the planet
- *   3. Planet           — dark sphere with a limb light, painted over the rings
- *                         so the inner orbits pass behind it
+ * Background layers, painted bottom → top exactly as Figma stacks them:
+ *   1. Gradient Overlay  — radial pink wash (spans the hero, see landing.css)
+ *   2. Vector            — the concentric ring outlines (pink #F32163 @ .32,
+ *                          gradient-faded transparent→pink toward lower-right)
+ *   3. Ellipse 2         — radial pink circle, 1571², centre (-146.5, 1357.5)
+ *   4. Ellipse 3         — linear dark circle, same box, on top
  *
- * Rings and planet share `.lp-hero-system` so they drift as one body; if only
- * the planet moved, the orbits would visibly slip off centre.
+ * The offsets below are the Figma node values, not approximations: 1571/1512 =
+ * 103.902% wide, 1571/1007 = 156.008% tall, and the rings node is 1701 wide =
+ * 112.5%. Every child is positioned in % of `.lp-hero-bg`, the design frame at
+ * its true scale, so the composition holds at any viewport.
  *
- * Both are positioned in % of `.lp-hero-bg`, the design frame at its true
- * scale. The planet's 103.902% × 156.008% box is square in pixels (the stage
- * is exactly 1512:1007), so `border-radius: 50%` gives a true circle. The ring
- * asset's viewBox is cropped so its centre lands on the planet's centre — see
- * the note in landing.css.
+ * Do not substitute CSS shapes for these assets — they ARE the design's
+ * artwork, so drawing them at these coordinates reproduces it exactly.
  */
 export function IntroHero() {
 	return (
@@ -28,18 +28,18 @@ export function IntroHero() {
 			    clipped to the stage box ended on a hard vertical seam. */}
 			<div className="lp-hero-grad" aria-hidden />
 			<div className="lp-hero-bg" aria-hidden>
-				{/* The wrapper is exactly the stage box (inset: 0), so its children's %
-				    offsets resolve against the same box the stage uses. */}
-				<div className="lp-hero-system">
-					{/* Orbits. The asset's viewBox is cropped to the visible window, so
-					    this rasterises at ~1600×947 rather than as the 12.6-megapixel
-					    full drawing, which Chrome refuses to draw inside the page. */}
-					<img className="lp-hero-orb lp-hero-orbits" src="/landing/hero-orbits.svg" alt=""
-						style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
-					{/* Planet — painted last so the inner orbits pass behind it. */}
-					<span className="lp-hero-planet"
-						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%' }} />
-				</div>
+				{/* Vector — concentric rings. The asset's viewBox is pre-cropped to the
+				    window the design shows (user space 1853,469 → 3554,1476), so this
+				    is a normal 1701×1007 image rather than the 12.6-megapixel full
+				    drawing, which Chrome refuses to rasterise inside the page. */}
+				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
+					style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
+				{/* Ellipse 2 — radial pink */}
+				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
+					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
+				{/* Ellipse 3 — linear dark, on top */}
+				<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
+					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(144.3deg)' }} />
 			</div>
 
 			<div className="lp-hero-inner">
