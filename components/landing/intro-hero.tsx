@@ -20,20 +20,29 @@ import Link from 'next/link';
 export function IntroHero() {
 	return (
 		<header className="lp-hero lp-hero--intro" id="top">
+			{/* The pink wash spans the whole hero, NOT the stage. Once the stage is
+			    centred it no longer reaches the viewport's left edge, and a wash
+			    clipped to the stage box ended on a hard vertical seam. */}
+			<div className="lp-hero-grad" aria-hidden />
 			<div className="lp-hero-bg" aria-hidden>
-				<div className="lp-hero-grad" />
 				{/* Vector — concentric rings. The asset's viewBox is pre-cropped to the
 				    exact window the design shows (user space 1853,469 → 3365,1476), so
 				    this is a normal 1512×1007 image rather than a 12.6-megapixel one
 				    that Chrome refuses to rasterise inside the composited page. */}
 				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
 					style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
-				{/* Ellipse 2 — radial pink */}
-				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
-					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
-				{/* Ellipse 3 — linear dark, on top */}
-				<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
-					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(144.3deg)' }} />
+				{/* The sphere. The wrapper is exactly the stage box (inset: 0), so the
+				    children's % offsets resolve against the same box as before and
+				    their placement is unchanged — it exists only to drift both
+				    circles together and to hang the edge feather off. */}
+				<div className="lp-hero-sphere">
+					{/* Ellipse 2 — radial pink */}
+					<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
+						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
+					{/* Ellipse 3 — linear dark, on top */}
+					<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
+						style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(144.3deg)' }} />
+				</div>
 			</div>
 
 			<div className="lp-hero-inner">
