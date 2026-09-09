@@ -28,6 +28,10 @@ const mono = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono', display: '
 /* Editorial serif used for eyebrows, body copy and the tier-card labels. */
 const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--lp-serif', display: 'swap' });
 
+/* Placeholder copy, reproduced from the design as-is. */
+const GALLERY_DESC =
+	'Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
+
 export default function LandingPage() {
 	return (
 		<div className={`lp ${display.variable} ${mono.variable} ${serif.variable}`}>
@@ -37,23 +41,11 @@ export default function LandingPage() {
 				<TrustedBy />
 				<HowToJoin />
 				<section className="lp-gallery-wrap" id="explore">
-					<ProductGallery
-						title="Inside Atlas Explore"
-						desc="Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor"
-						variant="a"
-					/>
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" />
 					<div className="lp-gallery-divider" />
-					<ProductGallery
-						title="Inside Atlas Explore"
-						desc="Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor"
-						variant="b"
-					/>
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="b" />
 					<div className="lp-gallery-divider" />
-					<ProductGallery
-						title="Inside Atlas Explore"
-						desc="Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor"
-						variant="c"
-					/>
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="c" />
 				</section>
 				<Testimonials />
 				<Team />

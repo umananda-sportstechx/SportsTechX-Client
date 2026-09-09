@@ -267,24 +267,61 @@
 .lp-point-ico { width: 24px; height: 24px; border-radius: 6px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.16); color: #fff; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
-.lp-gallery-wrap { background: var(--lp-dark); }
-.lp-gallery-divider { max-width: var(--lp-max); margin: 0 auto; border-top: 1px solid var(--lp-border-dark); }
-.lp-gallery { padding: 80px 0; }
-.lp-gallery-head { max-width: 664px; margin-bottom: 28px; }
-.lp-gallery-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(30px, 3.4vw, 46px); margin: 0 0 14px; }
-.lp-gallery-head p { color: var(--lp-on-dark-soft); font-size: 16px; line-height: 1.6; }
-.lp-gallery-card { position: relative; border-radius: 22px; padding: 40px; background: linear-gradient(160deg, #201226 0%, #0d0f1a 55%); border: 1px solid var(--lp-border-dark); overflow: hidden; }
-.lp-gallery-card::before { content: ""; position: absolute; top: -30%; right: -10%; width: 60%; height: 90%; background: radial-gradient(circle, rgba(243, 33, 99, 0.28), transparent 65%); pointer-events: none; }
-.lp-gallery-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; position: relative; z-index: 2; }
-.lp-mockup { position: relative; z-index: 2; background: #fbfaf8; border-radius: 16px; box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.6); overflow: hidden; min-height: 420px; display: flex; }
-.lp-mockup-side { width: 240px; border-right: 1px solid #ececec; padding: 24px 20px; flex: none; }
-.lp-mockup-main { flex: 1; padding: 24px; }
-.lp-mockup-topline { display: flex; align-items: center; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid #ececec; margin-bottom: 20px; }
-.lp-mockup-dot { width: 10px; height: 10px; border-radius: 99px; background: #e2e2e2; }
-.lp-sk { height: 12px; border-radius: 6px; background: #ececec; }
-.lp-sk-row { display: grid; gap: 16px; }
-.lp-mockup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 6px; }
-.lp-mockup-tile { height: 120px; border-radius: 12px; background: linear-gradient(135deg, #f0eef4, #e7f0f4); }
+/* White section; each block is a dark navy→magenta panel with a white app
+   window that PROTRUDES past the panel's bottom edge — so the panel must not
+   clip overflow, and the block reserves the overhang as padding-bottom. */
+.lp-gallery-wrap { background: #ffffff; color: var(--lp-ink); }
+.lp-gallery-divider { max-width: 1349px; margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
+.lp-gallery { padding: 110px 0 372px; }
+.lp-gallery--light { padding: 96px 0 130px; }
+
+.lp-gallery-panel {
+	max-width: 1349px;
+	margin: 0 auto;
+	border-radius: 12px;
+	padding: 96px 63px 0;
+	/* Design samples: TL #20212e, midpoint (TR≈BL) #2e303b, BR corner magenta —
+	   i.e. a plain 135° ramp, not a corner bloom. */
+	background: linear-gradient(135deg, #20212e 0%, #2e303b 50%, #b8375f 100%);
+	color: #fff;
+	/* BFC: without it the mockup’s negative bottom margin collapses through the
+	   panel instead of shortening it, and the overhang disappears. */
+	display: flow-root;
+}
+/* Variant b mirrors variant a: the header sits on the white section and the
+   window overhangs the panel’s TOP edge instead of its bottom. */
+.lp-gallery-panel--bare { padding: 0 63px 62px; margin-top: 163px; }
+.lp-gallery-panel--bare .lp-mockup { margin-top: -163px; margin-bottom: 0; }
+.lp-gallery-headwrap { max-width: 1349px; margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
+
+.lp-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
+.lp-gallery-title { font-size: clamp(28px, 2.65vw, 40px); font-weight: 700; }
+.lp-gallery-title span { color: var(--lp-pink); }
+.lp-gallery-desc { font-family: var(--lp-serif), Georgia, serif; font-size: 18px; line-height: 1.72; max-width: 648px; margin: 16px 0 0; color: rgba(255, 255, 255, 0.78); }
+.lp-gallery-headwrap .lp-gallery-desc { color: var(--lp-ink-soft); }
+
+/* Segmented switcher — an outer translucent capsule around a bordered group.
+   The group clips to a pill, which is what gives the active segment its
+   rounded-outside / flat-inside edges in the design. */
+.lp-seg { display: inline-flex; padding: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.09); border: 1px solid rgba(255, 255, 255, 0.14); }
+.lp-seg-group { display: flex; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 99px; overflow: hidden; }
+.lp-seg-btn { min-width: 112px; height: 38px; padding: 0 20px; background: transparent; border: none; border-left: 1px solid rgba(255, 255, 255, 0.3); cursor: pointer; font-family: var(--lp-mono), monospace; font-size: 12px; letter-spacing: 1.3px; text-transform: uppercase; color: rgba(255, 255, 255, 0.86); transition: background 0.12s ease, color 0.12s ease; }
+.lp-seg-btn:first-child { border-left: none; }
+.lp-seg-btn.active { background: var(--lp-pink); color: #fff; }
+/* Light variant (variant b's header sits on the white section). */
+.lp-gallery-headwrap .lp-seg { background: rgba(20, 18, 26, 0.04); border-color: rgba(20, 18, 26, 0.12); }
+.lp-gallery-headwrap .lp-seg-group { border-color: rgba(20, 18, 26, 0.2); }
+.lp-gallery-headwrap .lp-seg-btn { color: var(--lp-ink); border-left-color: rgba(20, 18, 26, 0.2); }
+.lp-gallery-headwrap .lp-seg-btn:first-child { border-left: none; }
+.lp-gallery-headwrap .lp-seg-btn.active { background: var(--lp-pink); color: #fff; }
+
+/* App window. 649px tall, overhanging the panel by 260px. */
+.lp-mockup { position: relative; margin-top: 56px; margin-bottom: -260px; height: 649px; background: #fff; border-radius: 12px; box-shadow: 0 34px 74px -34px rgba(10, 6, 20, 0.5); overflow: hidden; }
+.lp-mockup-bar { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 38px 0 40px; border-bottom: 1px solid #ededed; }
+.lp-mockup-bar img { height: 34px; width: auto; }
+.lp-mockup-avatar { width: 32px; height: 32px; border-radius: 99px; background: #e6e6e6; }
+.lp-mockup-body { display: grid; gap: 32px; padding: 46px 40px; }
+.lp-sk { width: 194px; height: 10px; border-radius: 5px; background: #ededed; }
 
 /* ── Testimonials ──────────────────────────────────────────────────────── */
 .lp-testi { padding: 74px 0; }
@@ -347,6 +384,11 @@
 	.lp-testi-grid { grid-template-columns: 1fr; }
 	.lp-team-grid { grid-template-columns: 1fr; }
 	.lp-footer-cols { grid-template-columns: 1fr 1fr; }
+	.lp-gallery { padding: 80px 0 240px; }
+	.lp-gallery-panel { padding: 56px 36px 0; }
+	.lp-mockup { height: 460px; margin-bottom: -170px; }
+	.lp-gallery-panel--bare { margin-top: 110px; padding-bottom: 44px; }
+	.lp-gallery-panel--bare .lp-mockup { margin-top: -110px; margin-bottom: 0; }
 }
 @media (max-width: 760px) {
 	.lp { --lp-pad: 22px; }
@@ -359,6 +401,14 @@
 	.lp-member { flex-direction: column; }
 	.lp-member-photo { width: 100%; height: 220px; }
 	.lp-footer-cols { grid-template-columns: 1fr; }
-	.lp-mockup-side { display: none; }
 	.lp-eyebrow::before, .lp-eyebrow::after { width: 40px; }
+	.lp-gallery { padding: 56px 0 150px; }
+	.lp-gallery-panel { padding: 40px 20px 0; border-radius: 10px; }
+	.lp-mockup { height: 320px; margin-top: 32px; margin-bottom: -110px; }
+	.lp-gallery--light { padding: 56px 0 70px; }
+	.lp-gallery-panel--bare { margin-top: 70px; padding: 0 20px 28px; }
+	.lp-gallery-panel--bare .lp-mockup { margin-top: -70px; margin-bottom: 0; }
+	.lp-mockup-bar { height: 56px; padding: 0 18px; }
+	.lp-mockup-body { padding: 26px 20px; gap: 20px; }
+	.lp-seg-btn { min-width: 0; padding: 0 14px; }
 }
