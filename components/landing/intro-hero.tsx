@@ -16,10 +16,12 @@ export function IntroHero() {
 				{/* pink radial circle (Ellipse 2) — same centre */}
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
 					style={{ left: -932, top: 572, width: 1571, height: 1571, transform: 'rotate(-25.65deg)' }} />
+				<div className="lp-hero-glow lp-intro-glow" />
+				{/* concentric ring outlines (exact Figma geometry, recoloured to a uniform
+				    subtle light so they read as full concentric circles, not a red sweep) */}
+				<img className="lp-hero-orb lp-hero-ringimg" src="/landing/hero-rings.svg" alt=""
+					style={{ left: -1853, top: -469, width: 3554, height: 3554 }} />
 			</div>
-			{/* concentric ring outlines (CSS — the design's SVG rings are invisible on the dark bg) */}
-			<div className="lp-hero-rings" aria-hidden />
-			<div className="lp-hero-glow lp-intro-glow" />
 			<div className="lp-hero-inner">
 				<img className="lp-hero-wordmark" src="/landing/atlas-wordmark.svg" alt="Atlas" />
 				<h1 className="lp-display lp-hero-headline">Your insider guide to<br />sports tech &amp; venture</h1>
