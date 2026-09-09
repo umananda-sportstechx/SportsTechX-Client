@@ -150,52 +150,6 @@
 .lp-hero-bg--final { left: auto; right: 0; width: 1512px; height: 689px; }
 .lp-hero-orb { position: absolute; max-width: none; }
 
-/* Planet + its orbits drift together as one body, very slowly. 3.6% of the
-   stage is ~50px, so it reads as a breathing background rather than motion
-   competing with the headline. Moving the rings with the planet matters: drift
-   the planet alone and the orbits visibly slip off centre. The hero is
-   overflow:hidden, so the drift can't add a scrollbar. */
-.lp-hero-system { position: absolute; inset: 0; will-change: transform; animation: lp-sphere-drift 44s ease-in-out infinite; }
-@keyframes lp-sphere-drift {
-	0%, 100% { transform: translate3d(0, 0, 0); }
-	25% { transform: translate3d(2.4%, -2.2%, 0); }
-	50% { transform: translate3d(3.6%, 1.6%, 0); }
-	75% { transform: translate3d(1.1%, 3.0%, 0); }
-}
-@media (prefers-reduced-motion: reduce) { .lp-hero-system { animation: none; } }
-
-/* Orbits fade outward from the planet. hero-orbits.svg strokes every ring
-   evenly (the shared hero-rings.svg gradient-erases all but the far lower-right
-   lobe, which left no arcs hugging the planet), so the falloff is done here
-   instead — centred on the planet, i.e. the same point the rings are centred
-   on. Opaque out to ~10 orbits, gone by the outermost. */
-.lp-hero-orbits {
-	-webkit-mask-image: radial-gradient(circle at -8.6% 134.8%, #000 0 46%, transparent 80%);
-	mask-image: radial-gradient(circle at -8.6% 134.8%, #000 0 46%, transparent 80%);
-	-webkit-mask-repeat: no-repeat;
-	mask-repeat: no-repeat;
-}
-
-/* The planet. Its box is square in pixels (103.902% of a stage width that is
-   exactly 1512/1007 of the stage height), so this is a true circle. Only the
-   upper-right cap is on-screen; the centre sits well off-canvas bottom-left.
-   Layers: a limb light on the lit side facing the pink wash, then the body,
-   which is much darker than the wash behind it — that contrast plus the hairline
-   edge is what separates it from the background. */
-.lp-hero-planet {
-	position: absolute;
-	border-radius: 50%;
-	/* Both layers use `closest-side at 50% 50%`, so stops are fractions of the
-	   planet's RADIUS. That matters: only a small cap of this 1478px circle is
-	   on screen, so a gradient positioned by box % lands in the middle of the
-	   visible area instead of at the limb. */
-	background:
-		/* limb light — confined to the outermost few % of the radius */
-		radial-gradient(closest-side at 50% 50%, rgba(243, 33, 99, 0) 0 92%, rgba(243, 33, 99, 0.1) 98%, rgba(236, 104, 148, 0.2) 100%),
-		/* body — kept clearly darker than the pink wash it sits against */
-		radial-gradient(closest-side at 50% 50%, #07060c 0%, #0a0812 70%, #100c18 92%, #171120 100%);
-	border: 1px solid rgba(236, 104, 148, 0.26);
-}
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
 .lp-hero-grad {
 	position: absolute;
