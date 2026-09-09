@@ -21,7 +21,8 @@ const QUESTIONS = [
 const ANSWER = 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.';
 
 export function Faq() {
-	const [open, setOpen] = useState<number | null>(0);
+	/* The design shows every row collapsed. */
+	const [open, setOpen] = useState<number | null>(null);
 	return (
 		<section className="lp-cream lp-faq" id="faq">
 			<div className="lp-inner">
@@ -31,7 +32,7 @@ export function Faq() {
 						<div className={`lp-faq-item ${open === i ? 'open' : ''}`} key={i}>
 							<button className="lp-faq-q" onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i}>
 								{q}
-								<Plus className="lp-faq-icon" size={20} />
+								<Plus className="lp-faq-icon" size={16} />
 							</button>
 							<div className="lp-faq-a"><div className="lp-faq-a-inner">{ANSWER}</div></div>
 						</div>
