@@ -33,6 +33,19 @@
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
 .lp img { max-width: 100%; display: block; }
 
+/* Site-wide film grain — a fixed noise overlay over the whole page (matches the
+   design's textured background). Sits above section backgrounds but is inert. */
+.lp::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	pointer-events: none;
+	opacity: 0.07;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 240px 240px;
+}
+
 /* ── Shared primitives ─────────────────────────────────────────────────── */
 .lp-inner { max-width: var(--lp-max); margin: 0 auto; padding-left: var(--lp-pad); padding-right: var(--lp-pad); }
 
@@ -81,6 +94,9 @@
 .lp-btn--pink:hover { filter: brightness(1.06); }
 .lp-btn--outline { background: rgba(0, 0, 0, 0.4); color: #fff; border-color: var(--lp-pink); }
 .lp-btn--outline:hover { background: rgba(243, 33, 99, 0.12); }
+/* Nav LOG IN — muted/ghost pink pill (distinct from the bright hero CTAs). */
+.lp-btn--login { background: rgba(243, 33, 99, 0.16); color: #ffd3e0; border-color: rgba(243, 33, 99, 0.7); }
+.lp-btn--login:hover { background: rgba(243, 33, 99, 0.28); color: #fff; }
 .lp-btn--sm { height: 44px; font-size: 13px; padding: 0 20px; }
 
 .lp-pill-arrow {
@@ -102,7 +118,7 @@
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
 .lp-nav-mark img { height: 44px; width: auto; }
 /* Nav links + LOG IN live inside one rounded capsule (per the design). */
-.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 99px; padding: 8px 8px 8px 30px; }
+.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 8px 8px 8px 32px; backdrop-filter: blur(4px); }
 .lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 16px; }
@@ -118,6 +134,23 @@
 .lp-hero-bg { position: absolute; left: 50%; bottom: 0; width: 1512px; height: 1007px; transform: translateX(-50%); pointer-events: none; z-index: 0; }
 .lp-hero-orb { position: absolute; max-width: none; }
 .lp-hero-bg--final { height: 689px; }
+/* Concentric ring outlines emanating from just below the bottom-left corner.
+   Rendered in CSS (the design's SVG rings are dark strokes at 0.32 opacity —
+   invisible on the near-black bg) so they read clearly like the Figma. */
+.lp-hero-rings {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	background: repeating-radial-gradient(circle at 4% 116%, transparent 0 55px, rgba(255, 255, 255, 0.06) 55px 56px);
+	-webkit-mask-image: radial-gradient(circle at 4% 116%, #000 0%, #000 55%, transparent 88%);
+	mask-image: radial-gradient(circle at 4% 116%, #000 0%, #000 55%, transparent 88%);
+}
+.lp-hero-rings--final {
+	background: repeating-radial-gradient(circle at 96% 120%, transparent 0 55px, rgba(255, 255, 255, 0.06) 55px 56px);
+	-webkit-mask-image: radial-gradient(circle at 96% 120%, #000 0%, #000 55%, transparent 88%);
+	mask-image: radial-gradient(circle at 96% 120%, #000 0%, #000 55%, transparent 88%);
+}
 .lp-hero-inner { position: relative; z-index: 2; width: 100%; max-width: 1128px; margin: 0 auto; padding: 150px 24px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 44px; }
 .lp-hero--intro .lp-hero-inner { padding: 120px 24px; }
 .lp-hero-wordmark { width: 392px; max-width: 70%; }
