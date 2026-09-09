@@ -127,8 +127,14 @@
    whole composition scales together and the square SVGs stay square. */
 .lp-hero-bg {
 	position: absolute;
-	left: 0;
 	bottom: 0;
+
+	/* Centred on the excess width rather than pinned left. At the design's own
+	   1512x1007 the excess is 0, so the composition stays pixel-identical to
+	   Figma; the max(0px, …) clamp keeps the old left-anchored behaviour on
+	   mobile, where the stage is far wider than the viewport and centring would
+	   push the sphere off-screen. */
+	left: max(0px, calc((100% - 100svh * 1.50149) / 2));
 
 	/* TRUE design scale, keyed off viewport height and anchored bottom-left —
 	   which is where Figma anchors the sphere and the ring origin. Cover-scaling
@@ -143,10 +149,33 @@
 /* Final hero keeps its own 1512×689 frame, anchored bottom-right where its glow sits. */
 .lp-hero-bg--final { left: auto; right: 0; width: 1512px; height: 689px; }
 .lp-hero-orb { position: absolute; max-width: none; }
+
+/* Sphere: both circles drift together, very slowly. 3.6% of the stage is ~50px,
+   so it reads as a breathing background rather than motion competing with the
+   headline. The hero is overflow:hidden, so the drift can't add a scrollbar. */
+.lp-hero-sphere { position: absolute; inset: 0; will-change: transform; animation: lp-sphere-drift 44s ease-in-out infinite; }
+@keyframes lp-sphere-drift {
+	0%, 100% { transform: translate3d(0, 0, 0); }
+	25% { transform: translate3d(2.4%, -2.2%, 0); }
+	50% { transform: translate3d(3.6%, 1.6%, 0); }
+	75% { transform: translate3d(1.1%, 3.0%, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .lp-hero-sphere { animation: none; } }
+/* Feather the sphere's outer edge — the SVGs are circles that exactly inscribe
+   their box (preserveAspectRatio="none"), so untouched they end on a hard step.
+   Masking each image rather than the wrapper keeps the mask in the element's
+   local space, so it rotates with the ellipse instead of clipping it. */
+.lp-hero-sphere img {
+	-webkit-mask-image: radial-gradient(closest-side at 50% 50%, #000 84%, transparent 100%);
+	mask-image: radial-gradient(closest-side at 50% 50%, #000 84%, transparent 100%);
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
 .lp-hero-grad {
 	position: absolute;
 	inset: 0;
+	z-index: 0;
 	opacity: 0.87;
 	background: radial-gradient(ellipse 88.06% 132.21% at 26.82% 164.05%, rgba(243, 33, 99, 0.55) 0%, rgba(243, 33, 99, 0) 100%);
 }
