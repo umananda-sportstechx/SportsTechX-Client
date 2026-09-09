@@ -51,10 +51,10 @@
 
 .lp-display {
 	font-family: var(--lp-display), "Arial Narrow", sans-serif;
-	font-weight: 600;
+	font-weight: 400;
 	text-transform: uppercase;
-	line-height: 1;
-	letter-spacing: 0.01em;
+	line-height: 0.95;
+	letter-spacing: 0.015em;
 	margin: 0;
 }
 .lp-eyebrow {
@@ -118,7 +118,7 @@
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
 .lp-nav-mark img { height: 44px; width: auto; }
 /* Nav links + LOG IN live inside one rounded capsule (per the design). */
-.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 8px 8px 8px 32px; backdrop-filter: blur(4px); }
+.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 14px 32px; backdrop-filter: blur(4px); }
 .lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 16px; }
@@ -138,19 +138,21 @@
 /* Concentric ring outlines emanating from just below the bottom-left corner.
    Rendered in CSS (the design's SVG rings are dark strokes at 0.32 opacity —
    invisible on the near-black bg) so they read clearly like the Figma. */
+/* Concentric rings — pure CSS so they always render (no faint-SVG / cache
+   issues), emanating from just below the bottom-left corner like the design. */
 .lp-hero-rings {
 	position: absolute;
 	inset: 0;
 	z-index: 1;
 	pointer-events: none;
-	background: repeating-radial-gradient(circle at 4% 116%, transparent 0 55px, rgba(255, 255, 255, 0.06) 55px 56px);
-	-webkit-mask-image: radial-gradient(circle at 4% 116%, #000 0%, #000 55%, transparent 88%);
-	mask-image: radial-gradient(circle at 4% 116%, #000 0%, #000 55%, transparent 88%);
+	background: repeating-radial-gradient(circle at 3% 122%, transparent 0 44px, rgba(255, 255, 255, 0.12) 44px 46px);
+	-webkit-mask-image: radial-gradient(circle at 3% 122%, #000 0%, #000 62%, transparent 96%);
+	mask-image: radial-gradient(circle at 3% 122%, #000 0%, #000 62%, transparent 96%);
 }
 .lp-hero-rings--final {
-	background: repeating-radial-gradient(circle at 96% 120%, transparent 0 55px, rgba(255, 255, 255, 0.06) 55px 56px);
-	-webkit-mask-image: radial-gradient(circle at 96% 120%, #000 0%, #000 55%, transparent 88%);
-	mask-image: radial-gradient(circle at 96% 120%, #000 0%, #000 55%, transparent 88%);
+	background: repeating-radial-gradient(circle at 97% 124%, transparent 0 44px, rgba(255, 255, 255, 0.1) 44px 46px);
+	-webkit-mask-image: radial-gradient(circle at 97% 124%, #000 0%, #000 62%, transparent 96%);
+	mask-image: radial-gradient(circle at 97% 124%, #000 0%, #000 62%, transparent 96%);
 }
 .lp-hero-inner { position: relative; z-index: 2; width: 100%; max-width: 1128px; margin: 0 auto; padding: 150px 24px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 44px; }
 .lp-hero--intro .lp-hero-inner { padding: 120px 24px; }
