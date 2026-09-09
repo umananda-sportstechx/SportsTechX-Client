@@ -195,7 +195,7 @@
 .lp-cream { background: var(--lp-cream); color: var(--lp-ink); }
 .lp-trusted { padding: 96px 0 104px; }
 .lp-trusted-head { text-align: center; margin: 0 auto 52px; }
-.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 700; text-transform: uppercase; font-size: clamp(28px, 3.05vw, 46px); line-height: 1.1; margin: 0 0 16px; color: var(--lp-ink); }
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 600; text-transform: uppercase; font-size: clamp(28px, 3.05vw, 46px); line-height: 1.1; margin: 0 0 16px; color: var(--lp-ink); }
 .lp-trusted-head p { color: var(--lp-ink-soft); font-size: 17px; line-height: 1.62; margin: 0 auto; max-width: 720px; }
 
 /* Auto-scrolling partner carousel. Design: 210px card on a 286px stride, with a
