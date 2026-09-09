@@ -193,22 +193,28 @@
 
 /* ── Trusted by ────────────────────────────────────────────────────────── */
 .lp-cream { background: var(--lp-cream); color: var(--lp-ink); }
-.lp-trusted { padding: 90px 0; }
-.lp-trusted-head { text-align: center; max-width: 900px; margin: 0 auto 46px; }
-.lp-trusted-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(24px, 2.6vw, 34px); margin: 0 0 14px; letter-spacing: 0.01em; }
-.lp-trusted-head p { color: var(--lp-ink-soft); font-size: 16px; line-height: 1.6; margin: 0; }
-.lp-slider { position: relative; }
-.lp-slider-track { display: flex; gap: 38px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px; }
-.lp-slider-track::-webkit-scrollbar { display: none; }
-.lp-partner { flex: 0 0 210px; scroll-snap-align: start; }
-.lp-partner-photo { position: relative; height: 232px; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #b9b2a6, #6f6a63); }
-.lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(10, 14, 26, 0.85), transparent); }
-.lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; color: #fff; font-family: var(--lp-display-stack); letter-spacing: 0.14em; font-size: 20px; }
-.lp-partner-name { margin-top: 14px; font-weight: 600; font-size: 14px; }
-.lp-partner-title { color: var(--lp-ink-soft); font-size: 13px; }
-.lp-slider-controls { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
-.lp-slider-controls--split { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); justify-content: space-between; pointer-events: none; margin: 0; }
-.lp-slider-controls--split .lp-pill-arrow { pointer-events: auto; }
+.lp-trusted { padding: 96px 0 104px; }
+.lp-trusted-head { text-align: center; margin: 0 auto 52px; }
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(28px, 3.05vw, 46px); line-height: 1.1; margin: 0 0 16px; color: var(--lp-ink); }
+.lp-trusted-head p { color: var(--lp-ink-soft); font-size: 17px; line-height: 1.62; margin: 0 auto; max-width: 720px; }
+
+/* Auto-scrolling partner carousel. Design: 210px card on a 286px stride, with a
+   dashed divider sitting in the middle of each 76px gap. */
+.lp-carousel { position: relative; padding: 0 62px; }
+.lp-carousel-track { display: flex; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.lp-carousel-track::-webkit-scrollbar { display: none; }
+.lp-partner { flex: 0 0 286px; padding: 0 38px; position: relative; }
+.lp-partner::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px dashed rgba(20, 18, 26, 0.18); }
+.lp-partner-photo { position: relative; height: 232px; border-radius: 10px; overflow: hidden; }
+.lp-partner-photo::before { content: ""; position: absolute; inset: 0; background: radial-gradient(58% 46% at 50% 34%, rgba(255,255,255,0.14), rgba(255,255,255,0) 72%); }
+.lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(8, 10, 18, 0.9), rgba(8, 10, 18, 0)); }
+.lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 15px; z-index: 2; text-align: center; color: #fff; font-family: var(--lp-display-stack); font-weight: 700; font-size: 25px; letter-spacing: 0.04em; line-height: 1; }
+.lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); text-transform: uppercase; font-size: 15px; line-height: 1.2; color: var(--lp-ink); }
+.lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 11px; line-height: 1.4; color: var(--lp-ink-soft); }
+.lp-carousel-arrow { position: absolute; top: 116px; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 6px; line-height: 0; transition: color 0.12s ease; }
+.lp-carousel-arrow:hover { color: var(--lp-ink); }
+.lp-carousel-arrow--prev { left: 8px; }
+.lp-carousel-arrow--next { right: 8px; }
 
 /* ── How to join ───────────────────────────────────────────────────────── */
 .lp-howjoin { padding: 96px 0; }
@@ -318,6 +324,8 @@
 	.lp-nav-toggle { display: inline-flex; }
 	.lp-nav.menu-open .lp-nav-links { display: flex; position: absolute; top: 100%; right: var(--lp-pad); flex-direction: column; gap: 18px; background: var(--lp-panel); border: 1px solid var(--lp-border-dark); border-radius: 14px; padding: 20px 26px; }
 	.lp-hero-inner { padding: 150px 8px 100px; }
+	.lp-carousel { padding: 0 8px; }
+	.lp-carousel-arrow { display: none; }
 	.lp-member { flex-direction: column; }
 	.lp-member-photo { width: 100%; height: 220px; }
 	.lp-footer-cols { grid-template-columns: 1fr; }
