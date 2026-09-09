@@ -2,19 +2,20 @@
    Fixed theme (own palette), independent of the app tokens and the light/dark
    toggle.
 
-   Fonts: headings use the design's licensed "Zuume" when its file is present at
-   /fonts/zuume-regular.woff2 — the @font-face below activates automatically the
-   moment that file is dropped in, and until then the browser falls through to
-   --lp-display (Anton, loaded via next/font in app/page.tsx). Eyebrows / nav /
-   buttons use Azeret Mono (--lp-mono, exact from the design); body reuses Inter. */
+   Fonts: headings use the design's licensed Zuume, self-hosted from public/fonts
+   via the @font-face set below; --lp-display (Anton, next/font) is only a
+   fallback now. Eyebrows / nav / buttons use Azeret Mono (--lp-mono, exact from
+   the design); body reuses Inter. */
 
-@font-face {
-	font-family: "Zuume";
-	src: url("/fonts/zuume-regular.woff2") format("woff2");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
+/* Zuume (licensed, supplied by the project). Only the weights actually used get
+   downloaded — the design's headline is Zuume Regular (400). */
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-Light.ttf") format("truetype"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-ExtraBold.ttf") format("truetype"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zuume"; src: url("/fonts/Zuume-Black.ttf") format("truetype"); font-weight: 900; font-style: normal; font-display: swap; }
 
 .lp {
 	/* Single source of truth for the display stack (Zuume → free fallback). */
@@ -56,9 +57,9 @@
 	inset: 0;
 	z-index: 60;
 	pointer-events: none;
-	opacity: 0.05;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
-	background-size: 240px 240px;
+	opacity: 0.13;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 200px 200px;
 }
 
 /* ── Shared primitives ─────────────────────────────────────────────────── */
@@ -153,23 +154,21 @@
    whole composition scales together and the square SVGs stay square. */
 .lp-hero-bg {
 	position: absolute;
-	left: 50%;
+	left: 0;
 	bottom: 0;
-	transform: translateX(-50%);
-	/* Cover the hero with the design's 1512×1007 frame. BOTH axes are explicit
-	   lengths — not `aspect-ratio` — because children are positioned with %
-	   offsets, and Chrome does not reliably resolve a child's percentage
-	   top/height against an aspect-ratio-derived parent height (that bug parked
-	   the rings ~469px too low, i.e. off-screen). */
-	width: max(100vw, calc(100svh * 1.50149)); /* 1512/1007 */
-	height: max(calc(100vw / 1.50149), 100svh);
+
+	/* TRUE design scale, keyed off viewport height and anchored bottom-left —
+	   which is where Figma anchors the sphere and the ring origin. Cover-scaling
+	   by width previously blew the whole composition up ~27% on a 1920 screen,
+	   which is exactly why the ring gaps read too wide. Both axes are explicit
+	   lengths so children's % offsets resolve (aspect-ratio does not). */
+	width: calc(100svh * 1.50149); /* 1512/1007 */
+	height: 100svh;
 	pointer-events: none;
 	z-index: 0;
 }
-.lp-hero-bg--final {
-	width: max(100vw, 1512px);
-	height: calc(max(100vw, 1512px) / 2.19448); /* 1512/689 */
-}
+/* Final hero keeps its own 1512×689 frame, anchored bottom-right where its glow sits. */
+.lp-hero-bg--final { left: auto; right: 0; width: 1512px; height: 689px; }
 .lp-hero-orb { position: absolute; max-width: none; }
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
 .lp-hero-grad {

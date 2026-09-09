@@ -27,7 +27,7 @@ export function IntroHero() {
 				    this is a normal 1512×1007 image rather than a 12.6-megapixel one
 				    that Chrome refuses to rasterise inside the composited page. */}
 				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
-					style={{ left: 0, top: 0, width: '100%', height: '100%' }} />
+					style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
 				{/* Ellipse 2 — radial pink */}
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
 					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
