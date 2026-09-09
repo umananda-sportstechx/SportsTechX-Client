@@ -1,9 +1,24 @@
 /* Atlas landing page — self-contained marketing styles, scoped to `.lp`.
-   Fixed theme (own palette), independent of the app tokens and the
-   light/dark toggle. Fonts: --lp-display (Anton stand-in for Zuume) + --lp-mono
-   (Azeret Mono) come from next/font in app/page.tsx; body reuses Inter. */
+   Fixed theme (own palette), independent of the app tokens and the light/dark
+   toggle.
+
+   Fonts: headings use the design's licensed "Zuume" when its file is present at
+   /fonts/zuume-regular.woff2 — the @font-face below activates automatically the
+   moment that file is dropped in, and until then the browser falls through to
+   --lp-display (Anton, loaded via next/font in app/page.tsx). Eyebrows / nav /
+   buttons use Azeret Mono (--lp-mono, exact from the design); body reuses Inter. */
+
+@font-face {
+	font-family: "Zuume";
+	src: url("/fonts/zuume-regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
 
 .lp {
+	/* Single source of truth for the display stack (Zuume → free fallback). */
+	--lp-display-stack: "Zuume", var(--lp-display), "Arial Narrow", sans-serif;
 	--lp-dark: #060a17;
 	--lp-dark-2: #0a0e1a;
 	--lp-panel: #11141f;
@@ -41,7 +56,7 @@
 	inset: 0;
 	z-index: 60;
 	pointer-events: none;
-	opacity: 0.07;
+	opacity: 0.05;
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
 	background-size: 240px 240px;
 }
@@ -50,11 +65,11 @@
 .lp-inner { max-width: var(--lp-max); margin: 0 auto; padding-left: var(--lp-pad); padding-right: var(--lp-pad); }
 
 .lp-display {
-	font-family: var(--lp-display), "Arial Narrow", sans-serif;
+	font-family: var(--lp-display-stack);
 	font-weight: 400;
 	text-transform: uppercase;
-	line-height: 0.95;
-	letter-spacing: 0.015em;
+	line-height: 1.04; /* design: 81px on 78px */
+	letter-spacing: 0;
 	margin: 0;
 }
 .lp-eyebrow {
@@ -73,8 +88,9 @@
 
 .lp-btn {
 	font-family: var(--lp-mono), monospace;
-	font-size: 15px;
-	letter-spacing: 0.1em;
+	font-size: 18px; /* design: Azeret Mono Medium 18/22, tracking 1.8px */
+	line-height: 22px;
+	letter-spacing: 1.8px;
 	text-transform: uppercase;
 	font-weight: 500;
 	height: 54px;
@@ -90,14 +106,15 @@
 	text-decoration: none;
 }
 .lp-btn:hover { transform: translateY(-1px); }
-.lp-btn--pink { background: var(--lp-pink); color: #fff; box-shadow: 2px 8px 18px rgba(9, 21, 57, 0.28); }
+.lp-btn--pink { background: var(--lp-pink); color: #fff; box-shadow: 2px 8px 10px rgba(9, 21, 57, 0.13); }
 .lp-btn--pink:hover { filter: brightness(1.06); }
-.lp-btn--outline { background: rgba(0, 0, 0, 0.4); color: #fff; border-color: var(--lp-pink); }
+.lp-btn--outline { background: rgba(0, 0, 0, 0.58); color: #fff; border-color: var(--lp-pink); box-shadow: 2px 8px 20px rgba(9, 21, 57, 0.13); }
 .lp-btn--outline:hover { background: rgba(243, 33, 99, 0.12); }
 /* Nav LOG IN — muted/ghost pink pill (distinct from the bright hero CTAs). */
 .lp-btn--login { background: rgba(243, 33, 99, 0.16); color: #ffd3e0; border-color: rgba(243, 33, 99, 0.7); }
 .lp-btn--login:hover { background: rgba(243, 33, 99, 0.28); color: #fff; }
-.lp-btn--sm { height: 44px; font-size: 13px; padding: 0 20px; }
+/* Nav pill — design: 108x58, 15px padding either side. */
+.lp-btn--sm { height: 58px; font-size: 15px; letter-spacing: 1.5px; padding: 0 22px; }
 
 .lp-pill-arrow {
 	width: 44px; height: 44px; border-radius: 99px; flex: none;
@@ -116,62 +133,70 @@
 .lp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 30; }
 .lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 30px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
-.lp-nav-mark img { height: 44px; width: auto; }
-/* Nav links + LOG IN live inside one rounded capsule (per the design). */
-.lp-nav-links { display: inline-flex; align-items: center; gap: 34px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 14px 32px; backdrop-filter: blur(4px); }
-.lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
+.lp-nav-mark img { height: 56px; width: auto; }
+/* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
+   The LOG IN pill sits OUTSIDE it, 19px to the right. */
+.lp-nav-links { display: inline-flex; align-items: center; height: 58px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
+.lp-nav-link { font-family: var(--lp-mono), monospace; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
-.lp-nav-right { display: flex; align-items: center; gap: 16px; }
+.lp-nav-right { display: flex; align-items: center; gap: 19px; }
 .lp-nav-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; }
 
 /* ── Hero (Intro + Final share .lp-hero) ───────────────────────────────── */
 .lp-hero { position: relative; background: var(--lp-dark); overflow: hidden; }
 /* Intro hero fills the viewport on first load, content vertically centred. */
 .lp-hero--intro { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; }
-.lp-hero-glow { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-/* Background stage: a 1512×1007 box pinned to the hero bottom + horizontally
-   centred, so the design's off-canvas circles/rings land in the same place. */
-.lp-hero-bg { position: absolute; left: 50%; bottom: 0; width: 1512px; height: 1007px; transform: translateX(-50%); pointer-events: none; z-index: 0; }
+
+/* Background stage — the design's 1512x1007 frame, scaled like `cover` and
+   anchored to the hero's bottom so the off-canvas circles/rings land exactly
+   where Figma puts them. Children are positioned in % OF THIS STAGE, so the
+   whole composition scales together and the square SVGs stay square. */
+.lp-hero-bg {
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+	/* Cover the hero with the design's 1512×1007 frame. BOTH axes are explicit
+	   lengths — not `aspect-ratio` — because children are positioned with %
+	   offsets, and Chrome does not reliably resolve a child's percentage
+	   top/height against an aspect-ratio-derived parent height (that bug parked
+	   the rings ~469px too low, i.e. off-screen). */
+	width: max(100vw, calc(100svh * 1.50149)); /* 1512/1007 */
+	height: max(calc(100vw / 1.50149), 100svh);
+	pointer-events: none;
+	z-index: 0;
+}
+.lp-hero-bg--final {
+	width: max(100vw, 1512px);
+	height: calc(max(100vw, 1512px) / 2.19448); /* 1512/689 */
+}
 .lp-hero-orb { position: absolute; max-width: none; }
-.lp-hero-ringimg { opacity: 1; }
-.lp-hero-bg--final { height: 689px; }
-/* Concentric ring outlines emanating from just below the bottom-left corner.
-   Rendered in CSS (the design's SVG rings are dark strokes at 0.32 opacity —
-   invisible on the near-black bg) so they read clearly like the Figma. */
-/* Concentric rings — pure CSS so they always render (no faint-SVG / cache
-   issues), emanating from just below the bottom-left corner like the design. */
-.lp-hero-rings {
+/* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
+.lp-hero-grad {
 	position: absolute;
 	inset: 0;
-	z-index: 1;
-	pointer-events: none;
-	background: repeating-radial-gradient(circle at 3% 122%, transparent 0 44px, rgba(255, 255, 255, 0.12) 44px 46px);
-	-webkit-mask-image: radial-gradient(circle at 3% 122%, #000 0%, #000 62%, transparent 96%);
-	mask-image: radial-gradient(circle at 3% 122%, #000 0%, #000 62%, transparent 96%);
+	opacity: 0.87;
+	background: radial-gradient(ellipse 88.06% 132.21% at 26.82% 164.05%, rgba(243, 33, 99, 0.55) 0%, rgba(243, 33, 99, 0) 100%);
 }
-.lp-hero-rings--final {
-	background: repeating-radial-gradient(circle at 97% 124%, transparent 0 44px, rgba(255, 255, 255, 0.1) 44px 46px);
-	-webkit-mask-image: radial-gradient(circle at 97% 124%, #000 0%, #000 62%, transparent 96%);
-	mask-image: radial-gradient(circle at 97% 124%, #000 0%, #000 62%, transparent 96%);
+.lp-hero-grad--final {
+	background: radial-gradient(ellipse 82% 165% at 90% 152%, rgba(243, 33, 99, 0.5) 0%, rgba(243, 33, 99, 0) 100%);
 }
-.lp-hero-inner { position: relative; z-index: 2; width: 100%; max-width: 1128px; margin: 0 auto; padding: 150px 24px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 44px; }
+
+.lp-hero-inner { position: relative; z-index: 2; width: 100%; max-width: 1128px; margin: 0 auto; padding: 150px 24px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 46px; }
 .lp-hero--intro .lp-hero-inner { padding: 120px 24px; }
+/* design: logo -> headline gap 41, then 46 to the CTAs */
+.lp-hero-texts { display: flex; flex-direction: column; align-items: center; gap: 41px; width: 100%; }
 .lp-hero-wordmark { width: 392px; max-width: 70%; }
 .lp-hero-wordmark--sm { width: 284px; }
-.lp-hero-headline { color: #fff; font-size: clamp(44px, 6.2vw, 78px); }
+.lp-hero-headline { color: #fff; font-size: clamp(40px, 5.16vw, 78px); max-width: 974px; }
 .lp-hero-sub { color: var(--lp-on-dark-soft); font-size: clamp(18px, 2vw, 24px); line-height: 1.5; max-width: 700px; margin: 0 auto; }
-.lp-hero-ctas { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
-.lp-intro-glow { background:
-	radial-gradient(120% 90% at 50% 130%, rgba(243, 33, 99, 0.45) 0%, rgba(243, 33, 99, 0) 55%),
-	radial-gradient(60% 60% at 8% 90%, rgba(243, 33, 99, 0.35) 0%, rgba(243, 33, 99, 0) 60%); }
-.lp-final-glow { background:
-	radial-gradient(90% 90% at 85% 120%, rgba(243, 33, 99, 0.4) 0%, rgba(243, 33, 99, 0) 55%); }
+.lp-hero-ctas { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; padding: 12px 0; }
 
 /* ── Trusted by ────────────────────────────────────────────────────────── */
 .lp-cream { background: var(--lp-cream); color: var(--lp-ink); }
 .lp-trusted { padding: 90px 0; }
 .lp-trusted-head { text-align: center; max-width: 900px; margin: 0 auto 46px; }
-.lp-trusted-head h2 { font-family: var(--lp-display), sans-serif; text-transform: uppercase; font-size: clamp(24px, 2.6vw, 34px); margin: 0 0 14px; letter-spacing: 0.01em; }
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(24px, 2.6vw, 34px); margin: 0 0 14px; letter-spacing: 0.01em; }
 .lp-trusted-head p { color: var(--lp-ink-soft); font-size: 16px; line-height: 1.6; margin: 0; }
 .lp-slider { position: relative; }
 .lp-slider-track { display: flex; gap: 38px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px; }
@@ -179,7 +204,7 @@
 .lp-partner { flex: 0 0 210px; scroll-snap-align: start; }
 .lp-partner-photo { position: relative; height: 232px; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #b9b2a6, #6f6a63); }
 .lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(10, 14, 26, 0.85), transparent); }
-.lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; color: #fff; font-family: var(--lp-display), sans-serif; letter-spacing: 0.14em; font-size: 20px; }
+.lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; color: #fff; font-family: var(--lp-display-stack); letter-spacing: 0.14em; font-size: 20px; }
 .lp-partner-name { margin-top: 14px; font-weight: 600; font-size: 14px; }
 .lp-partner-title { color: var(--lp-ink-soft); font-size: 13px; }
 .lp-slider-controls { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
@@ -199,19 +224,19 @@
 .lp-stack { position: relative; }
 .lp-stack-card { border-radius: 18px; padding: 32px; color: #fff; position: relative; overflow: hidden; background: var(--lp-panel); border: 1px solid var(--lp-border-dark); margin-bottom: 14px; }
 .lp-stack-card--active { background: linear-gradient(150deg, #2a1430 0%, #12131f 60%); box-shadow: 0 30px 60px -30px rgba(243, 33, 99, 0.5); }
-.lp-stack-head { font-family: var(--lp-display), sans-serif; letter-spacing: 0.06em; font-size: 22px; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.lp-stack-head { font-family: var(--lp-display-stack); letter-spacing: 0.06em; font-size: 22px; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .lp-stack-sub { color: var(--lp-on-dark-soft); font-size: 15px; margin-bottom: 20px; }
 .lp-points { display: grid; gap: 16px; }
 .lp-point { display: flex; align-items: center; gap: 14px; font-size: 15px; }
 .lp-point-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(243, 33, 99, 0.16); color: var(--lp-pink-2); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.lp-collapsed-head { font-family: var(--lp-display), sans-serif; letter-spacing: 0.06em; font-size: 22px; }
+.lp-collapsed-head { font-family: var(--lp-display-stack); letter-spacing: 0.06em; font-size: 22px; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
 .lp-gallery-wrap { background: var(--lp-dark); }
 .lp-gallery-divider { max-width: var(--lp-max); margin: 0 auto; border-top: 1px solid var(--lp-border-dark); }
 .lp-gallery { padding: 80px 0; }
 .lp-gallery-head { max-width: 664px; margin-bottom: 28px; }
-.lp-gallery-head h2 { font-family: var(--lp-display), sans-serif; text-transform: uppercase; font-size: clamp(30px, 3.4vw, 46px); margin: 0 0 14px; }
+.lp-gallery-head h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(30px, 3.4vw, 46px); margin: 0 0 14px; }
 .lp-gallery-head p { color: var(--lp-on-dark-soft); font-size: 16px; line-height: 1.6; }
 .lp-gallery-card { position: relative; border-radius: 22px; padding: 40px; background: linear-gradient(160deg, #201226 0%, #0d0f1a 55%); border: 1px solid var(--lp-border-dark); overflow: hidden; }
 .lp-gallery-card::before { content: ""; position: absolute; top: -30%; right: -10%; width: 60%; height: 90%; background: radial-gradient(circle, rgba(243, 33, 99, 0.28), transparent 65%); pointer-events: none; }
@@ -229,7 +254,7 @@
 /* ── Testimonials ──────────────────────────────────────────────────────── */
 .lp-testi { padding: 74px 0; }
 .lp-testi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 40px; }
-.lp-quote { font-family: var(--lp-display), sans-serif; text-transform: none; font-size: 26px; line-height: 1.2; letter-spacing: 0; color: var(--lp-ink); }
+.lp-quote { font-family: var(--lp-display-stack); text-transform: none; font-size: 26px; line-height: 1.2; letter-spacing: 0; color: var(--lp-ink); }
 .lp-quote-wrap { display: flex; flex-direction: column; gap: 24px; }
 .lp-chip { display: flex; align-items: center; gap: 16px; }
 .lp-chip-avatar { width: 56px; height: 56px; border-radius: 99px; flex: none; background: linear-gradient(150deg, #c9c2b6, #8a857d); }
@@ -241,19 +266,19 @@
 .lp-team-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 80% at 90% 20%, rgba(243, 33, 99, 0.18), transparent 60%); }
 .lp-team-inner { position: relative; z-index: 2; padding: 74px 0; }
 .lp-team-intro { text-align: center; max-width: 900px; margin: 22px auto 44px; }
-.lp-team-intro h2 { font-family: var(--lp-display), sans-serif; text-transform: uppercase; font-size: clamp(30px, 3.4vw, 46px); margin: 0 0 16px; }
+.lp-team-intro h2 { font-family: var(--lp-display-stack); text-transform: uppercase; font-size: clamp(30px, 3.4vw, 46px); margin: 0 0 16px; }
 .lp-team-intro p { color: var(--lp-on-dark-soft); font-size: 16px; line-height: 1.6; }
 .lp-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
 .lp-member { display: flex; gap: 24px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--lp-border-dark); border-radius: 16px; padding: 20px; }
 .lp-member-photo { width: 150px; height: 208px; border-radius: 12px; flex: none; background: linear-gradient(160deg, #4a4550, #23212b); }
 .lp-member-eyebrow { font-family: var(--lp-mono), monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-on-dark-soft); display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .lp-member-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--lp-border-dark); }
-.lp-member-name { font-family: var(--lp-display), sans-serif; font-size: 26px; letter-spacing: 0.04em; margin-bottom: 10px; }
+.lp-member-name { font-family: var(--lp-display-stack); font-size: 26px; letter-spacing: 0.04em; margin-bottom: 10px; }
 .lp-member-bio { color: var(--lp-on-dark-soft); font-size: 14px; line-height: 1.55; }
 
 /* ── FAQ ───────────────────────────────────────────────────────────────── */
 .lp-faq { padding: 90px 0 110px; }
-.lp-faq h2 { font-family: var(--lp-display), sans-serif; text-transform: uppercase; text-align: center; font-size: clamp(34px, 4vw, 56px); margin: 0 0 48px; }
+.lp-faq h2 { font-family: var(--lp-display-stack); text-transform: uppercase; text-align: center; font-size: clamp(34px, 4vw, 56px); margin: 0 0 48px; }
 .lp-faq-list { max-width: 900px; margin: 0 auto; }
 .lp-faq-item { border-bottom: 1px solid var(--lp-border-cream); }
 .lp-faq-q { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 22px 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; font-family: var(--lp-body); font-size: 18px; font-weight: 500; color: var(--lp-ink); }
