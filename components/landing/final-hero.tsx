@@ -15,7 +15,7 @@ export function FinalHero() {
 				{/* Same cropped ring art, mirrored so the arcs sweep up from the
 				    bottom-right where this frame's glow sits. */}
 				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
-					style={{ left: 0, top: 0, width: '100%', height: '100%', transform: 'scaleX(-1)' }} />
+					style={{ left: 0, top: 0, width: '112.500%', height: '100%', transform: 'scaleX(-1)' }} />
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
 					style={{ left: '38.161%', top: '38.897%', width: '103.902%', height: '228.012%' }} />
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-2.svg" alt=""
