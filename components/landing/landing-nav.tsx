@@ -25,7 +25,7 @@ export function LandingNav() {
 						{LINKS.map(([label, href]) => (
 							<a key={label} className="lp-nav-link" href={href} onClick={() => setOpen(false)}>{label}</a>
 						))}
-						<Link className="lp-btn lp-btn--pink lp-btn--sm" href="/login">LOG IN</Link>
+						<Link className="lp-btn lp-btn--login lp-btn--sm" href="/login">LOG IN</Link>
 					</div>
 					<button className="lp-nav-toggle" aria-label="Menu" onClick={() => setOpen((v) => !v)}>
 						{open ? <X size={26} /> : <Menu size={26} />}
