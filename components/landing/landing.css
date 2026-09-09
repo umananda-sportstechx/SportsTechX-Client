@@ -133,7 +133,7 @@
    centred, so the design's off-canvas circles/rings land in the same place. */
 .lp-hero-bg { position: absolute; left: 50%; bottom: 0; width: 1512px; height: 1007px; transform: translateX(-50%); pointer-events: none; z-index: 0; }
 .lp-hero-orb { position: absolute; max-width: none; }
-.lp-hero-ringimg { opacity: 0.32; }
+.lp-hero-ringimg { opacity: 1; }
 .lp-hero-bg--final { height: 689px; }
 /* Concentric ring outlines emanating from just below the bottom-left corner.
    Rendered in CSS (the design's SVG rings are dark strokes at 0.32 opacity —
