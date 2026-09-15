@@ -1,4 +1,4 @@
-import { Anton, Azeret_Mono, Newsreader } from 'next/font/google';
+import { Anton, Azeret_Mono, Newsreader, Space_Mono } from 'next/font/google';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { IntroHero } from '@/components/landing/intro-hero';
 import { TrustedBy } from '@/components/landing/trusted-by';
@@ -24,9 +24,13 @@ import '@/components/landing/landing.css';
  * Azeret Mono (exact, from the design); body reuses the app's Inter.
  */
 const display = Anton({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
-const mono = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
-/* Editorial serif used for eyebrows, body copy and the tier-card labels. */
-const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--lp-serif', display: 'swap' });
+/* Space Mono is the design's mono for eyebrows, switchers and roles. Azeret Mono
+   is NOT a substitute for it — the design uses Azeret in exactly one place, the
+   intro-hero CTAs, so it keeps its own variable. */
+const mono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
+const monoCta = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono-cta', display: 'swap' });
+/* Fallback behind Kepler Std until it is added to the Adobe kit (see landing.css). */
+const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--lp-serif-fb', display: 'swap' });
 
 /* Placeholder copy, reproduced from the design as-is. */
 const GALLERY_DESC =
@@ -34,7 +38,7 @@ const GALLERY_DESC =
 
 export default function LandingPage() {
 	return (
-		<div className={`lp ${display.variable} ${mono.variable} ${serif.variable}`}>
+		<div className={`lp ${display.variable} ${mono.variable} ${monoCta.variable} ${serif.variable}`}>
 			<LandingNav />
 			<main>
 				<IntroHero />

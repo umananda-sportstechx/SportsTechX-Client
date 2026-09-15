@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Figma design source (6MB binary) - decoded with landing/scripts/fig-extract.mjs.
+# Matches landing/.gitignore, which ignores its .fig files too.
+atlas_landing.fig
