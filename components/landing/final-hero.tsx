@@ -9,7 +9,7 @@ import Link from 'next/link';
  */
 export function FinalHero() {
 	return (
-		<section className="lp-hero" id="apply">
+		<section className="lp-hero lp-hero--final" id="apply">
 			<div className="lp-hero-bg lp-hero-bg--final" aria-hidden>
 				<div className="lp-hero-grad lp-hero-grad--final" />
 				{/* Same cropped ring art, mirrored so the arcs sweep up from the
@@ -29,7 +29,7 @@ export function FinalHero() {
 				</div>
 				<p className="lp-hero-sub">See how founders and investors use Atlas to navigate, raise and do deals in sports tech.</p>
 				<div className="lp-hero-ctas">
-					<Link className="lp-btn lp-btn--pink" href="/signup">Apply for membership</Link>
+					<Link className="lp-btn lp-btn--ui lp-btn--pink" href="/signup">Apply for membership</Link>
 				</div>
 			</div>
 		</section>

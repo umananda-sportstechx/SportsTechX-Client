@@ -18,7 +18,7 @@ const TIERS: {
 	sub: string; desc: string; points: string[]; grad: string;
 }[] = [
 	{
-		key: 'explore', label: 'EXPLORE', colour: '#f32163',
+		key: 'explore', label: 'EXPLORE', colour: '#ff3373',
 		eyebrow: 'Atlas Explore · The Base',
 		sub: 'Map the landscape',
 		desc: 'The foundational layer of Atlas — map companies, investors and funding across sports tech & venture, all in one shared view.',
@@ -26,7 +26,7 @@ const TIERS: {
 		grad: 'radial-gradient(115% 95% at 100% 45%, rgba(243,33,99,0.62) 0%, rgba(243,33,99,0) 62%), linear-gradient(155deg, #1b1520 0%, #0d1017 60%)',
 	},
 	{
-		key: 'raise', label: 'RAISE', colour: '#4d8df5',
+		key: 'raise', label: 'RAISE', colour: '#4580ec',
 		eyebrow: 'Atlas Raise · The Workspace',
 		sub: 'Run your raise',
 		desc: 'Everything a founder needs to run the raise — investor targeting, warm-intro paths and outreach tracking in one workspace.',
@@ -34,7 +34,7 @@ const TIERS: {
 		grad: 'radial-gradient(105% 95% at 100% 70%, rgba(46,109,224,0.46) 0%, rgba(46,109,224,0) 62%), linear-gradient(155deg, #141a25 0%, #0d1017 60%)',
 	},
 	{
-		key: 'scout', label: 'SCOUT', colour: '#2fbf7a',
+		key: 'scout', label: 'SCOUT', colour: '#1cc3a4',
 		eyebrow: 'Atlas Scout · The Edge',
 		sub: 'Find your next deal',
 		desc: 'Surface the companies that match your thesis before anyone else, and follow their momentum as it happens.',
