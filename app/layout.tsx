@@ -76,6 +76,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full`}
     >
       <head>
+        {/* Adobe Fonts kit from the designer's account (same kit the landing/
+            project uses). Serves `new-frank`; Kepler Std must be added to this
+            kit before the landing page's serif renders as designed. The licence
+            travels with the kit, so no binaries live in this repo. NOTE: Adobe
+            kits are domain-allowlisted — atlas.sportstechx.com has to be on the
+            kit's list or this silently serves nothing in production. */}
+        <link rel="preconnect" href="https://use.typekit.net" crossOrigin="" />
+        <link rel="preconnect" href="https://p.typekit.net" crossOrigin="" />
+        <link rel="stylesheet" href="https://use.typekit.net/jyx6vei.css" />
         <script dangerouslySetInnerHTML={{ __html: ACCENT_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full bg-background text-foreground antialiased">
