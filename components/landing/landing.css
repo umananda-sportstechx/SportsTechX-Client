@@ -265,7 +265,28 @@
    lifts to the front and expands, so promoting a tier reads as a vertical
    carousel rather than three separate boxes. */
 .lp-stack { display: flex; flex-direction: column; }
-.lp-tier { position: relative; display: block; width: 100%; text-align: left; border: none; cursor: pointer; color: #fff; border-radius: 16px; padding: 26px 30px; overflow: hidden; font-family: inherit; min-height: 138px; margin-top: -22px; box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85); transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease; }
+.lp-tier {
+	position: relative; display: block; width: 100%; text-align: left; border: none;
+	cursor: pointer; color: #fff; border-radius: 20px; padding: 32px 33px; overflow: hidden;
+	font-family: inherit; min-height: 222px; margin-top: -84px;
+	/* One treatment for all three cards — only --tier-accent changes. The 0.88
+	   alpha midpoint sits over a white base, exactly as the design layers it. */
+	background:
+		radial-gradient(228.3% 192.5% at 158.59% 129.73%,
+			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
+		#ffffff;
+	box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85);
+	transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease;
+}
+/* Every card but the last carries a faint white sheen along its bottom edge,
+   where the next card overlaps it (design: white 0 -> .46 alpha @ 20% layer). */
+.lp-stack > .lp-tier:not(:last-child)::after {
+	content: ""; position: absolute; inset: auto 0 0 0; height: 13%; pointer-events: none;
+	background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.092) 100%);
+}
+/* A card that is not first is overlapped from above by 84px, so its content
+   starts below that; the design puts the collapsed header at y=112.5. */
+.lp-stack > .lp-tier:not(:first-child) { padding-top: 116px; }
 /* Deck seen from the top: the FIRST card sits above, each following one tucks
    in behind it. The overlap (22px) stays clear of the wordmark, so every tier
    label is still readable. */
@@ -275,7 +296,15 @@
 .lp-stack > .lp-tier:first-child { margin-top: 0; }
 
 /* Clicking a tier brings it in front of the whole deck. */
-.lp-stack > .lp-tier--open { z-index: 10; min-height: 348px; padding-bottom: 32px; transform: translateY(-2px); box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9); }
+.lp-stack > .lp-tier--open {
+	z-index: 10; min-height: 403px; padding-bottom: 32px; transform: translateY(-2px);
+	/* The taller card carries the design's own glow placement. */
+	background:
+		radial-gradient(251.6% 208% at 135.95% 163.4%,
+			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
+		#ffffff;
+	box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9);
+}
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 132px; height: auto; }
 /* Design: Kepler Std Condensed Subhead Italic 21, ls 10%. */
