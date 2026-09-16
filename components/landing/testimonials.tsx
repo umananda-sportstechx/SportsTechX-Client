@@ -24,9 +24,15 @@ const QUOTES = [
 
 export function Testimonials() {
 	const track = useRef<HTMLDivElement | null>(null);
+	// One card per press, measured rather than assumed. `clientWidth` was right
+	// only while the cards were exactly 100%; below 760 they are held back to
+	// 86% so the next quote peeks, and paging by the viewport then overshoots by
+	// the peek every time and walks the rail out of alignment.
 	const scroll = (dir: number) => {
 		const el = track.current;
-		if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
+		if (!el) return;
+		const card = el.firstElementChild as HTMLElement | null;
+		el.scrollBy({ left: dir * (card?.offsetWidth ?? el.clientWidth), behavior: 'smooth' });
 	};
 
 	return (
