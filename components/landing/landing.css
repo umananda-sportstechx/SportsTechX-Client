@@ -58,6 +58,10 @@
 	   the box width for containers that carry their own --lp-pad gutters. */
 	--lp-max: 2200px;
 	--lp-pad: 4vw;
+	/* Components that are ART rather than text (the team cards, the dashboard
+	   mockup) keep a fixed aspect ratio, so they must stop growing before the
+	   text containers do — otherwise their fixed heights elongate them. */
+	--lp-card-max: 1500px;
 	--lp-shell: calc(var(--lp-max) + var(--lp-pad) * 2);
 
 	background: var(--lp-dark);
@@ -125,7 +129,7 @@
 .lp-btn--login { background: rgba(243, 33, 99, 0.16); color: #ffa7c2; border-color: rgba(243, 33, 99, 0.7); }
 .lp-btn--login:hover { background: rgba(243, 33, 99, 0.28); color: #fff; }
 /* Nav LOG IN pill — design: Space Grotesk Medium 16, ls 10%, on a 58px pill. */
-.lp-btn--sm { font-family: var(--lp-ui); height: 58px; font-size: 16px; letter-spacing: 1.6px; padding: 0 22px; }
+.lp-btn--sm { font-family: var(--lp-ui); height: 48px; font-size: 16px; letter-spacing: 1.6px; padding: 0 22px; }
 /* Final-hero CTA — design: Space Grotesk Medium 21, ls 10%. */
 .lp-btn--ui { font-family: var(--lp-ui); font-size: 21px; line-height: 26px; letter-spacing: 2.1px; height: 62px; padding: 0 34px; }
 
@@ -138,7 +142,7 @@
 /* Glass bar once the page moves. One dark translucent treatment reads correctly
    over the dark hero and over the cream / white sections below. */
 .lp-nav.is-scrolled {
-	background: rgba(8, 11, 24, 0.62);
+	background: rgba(6, 9, 20, 0.86);
 	-webkit-backdrop-filter: blur(20px) saturate(140%);
 	backdrop-filter: blur(20px) saturate(140%);
 	border-bottom-color: rgba(255, 255, 255, 0.08);
@@ -146,13 +150,13 @@
 /* Design: nav frame at x=107, y=85 — a wider gutter than the content sections. */
 /* Design puts the nav at 1291 @ x=107 — 26px tighter per side than the
    content. Normalised to --lp-pad so it lines up with every other section. */
-.lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 28px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
-.lp-nav.is-scrolled .lp-nav-inner { padding-top: 14px; padding-bottom: 14px; }
+.lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 18px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
+.lp-nav.is-scrolled .lp-nav-inner { padding-top: 10px; padding-bottom: 10px; }
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
 .lp-nav-mark img { height: 56px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
    The LOG IN pill sits OUTSIDE it, 19px to the right. */
-.lp-nav-links { display: inline-flex; align-items: center; height: 58px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
+.lp-nav-links { display: inline-flex; align-items: center; height: 48px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
 .lp-nav-link { font-family: var(--lp-ui); font-weight: 500; font-size: 16px; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 19px; }
@@ -220,6 +224,9 @@
 /* ── Trusted by ────────────────────────────────────────────────────────── */
 .lp-cream { background: var(--lp-cream); color: var(--lp-ink); }
 .lp-faq.lp-cream { background: var(--lp-faq-bg); }
+/* Requested: this one section is white. Trusted-by above it stays cream, so the
+   edge between them is deliberate. */
+.lp-howjoin.lp-cream { background: #ffffff; }
 .lp-trusted { padding: 96px 0 104px; }
 .lp-trusted-head { text-align: center; margin: 0 auto 52px; }
 .lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: clamp(30px, 3.64vw, 55px); line-height: 1; margin: 0 0 16px; color: #050505; }
@@ -341,12 +348,12 @@
    window that PROTRUDES past the panel's bottom edge — so the panel must not
    clip overflow, and the block reserves the overhang as padding-bottom. */
 .lp-gallery-wrap { background: #ffffff; color: var(--lp-ink); }
-.lp-gallery-divider { max-width: var(--lp-max); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
-.lp-gallery { padding: 110px var(--lp-pad) 372px; }
+.lp-gallery-divider { max-width: var(--lp-card-max); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
+.lp-gallery { padding: 110px var(--lp-pad) 400px; }
 .lp-gallery--light { padding: 96px var(--lp-pad) 130px; }
 
 .lp-gallery-panel {
-	max-width: var(--lp-max);
+	max-width: var(--lp-card-max);
 	margin: 0 auto;
 	border-radius: 12px;
 	padding: 96px 63px 0;
@@ -362,7 +369,7 @@
    window overhangs the panel’s TOP edge instead of its bottom. */
 .lp-gallery-panel--bare { padding: 0 63px 62px; margin-top: 163px; }
 .lp-gallery-panel--bare .lp-mockup { margin-top: -163px; margin-bottom: 0; }
-.lp-gallery-headwrap { max-width: var(--lp-max); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
+.lp-gallery-headwrap { max-width: var(--lp-card-max); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
 
 .lp-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
 .lp-gallery-title { font-size: clamp(30px, 3.64vw, 55px); line-height: 1; font-weight: 400; }
@@ -387,7 +394,7 @@
 .lp-gallery-headwrap .lp-seg-btn.active { background: var(--lp-pink); color: #fff; }
 
 /* App window. 649px tall, overhanging the panel by 260px. */
-.lp-mockup { position: relative; margin-top: 56px; margin-bottom: -260px; height: 649px; background: #fff; border-radius: 12px; box-shadow: 0 34px 74px -34px rgba(10, 6, 20, 0.5); overflow: hidden; }
+.lp-mockup { position: relative; margin-top: 56px; margin-bottom: -260px; aspect-ratio: 1223 / 649; background: #fff; border-radius: 12px; box-shadow: 0 34px 74px -34px rgba(10, 6, 20, 0.5); overflow: hidden; }
 .lp-mockup-bar { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 38px 0 40px; border-bottom: 1px solid #ededed; }
 .lp-mockup-bar img { height: 34px; width: auto; }
 .lp-mockup-avatar { width: 32px; height: 32px; border-radius: 99px; background: #e6e6e6; }
@@ -429,10 +436,10 @@
 .lp-team-intro h2 { font-size: clamp(30px, 3.64vw, 55px); line-height: 1; letter-spacing: 0.05em; margin: 16px 0 24px; }
 /* Design: Kepler Std Display 24/31 @65%. */
 .lp-team-intro p { font-family: var(--lp-serif); color: rgba(255, 255, 255, 0.65); font-size: clamp(17px, 1.59vw, 24px); line-height: 1.292; max-width: 900px; margin: 0 auto; }
-.lp-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 29px; }
+.lp-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 29px; max-width: var(--lp-card-max); margin: 0 auto; }
 /* Light cards on the dark section: the photo bleeds to the card edges. */
-.lp-member { display: flex; background: #f8f8f8; border: none; border-radius: 8px; padding: 0; overflow: hidden; color: var(--lp-ink); min-height: 248px; }
-.lp-member-photo { width: 249px; flex: none; align-self: stretch; background: linear-gradient(160deg, #b9b2a8, #4c4750); }
+.lp-member { display: flex; background: #f8f8f8; border: none; border-radius: 8px; padding: 0; overflow: hidden; color: var(--lp-ink); min-height: 248px; aspect-ratio: 674 / 248; }
+.lp-member-photo { flex: 0 0 36.94%; align-self: stretch; /* design 249/674 */ background: linear-gradient(160deg, #b9b2a8, #4c4750); }
 .lp-member-text { flex: 1; min-width: 0; padding: 39px 34px 32px 29px; }
 /* Design: Space Mono 15, ls 10%, #868686. */
 .lp-member-eyebrow { font-family: var(--lp-mono), monospace; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: #868686; display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
@@ -499,7 +506,9 @@
 	.lp-stack { max-width: 509px; }
 	.lp-howjoin-grid { grid-template-columns: 1fr; }
 	.lp-quote-wrap { flex: 0 0 100%; }
-	.lp-team-grid { grid-template-columns: 1fr; }
+	.lp-team-grid { grid-template-columns: 1fr; max-width: none; }
+	/* One column: the card is far wider than tall, so the ratio would clip text. */
+	.lp-member { aspect-ratio: auto; }
 	.lp-footer-cols { grid-template-columns: 1fr 1fr; background-image: none; }
 	.lp-gallery { padding: 80px var(--lp-pad) 240px; }
 	.lp-gallery-panel { padding: 56px 36px 0; }
@@ -552,17 +561,17 @@
    guard it would restyle the whole app's scrollbar. */
 html:has(.lp) {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(243, 33, 99, 0.55) rgba(120, 120, 140, 0.16);
+	scrollbar-color: rgba(20, 22, 32, 0.78) rgba(120, 120, 140, 0.16);
 }
 html:has(.lp)::-webkit-scrollbar { width: 10px; height: 10px; }
 html:has(.lp)::-webkit-scrollbar-track { background: rgba(120, 120, 140, 0.16); }
 html:has(.lp)::-webkit-scrollbar-thumb {
-	background: rgba(243, 33, 99, 0.55);
+	background: rgba(20, 22, 32, 0.78);
 	border-radius: 99px;
 	border: 2px solid transparent;
 	background-clip: padding-box;
 }
 html:has(.lp)::-webkit-scrollbar-thumb:hover {
-	background: rgba(243, 33, 99, 0.82);
+	background: rgba(20, 22, 32, 0.95);
 	background-clip: padding-box;
 }
