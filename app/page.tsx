@@ -9,6 +9,7 @@ import { Team } from '@/components/landing/team';
 import { Faq } from '@/components/landing/faq';
 import { FinalHero } from '@/components/landing/final-hero';
 import { LandingFooter } from '@/components/landing/landing-footer';
+import { MobileMenuPanel, MobileMenuProvider, MobileMenuShell } from '@/components/landing/mobile-menu';
 import '@/components/landing/landing.css';
 
 /**
@@ -39,7 +40,14 @@ const GALLERY_DESC =
 export default function LandingPage() {
 	return (
 		<div className={`lp ${display.variable} ${mono.variable} ${monoCta.variable} ${serif.variable}`}>
-			<LandingNav />
+			{/* The panel is a SIBLING before the shell, not a child: the shell is
+			    transformed while the drawer is out, so a panel inside it would
+			    slide along with the page instead of being revealed by it. The nav
+			    is passed as a prop rather than as a child so it stays crisp while
+			    the page behind it dims. */}
+			<MobileMenuProvider>
+				<MobileMenuPanel />
+				<MobileMenuShell nav={<LandingNav />}>
 			<main>
 				<IntroHero />
 				<TrustedBy />
@@ -57,6 +65,8 @@ export default function LandingPage() {
 				<FinalHero />
 			</main>
 			<LandingFooter />
+				</MobileMenuShell>
+			</MobileMenuProvider>
 		</div>
 	);
 }

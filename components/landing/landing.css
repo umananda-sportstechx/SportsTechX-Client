@@ -136,9 +136,20 @@
 /* ── Nav ───────────────────────────────────────────────────────────────── */
 .lp-nav {
 	position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+	/* `top` is deliberately absent from this list. While the drawer is out the
+	   bar is anchored by an inline `top: lockedY`, so transitioning it would
+	   send the bar gliding thousands of pixels down the page on open. The dock
+	   only changes padding and background, so nothing is lost by leaving it. */
 	transition: background 0.25s ease, backdrop-filter 0.25s ease, border-color 0.25s ease;
 	border-bottom: 1px solid transparent;
 }
+/* The drawer's shell is transformed, which makes it the containing block for
+   `fixed` descendants — the bar would otherwise pin to the top of the document
+   and scroll away with the close button. */
+.lp-nav.is-drawer { position: absolute; }
+/* The drawer carries its own LOG IN; two of the same control either side of the
+   slide reads as a duplicate. */
+.lp-nav.is-drawer .lp-btn--login { opacity: 0; pointer-events: none; }
 /* Glass bar once the page moves. One dark translucent treatment reads correctly
    over the dark hero and over the cream / white sections below. */
 .lp-nav.is-scrolled {
@@ -180,20 +191,26 @@
 	   Figma; the max(0px, …) clamp keeps the old left-anchored behaviour on
 	   mobile, where the stage is far wider than the viewport and centring would
 	   push the sphere off-screen. */
-	left: max(0px, calc((100% - 100svh * 1.50149) / 2));
+	left: max(0px, calc((100% - max(100svh * 1.50149, 100%)) / 2));
 
 	/* TRUE design scale, keyed off viewport height and anchored bottom-left —
 	   which is where Figma anchors the sphere and the ring origin. Cover-scaling
 	   by width previously blew the whole composition up ~27% on a 1920 screen,
 	   which is exactly why the ring gaps read too wide. Both axes are explicit
 	   lengths so children's % offsets resolve (aspect-ratio does not). */
-	width: calc(100svh * 1.50149); /* 1512/1007 */
+	/* max(..., 100%) so the stage never falls UNDER the viewport width, which it
+	   does in landscape (586 against 844) — there the art stopped spanning the
+	   hero entirely. In portrait it is already far wider, so this is a no-op. */
+	width: max(100svh * 1.50149, 100%); /* 1512/1007 */
 	height: 100svh;
 	pointer-events: none;
 	z-index: 0;
 }
 /* Final hero keeps its own 1512×689 frame, anchored bottom-right where its glow sits. */
-.lp-hero-bg--final { left: auto; right: 0; width: 1512px; height: 689px; }
+/* max(1512px, 100vw) — at 1512 this is unchanged, but below it the stage was
+   a fixed 1512 anchored right, so the glow (at 38.161% of the stage) sat
+   ~577px off-screen and the section rendered as a flat navy block. */
+.lp-hero-bg--final { left: auto; right: 0; width: max(1512px, 100%); height: 689px; }
 .lp-hero-orb { position: absolute; max-width: none; }
 
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
@@ -348,7 +365,7 @@
    window that PROTRUDES past the panel's bottom edge — so the panel must not
    clip overflow, and the block reserves the overhang as padding-bottom. */
 .lp-gallery-wrap { background: #ffffff; color: var(--lp-ink); }
-.lp-gallery-divider { max-width: var(--lp-card-max); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
+.lp-gallery-divider { max-width: min(var(--lp-card-max), calc(100% - 2 * var(--lp-pad))); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
 .lp-gallery { padding: 110px var(--lp-pad) 400px; }
 .lp-gallery--light { padding: 96px var(--lp-pad) 130px; }
 
@@ -457,8 +474,12 @@
 .lp-faq-q { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 17px 0; display: flex; align-items: center; justify-content: space-between; gap: 22px; font-family: var(--lp-serif); font-size: 21px; font-weight: 400; line-height: 28px; color: var(--lp-ink); }
 .lp-faq-icon { flex: none; color: var(--lp-ink-soft); transition: transform 0.2s ease; }
 .lp-faq-item.open .lp-faq-icon { transform: rotate(45deg); }
-.lp-faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; font-family: var(--lp-serif); color: var(--lp-ink-soft); font-size: 17px; line-height: 26px; }
-.lp-faq-item.open .lp-faq-a { max-height: 260px; }
+/* A grid row, not a max-height. `max-height: 260px` was a guess that clips the
+   answer mid-sentence as soon as the copy grows, or the viewport narrows enough
+   to add a line; 0fr -> 1fr animates the same way with no ceiling. */
+.lp-faq-a { display: grid; grid-template-rows: 0fr; overflow: hidden; transition: grid-template-rows 0.25s ease; font-family: var(--lp-serif); color: var(--lp-ink-soft); font-size: 17px; line-height: 26px; }
+.lp-faq-a > * { min-height: 0; }
+.lp-faq-item.open .lp-faq-a { grid-template-rows: 1fr; }
 .lp-faq-a-inner { padding: 0 0 20px; }
 
 /* ── Footer ────────────────────────────────────────────────────────────── */
@@ -493,6 +514,113 @@
 .lp-footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 71px; padding-top: 22px; border-top: 2px solid rgba(186, 186, 186, 0.5); font-family: var(--lp-ui); color: var(--lp-ink-navy); font-size: 13px; line-height: 32px; letter-spacing: 0; }
 .lp-footer-bottom > :last-child { font-family: var(--lp-mono), monospace; }
 
+/* ── Mobile drawer ─────────────────────────────────────────────────────── */
+/* The page slides right and the panel is revealed behind it. Proportions come
+   from the sibling site's 402-wide phone board: a 351 panel (87.3%) with the
+   page pushed 283 (70.4%), capped so it does not grow absurdly on a wide phone.
+
+   Stacking ceiling: `.lp::after` is the film grain at z-index 60, so this whole
+   ladder lives below it — panel 10 < shell 20 < notch 30. Inside the shell the
+   click-away sits at 30 and `.lp-nav` at 40, so the close button stays hit-able.
+
+   `.lp { overflow-x: clip }` is what absorbs the slid shell's overhang; there is
+   no horizontal scrollbar to suppress. */
+.lp-drawer {
+	position: fixed;
+	inset: 0 auto 0 0;
+	z-index: 10;
+	width: min(87.3%, 351px);
+	opacity: 0;
+	translate: -32px 0;
+	pointer-events: none;
+	transition: translate 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-drawer.is-open { opacity: 1; translate: 0 0; pointer-events: auto; }
+.lp-drawer-inner {
+	height: 100%;
+	overflow-y: auto;
+	background: var(--lp-panel);
+	padding: 26px 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+.lp-drawer-mark { height: 30px; width: auto; }
+.lp-drawer-nav { display: flex; flex-direction: column; margin-top: 52px; width: 100%; }
+.lp-drawer-link {
+	display: block;
+	padding: 14px 0;
+	font-family: var(--lp-ui);
+	font-weight: 500;
+	font-size: 18px;
+	line-height: 1;
+	letter-spacing: 1.8px;
+	text-transform: uppercase;
+	color: #fff;
+	text-decoration: none;
+	transition: opacity 0.12s ease;
+}
+.lp-drawer-link:hover { opacity: 0.7; }
+.lp-drawer-link:active { opacity: 0.5; }
+/* Width pinned to the REVEAL, not the panel: the panel is deliberately wider
+   than the page slides, so its right edge sits under the page. The links are
+   left-aligned and never notice; a full-width centred pill would have its end
+   cut off. */
+.lp-drawer-cta { margin-top: 34px; width: min(calc(70.4vw - 60px), 223px); }
+
+.lp-shell {
+	position: relative;
+	z-index: 20;
+	min-height: 100dvh;
+	background: var(--lp-dark);
+	transition: translate 420ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 420ms cubic-bezier(0.22, 1, 0.36, 1),
+		box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-shell.is-open {
+	translate: min(70.4%, 283px) 0;
+	overflow: hidden;
+	border-top-left-radius: 41px;
+	border-left: 2px solid rgba(190, 190, 190, 0.4);
+	box-shadow: -11px 0 42.2px rgba(0, 0, 0, 0.45);
+}
+.lp-shell-page { transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1), filter 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+.lp-shell.is-open .lp-shell-page { opacity: 0.87; filter: blur(2px); }
+.lp-shell-scrim { position: absolute; inset: 0; z-index: 30; background: transparent; border: none; cursor: pointer; }
+
+.lp-notch {
+	position: fixed;
+	top: 0;
+	left: min(70.4%, 283px);
+	z-index: 30;
+	width: 41px;
+	height: 41px;
+	background: var(--lp-panel);
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	-webkit-mask-image: radial-gradient(circle 41px at 100% 100%, transparent 0 41px, #000 41px);
+	mask-image: radial-gradient(circle 41px at 100% 100%, transparent 0 41px, #000 41px);
+}
+.lp-notch.is-open { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+	.lp-drawer, .lp-shell, .lp-shell-page, .lp-notch { transition: none; }
+}
+
+/* Above 1024 the links live in the bar, so the drawer must not be reachable —
+   and the shell must not keep a slide left over from a resize. */
+@media (min-width: 1025px) {
+	.lp-drawer, .lp-notch { display: none; }
+	.lp-shell.is-open {
+		translate: none;
+		overflow: visible;
+		border-radius: 0;
+		border-left: none;
+		box-shadow: none;
+	}
+	.lp-shell.is-open .lp-shell-page { opacity: 1; filter: none; }
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 /* ~84% content on genuinely wide screens (1440p and up). Must come before the
    max-width bands below — media queries add no specificity, so order decides. */
@@ -509,37 +637,112 @@
 	.lp-team-grid { grid-template-columns: 1fr; max-width: none; }
 	/* One column: the card is far wider than tall, so the ratio would clip text. */
 	.lp-member { aspect-ratio: auto; }
-	.lp-footer-cols { grid-template-columns: 1fr 1fr; background-image: none; }
+	.lp-footer-cols { grid-template-columns: 1fr 1fr; background-image: none; gap: 44px; }
+	/* The two vertical rules are background gradients on the grid and go with it.
+	   A rule above each link column replaces them, which is how the sibling
+	   site's mobile footer reads. The brand column is exempt so the mark stays
+	   the top of the block rather than a fourth entry in a list. */
+	.lp-footer-cols > :nth-child(n + 3) { border-top: 2px solid rgba(186, 186, 186, 0.5); padding-top: 26px; }
+	.lp-footer-desc { font-size: 19px; line-height: 29px; }
+	.lp-footer-h { font-size: 22px; line-height: 28px; }
+	.lp-footer-links a { font-size: 17px; line-height: 29px; }
 	.lp-gallery { padding: 80px var(--lp-pad) 240px; }
 	.lp-gallery-panel { padding: 56px 36px 0; }
-	.lp-mockup { height: 460px; margin-bottom: -170px; }
+	/* aspect-ratio must be released with the height, or width becomes the
+	   derived dimension (460 x 1223/649 = 867px) and overflows the panel. */
+	.lp-mockup { height: 460px; aspect-ratio: auto; margin-bottom: -170px; }
 	.lp-gallery-panel--bare { margin-top: 110px; padding-bottom: 44px; }
 	.lp-gallery-panel--bare .lp-mockup { margin-top: -110px; margin-bottom: 0; }
 }
-@media (max-width: 760px) {
-	.lp { --lp-pad: 22px; }
+/* The links capsule is ~400px intrinsic; with the 56px mark and the LOG IN pill
+   the bar measures ~666px, so it clears 768 by barely 100px and one copy change
+   would break iPad portrait. Hand over to the drawer at 1024 instead, which is
+   also where both sibling sites switch.
+
+   Ordered deliberately: after the 1100 band, before the 760 one. */
+@media (max-width: 1024px) {
 	.lp-nav-links { display: none; }
 	.lp-nav-toggle { display: inline-flex; }
-	.lp-nav.menu-open .lp-nav-links { display: flex; position: absolute; top: 100%; right: var(--lp-pad); flex-direction: column; gap: 18px; background: var(--lp-panel); border: 1px solid var(--lp-border-dark); border-radius: 14px; padding: 20px 26px; }
+	.lp-nav-mark img { height: 40px; }
+	.lp-nav-inner { gap: 14px; }
+	/* The toggle leads the bar and the mark follows it, so the mark takes the
+	   leftover space rather than being pushed against the burger. */
+	.lp-nav-mark { margin-right: auto; }
+}
+@media (max-width: 760px) {
+	.lp { --lp-pad: 22px; }
+
+	/* E3: the buttons had no mobile size at all. "APPLY FOR MEMBERSHIP" at 21px
+	   with 2.1px tracking and 68px of padding measures ~370px against the 342px
+	   a 390 screen leaves, and with white-space:nowrap inside a clipping parent
+	   it was simply cut off at both ends. */
+	.lp-btn { font-size: 15px; letter-spacing: 1.5px; height: 48px; padding: 0 20px; }
+	.lp-btn--sm { font-size: 14px; letter-spacing: 1.4px; height: 42px; padding: 0 16px; }
+	.lp-btn--ui { font-size: 16px; line-height: 20px; letter-spacing: 1.6px; height: 52px; padding: 0 22px; }
+
+	/* E6: the headings that never got a clamp. */
+	.lp-member-name { font-size: 28px; line-height: 34px; }
+	.lp-member-bio { font-size: 16px; line-height: 23px; }
+	.lp-faq-q { font-size: 18px; line-height: 25px; gap: 14px; }
+	.lp-faq-a { font-size: 16px; line-height: 25px; }
+	.lp-trusted-head p { font-size: 16px; line-height: 27px; }
+	.lp-partner-name { font-size: 16px; }
+
+	/* E7: both of these are `white-space: nowrap` and only fit today because the
+	   rule element beside them collapses to zero width. One longer string and
+	   they overflow, so let them wrap and step the size down. */
+	.lp-howjoin-eyebrow span, .lp-rule-label span { white-space: normal; font-size: 17px; }
 	.lp-hero-inner { padding: 150px 8px 100px; }
-	.lp-carousel { padding: 0 8px; }
+	/* True bleed. `0 8px` left the rail 14px wider than every other section —
+	   neither inset nor full-bleed, which just reads as a misalignment. */
+	.lp-carousel { padding: 0; }
 	.lp-carousel-arrow { display: none; }
+	.lp-partner-photo { height: 180px; }
+	.lp-partner-logo { font-size: 20px; }
 	.lp-member { flex-direction: column; }
 	.lp-member-photo { width: 100%; height: 240px; align-self: auto; }
 	.lp-member-text { padding: 26px 22px 30px; }
+	/* With the arrows gone AND the scrollbar hidden AND cards at 100%, the
+	   section read as a single static quote — quotes 2-4 had no affordance at
+	   all. Bleeding the track and holding the card back from its full width
+	   leaves the next quote peeking, which is the affordance. */
 	.lp-testi-arrow { display: none; }
-	.lp-rule-label i { width: 60px; }
-	.lp-footer-cols { grid-template-columns: 1fr; }
+	.lp-testi-track {
+		margin-left: calc(var(--lp-pad) * -1);
+		margin-right: calc(var(--lp-pad) * -1);
+		padding-left: var(--lp-pad);
+		padding-right: var(--lp-pad);
+		/* snap-start aligns to the scroll port, not the padding box, so without
+		   this every quote parks one gutter to the left of where it was padded. */
+		scroll-padding-left: var(--lp-pad);
+		/* A bled swipe rail sitting at scrollLeft 0 otherwise hands the gesture
+		   to the browser's back-navigation. */
+		overscroll-behavior-x: contain;
+		margin-top: 40px;
+	}
+	.lp-quote-wrap { flex: 0 0 86%; padding: 0; }
+	.lp-rule-label i { width: auto; flex: 1 1 0; min-width: 0; }
+	.lp-rule-label { gap: 14px; }
+	.lp-footer-cols { grid-template-columns: 1fr; gap: 32px; }
+	.lp-footer-desc { font-size: 17px; line-height: 26px; }
+	.lp-footer-h { font-size: 20px; line-height: 26px; }
+	.lp-footer-links a { font-size: 16px; line-height: 28px; }
 	/* The spacer column would otherwise take a whole row once stacked. */
 	.lp-footer-cols > :nth-child(2) { display: none; }
 	.lp-gallery { padding: 56px var(--lp-pad) 150px; }
 	.lp-gallery-panel { padding: 40px 20px 0; border-radius: 10px; }
-	.lp-mockup { height: 320px; margin-top: 32px; margin-bottom: -110px; }
+	.lp-mockup { height: 320px; aspect-ratio: auto; margin-top: 32px; margin-bottom: -110px; }
 	.lp-gallery--light { padding: 56px var(--lp-pad) 70px; }
 	.lp-gallery-panel--bare { margin-top: 70px; padding: 0 20px 28px; }
 	.lp-gallery-panel--bare .lp-mockup { margin-top: -70px; margin-bottom: 0; }
 	.lp-mockup-bar { height: 56px; padding: 0 18px; }
-	.lp-mockup-body { padding: 26px 20px; gap: 20px; }
+	/* 8 skeleton rows is the CONNECT tab's count and it did not fit: 8 x (10 +
+	   20 gap) + 52 padding = 292px inside a 264px box, silently cut by the
+	   mockup's overflow:hidden. Tightening the rows fits it at 174px without
+	   making the row count responsive. */
+	.lp-mockup-body { padding: 20px 16px; gap: 14px; }
+	.lp-sk { height: 8px; }
+	.lp-seg-btn { font-size: 13px; }
 	.lp-seg-btn { min-width: 0; padding: 0 14px; }
 
 	/* Tier deck: scale the overlap and the collapsed heights down with the card.
