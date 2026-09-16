@@ -269,10 +269,14 @@
 	position: relative; display: block; width: 100%; text-align: left; border: none;
 	cursor: pointer; color: #fff; border-radius: 20px; padding: 32px 33px; overflow: hidden;
 	font-family: inherit; min-height: 222px; margin-top: -84px;
-	/* One treatment for all three cards — only --tier-accent changes. The 0.88
-	   alpha midpoint sits over a white base, exactly as the design layers it. */
-	background: radial-gradient(224.5% 196.5% at 158.59% 129.73%,
-		var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%);
+	/* One treatment for all three cards — only --tier-accent changes. The white
+	   base is not decoration: the design layers this gradient over an opaque
+	   Card rect, and its 0.88 alpha midpoint needs something behind it. Without
+	   it the card is ~12% transparent and the card it overlaps shows through. */
+	background:
+		radial-gradient(224.5% 196.5% at 158.59% 129.73%,
+			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
+		#ffffff;
 	box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85);
 	transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease;
 }
@@ -291,16 +295,22 @@
 .lp-stack > .lp-tier:nth-child(1) { z-index: 3; }
 .lp-stack > .lp-tier:nth-child(2) { z-index: 2; }
 .lp-stack > .lp-tier:nth-child(3) { z-index: 1; }
-.lp-stack > .lp-tier:first-child { margin-top: 0; }
+/* Nothing overlaps the first card, so its box is its visible height. */
+.lp-stack > .lp-tier:first-child { margin-top: 0; min-height: 138px; }
 
 /* Clicking a tier brings it in front of the whole deck. */
 .lp-stack > .lp-tier--open {
-	z-index: 10; min-height: 403px; padding-bottom: 32px; transform: translateY(-2px);
+	z-index: 10; min-height: 487px; padding-bottom: 32px; transform: translateY(-2px); /* 403 visible + 84 hidden */
 	/* The taller card carries the design's own glow placement. */
-	background: radial-gradient(208.6% 251.7% at 135.95% 163.4%,
-		var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%);
+	background:
+		radial-gradient(208.6% 251.7% at 135.95% 163.4%,
+			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
+		#ffffff;
 	box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9);
 }
+/* Must follow .lp-tier:first-child — same specificity (0,3,0), so order wins.
+   Without this, opening the FIRST card would collapse it to 138px. */
+.lp-stack > .lp-tier--open:first-child { min-height: 403px; }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 151px; height: auto; } /* design Vector 151x53 */
 /* Design: Kepler Std Condensed Subhead Italic 21, ls 10%. */
