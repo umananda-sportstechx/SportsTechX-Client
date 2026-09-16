@@ -271,10 +271,8 @@
 	font-family: inherit; min-height: 222px; margin-top: -84px;
 	/* One treatment for all three cards — only --tier-accent changes. The 0.88
 	   alpha midpoint sits over a white base, exactly as the design layers it. */
-	background:
-		radial-gradient(228.3% 192.5% at 158.59% 129.73%,
-			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
-		#ffffff;
+	background: radial-gradient(224.5% 196.5% at 158.59% 129.73%,
+		var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%);
 	box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.85);
 	transition: min-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.38s ease;
 }
@@ -299,21 +297,21 @@
 .lp-stack > .lp-tier--open {
 	z-index: 10; min-height: 403px; padding-bottom: 32px; transform: translateY(-2px);
 	/* The taller card carries the design's own glow placement. */
-	background:
-		radial-gradient(251.6% 208% at 135.95% 163.4%,
-			var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%),
-		#ffffff;
+	background: radial-gradient(208.6% 251.7% at 135.95% 163.4%,
+		var(--tier-accent) 0%, rgba(17, 19, 33, 0.88) 60%, rgba(17, 19, 33, 1) 100%);
 	box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9);
 }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
-.lp-tier-brand img { width: 132px; height: auto; }
+.lp-tier-brand img { width: 151px; height: auto; } /* design Vector 151x53 */
 /* Design: Kepler Std Condensed Subhead Italic 21, ls 10%. */
 .lp-tier-brand em { font-family: var(--lp-serif-cond); font-style: italic; font-size: 21px; letter-spacing: 0.1em; line-height: 1; margin-top: 4px; }
-.lp-tier-body { display: block; margin-top: 26px; }
+/* Design: wordmark ink ends at y=99, Card Content starts at y=162. */
+.lp-tier-body { display: block; margin-top: 78px; }
 .lp-tier-sub { display: block; font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: 42px; line-height: 40px; margin-bottom: 22px; }
-.lp-points { display: grid; gap: 15px; }
+/* Design Points: 3 items of 28 on a 53px pitch. */
+.lp-points { display: grid; gap: 25px; }
 /* Design: Kepler Std Light Display 19. */
-.lp-point { display: flex; align-items: center; gap: 14px; font-family: var(--lp-serif); font-weight: 300; font-size: 19px; line-height: 1.25; color: rgba(255, 255, 255, 0.92); }
+.lp-point { display: flex; align-items: center; min-height: 28px; gap: 14px; font-family: var(--lp-serif); font-weight: 300; font-size: 19px; line-height: 1.25; color: rgba(255, 255, 255, 0.92); }
 .lp-point-ico { width: 24px; height: 24px; border-radius: 6px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.16); color: #fff; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
@@ -437,23 +435,33 @@
 /* ── Footer ────────────────────────────────────────────────────────────── */
 /* Light footer (design): white ground, dark ink, editorial serif links. */
 .lp-footer { background: #ffffff; color: var(--lp-ink); position: relative; }
-.lp-footer-inner { position: relative; z-index: 2; padding: 58px 0 22px; }
-.lp-footer-top-rule { max-width: var(--lp-max); margin: 0 auto; padding: 66px var(--lp-pad) 0; }
-.lp-footer-top-rule::before { content: ""; display: block; height: 1px; background: rgba(20, 18, 26, 0.14); }
-.lp-footer-cols { display: grid; grid-template-columns: 2.96fr 1fr 1.4fr 1fr; gap: 40px; }
-.lp-footer-wordmark { width: 122px; margin-bottom: 24px; }
+/* Design: top rule at y=70.5, content at y=124.5, bottom row at y=471. */
+.lp-footer-inner { position: relative; z-index: 2; padding: 54px 0 22px; }
+.lp-footer-top-rule { max-width: var(--lp-max); margin: 0 auto; padding: 70px var(--lp-pad) 0; }
+.lp-footer-top-rule::before { content: ""; display: block; height: 2px; background: rgba(186, 186, 186, 0.5); }
+/* Design columns: 451 / 200 / 200 / 200 on ~100px gaps within 1351. */
+.lp-footer-cols {
+	display: grid; grid-template-columns: 451fr 200fr 200fr 200fr; gap: 100px;
+	background-image:
+		linear-gradient(rgba(186, 186, 186, 0.5), rgba(186, 186, 186, 0.5)),
+		linear-gradient(rgba(186, 186, 186, 0.5), rgba(186, 186, 186, 0.5));
+	background-size: 2px 318px, 2px 318px;
+	background-position: 58.6% -23px, 80.3% -23px;
+	background-repeat: no-repeat;
+}
+.lp-footer-wordmark { width: 135px; margin-bottom: 24px; } /* design Vector 135x49 */
 /* Design: Kepler Std Display 22/32, navy @70%. */
 .lp-footer-desc { font-family: var(--lp-serif); color: var(--lp-ink-navy); font-size: 22px; line-height: 32px; max-width: 451px; margin-bottom: 28px; }
 .lp-footer-meta { display: grid; gap: 12px; }
 .lp-footer-meta div { display: flex; align-items: center; gap: 12px; font-family: var(--lp-serif); color: var(--lp-ink-navy); font-size: 17px; line-height: 36px; }
 /* Design: Zuume Regular 25/32, black — not a mono eyebrow. */
 .lp-footer-h { font-family: var(--lp-display-stack); font-weight: 400; font-size: 25px; line-height: 32px; letter-spacing: 0; text-transform: uppercase; color: #000; margin-bottom: 22px; }
-.lp-footer-links { display: grid; gap: 13px; }
-.lp-footer-links a { font-family: var(--lp-serif); color: var(--lp-ink-navy); font-size: 19px; line-height: 32px; text-decoration: none; display: inline-flex; align-items: center; gap: 11px; transition: color 0.12s ease; }
+.lp-footer-links { display: grid; gap: 0; } /* design link pitch is 31px */
+.lp-footer-links a { font-family: var(--lp-serif); color: var(--lp-ink-navy); font-size: 19px; line-height: 31px; text-decoration: none; display: inline-flex; align-items: center; gap: 11px; transition: color 0.12s ease; }
 .lp-footer-links a:hover { color: var(--lp-ink); }
 /* Design: copyright is Space Grotesk Regular 13/32; the right-hand line is
    Space Mono Regular 13. Both navy @70%. */
-.lp-footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(20, 18, 26, 0.12); font-family: var(--lp-ui); color: var(--lp-ink-navy); font-size: 13px; line-height: 32px; letter-spacing: 0; }
+.lp-footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 71px; padding-top: 22px; border-top: 2px solid rgba(186, 186, 186, 0.5); font-family: var(--lp-ui); color: var(--lp-ink-navy); font-size: 13px; line-height: 32px; letter-spacing: 0; }
 .lp-footer-bottom > :last-child { font-family: var(--lp-mono), monospace; }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
@@ -462,7 +470,7 @@
 	.lp-howjoin-grid { grid-template-columns: 1fr; }
 	.lp-quote-wrap { flex: 0 0 100%; }
 	.lp-team-grid { grid-template-columns: 1fr; }
-	.lp-footer-cols { grid-template-columns: 1fr 1fr; }
+	.lp-footer-cols { grid-template-columns: 1fr 1fr; background-image: none; }
 	.lp-gallery { padding: 80px var(--lp-pad) 240px; }
 	.lp-gallery-panel { padding: 56px 36px 0; }
 	.lp-mockup { height: 460px; margin-bottom: -170px; }
