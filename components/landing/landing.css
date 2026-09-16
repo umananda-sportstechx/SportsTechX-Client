@@ -51,24 +51,23 @@
 	/* Space Grotesk (nav, final-hero CTA, copyright) comes from the root layout. */
 	--lp-ui: var(--font-space-grotesk), system-ui, sans-serif;
 
-	--lp-max: 1512px;
-	/* One content-width system. The design's per-section gutters range 77-86 —
-	   hand-placed, not a strict grid — so they collapse to a single token, and
-	   every container derives its width from it. */
-	--lp-pad: 81px;
-	--lp-content: calc(var(--lp-max) - var(--lp-pad) * 2); /* 1350 */
-	/* Two containers are deliberately wider in the design, because their arrows
-	   sit outside the content: the trusted-by carousel (Grid 1406) and the
-	   testimonials slider (Slider controls 1434). */
-	--lp-pad-carousel: 53px;
-	--lp-slider-max: 1434px;
+	/* One fluid width system. The design is a fixed 1512 frame, which left the
+	   content at only ~71% of a 1909 screen; these give ~92% on normal desktops
+	   and ~84% from 1700 up, with an absolute ceiling so ultra-wide monitors do
+	   not produce absurd measures. --lp-max is the CONTENT width; --lp-shell is
+	   the box width for containers that carry their own --lp-pad gutters. */
+	--lp-max: 2200px;
+	--lp-pad: 4vw;
+	--lp-shell: calc(var(--lp-max) + var(--lp-pad) * 2);
 
 	background: var(--lp-dark);
 	color: var(--lp-on-dark);
 	font-family: var(--lp-body);
 	-webkit-font-smoothing: antialiased;
 	line-height: 1.5;
-	overflow-x: hidden;
+	/* clip, not hidden: overflow-x:hidden forces overflow-y:auto, which makes
+	   this a scroll container and breaks position:sticky/fixed for the nav. */
+	overflow-x: clip;
 }
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
 .lp img { max-width: 100%; display: block; }
@@ -87,7 +86,7 @@
 }
 
 /* ── Shared primitives ─────────────────────────────────────────────────── */
-.lp-inner { max-width: var(--lp-max); margin: 0 auto; padding-left: var(--lp-pad); padding-right: var(--lp-pad); }
+.lp-inner { max-width: var(--lp-shell); margin: 0 auto; padding-left: var(--lp-pad); padding-right: var(--lp-pad); }
 
 .lp-display {
 	font-family: var(--lp-display-stack);
@@ -131,11 +130,24 @@
 .lp-btn--ui { font-family: var(--lp-ui); font-size: 21px; line-height: 26px; letter-spacing: 2.1px; height: 62px; padding: 0 34px; }
 
 /* ── Nav ───────────────────────────────────────────────────────────────── */
-.lp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 30; }
+.lp-nav {
+	position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+	transition: background 0.25s ease, backdrop-filter 0.25s ease, border-color 0.25s ease;
+	border-bottom: 1px solid transparent;
+}
+/* Glass bar once the page moves. One dark translucent treatment reads correctly
+   over the dark hero and over the cream / white sections below. */
+.lp-nav.is-scrolled {
+	background: rgba(8, 11, 24, 0.62);
+	-webkit-backdrop-filter: blur(20px) saturate(140%);
+	backdrop-filter: blur(20px) saturate(140%);
+	border-bottom-color: rgba(255, 255, 255, 0.08);
+}
 /* Design: nav frame at x=107, y=85 — a wider gutter than the content sections. */
 /* Design puts the nav at 1291 @ x=107 — 26px tighter per side than the
    content. Normalised to --lp-pad so it lines up with every other section. */
-.lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 85px var(--lp-pad) 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 28px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
+.lp-nav.is-scrolled .lp-nav-inner { padding-top: 14px; padding-bottom: 14px; }
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
 .lp-nav-mark img { height: 56px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
@@ -216,7 +228,7 @@
 
 /* Auto-scrolling partner carousel. Design: 210px card on a 286px stride, with a
    dashed divider sitting in the middle of each 76px gap. */
-.lp-carousel { position: relative; max-width: var(--lp-max); margin: 0 auto; padding: 0 var(--lp-pad-carousel); }
+.lp-carousel { position: relative; max-width: var(--lp-shell); margin: 0 auto; padding: 0 var(--lp-pad); }
 .lp-carousel-viewport { overflow: hidden; }
 /* Pure-CSS marquee: the track holds the list twice, so translating it by
    exactly -50% lands on an identical frame and the loop is seamless. Composited
@@ -235,8 +247,8 @@
 .lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 11px; letter-spacing: -0.03em; line-height: 1.4; color: var(--lp-ink-soft); }
 .lp-carousel-arrow { position: absolute; top: 116px; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 6px; line-height: 0; transition: color 0.12s ease; }
 .lp-carousel-arrow:hover { color: var(--lp-ink); }
-.lp-carousel-arrow--prev { left: 8px; }
-.lp-carousel-arrow--next { right: 8px; }
+.lp-carousel-arrow--prev { left: max(2px, calc(var(--lp-pad) - 42px)); }
+.lp-carousel-arrow--next { right: max(2px, calc(var(--lp-pad) - 42px)); }
 
 /* ── How to join ───────────────────────────────────────────────────────── */
 .lp-howjoin { padding: 104px 0 112px; }
@@ -329,12 +341,12 @@
    window that PROTRUDES past the panel's bottom edge — so the panel must not
    clip overflow, and the block reserves the overhang as padding-bottom. */
 .lp-gallery-wrap { background: #ffffff; color: var(--lp-ink); }
-.lp-gallery-divider { max-width: var(--lp-content); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
+.lp-gallery-divider { max-width: var(--lp-max); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
 .lp-gallery { padding: 110px var(--lp-pad) 372px; }
 .lp-gallery--light { padding: 96px var(--lp-pad) 130px; }
 
 .lp-gallery-panel {
-	max-width: var(--lp-content);
+	max-width: var(--lp-max);
 	margin: 0 auto;
 	border-radius: 12px;
 	padding: 96px 63px 0;
@@ -350,7 +362,7 @@
    window overhangs the panel’s TOP edge instead of its bottom. */
 .lp-gallery-panel--bare { padding: 0 63px 62px; margin-top: 163px; }
 .lp-gallery-panel--bare .lp-mockup { margin-top: -163px; margin-bottom: 0; }
-.lp-gallery-headwrap { max-width: var(--lp-content); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
+.lp-gallery-headwrap { max-width: var(--lp-max); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
 
 .lp-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
 .lp-gallery-title { font-size: clamp(30px, 3.64vw, 55px); line-height: 1; font-weight: 400; }
@@ -389,9 +401,9 @@
 .lp-rule-label span { font-family: var(--lp-serif); font-weight: 300; font-size: 23px; letter-spacing: 0.05em; white-space: nowrap; }
 .lp-rule-label i { width: min(348px, 22vw); height: 1px; background: rgba(20, 18, 26, 0.22); }
 
-.lp-testi { position: relative; background: #ffffff; color: var(--lp-ink); padding: 120px 0 150px; }
+.lp-testi { position: relative; background: #ffffff; color: var(--lp-ink); padding: 120px var(--lp-pad) 150px; }
 /* Real scroller, so the arrows below have something to scroll. */
-.lp-testi-track { display: flex; max-width: var(--lp-slider-max); margin: 60px auto 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.lp-testi-track { display: flex; max-width: var(--lp-max); margin: 60px auto 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .lp-testi-track::-webkit-scrollbar { display: none; }
 .lp-quote-wrap { flex: 0 0 50%; scroll-snap-align: start; margin: 0; padding: 0 40px; text-align: center; }
 /* Design: Kepler Std Display 27/37. */
@@ -404,8 +416,8 @@
 
 .lp-testi-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 8px; line-height: 0; transition: color 0.12s ease; }
 .lp-testi-arrow:hover { color: var(--lp-ink); }
-.lp-testi-arrow--prev { left: max(26px, calc(50% - var(--lp-slider-max) / 2)); }
-.lp-testi-arrow--next { right: max(26px, calc(50% - var(--lp-slider-max) / 2)); }
+.lp-testi-arrow--prev { left: max(2px, calc(var(--lp-pad) - 42px)); }
+.lp-testi-arrow--next { right: max(2px, calc(var(--lp-pad) - 42px)); }
 
 /* ── Team ──────────────────────────────────────────────────────────────── */
 .lp-team { background: #060a17; color: #fff; position: relative; overflow: hidden; }
@@ -447,7 +459,7 @@
 .lp-footer { background: #ffffff; color: var(--lp-ink); position: relative; }
 /* Design: top rule at y=70.5, content at y=124.5, bottom row at y=471. */
 .lp-footer-inner { position: relative; z-index: 2; padding: 54px 0 22px; }
-.lp-footer-top-rule { max-width: var(--lp-max); margin: 0 auto; padding: 70px var(--lp-pad) 0; }
+.lp-footer-top-rule { max-width: var(--lp-shell); margin: 0 auto; padding: 70px var(--lp-pad) 0; }
 .lp-footer-top-rule::before { content: ""; display: block; height: 2px; background: rgba(186, 186, 186, 0.5); }
 /* Design columns: 451 / 200 / 200 / 200 on ~100px gaps within 1351. */
 .lp-footer-cols {
@@ -475,8 +487,16 @@
 .lp-footer-bottom > :last-child { font-family: var(--lp-mono), monospace; }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
+/* ~84% content on genuinely wide screens (1440p and up). Must come before the
+   max-width bands below — media queries add no specificity, so order decides. */
+@media (min-width: 2000px) {
+	.lp { --lp-pad: 8vw; }
+}
 @media (max-width: 1100px) {
-	.lp { --lp-pad: 48px; }
+	.lp { --lp-pad: 40px; }
+	/* Once the grid collapses to one column the deck would stretch; the cards
+	   are a fixed 509 design artefact. */
+	.lp-stack { max-width: 509px; }
 	.lp-howjoin-grid { grid-template-columns: 1fr; }
 	.lp-quote-wrap { flex: 0 0 100%; }
 	.lp-team-grid { grid-template-columns: 1fr; }
@@ -501,6 +521,8 @@
 	.lp-testi-arrow { display: none; }
 	.lp-rule-label i { width: 60px; }
 	.lp-footer-cols { grid-template-columns: 1fr; }
+	/* The spacer column would otherwise take a whole row once stacked. */
+	.lp-footer-cols > :nth-child(2) { display: none; }
 	.lp-gallery { padding: 56px var(--lp-pad) 150px; }
 	.lp-gallery-panel { padding: 40px 20px 0; border-radius: 10px; }
 	.lp-mockup { height: 320px; margin-top: 32px; margin-bottom: -110px; }
@@ -510,4 +532,37 @@
 	.lp-mockup-bar { height: 56px; padding: 0 18px; }
 	.lp-mockup-body { padding: 26px 20px; gap: 20px; }
 	.lp-seg-btn { min-width: 0; padding: 0 14px; }
+
+	/* Tier deck: scale the overlap and the collapsed heights down with the card.
+	   Both --open rules need min-height: 0 or the open card cannot shrink. */
+	.lp-tier { min-height: 176px; margin-top: -64px; padding: 24px 22px; }
+	.lp-stack > .lp-tier:first-child { min-height: 112px; }
+	.lp-stack > .lp-tier:not(:first-child) { padding-top: 92px; }
+	.lp-stack > .lp-tier--open,
+	.lp-stack > .lp-tier--open:first-child { min-height: 0; }
+	.lp-tier-brand img { width: 118px; }
+	.lp-tier-body { margin-top: 44px; }
+	.lp-tier-sub { font-size: 32px; line-height: 32px; margin-bottom: 16px; }
+	.lp-points { gap: 16px; }
+	.lp-howjoin-grid { gap: 44px; }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+/* Scoped with :has() because this stylesheet is a global import — without the
+   guard it would restyle the whole app's scrollbar. */
+html:has(.lp) {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(243, 33, 99, 0.55) rgba(120, 120, 140, 0.16);
+}
+html:has(.lp)::-webkit-scrollbar { width: 10px; height: 10px; }
+html:has(.lp)::-webkit-scrollbar-track { background: rgba(120, 120, 140, 0.16); }
+html:has(.lp)::-webkit-scrollbar-thumb {
+	background: rgba(243, 33, 99, 0.55);
+	border-radius: 99px;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+html:has(.lp)::-webkit-scrollbar-thumb:hover {
+	background: rgba(243, 33, 99, 0.82);
+	background-clip: padding-box;
 }
