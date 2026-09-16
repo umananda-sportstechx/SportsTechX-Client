@@ -52,8 +52,16 @@
 	--lp-ui: var(--font-space-grotesk), system-ui, sans-serif;
 
 	--lp-max: 1512px;
-	/* Design gutter: How to join is 1350 @ x=81, gallery panels 1349 @ x=81.5. */
+	/* One content-width system. The design's per-section gutters range 77-86 —
+	   hand-placed, not a strict grid — so they collapse to a single token, and
+	   every container derives its width from it. */
 	--lp-pad: 81px;
+	--lp-content: calc(var(--lp-max) - var(--lp-pad) * 2); /* 1350 */
+	/* Two containers are deliberately wider in the design, because their arrows
+	   sit outside the content: the trusted-by carousel (Grid 1406) and the
+	   testimonials slider (Slider controls 1434). */
+	--lp-pad-carousel: 53px;
+	--lp-slider-max: 1434px;
 
 	background: var(--lp-dark);
 	color: var(--lp-on-dark);
@@ -125,7 +133,9 @@
 /* ── Nav ───────────────────────────────────────────────────────────────── */
 .lp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 30; }
 /* Design: nav frame at x=107, y=85 — a wider gutter than the content sections. */
-.lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 85px 107px 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+/* Design puts the nav at 1291 @ x=107 — 26px tighter per side than the
+   content. Normalised to --lp-pad so it lines up with every other section. */
+.lp-nav-inner { max-width: var(--lp-max); margin: 0 auto; padding: 85px var(--lp-pad) 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
 .lp-nav-mark img { height: 56px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
@@ -206,7 +216,7 @@
 
 /* Auto-scrolling partner carousel. Design: 210px card on a 286px stride, with a
    dashed divider sitting in the middle of each 76px gap. */
-.lp-carousel { position: relative; padding: 0 62px; }
+.lp-carousel { position: relative; max-width: var(--lp-max); margin: 0 auto; padding: 0 var(--lp-pad-carousel); }
 .lp-carousel-viewport { overflow: hidden; }
 /* Pure-CSS marquee: the track holds the list twice, so translating it by
    exactly -50% lands on an identical frame and the loop is seamless. Composited
@@ -282,12 +292,12 @@
    window that PROTRUDES past the panel's bottom edge — so the panel must not
    clip overflow, and the block reserves the overhang as padding-bottom. */
 .lp-gallery-wrap { background: #ffffff; color: var(--lp-ink); }
-.lp-gallery-divider { max-width: 1349px; margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
-.lp-gallery { padding: 110px 0 372px; }
-.lp-gallery--light { padding: 96px 0 130px; }
+.lp-gallery-divider { max-width: var(--lp-content); margin: 0 auto; border-top: 1px solid rgba(20, 18, 26, 0.12); }
+.lp-gallery { padding: 110px var(--lp-pad) 372px; }
+.lp-gallery--light { padding: 96px var(--lp-pad) 130px; }
 
 .lp-gallery-panel {
-	max-width: 1349px;
+	max-width: var(--lp-content);
 	margin: 0 auto;
 	border-radius: 12px;
 	padding: 96px 63px 0;
@@ -303,7 +313,7 @@
    window overhangs the panel’s TOP edge instead of its bottom. */
 .lp-gallery-panel--bare { padding: 0 63px 62px; margin-top: 163px; }
 .lp-gallery-panel--bare .lp-mockup { margin-top: -163px; margin-bottom: 0; }
-.lp-gallery-headwrap { max-width: 1349px; margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
+.lp-gallery-headwrap { max-width: var(--lp-content); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
 
 .lp-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
 .lp-gallery-title { font-size: clamp(30px, 3.64vw, 55px); line-height: 1; font-weight: 400; }
@@ -340,11 +350,11 @@
 .lp-rule-label { display: flex; align-items: center; justify-content: center; gap: 24px; color: var(--lp-ink); }
 /* Design: Kepler Std Light Display 23, ls 5%. */
 .lp-rule-label span { font-family: var(--lp-serif); font-weight: 300; font-size: 23px; letter-spacing: 0.05em; white-space: nowrap; }
-.lp-rule-label i { width: 348px; max-width: 22vw; height: 1px; background: rgba(20, 18, 26, 0.22); }
+.lp-rule-label i { width: min(348px, 22vw); height: 1px; background: rgba(20, 18, 26, 0.22); }
 
 .lp-testi { position: relative; background: #ffffff; color: var(--lp-ink); padding: 120px 0 150px; }
 /* Real scroller, so the arrows below have something to scroll. */
-.lp-testi-track { display: flex; margin-top: 60px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.lp-testi-track { display: flex; max-width: var(--lp-slider-max); margin: 60px auto 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .lp-testi-track::-webkit-scrollbar { display: none; }
 .lp-quote-wrap { flex: 0 0 50%; scroll-snap-align: start; margin: 0; padding: 0 40px; text-align: center; }
 /* Design: Kepler Std Display 27/37. */
@@ -357,8 +367,8 @@
 
 .lp-testi-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 8px; line-height: 0; transition: color 0.12s ease; }
 .lp-testi-arrow:hover { color: var(--lp-ink); }
-.lp-testi-arrow--prev { left: 26px; }
-.lp-testi-arrow--next { right: 26px; }
+.lp-testi-arrow--prev { left: max(26px, calc(50% - var(--lp-slider-max) / 2)); }
+.lp-testi-arrow--next { right: max(26px, calc(50% - var(--lp-slider-max) / 2)); }
 
 /* ── Team ──────────────────────────────────────────────────────────────── */
 .lp-team { background: #060a17; color: #fff; position: relative; overflow: hidden; }
@@ -424,7 +434,7 @@
 	.lp-quote-wrap { flex: 0 0 100%; }
 	.lp-team-grid { grid-template-columns: 1fr; }
 	.lp-footer-cols { grid-template-columns: 1fr 1fr; }
-	.lp-gallery { padding: 80px 0 240px; }
+	.lp-gallery { padding: 80px var(--lp-pad) 240px; }
 	.lp-gallery-panel { padding: 56px 36px 0; }
 	.lp-mockup { height: 460px; margin-bottom: -170px; }
 	.lp-gallery-panel--bare { margin-top: 110px; padding-bottom: 44px; }
@@ -444,10 +454,10 @@
 	.lp-testi-arrow { display: none; }
 	.lp-rule-label i { width: 60px; }
 	.lp-footer-cols { grid-template-columns: 1fr; }
-	.lp-gallery { padding: 56px 0 150px; }
+	.lp-gallery { padding: 56px var(--lp-pad) 150px; }
 	.lp-gallery-panel { padding: 40px 20px 0; border-radius: 10px; }
 	.lp-mockup { height: 320px; margin-top: 32px; margin-bottom: -110px; }
-	.lp-gallery--light { padding: 56px 0 70px; }
+	.lp-gallery--light { padding: 56px var(--lp-pad) 70px; }
 	.lp-gallery-panel--bare { margin-top: 70px; padding: 0 20px 28px; }
 	.lp-gallery-panel--bare .lp-mockup { margin-top: -70px; margin-bottom: 0; }
 	.lp-mockup-bar { height: 56px; padding: 0 18px; }
