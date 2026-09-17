@@ -191,27 +191,36 @@
 	   Figma; the max(0px, …) clamp keeps the old left-anchored behaviour on
 	   mobile, where the stage is far wider than the viewport and centring would
 	   push the sphere off-screen. */
-	left: max(0px, calc((100% - max(100svh * 1.50149, 100%)) / 2));
+	left: max(0px, calc((100% - 100svh * 1.50149) / 2));
 
 	/* TRUE design scale, keyed off viewport height and anchored bottom-left —
 	   which is where Figma anchors the sphere and the ring origin. Cover-scaling
 	   by width previously blew the whole composition up ~27% on a 1920 screen,
 	   which is exactly why the ring gaps read too wide. Both axes are explicit
 	   lengths so children's % offsets resolve (aspect-ratio does not). */
-	/* max(..., 100%) so the stage never falls UNDER the viewport width, which it
-	   does in landscape (586 against 844) — there the art stopped spanning the
-	   hero entirely. In portrait it is already far wider, so this is a no-op. */
-	width: max(100svh * 1.50149, 100%); /* 1512/1007 */
+	/* LOAD-BEARING: width/height MUST stay at 1.50149.
+	   .lp-hero-orb's two ellipse SVGs are the SAME circle at the same box,
+	   separated only by rotate(-25.65deg) vs rotate(144.3deg) — which aim their
+	   internal gradients and are invisible only while the shape is a CIRCLE.
+	   Both carry preserveAspectRatio="none", so the box is square only when
+	   1.03902*W == 1.56008*H, i.e. this exact ratio. Break it and the circle
+	   shears to an ellipse; since the two rotations differ by 169.95 and not
+	   180, they then separate — a `max(..., 100%)` here drew the sphere TWICE,
+	   10.05 degrees apart, at 1920x990. Do not make this depend on width. */
+	width: calc(100svh * 1.50149); /* 1512/1007 */
 	height: 100svh;
 	pointer-events: none;
 	z-index: 0;
 }
 /* Final hero keeps its own 1512×689 frame, anchored bottom-right where its glow sits. */
-/* max(1512px, 100vw) — at 1512 this is unchanged, but below it the stage was
-   a fixed 1512 anchored right, so the glow (at 38.161% of the stage) sat
-   ~577px off-screen and the section rendered as a flat navy block. */
-.lp-hero-bg--final { left: auto; right: 0; width: max(1512px, 100%); height: 689px; }
-.lp-hero-orb { position: absolute; max-width: none; }
+.lp-hero-bg--final { left: auto; right: 0; width: 1512px; height: 689px; }
+/* `.lp .lp-hero-orb`, not `.lp-hero-orb`: the reset at the top of this file is
+   `.lp img { max-width: 100% }` at specificity (0,1,1), which beat a bare
+   (0,1,0) `max-width: none` and silently clamped these to 100% of the stage.
+   The ellipses are specified at 103.902% x 156.008%, so they were rendering
+   1486x1544 instead of 1544x1544 — 58px off square, which shears the circle
+   and separates the two rotated copies. Measured, not theorised. */
+.lp .lp-hero-orb { position: absolute; max-width: none; }
 
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
 .lp-hero-grad {
@@ -477,10 +486,14 @@
 /* A grid row, not a max-height. `max-height: 260px` was a guess that clips the
    answer mid-sentence as soon as the copy grows, or the viewport narrows enough
    to add a line; 0fr -> 1fr animates the same way with no ceiling. */
-.lp-faq-a { display: grid; grid-template-rows: 0fr; overflow: hidden; transition: grid-template-rows 0.25s ease; font-family: var(--lp-serif); color: var(--lp-ink-soft); font-size: 17px; line-height: 26px; }
+.lp-faq-a { display: grid; grid-template-rows: 0fr; overflow: hidden; transition: grid-template-rows 0.25s ease, padding-bottom 0.25s ease; font-family: var(--lp-serif); color: var(--lp-ink-soft); font-size: 17px; line-height: 26px; }
+/* min-height AND no padding on the item. `0fr` is minmax(auto, 0fr), and that
+   `auto` minimum is the item's OUTER contribution — 20px of padding on the item
+   floored the closed row at 20px, showing the top of the first line under every
+   question. The spacing belongs to the open container instead. */
 .lp-faq-a > * { min-height: 0; }
-.lp-faq-item.open .lp-faq-a { grid-template-rows: 1fr; }
-.lp-faq-a-inner { padding: 0 0 20px; }
+.lp-faq-item.open .lp-faq-a { grid-template-rows: 1fr; padding-bottom: 20px; }
+.lp-faq-a-inner { padding: 0; }
 
 /* ── Footer ────────────────────────────────────────────────────────────── */
 /* Light footer (design): white ground, dark ink, editorial serif links. */
@@ -646,6 +659,10 @@
 	.lp-footer-desc { font-size: 19px; line-height: 29px; }
 	.lp-footer-h { font-size: 22px; line-height: 28px; }
 	.lp-footer-links a { font-size: 17px; line-height: 29px; }
+	/* Scaled, not stretched: the glow sits at 38.161% of a 1512-wide stage, so a
+	   fixed frame anchored right put it ~577px off-screen on a phone. Both axes
+	   move together to keep the ellipses circular. */
+	.lp-hero-bg--final { width: 100vw; height: calc(100vw * 689 / 1512); }
 	.lp-gallery { padding: 80px var(--lp-pad) 240px; }
 	.lp-gallery-panel { padding: 56px 36px 0; }
 	/* aspect-ratio must be released with the height, or width becomes the
@@ -662,9 +679,13 @@
    Ordered deliberately: after the 1100 band, before the 760 one. */
 @media (max-width: 1024px) {
 	.lp-nav-links { display: none; }
-	.lp-nav-toggle { display: inline-flex; }
-	.lp-nav-mark img { height: 40px; }
-	.lp-nav-inner { gap: 14px; }
+	.lp-nav-mark img { height: 32px; }
+	/* The button carried no width/height/padding, so the tap target was the
+	   26px glyph. */
+	.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; }
+	/* 12, not 18: the toggle's 44px tap box now sets the bar's height, and the
+	   desktop padding on top of it built an 81px band across a phone. */
+	.lp-nav-inner { gap: 14px; padding-top: 12px; padding-bottom: 12px; }
 	/* The toggle leads the bar and the mark follows it, so the mark takes the
 	   leftover space rather than being pushed against the burger. */
 	.lp-nav-mark { margin-right: auto; }
@@ -692,15 +713,52 @@
 	   rule element beside them collapses to zero width. One longer string and
 	   they overflow, so let them wrap and step the size down. */
 	.lp-howjoin-eyebrow span, .lp-rule-label span { white-space: normal; font-size: 17px; }
-	.lp-hero-inner { padding: 150px 8px 100px; }
+	/* Specificity raised to match `.lp-hero--intro .lp-hero-inner` (0,2,0).
+	   As a bare `.lp-hero-inner` this rule was (0,1,0) and lost — media queries
+	   add no specificity — so the whole mobile hero padding shipped to nobody.
+	   The final hero's inline style was removed for the same reason. */
+	.lp-hero .lp-hero-inner { padding: 96px 20px 72px; gap: 28px; }
+	.lp-hero-texts { gap: 20px; }
+	.lp-hero-ctas { gap: 12px; padding: 4px 0; }
+	.lp-hero-wordmark, .lp-hero-wordmark--sm { width: 200px; max-width: 62%; }
+
+	/* Every clamp() on this page pins to its MIN below ~700px — the vw term
+	   never engages on a phone, so these mins ARE the mobile type scale, and
+	   they were all desktop numbers. */
+	.lp-hero-headline { font-size: 30px; }
+	.lp-hero--final .lp-hero-headline { font-size: 26px; }
+	.lp-hero-sub { font-size: 17px; }
+	.lp-trusted-head h2, .lp-gallery-title, .lp-team-intro h2 { font-size: 24px; }
+	.lp-howjoin-title { font-size: 30px; }
+	.lp-howjoin-desc, .lp-team-intro p, .lp-gallery-desc { font-size: 17px; }
+
+	/* Section rhythm: none of these verticals was ever reduced. */
+	.lp-trusted { padding: 56px 0 64px; }
+	.lp-trusted-head { margin-bottom: 32px; }
+	.lp-howjoin { padding: 56px 0 64px; }
+	.lp-testi { padding: 64px var(--lp-pad) 72px; }
+	.lp-team-inner { padding: 48px 0 64px; }
+	.lp-faq { padding: 56px 0 72px; }
+	.lp-faq h2 { margin-bottom: 32px; }
+
+	/* The chip had no mobile rule at all: a 69px avatar with a 7px ring is 83px
+	   of an 86%-wide (335px) card. */
+	.lp-chip { gap: 12px; margin-top: 24px; }
+	.lp-chip-avatar { width: 48px; height: 48px; box-shadow: 0 0 0 4px rgba(20, 18, 26, 0.045); }
+	.lp-chip-name { font-size: 18px; }
 	/* True bleed. `0 8px` left the rail 14px wider than every other section —
 	   neither inset nor full-bleed, which just reads as a misalignment. */
 	.lp-carousel { padding: 0; }
 	.lp-carousel-arrow { display: none; }
-	.lp-partner-photo { height: 180px; }
+
 	.lp-partner-logo { font-size: 20px; }
 	.lp-member { flex-direction: column; }
-	.lp-member-photo { width: 100%; height: 240px; align-self: auto; }
+	/* `flex: 0 0 auto` matters as much as the height. The base rule is
+	   `flex: 0 0 36.94%`, sized for a ROW; left in place once the card became a
+	   column that basis resolves against the card's HEIGHT — 36.94% of the
+	   248px min-height = 92px — and the text then overflowed the 248 box and was
+	   silently cut by the card's overflow:hidden. Measured: bio clipped 58px. */
+	.lp-member-photo { flex: 0 0 auto; width: 100%; height: 240px; align-self: auto; }
 	.lp-member-text { padding: 26px 22px 30px; }
 	/* With the arrows gone AND the scrollbar hidden AND cards at 100%, the
 	   section read as a single static quote — quotes 2-4 had no affordance at
