@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SiteItem } from '@/lib/site-content';
 
@@ -53,16 +53,24 @@ const PLACEHOLDER_PARTNERS: Card[] = TONES.map((tone, i) => ({
 }));
 
 const STRIDE = 286; // card 210 + gap 76 (design)
-/* The marquee renders the list TWICE and animates translateX(0) -> -50%, so it
-   only wraps seamlessly while one copy is at least as wide as the rail. Six
-   placeholder cards come to 1716px, already marginal on a wide screen, and a
-   CMS gallery of one card left ~1.5 screens of empty cream before a hard snap.
-   Repeating the real cards up to this width is the fix; it is the marquee
-   working, not placeholder padding - only uploaded cards are ever shown. */
-const MIN_COPY_W = 2400;
 
 export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	const [phase, setPhase] = useState(0); // seconds into the loop
+
+	/* Whether the cards already fill the rail decides everything below, and only
+	   the browser knows it. Starts at 0 so the server and the first client render
+	   both draw the scrolling rail - the common case, and no hydration mismatch. */
+	const viewport = useRef<HTMLDivElement | null>(null);
+	const [railW, setRailW] = useState(0);
+	useEffect(() => {
+		const el = viewport.current;
+		if (!el) return;
+		const measure = () => setRailW(el.clientWidth);
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, []);
 
 	const partners: Card[] = items?.length
 		? items.map((it, i) => ({
@@ -75,9 +83,18 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 		}))
 		: PLACEHOLDER_PARTNERS;
 
+	/* Everything already visible? Then there is nothing to scroll to: show the
+	   cards once, centred, with no drift and no arrows. Tiling a short list to
+	   manufacture something to loop turned one uploaded partner into a wall of
+	   the same face. */
+	const naturalW = partners.length * STRIDE;
+	const fits = railW > 0 && naturalW <= railW;
+
 	// Derived from the live count, so a section with three cards drifts three
-	// cards' worth per loop rather than six.
-	const reps = Math.max(1, Math.ceil(MIN_COPY_W / (partners.length * STRIDE)));
+	// cards' worth per loop rather than six. The marquee wraps by exactly one
+	// copy, so that copy has to be at least as wide as the rail or the rail runs
+	// out of cards and snaps; repeat until it is.
+	const reps = fits ? 1 : Math.max(1, Math.ceil((railW || 2400) / naturalW));
 	const copy = reps === 1 ? partners : Array.from({ length: reps }, () => partners).flat();
 	const copyW = copy.length * STRIDE;
 	const duration = copyW / 46; // ≈46px per second
@@ -87,7 +104,8 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 
 	const shift = (dir: number) => setPhase((p) => (p + dir * step + duration) % duration);
 
-	const cards = [...copy, ...copy]; // duplicated for the seamless wrap
+	// Duplicated for the seamless wrap - but only when it actually wraps.
+	const cards = fits ? partners : [...copy, ...copy];
 
 	return (
 		<section className="lp-cream lp-trusted" id="trusted">
@@ -99,14 +117,16 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 			</div>
 
 			<div className="lp-carousel">
-				<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => shift(-1)}>
-					<ChevronLeft size={30} strokeWidth={1.5} />
-				</button>
+				{!fits && (
+					<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => shift(-1)}>
+						<ChevronLeft size={30} strokeWidth={1.5} />
+					</button>
+				)}
 
-				<div className="lp-carousel-viewport">
+				<div className="lp-carousel-viewport" ref={viewport}>
 					<div
-						className="lp-carousel-marquee"
-						style={{ animationDuration: `${duration}s`, animationDelay: `${-phase}s` }}
+						className={`lp-carousel-marquee ${fits ? 'is-static' : ''}`}
+						style={fits ? undefined : { animationDuration: `${duration}s`, animationDelay: `${-phase}s` }}
 					>
 						{cards.map((p, i) => (
 							<div className="lp-partner" key={i} aria-hidden={i >= partners.length}>
@@ -128,9 +148,11 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 					</div>
 				</div>
 
-				<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => shift(1)}>
-					<ChevronRight size={30} strokeWidth={1.5} />
-				</button>
+				{!fits && (
+					<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => shift(1)}>
+						<ChevronRight size={30} strokeWidth={1.5} />
+					</button>
+				)}
 			</div>
 		</section>
 	);
