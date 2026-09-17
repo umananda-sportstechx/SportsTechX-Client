@@ -278,6 +278,7 @@
 .lp-partner-photo { position: relative; height: 232px; border-radius: 10px; overflow: hidden; }
 .lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(8, 10, 18, 0.9), rgba(8, 10, 18, 0)); }
 .lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 15px; z-index: 2; text-align: center; color: #fff; font-family: var(--lp-display-stack); font-weight: 700; font-size: 25px; letter-spacing: 0.04em; line-height: 1; }
+.lp-partner-logo--img { height: 26px; width: auto; max-width: 62%; margin: 0 auto; object-fit: contain; }
 /* Per-run styles (fig --overrides): Zuume Regular 17, then Space Mono 11 ls -3% @70%. */
 .lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: 17px; line-height: 1.2; color: var(--lp-ink); }
 .lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 11px; letter-spacing: -0.03em; line-height: 1.4; color: var(--lp-ink-soft); }
@@ -429,6 +430,9 @@
 .lp-mockup-avatar { width: 32px; height: 32px; border-radius: 99px; background: #e6e6e6; }
 .lp-mockup-body { display: grid; gap: 32px; padding: 46px 40px; }
 .lp-sk { width: 194px; height: 10px; border-radius: 5px; background: #ededed; }
+/* An uploaded dashboard screenshot replaces the whole fake window. object-fit
+   keeps it from stretching when its own ratio differs from 1223/649. */
+.lp-mockup-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 
 /* ── Testimonials ──────────────────────────────────────────────────────── */
 /* Centred serif label with a long rule running out to either side. */
@@ -788,6 +792,7 @@
 	.lp-carousel-arrow { display: none; }
 
 	.lp-partner-logo { font-size: 20px; }
+	.lp-partner-logo--img { height: 21px; }
 	.lp-member { flex-direction: column; }
 	/* `flex: 0 0 auto` matters as much as the height. The base rule is
 	   `flex: 0 0 36.94%`, sized for a ROW; left in place once the card became a
