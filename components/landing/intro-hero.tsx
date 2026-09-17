@@ -32,8 +32,10 @@ export function IntroHero() {
 				    window the design shows (user space 1853,469 → 3554,1476), so this
 				    is a normal 1701×1007 image rather than the 12.6-megapixel full
 				    drawing, which Chrome refuses to rasterise inside the page. */}
-				<img className="lp-hero-orb" src="/landing/hero-rings.svg" alt=""
-					style={{ left: 0, top: 0, width: '112.500%', height: '100%' }} />
+				{/* Geometry in CSS, not inline: the rings need reframing on a phone
+				    and an inline style cannot be overridden by a media query. The
+				    desktop values are unchanged — see .lp-hero-rings. */}
+				<img className="lp-hero-orb lp-hero-rings" src="/landing/hero-rings.svg" alt="" />
 				{/* Ellipse 2 — radial pink */}
 				<img className="lp-hero-orb" src="/landing/hero-ellipse-1.svg" alt=""
 					style={{ left: '-61.640%', top: '56.802%', width: '103.902%', height: '156.008%', transform: 'rotate(-25.65deg)' }} />
