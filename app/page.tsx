@@ -10,11 +10,11 @@ import { Faq } from '@/components/landing/faq';
 import { FinalHero } from '@/components/landing/final-hero';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { MobileMenuPanel, MobileMenuProvider, MobileMenuShell } from '@/components/landing/mobile-menu';
+import { siteContent } from '@/lib/site-content';
 import '@/components/landing/landing.css';
 
 /**
- * Public marketing landing page (Atlas – Landing V2, from Figma). UI only — no
- * APIs, no dynamic data. Fixed-theme (its own palette in landing.css, scoped to
+ * Public marketing landing page (Atlas – Landing V2, from Figma). Fixed-theme (its own palette in landing.css, scoped to
  * `.lp`), independent of the app's light/dark toggle. This replaces the old
  * `redirect('/raise')`; `/` is whitelisted in lib/supabase/middleware.ts so it's
  * reachable while logged out.
@@ -37,7 +37,12 @@ const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], vari
 const GALLERY_DESC =
 	'Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
 
-export default function LandingPage() {
+export default async function LandingPage() {
+	/* Carousel, team, dashboard screenshots and testimonials come from the admin
+	   panel's Site assets page. Every section falls back to the placeholders the
+	   components ship with, so a slow or dead API renders the page unchanged. */
+	const cms = await siteContent();
+
 	return (
 		<div className={`lp ${display.variable} ${mono.variable} ${monoCta.variable} ${serif.variable}`}>
 			{/* The panel is a SIBLING before the shell, not a child: the shell is
@@ -50,17 +55,17 @@ export default function LandingPage() {
 				<MobileMenuShell nav={<LandingNav />}>
 			<main>
 				<IntroHero />
-				<TrustedBy />
+				<TrustedBy items={cms.gallery} />
 				<HowToJoin />
 				<section className="lp-gallery-wrap" id="explore">
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" />
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="b" />
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="b" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="c" />
+					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="c" shots={cms.dashboard} />
 				</section>
-				<Testimonials />
-				<Team />
+				<Testimonials items={cms.testimonials} />
+				<Team items={cms.team} />
 				<Faq />
 				<FinalHero />
 			</main>
