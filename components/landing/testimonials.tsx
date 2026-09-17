@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 import type { SiteItem } from '@/lib/site-content';
+import { photoBg } from './trusted-by';
 
 /**
  * Testimonials — white section, two serif quotes per page with a centred
@@ -89,7 +90,7 @@ export function Testimonials({ items }: { items?: SiteItem[] }) {
 					<figure className="lp-quote-wrap" key={i}>
 						<blockquote className="lp-quote">{q.quote}</blockquote>
 						<figcaption className="lp-chip">
-							<span className="lp-chip-avatar" style={{ background: `url('${q.img}') center/cover no-repeat, ${q.tone}` }} />
+							<span className="lp-chip-avatar" style={{ background: photoBg(q.img, q.tone) }} />
 							<span>
 								<span className="lp-chip-name">{q.name}</span>
 								<span className="lp-chip-role">{q.role}</span>

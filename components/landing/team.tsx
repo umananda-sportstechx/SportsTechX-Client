@@ -60,7 +60,7 @@ export function Team({ items }: { items?: SiteItem[] }) {
 					<div className="lp-team-grid">
 						{members.map((m, i) => (
 							<div className="lp-member" key={`${m.name}-${i}`}>
-								<div className="lp-member-photo" style={{ background: `url('${m.img}') center 22%/cover no-repeat, ${m.tone}` }} />
+								<div className="lp-member-photo" style={{ background: m.img ? `url('${m.img}') center 22%/cover no-repeat, ${m.tone}` : m.tone }} />
 								<div className="lp-member-text">
 									<div className="lp-member-eyebrow">{m.eyebrow}</div>
 									<div className="lp-member-name">{m.name}</div>

@@ -53,6 +53,13 @@ const PLACEHOLDER_PARTNERS: Card[] = TONES.map((tone, i) => ({
 }));
 
 const STRIDE = 286; // card 210 + gap 76 (design)
+/* The marquee renders the list TWICE and animates translateX(0) -> -50%, so it
+   only wraps seamlessly while one copy is at least as wide as the rail. Six
+   placeholder cards come to 1716px, already marginal on a wide screen, and a
+   CMS gallery of one card left ~1.5 screens of empty cream before a hard snap.
+   Repeating the real cards up to this width is the fix; it is the marquee
+   working, not placeholder padding - only uploaded cards are ever shown. */
+const MIN_COPY_W = 2400;
 
 export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	const [phase, setPhase] = useState(0); // seconds into the loop
@@ -70,13 +77,17 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 
 	// Derived from the live count, so a section with three cards drifts three
 	// cards' worth per loop rather than six.
-	const copyW = partners.length * STRIDE;
+	const reps = Math.max(1, Math.ceil(MIN_COPY_W / (partners.length * STRIDE)));
+	const copy = reps === 1 ? partners : Array.from({ length: reps }, () => partners).flat();
+	const copyW = copy.length * STRIDE;
 	const duration = copyW / 46; // ≈46px per second
+	// Reduces to STRIDE/46 whatever the count, so one arrow press is always one
+	// card regardless of how many times the list had to be repeated.
 	const step = (STRIDE / copyW) * duration;
 
 	const shift = (dir: number) => setPhase((p) => (p + dir * step + duration) % duration);
 
-	const cards = [...partners, ...partners]; // duplicated for the seamless wrap
+	const cards = [...copy, ...copy]; // duplicated for the seamless wrap
 
 	return (
 		<section className="lp-cream lp-trusted" id="trusted">
@@ -101,7 +112,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 							<div className="lp-partner" key={i} aria-hidden={i >= partners.length}>
 								<div
 									className="lp-partner-photo"
-									style={{ background: `url('${p.img}') center/cover no-repeat, ${p.tone}` }}
+									style={{ background: photoBg(p.img, p.tone) }}
 								>
 									{/* The company mark sits at the middle bottom of the photo.
 									    An uploaded logo replaces the wordmark; with neither, the
@@ -123,4 +134,13 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 			</div>
 		</section>
 	);
+}
+
+/**
+ * `url('') , <gradient>` is valid CSS and the gradient does show, but an empty
+ * URL resolves against the document base - so the browser issues a real GET for
+ * the page itself, per card, and discards the HTML. Omit the layer instead.
+ */
+export function photoBg(img: string, tone: string): string {
+	return img ? `url('${img}') center/cover no-repeat, ${tone}` : tone;
 }

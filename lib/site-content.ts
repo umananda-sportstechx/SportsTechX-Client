@@ -34,7 +34,12 @@ export async function siteContent(): Promise<SiteSections> {
 	// BACKEND_URL is the same server-side variable next.config.ts rewrites with.
 	// A relative /api path cannot be used here: this runs on the server, where
 	// the rewrite does not apply.
-	const base = process.env.BACKEND_URL ?? 'http://localhost:3001';
+	//
+	// No fallback port on purpose. Guessing one means an unset BACKEND_URL
+	// fetches whatever else happens to be on that port, the catch below hides
+	// it, and the site looks like a CMS nobody has filled in yet.
+	const base = process.env.BACKEND_URL;
+	if (!base) return {};
 	try {
 		const res = await fetch(`${base}/api/public/site-content?site=${SITE}`, {
 			next: { revalidate: REVALIDATE_SEC },

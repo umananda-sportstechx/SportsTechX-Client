@@ -40,7 +40,12 @@ function Switcher({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 }
 
 function Mockup({ tab, shots }: { tab: Tab; shots?: SiteItem[] }) {
-	const shot = shots?.[TABS.indexOf(tab)];
+	// Clamp rather than index straight in: with 1 or 2 screenshots uploaded the
+	// remaining tabs would otherwise drop back to the fake skeleton window and
+	// show a real product shot beside an obvious placeholder.
+	const shot = shots?.length
+		? shots[Math.min(TABS.indexOf(tab), shots.length - 1)]
+		: undefined;
 	if (shot?.url) {
 		return (
 			<div className="lp-mockup">
