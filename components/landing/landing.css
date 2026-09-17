@@ -221,6 +221,9 @@
    1486x1544 instead of 1544x1544 — 58px off square, which shears the circle
    and separates the two rotated copies. Measured, not theorised. */
 .lp .lp-hero-orb { position: absolute; max-width: none; }
+/* Was inline on the <img>. Identical values — moved here only so the mobile
+   band can reframe it. */
+.lp-hero-rings { left: 0; top: 0; width: 112.5%; height: 100%; }
 
 /* Figma "Gradient Overlay" — radial pink centred (405.5, 1652), r ~1331, @ .87 */
 .lp-hero-grad {
@@ -717,15 +720,9 @@
 	   As a bare `.lp-hero-inner` this rule was (0,1,0) and lost — media queries
 	   add no specificity — so the whole mobile hero padding shipped to nobody.
 	   The final hero's inline style was removed for the same reason. */
-	.lp-hero .lp-hero-inner { padding: 96px 20px 72px; gap: 28px; }
-	/* The art owns the lower half, so the copy sits in the upper one rather than
-	   dead centre — otherwise the leftover 550px splits evenly above and below
-	   and belongs to nothing, which is what read as "empty". The sibling site
-	   does the same thing at top: 13%.
-	   Its own rule, after the shared one: the final hero is not 100svh, so it
-	   must not inherit an svh-based offset. Same specificity, later wins. */
-	.lp-hero--intro { align-items: flex-start; }
-	.lp-hero--intro .lp-hero-inner { padding-top: 16svh; padding-bottom: 72px; }
+	/* Symmetric: the intro hero centres this box in 100svh, so unequal top and
+	   bottom padding puts the content off-centre by half the difference. */
+	.lp-hero .lp-hero-inner { padding: 84px 20px; gap: 28px; }
 	/* Both CTAs to one width, so the pair reads as a block instead of two
 	   ragged pills. */
 	.lp-hero-ctas .lp-btn { min-width: 215px; }
@@ -742,6 +739,13 @@
 		width: calc(100vw * 2.1);
 		height: calc(100vw * 2.1 / 1.50149);
 	}
+
+	/* The ring strokes run transparent -> pink left to right (the gradient fades
+	   in at user-space x=2493 and is only solid past 3554, the viewBox's right
+	   edge). At the desktop framing a phone sees the leftmost 380 of 921px —
+	   i.e. the invisible end — which is why the orbits simply were not there.
+	   Shifting left and widening brings the solid arcs across the frame. */
+	.lp-hero--intro .lp-hero-rings { left: -90%; width: 160%; }
 	.lp-hero-texts { gap: 20px; }
 	.lp-hero-ctas { gap: 12px; padding: 4px 0; }
 	.lp-hero-wordmark, .lp-hero-wordmark--sm { width: 200px; max-width: 62%; }
