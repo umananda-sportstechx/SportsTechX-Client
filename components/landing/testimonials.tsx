@@ -32,7 +32,11 @@ export function Testimonials() {
 		const el = track.current;
 		if (!el) return;
 		const card = el.firstElementChild as HTMLElement | null;
-		el.scrollBy({ left: dir * (card?.offsetWidth ?? el.clientWidth), behavior: 'smooth' });
+		// Width + gap. The mobile track has a real gap between quotes now, so the
+		// card's own width is one gutter short of the pitch; snap currently hides
+		// the difference, but only by chance — this does not depend on it.
+		const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+		el.scrollBy({ left: dir * ((card?.offsetWidth ?? el.clientWidth) + gap), behavior: 'smooth' });
 	};
 
 	return (
