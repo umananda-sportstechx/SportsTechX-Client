@@ -22,7 +22,7 @@ export function FinalHero() {
 					style={{ left: '38.161%', top: '38.897%', width: '103.902%', height: '228.012%' }} />
 			</div>
 
-			<div className="lp-hero-inner" style={{ padding: '110px 24px' }}>
+			<div className="lp-hero-inner">
 				<div className="lp-hero-texts">
 					<img className="lp-hero-wordmark lp-hero-wordmark--sm" src="/landing/atlas-wordmark.svg" alt="Atlas" />
 					<h2 className="lp-display lp-hero-headline">Built for sports tech&rsquo;s most daring operators</h2>

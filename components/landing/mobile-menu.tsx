@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
 
 /**
  * The landing page's mobile drawer, ported from the sibling `landing/` site.
@@ -113,7 +112,21 @@ export function MobileMenuButton() {
 			aria-controls="lp-drawer"
 			aria-label={open ? 'Close menu' : 'Open menu'}
 		>
-			{open ? <X size={26} /> : <Menu size={26} />}
+			{open ? (
+				<svg viewBox="0 0 24 24" aria-hidden width="24" height="24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+					<path d="M6 6 18 18M18 6 6 18" />
+				</svg>
+			) : (
+				/* Four rules at y 5/10/15/20, the last 8 wide rather than 18 —
+				   the sibling site's glyph. lucide's three even bars are a
+				   different mark and read as generic next to this wordmark.
+				   The Atlas design file has no mobile nav node to copy from
+				   (it is a single 1525x9647 desktop frame), so this is the
+				   nearest authored source. */
+				<svg viewBox="0 0 24 24" aria-hidden width="24" height="24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+					<path d="M3 5h18M3 10h18M3 15h18M3 20h8" />
+				</svg>
+			)}
 		</button>
 	);
 }
