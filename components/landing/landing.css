@@ -718,6 +718,30 @@
 	   add no specificity — so the whole mobile hero padding shipped to nobody.
 	   The final hero's inline style was removed for the same reason. */
 	.lp-hero .lp-hero-inner { padding: 96px 20px 72px; gap: 28px; }
+	/* The art owns the lower half, so the copy sits in the upper one rather than
+	   dead centre — otherwise the leftover 550px splits evenly above and below
+	   and belongs to nothing, which is what read as "empty". The sibling site
+	   does the same thing at top: 13%.
+	   Its own rule, after the shared one: the final hero is not 100svh, so it
+	   must not inherit an svh-based offset. Same specificity, later wins. */
+	.lp-hero--intro { align-items: flex-start; }
+	.lp-hero--intro .lp-hero-inner { padding-top: 16svh; padding-bottom: 72px; }
+	/* Both CTAs to one width, so the pair reads as a block instead of two
+	   ragged pills. */
+	.lp-hero-ctas .lp-btn { min-width: 215px; }
+
+	/* Reframe the stage. Keyed to viewport HEIGHT it is 1267px wide on a 390
+	   phone, left-anchored with 69% overflowing — so the sphere's right limb
+	   (x=796) is always off-screen and all you ever see is its dark interior,
+	   which against #060a17 is indistinguishable from nothing. Keyed to WIDTH
+	   instead, the framing is constant across phone sizes and the limb lands on
+	   screen as a horizon across the lower third.
+	   The 1.50149 ratio is preserved exactly — see the LOAD-BEARING note on
+	   .lp-hero-bg; break it and the sphere draws twice. */
+	.lp-hero--intro .lp-hero-bg {
+		width: calc(100vw * 2.1);
+		height: calc(100vw * 2.1 / 1.50149);
+	}
 	.lp-hero-texts { gap: 20px; }
 	.lp-hero-ctas { gap: 12px; padding: 4px 0; }
 	.lp-hero-wordmark, .lp-hero-wordmark--sm { width: 200px; max-width: 62%; }
@@ -760,12 +784,16 @@
 	   silently cut by the card's overflow:hidden. Measured: bio clipped 58px. */
 	.lp-member-photo { flex: 0 0 auto; width: 100%; height: 240px; align-self: auto; }
 	.lp-member-text { padding: 26px 22px 30px; }
-	/* With the arrows gone AND the scrollbar hidden AND cards at 100%, the
-	   section read as a single static quote — quotes 2-4 had no affordance at
-	   all. Bleeding the track and holding the card back from its full width
-	   leaves the next quote peeking, which is the affordance. */
+	/* One full quote per screen. An earlier version held the card back to 86%
+	   so the next one peeked, as a stand-in for the hidden arrows — but with no
+	   `gap` on the track the two quotes touched, and the peek was rejected on
+	   sight. Discoverability is deliberately traded away here: swipe is the only
+	   way through, and that is the call. */
 	.lp-testi-arrow { display: none; }
 	.lp-testi-track {
+		/* The track has no gap at any width, so without this the cards butt up
+		   against each other mid-swipe. */
+		gap: var(--lp-pad);
 		margin-left: calc(var(--lp-pad) * -1);
 		margin-right: calc(var(--lp-pad) * -1);
 		padding-left: var(--lp-pad);
@@ -778,7 +806,7 @@
 		overscroll-behavior-x: contain;
 		margin-top: 40px;
 	}
-	.lp-quote-wrap { flex: 0 0 86%; padding: 0; }
+	.lp-quote-wrap { flex: 0 0 100%; padding: 0; }
 	.lp-rule-label i { width: auto; flex: 1 1 0; min-width: 0; }
 	.lp-rule-label { gap: 14px; }
 	.lp-footer-cols { grid-template-columns: 1fr; gap: 32px; }
