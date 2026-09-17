@@ -88,13 +88,18 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	   manufacture something to loop turned one uploaded partner into a wall of
 	   the same face. */
 	const naturalW = partners.length * STRIDE;
-	const fits = railW > 0 && naturalW <= railW;
+	const measured = railW > 0;
+	const fits = measured && naturalW <= railW;
+	/* Until the rail has been measured, render the plain un-repeated list. The
+	   server has no width to judge by, and guessing one made the first paint emit
+	   nine copies of a one-card gallery before hydration collapsed it back. */
+	const looping = measured && !fits;
 
 	// Derived from the live count, so a section with three cards drifts three
 	// cards' worth per loop rather than six. The marquee wraps by exactly one
 	// copy, so that copy has to be at least as wide as the rail or the rail runs
 	// out of cards and snaps; repeat until it is.
-	const reps = fits ? 1 : Math.max(1, Math.ceil((railW || 2400) / naturalW));
+	const reps = looping ? Math.max(1, Math.ceil(railW / naturalW)) : 1;
 	const copy = reps === 1 ? partners : Array.from({ length: reps }, () => partners).flat();
 	const copyW = copy.length * STRIDE;
 	const duration = copyW / 46; // ≈46px per second
@@ -105,7 +110,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	const shift = (dir: number) => setPhase((p) => (p + dir * step + duration) % duration);
 
 	// Duplicated for the seamless wrap - but only when it actually wraps.
-	const cards = fits ? partners : [...copy, ...copy];
+	const cards = looping ? [...copy, ...copy] : partners;
 
 	return (
 		<section className="lp-cream lp-trusted" id="trusted">
@@ -117,7 +122,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 			</div>
 
 			<div className="lp-carousel">
-				{!fits && (
+				{looping && (
 					<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => shift(-1)}>
 						<ChevronLeft size={30} strokeWidth={1.5} />
 					</button>
@@ -125,8 +130,8 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 
 				<div className="lp-carousel-viewport" ref={viewport}>
 					<div
-						className={`lp-carousel-marquee ${fits ? 'is-static' : ''}`}
-						style={fits ? undefined : { animationDuration: `${duration}s`, animationDelay: `${-phase}s` }}
+						className={`lp-carousel-marquee ${looping ? '' : 'is-static'}`}
+						style={looping ? { animationDuration: `${duration}s`, animationDelay: `${-phase}s` } : undefined}
 					>
 						{cards.map((p, i) => (
 							<div className="lp-partner" key={i} aria-hidden={i >= partners.length}>
@@ -148,7 +153,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 					</div>
 				</div>
 
-				{!fits && (
+				{looping && (
 					<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => shift(1)}>
 						<ChevronRight size={30} strokeWidth={1.5} />
 					</button>
