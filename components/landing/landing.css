@@ -745,7 +745,15 @@
 	   edge). At the desktop framing a phone sees the leftmost 380 of 921px —
 	   i.e. the invisible end — which is why the orbits simply were not there.
 	   Shifting left and widening brings the solid arcs across the frame. */
-	.lp-hero--intro .lp-hero-rings { left: -90%; width: 160%; }
+	.lp-hero--intro .lp-hero-rings { left: -90%; width: 160%; filter: brightness(1.55); }
+
+	/* dvh, not svh. `100svh` is the viewport with the browser's toolbars SHOWN;
+	   once they collapse the visible area grows but the hero does not, so content
+	   centred inside it sits above the real centre by half the difference. dvh
+	   tracks the current viewport, so the centring holds in both states. This is
+	   invisible in headless Chrome, which has no collapsing chrome — it only
+	   shows up on a real phone. */
+	.lp-hero--intro { min-height: 100svh; min-height: 100dvh; }
 	.lp-hero-texts { gap: 20px; }
 	.lp-hero-ctas { gap: 12px; padding: 4px 0; }
 	.lp-hero-wordmark, .lp-hero-wordmark--sm { width: 200px; max-width: 62%; }
