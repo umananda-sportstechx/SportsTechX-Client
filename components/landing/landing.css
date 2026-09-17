@@ -271,6 +271,8 @@
    by the browser, so unlike a rAF + scrollLeft loop it cannot stall. */
 .lp-carousel-marquee { display: flex; width: max-content; animation-name: lp-marquee; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; }
 @keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+/* Cards already fill the rail: no loop, no copies, just centre them. */
+.lp-carousel-marquee.is-static { animation: none; width: 100%; justify-content: center; }
 .lp-carousel:hover .lp-carousel-marquee { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .lp-carousel-marquee { animation: none; } }
 .lp-partner { flex: 0 0 286px; padding: 0 38px; position: relative; }
