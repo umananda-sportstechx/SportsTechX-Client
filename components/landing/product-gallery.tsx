@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { SiteItem } from '@/lib/site-content';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -14,6 +15,12 @@ import { useState } from 'react';
  * `variant="b"` is the design's middle block: its header sits on the white
  * section ABOVE the panel instead of inside it, so the panel holds only the
  * mockup.
+ *
+ * The mockup shows a real uploaded screenshot when one exists for the selected
+ * tab (Site assets → Atlas → Dashboard screenshots, in switcher order), and
+ * falls back to the CSS-drawn window otherwise. `.lp-mockup` already carries the
+ * design's 1223/649 ratio, radius, shadow and overflow, so the screenshot just
+ * fills it.
  */
 type Tab = 'MAP' | 'TRACK' | 'CONNECT';
 const TABS: Tab[] = ['MAP', 'TRACK', 'CONNECT'];
@@ -32,7 +39,15 @@ function Switcher({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 	);
 }
 
-function Mockup({ tab }: { tab: Tab }) {
+function Mockup({ tab, shots }: { tab: Tab; shots?: SiteItem[] }) {
+	const shot = shots?.[TABS.indexOf(tab)];
+	if (shot?.url) {
+		return (
+			<div className="lp-mockup">
+				<img className="lp-mockup-img" src={shot.url} alt={shot.alt || `Atlas ${tab} view`} />
+			</div>
+		);
+	}
 	/* The design draws the same window for every tab; only the number of
 	   skeleton rows shifts, which is enough to make the switcher feel live. */
 	const rows = tab === 'TRACK' ? 4 : tab === 'CONNECT' ? 8 : 6;
@@ -49,7 +64,9 @@ function Mockup({ tab }: { tab: Tab }) {
 	);
 }
 
-export function ProductGallery({ title, accent, desc, variant }: { title: string; accent: string; desc: string; variant: 'a' | 'b' | 'c' }) {
+export function ProductGallery({ title, accent, desc, variant, shots }: {
+	title: string; accent: string; desc: string; variant: 'a' | 'b' | 'c'; shots?: SiteItem[];
+}) {
 	const [tab, setTab] = useState<Tab>(variant === 'b' ? 'TRACK' : variant === 'c' ? 'CONNECT' : 'MAP');
 
 	const head = (
@@ -67,7 +84,7 @@ export function ProductGallery({ title, accent, desc, variant }: { title: string
 			<div className="lp-gallery lp-gallery--light">
 				<div className="lp-gallery-headwrap">{head}</div>
 				<div className="lp-gallery-panel lp-gallery-panel--bare">
-					<Mockup tab={tab} />
+					<Mockup tab={tab} shots={shots} />
 				</div>
 			</div>
 		);
@@ -77,7 +94,7 @@ export function ProductGallery({ title, accent, desc, variant }: { title: string
 		<div className="lp-gallery">
 			<div className="lp-gallery-panel">
 				{head}
-				<Mockup tab={tab} />
+				<Mockup tab={tab} shots={shots} />
 			</div>
 		</div>
 	);

@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { SiteItem } from '@/lib/site-content';
+
+/* eslint-disable @next/next/no-img-element */
 
 /**
  * Trusted by — cream section with a continuously auto-scrolling partner
@@ -19,29 +22,61 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
  *
  * Photos: each card paints `url(...) , <gradient>`. If the photo file isn't
  * present the request 404s and the gradient underneath still shows — no broken
- * image icon — so dropping the real files in is all that's needed.
+ * image icon. That is why the CMS images keep a `tone` behind them too.
  */
-const PARTNERS = [
-	{ img: '/landing/partner-1.jpg', tone: 'linear-gradient(160deg,#8d7f6f,#332c26)' },
-	{ img: '/landing/partner-2.jpg', tone: 'linear-gradient(160deg,#9a6f56,#31241d)' },
-	{ img: '/landing/partner-3.jpg', tone: 'linear-gradient(160deg,#7e8a93,#282e33)' },
-	{ img: '/landing/partner-4.jpg', tone: 'linear-gradient(160deg,#8a7a86,#2c262c)' },
-	{ img: '/landing/partner-5.jpg', tone: 'linear-gradient(160deg,#6f8479,#242b28)' },
-	{ img: '/landing/partner-6.jpg', tone: 'linear-gradient(160deg,#94816b,#302a24)' },
+interface Card {
+	img: string;
+	tone: string;
+	name: string;
+	title: string;
+	logoUrl: string | null;
+	logoText: string;
+}
+
+/* Shown until an admin puts real cards in this section (Site assets → Atlas →
+   Carousel gallery). One uploaded card replaces ALL of these, not just one. */
+const TONES = [
+	'linear-gradient(160deg,#8d7f6f,#332c26)',
+	'linear-gradient(160deg,#9a6f56,#31241d)',
+	'linear-gradient(160deg,#7e8a93,#282e33)',
+	'linear-gradient(160deg,#8a7a86,#2c262c)',
+	'linear-gradient(160deg,#6f8479,#242b28)',
+	'linear-gradient(160deg,#94816b,#302a24)',
 ];
-const NAME = 'Alexander Janssen';
-const TITLE = 'CEO, Dutch SportsTech Fund';
+const PLACEHOLDER_PARTNERS: Card[] = TONES.map((tone, i) => ({
+	img: `/landing/partner-${i + 1}.jpg`,
+	tone,
+	name: 'Alexander Janssen',
+	title: 'CEO, Dutch SportsTech Fund',
+	logoUrl: null,
+	logoText: 'BCG',
+}));
 
-const STRIDE = 286;                          // card 210 + gap 76 (design)
-const COPY_W = PARTNERS.length * STRIDE;     // width of one copy of the list
-const DURATION = COPY_W / 46;                // ≈46px per second
-const STEP = (STRIDE / COPY_W) * DURATION;   // seconds equal to one card
+const STRIDE = 286; // card 210 + gap 76 (design)
 
-export function TrustedBy() {
+export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	const [phase, setPhase] = useState(0); // seconds into the loop
-	const step = (dir: number) => setPhase((p) => (p + dir * STEP + DURATION) % DURATION);
 
-	const items = [...PARTNERS, ...PARTNERS]; // duplicated for the seamless wrap
+	const partners: Card[] = items?.length
+		? items.map((it, i) => ({
+			img: it.url ?? '',
+			tone: TONES[i % TONES.length],
+			name: it.title ?? '',
+			title: it.subtitle ?? '',
+			logoUrl: it.logoUrl,
+			logoText: '',
+		}))
+		: PLACEHOLDER_PARTNERS;
+
+	// Derived from the live count, so a section with three cards drifts three
+	// cards' worth per loop rather than six.
+	const copyW = partners.length * STRIDE;
+	const duration = copyW / 46; // ≈46px per second
+	const step = (STRIDE / copyW) * duration;
+
+	const shift = (dir: number) => setPhase((p) => (p + dir * step + duration) % duration);
+
+	const cards = [...partners, ...partners]; // duplicated for the seamless wrap
 
 	return (
 		<section className="lp-cream lp-trusted" id="trusted">
@@ -53,31 +88,36 @@ export function TrustedBy() {
 			</div>
 
 			<div className="lp-carousel">
-				<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => step(-1)}>
+				<button className="lp-carousel-arrow lp-carousel-arrow--prev" aria-label="Previous partners" onClick={() => shift(-1)}>
 					<ChevronLeft size={30} strokeWidth={1.5} />
 				</button>
 
 				<div className="lp-carousel-viewport">
 					<div
 						className="lp-carousel-marquee"
-						style={{ animationDuration: `${DURATION}s`, animationDelay: `${-phase}s` }}
+						style={{ animationDuration: `${duration}s`, animationDelay: `${-phase}s` }}
 					>
-						{items.map((p, i) => (
-							<div className="lp-partner" key={i} aria-hidden={i >= PARTNERS.length}>
+						{cards.map((p, i) => (
+							<div className="lp-partner" key={i} aria-hidden={i >= partners.length}>
 								<div
 									className="lp-partner-photo"
 									style={{ background: `url('${p.img}') center/cover no-repeat, ${p.tone}` }}
 								>
-									<span className="lp-partner-logo">BCG</span>
+									{/* The company mark sits at the middle bottom of the photo.
+									    An uploaded logo replaces the wordmark; with neither, the
+									    slot is simply empty rather than showing stale branding. */}
+									{p.logoUrl
+										? <img className="lp-partner-logo lp-partner-logo--img" src={p.logoUrl} alt="" />
+										: p.logoText ? <span className="lp-partner-logo">{p.logoText}</span> : null}
 								</div>
-								<div className="lp-partner-name">{NAME}</div>
-								<div className="lp-partner-title">{TITLE}</div>
+								<div className="lp-partner-name">{p.name}</div>
+								<div className="lp-partner-title">{p.title}</div>
 							</div>
 						))}
 					</div>
 				</div>
 
-				<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => step(1)}>
+				<button className="lp-carousel-arrow lp-carousel-arrow--next" aria-label="Next partners" onClick={() => shift(1)}>
 					<ChevronRight size={30} strokeWidth={1.5} />
 				</button>
 			</div>
