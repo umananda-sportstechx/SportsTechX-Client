@@ -34,7 +34,7 @@ export function Team() {
 					<div className="lp-team-grid">
 						{MEMBERS.map((m) => (
 							<div className="lp-member" key={m.name}>
-								<div className="lp-member-photo" style={{ background: `url('${m.img}') center/cover no-repeat, ${m.tone}` }} />
+								<div className="lp-member-photo" style={{ background: `url('${m.img}') center 22%/cover no-repeat, ${m.tone}` }} />
 								<div className="lp-member-text">
 									<div className="lp-member-eyebrow">{m.eyebrow}</div>
 									<div className="lp-member-name">{m.name}</div>
