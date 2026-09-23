@@ -91,7 +91,13 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	   wide screen where its six cards happen to fit. */
 	const naturalW = partners.length * STRIDE;
 	const measured = railW > 0;
-	const fits = measured && naturalW <= railW;
+	/* "Fits" means there is room for ANOTHER whole card, not merely that the
+	   current ones squeeze in. Six cards on a 1920 screen come to 1716px in a
+	   1766px rail: every card is visible, so the old `naturalW <= railW` test
+	   stopped the drift - but with 50px of slack the rail reads as full and a
+	   dead marquee just looks broken. Leave one card's worth of gap before
+	   calling it under-filled. */
+	const fits = measured && railW - naturalW >= STRIDE;
 	/* `measured &&` guards the CMS branch only. The server has no width to judge
 	   by, and guessing one made the first paint emit nine copies of a one-card
 	   gallery before hydration collapsed it back. Placeholders need no guess -
