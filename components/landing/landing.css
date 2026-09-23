@@ -883,3 +883,44 @@ html:has(.lp)::-webkit-scrollbar-thumb:hover {
 	background: rgba(20, 22, 32, 0.95);
 	background-clip: padding-box;
 }
+
+/* ---- Long-form pages (terms, privacy) ---------------------------------
+   White ground like the testimonials and footer sections, Kepler for the
+   prose and Zuume for the headings - the landing page's own editorial voice.
+   The column is capped at a reading measure: --lp-max is 2200px, a poster
+   width. Top padding clears the fixed nav. */
+/* The nav is drawn for the dark hero - a white mark, white links. A long-form
+   page has a white ground, so it wears the scrolled glass from the start
+   instead of only after a scroll, or the whole bar is white on white. */
+.lp-solid-nav .lp-nav {
+	background: rgba(6, 9, 20, 0.86);
+	-webkit-backdrop-filter: blur(20px) saturate(140%);
+	backdrop-filter: blur(20px) saturate(140%);
+	border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.lp-legal { background: #ffffff; color: var(--lp-ink); padding: 168px var(--lp-pad) 140px; }
+.lp-legal-inner { max-width: 74ch; margin: 0 auto; }
+
+.lp-legal-eyebrow { font-family: var(--lp-mono), monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-pink); }
+.lp-legal-title { margin: 14px 0 0; font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: clamp(38px, 5vw, 64px); line-height: 1.02; letter-spacing: 0.01em; }
+.lp-legal-sub { margin: 10px 0 0; font-family: var(--lp-serif); font-size: 21px; line-height: 1.5; color: var(--lp-ink-soft); }
+.lp-legal-updated { margin: 22px 0 0; font-family: var(--lp-mono), monospace; font-size: 12px; letter-spacing: -0.02em; color: var(--lp-ink-soft); }
+
+.lp-legal-body { margin-top: 64px; display: flex; flex-direction: column; gap: 42px; }
+.lp-legal h2 { margin: 0; padding-top: 26px; border-top: 1px solid var(--lp-border-cream); font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: 27px; line-height: 1.2; letter-spacing: 0.02em; }
+.lp-legal h3 { margin: 0; font-family: var(--lp-serif); font-weight: 600; font-size: 21px; line-height: 1.35; color: var(--lp-ink-heading); }
+.lp-legal-blocks { margin-top: 18px; display: flex; flex-direction: column; gap: 18px; }
+.lp-legal p { margin: 0; font-family: var(--lp-serif); font-size: 19px; line-height: 1.66; color: var(--lp-ink-soft); }
+.lp-legal strong { font-weight: 600; color: var(--lp-ink); }
+.lp-legal ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.lp-legal li { position: relative; padding-left: 26px; font-family: var(--lp-serif); font-size: 19px; line-height: 1.66; color: var(--lp-ink-soft); }
+/* The pink square the design uses as a bullet elsewhere on the page. */
+.lp-legal li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 7px; height: 7px; border: 1px solid var(--lp-pink); }
+
+@media (max-width: 760px) {
+	.lp-legal { padding: 128px var(--lp-pad) 92px; }
+	.lp-legal-body { margin-top: 44px; gap: 34px; }
+	.lp-legal h2 { font-size: 23px; }
+	.lp-legal p, .lp-legal li { font-size: 17px; }
+}

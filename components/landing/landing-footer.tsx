@@ -1,6 +1,14 @@
 import { Mail, MapPin } from 'lucide-react';
 
-const QUICK = ['Explore Membership', 'How to Join', 'About us', 'FAQ', 'Terms of membership'];
+/* Was five dead href="#" anchors. The homepage sections are root-relative so
+   they work from the legal pages too. */
+const QUICK: [string, string][] = [
+	['Explore Membership', '/#explore'],
+	['How to Join', '/#how-to-join'],
+	['About us', '/#team'],
+	['FAQ', '/#faq'],
+	['Terms of membership', '/terms-of-service'],
+];
 
 const Svg = ({ children }: { children: React.ReactNode }) => (
 	<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>{children}</svg>
@@ -33,7 +41,7 @@ export function LandingFooter() {
 						<div aria-hidden />
 						<div>
 							<div className="lp-footer-h">Quick Links</div>
-							<nav className="lp-footer-links">{QUICK.map((l) => <a key={l} href="#">{l}</a>)}</nav>
+							<nav className="lp-footer-links">{QUICK.map(([l, href]) => <a key={l} href={href}>{l}</a>)}</nav>
 						</div>
 						<div>
 							<div className="lp-footer-h">Connect</div>
@@ -42,7 +50,13 @@ export function LandingFooter() {
 					</div>
 					<div className="lp-footer-bottom">
 						<span>© 2026 SportsTechX GmbH. All rights reserved.</span>
-						<span>Privacy · Imprint · The Inner Circle of Sports Tech</span>
+						{/* These were a plain string; both pages exist and are public. */}
+						<span>
+							<a href="/privacy-policy">Privacy</a>
+							{' · '}
+							<a href="/terms-of-service">Terms</a>
+							{' · The Inner Circle of Sports Tech'}
+						</span>
 					</div>
 				</div>
 			</div>
