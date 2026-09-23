@@ -22,11 +22,13 @@ import Link from 'next/link';
  *    descendants, so `.lp-nav` inside it has to switch to `absolute`. See
  *    `lockedY`.
  */
+/* Root-relative on purpose: a bare '#explore' resolves to /terms-of-service#explore
+   on a sub-route and scrolls nowhere. Shared by the nav and the drawer. */
 export const LINKS: [string, string][] = [
-	['EXPLORE', '#explore'],
-	['RAISE', '#how-to-join'],
-	['SCOUT', '#explore'],
-	['FAQ', '#faq'],
+	['EXPLORE', '/#explore'],
+	['RAISE', '/#how-to-join'],
+	['SCOUT', '/#explore'],
+	['FAQ', '/#faq'],
 ];
 
 type MenuState = {
