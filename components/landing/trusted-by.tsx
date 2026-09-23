@@ -72,6 +72,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 		return () => ro.disconnect();
 	}, []);
 
+	const usingCms = Boolean(items?.length);
 	const partners: Card[] = items?.length
 		? items.map((it, i) => ({
 			img: it.url ?? '',
@@ -83,23 +84,27 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 		}))
 		: PLACEHOLDER_PARTNERS;
 
-	/* Everything already visible? Then there is nothing to scroll to: show the
-	   cards once, centred, with no drift and no arrows. Tiling a short list to
-	   manufacture something to loop turned one uploaded partner into a wall of
-	   the same face. */
+	/* A short list of UPLOADED cards should not scroll - everything is already
+	   visible, and tiling it to manufacture something to loop turned one uploaded
+	   partner into a wall of the same face. The built-in placeholders are the
+	   opposite case: that set is the designed full rail, so it drifts even on a
+	   wide screen where its six cards happen to fit. */
 	const naturalW = partners.length * STRIDE;
 	const measured = railW > 0;
 	const fits = measured && naturalW <= railW;
-	/* Until the rail has been measured, render the plain un-repeated list. The
-	   server has no width to judge by, and guessing one made the first paint emit
-	   nine copies of a one-card gallery before hydration collapsed it back. */
-	const looping = measured && !fits;
+	/* `measured &&` guards the CMS branch only. The server has no width to judge
+	   by, and guessing one made the first paint emit nine copies of a one-card
+	   gallery before hydration collapsed it back. Placeholders need no guess -
+	   their count is known, so they can loop from the very first render. */
+	const looping = !usingCms || (measured && !fits);
 
 	// Derived from the live count, so a section with three cards drifts three
 	// cards' worth per loop rather than six. The marquee wraps by exactly one
 	// copy, so that copy has to be at least as wide as the rail or the rail runs
 	// out of cards and snaps; repeat until it is.
-	const reps = looping ? Math.max(1, Math.ceil(railW / naturalW)) : 1;
+	// railW is 0 until the effect runs; falling back to naturalW yields reps=1,
+	// i.e. the original two-copy rail, and the real count lands a tick later.
+	const reps = looping ? Math.max(1, Math.ceil((railW || naturalW) / naturalW)) : 1;
 	const copy = reps === 1 ? partners : Array.from({ length: reps }, () => partners).flat();
 	const copyW = copy.length * STRIDE;
 	const duration = copyW / 46; // ≈46px per second
