@@ -27,18 +27,56 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['400', '500', '600', '700'],
 });
 
+/** The public origin. Atlas is the marketing front door for the app. */
+export const SITE_URL = 'https://atlas.sportstechx.com';
+
+const TITLE = 'Atlas — Your Insider Guide to Sports Tech & Venture';
+const DESCRIPTION =
+  'Market intelligence, investor tracking and warm introductions for founders raising in sports tech. Atlas is built by SportsTechX.';
+
 export const metadata: Metadata = {
-  title: {
-    default: 'SportsTechX',
-    template: '%s | SportsTechX',
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: '%s | Atlas' },
+  description: DESCRIPTION,
+  applicationName: 'Atlas',
+  keywords: [
+    'sports tech', 'sportstech investors', 'sports tech fundraising',
+    'sports tech venture capital', 'investor database', 'Atlas', 'SportsTechX',
+  ],
+  authors: [{ name: 'SportsTechX', url: 'https://sportstechx.com' }],
+  creator: 'SportsTechX',
+  publisher: 'SportsTechX GmbH',
+  category: 'technology',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Atlas by SportsTechX',
+    locale: 'en_US',
+    url: '/',
+    title: TITLE,
+    description: DESCRIPTION,
   },
-  description: 'The global platform for sports technology intelligence.',
-  icons: { icon: [{ url: '/stx_pink.png', type: 'image/png' }, { url: '/favicon.ico' }] },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+  },
+  formatDetection: { telephone: false },
+  /* No `icons` key on purpose. It used to name /stx_pink.png first, which is
+     the STX lockup - wrong brand for Atlas, and it carries a wordmark that is
+     unreadable at 16px. An explicit key also OVERRIDES the app/icon.png and
+     app/favicon.ico file conventions, so the Atlas mark never shipped. */
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  colorScheme: 'dark light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#060a17' },
+  ],
 };
 
 /**
