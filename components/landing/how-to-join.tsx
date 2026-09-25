@@ -42,7 +42,8 @@ const TIERS: {
 
 export function HowToJoin() {
 	const [active, setActive] = useState<Key>('explore');
-	const current = TIERS.find((t) => t.key === active)!;
+	const activeIndex = TIERS.findIndex((t) => t.key === active);
+	const current = TIERS[activeIndex];
 
 	return (
 		<section className="lp-cream lp-howjoin" id="how-to-join">
@@ -72,14 +73,26 @@ export function HowToJoin() {
 				</div>
 
 				<div className="lp-stack">
-					{TIERS.map((t) => {
+					{TIERS.map((t, i) => {
 						const open = active === t.key;
+						// The deck recedes from whichever tier is open rather than from the
+						// top of the DOM: nearer the open card means nearer the front. With
+						// the old fixed order, opening SCOUT still left EXPLORE painting
+						// over RAISE, so the stack did not read as one deck. data-pos tells
+						// the CSS which edge of the card is the hidden one.
+						const pos = i < activeIndex ? 'above' : i > activeIndex ? 'below' : 'open';
 						return (
 							<button
 								key={t.key}
 								type="button"
+								data-pos={pos}
 								className={`lp-tier ${open ? 'lp-tier--open' : ''}`}
-								style={{ '--tier-accent': t.accent } as React.CSSProperties}
+								style={
+									{
+										'--tier-accent': t.accent,
+										zIndex: 10 - Math.abs(i - activeIndex),
+									} as React.CSSProperties
+								}
 								onClick={() => setActive(t.key)}
 								aria-expanded={open}
 							>
