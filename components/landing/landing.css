@@ -367,23 +367,24 @@
    content in the content box, so without the matching padding-bottom the wordmark
    centres in the whole 222 and its baseline lands flush against the next card. */
 .lp-stack > .lp-tier[data-pos='above'] { min-height: 222px; padding-bottom: 116px; }
+/* ...except the card the OPEN one laps, which it laps by 28 rather than the
+   deck's 84 (see the margin-top below). Sized for 84 it kept 56px too much of
+   itself on screen, so that tier rendered as a taller bar than the other two
+   and pushed the whole deck down. Every box here is `visible + whatever the
+   next card takes`: 138 + 28, and the padding follows it. */
+.lp-stack > .lp-tier[data-pos='above']:has(+ .lp-tier--open) { min-height: 166px; padding-bottom: 60px; }
 
-/* Clicking a tier brings it in front of the whole deck.
- *
- * Doubled class on purpose. The z-index below is competing with
- * `.lp-stack > .lp-tier:nth-child(n)` above, which is (0,3,0); written as
- * `.lp-stack > .lp-tier--open` this rule is only (0,2,0) and lost, so an opened
- * card kept its original layer and the card above went on overlapping its top
- * corners — it expanded but never looked like it had come forward. Matching the
- * specificity and sitting later in the file is what makes it win. */
-/* Now that the open card is genuinely in front, its own overlap has to give:
- * at the deck's -84 it covered the wordmark of the card above by 43px, so the
- * tier you came from became unreadable. -28 still laps its top corners over
- * that card — which is the point — while leaving the mark clear. */
+/* The open card laps the one above by 28, not the deck's 84: at 84 it buried
+ * that tier's wordmark by 43px. 28 still laps its top corners over the card
+ * above — which is what makes it read as the front of the deck. */
 .lp-stack > .lp-tier.lp-tier--open:not(:first-child) { margin-top: -28px; }
 
+/* 403 is the whole card: nothing laps the open one, since both its neighbours
+   are behind it. (It was 487 = 403 + 84 buried, from when the card above was
+   still painting over its top.) Holding the three cards at `visible + lap`
+   keeps the deck exactly 679px tall whichever tier is open. */
 .lp-stack > .lp-tier.lp-tier--open {
-	z-index: 10; min-height: 487px; padding-bottom: 32px; transform: translateY(-2px); /* 403 visible + 84 hidden */
+	min-height: 403px; padding-bottom: 32px; transform: translateY(-2px);
 	/* The taller card carries the design's own glow placement. */
 	background:
 		radial-gradient(208.6% 251.7% at 135.95% 163.4%,
@@ -391,9 +392,6 @@
 		#ffffff;
 	box-shadow: 0 30px 62px -24px rgba(0, 0, 0, 0.9);
 }
-/* Must follow .lp-tier:first-child — same specificity (0,3,0), so order wins.
-   Without this, opening the FIRST card would collapse it to 138px. */
-.lp-stack > .lp-tier.lp-tier--open:first-child { min-height: 403px; }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 151px; height: auto; } /* design Vector 151x53 */
 /* Design: Kepler Std Condensed Subhead Italic 21, ls 10%. */
@@ -888,8 +886,8 @@
 	.lp-stack > .lp-tier:first-child { min-height: 112px; }
 	.lp-stack > .lp-tier[data-pos='below'] { padding-top: 92px; }
 	.lp-stack > .lp-tier[data-pos='above'] { min-height: 176px; padding-bottom: 88px; }
-	.lp-stack > .lp-tier.lp-tier--open,
-	.lp-stack > .lp-tier.lp-tier--open:first-child { min-height: 0; }
+	.lp-stack > .lp-tier[data-pos='above']:has(+ .lp-tier--open) { min-height: 134px; padding-bottom: 46px; }
+	.lp-stack > .lp-tier.lp-tier--open { min-height: 0; }
 	/* Same reasoning as the desktop rule; the base overlap here is -64. */
 	.lp-stack > .lp-tier.lp-tier--open:not(:first-child) { margin-top: -22px; }
 	.lp-tier-brand img { width: 118px; }
@@ -914,8 +912,12 @@ html:has(.lp)::-webkit-scrollbar-thumb {
 	border: 2px solid transparent;
 	background-clip: padding-box;
 }
+/* No hover shift. The thumb sits in a gutter that is dark on this page, so
+   deepening it on hover read as the scrollbar disappearing; the app-wide
+   `::-webkit-scrollbar-thumb:hover` repaints it in --fg-muted, which washes out
+   the same way. Restating the base colour here out-ranks both. */
 html:has(.lp)::-webkit-scrollbar-thumb:hover {
-	background: rgba(20, 22, 32, 0.95);
+	background: rgba(20, 22, 32, 0.78);
 	background-clip: padding-box;
 }
 
