@@ -313,9 +313,11 @@
 .lp-howjoin-rule { height: 1px; background: rgba(20, 18, 26, 0.16); margin-top: 46px; }
 
 /* Switcher — one rounded container holding the three tier tags (design). */
-.lp-howjoin .lp-switcher { display: inline-flex; gap: 4px; padding: 6px; border: 1px solid rgba(20, 18, 26, 0.16); border-radius: 99px; background: rgba(255, 255, 255, 0.55); }
+/* nowrap: the pill's 99px radius only reads as a pill on one line, and the
+   three tags shrink (below) rather than breaking to a second row. */
+.lp-howjoin .lp-switcher { display: inline-flex; flex-wrap: nowrap; max-width: 100%; gap: 4px; padding: 6px; border: 1px solid rgba(20, 18, 26, 0.16); border-radius: 99px; background: rgba(255, 255, 255, 0.55); }
 .lp-switcher { display: inline-flex; gap: 8px; flex-wrap: wrap; }
-.lp-switch-tag { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 99px; border: none; background: transparent; cursor: pointer; font-family: var(--lp-mono), monospace; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lp-ink-soft); transition: background 0.12s ease, color 0.12s ease; }
+.lp-switch-tag { display: inline-flex; align-items: center; white-space: nowrap; gap: 10px; padding: 10px 18px; border-radius: 99px; border: none; background: transparent; cursor: pointer; font-family: var(--lp-mono), monospace; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lp-ink-soft); transition: background 0.12s ease, color 0.12s ease; }
 .lp-switch-tag .dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 .lp-howjoin .lp-switch-tag.active { background: var(--lp-ink); color: #fff; }
 
@@ -357,8 +359,21 @@
 /* Nothing overlaps the first card, so its box is its visible height. */
 .lp-stack > .lp-tier:first-child { margin-top: 0; min-height: 138px; }
 
-/* Clicking a tier brings it in front of the whole deck. */
-.lp-stack > .lp-tier--open {
+/* Clicking a tier brings it in front of the whole deck.
+ *
+ * Doubled class on purpose. The z-index below is competing with
+ * `.lp-stack > .lp-tier:nth-child(n)` above, which is (0,3,0); written as
+ * `.lp-stack > .lp-tier--open` this rule is only (0,2,0) and lost, so an opened
+ * card kept its original layer and the card above went on overlapping its top
+ * corners — it expanded but never looked like it had come forward. Matching the
+ * specificity and sitting later in the file is what makes it win. */
+/* Now that the open card is genuinely in front, its own overlap has to give:
+ * at the deck's -84 it covered the wordmark of the card above by 43px, so the
+ * tier you came from became unreadable. -28 still laps its top corners over
+ * that card — which is the point — while leaving the mark clear. */
+.lp-stack > .lp-tier.lp-tier--open:not(:first-child) { margin-top: -28px; }
+
+.lp-stack > .lp-tier.lp-tier--open {
 	z-index: 10; min-height: 487px; padding-bottom: 32px; transform: translateY(-2px); /* 403 visible + 84 hidden */
 	/* The taller card carries the design's own glow placement. */
 	background:
@@ -369,7 +384,7 @@
 }
 /* Must follow .lp-tier:first-child — same specificity (0,3,0), so order wins.
    Without this, opening the FIRST card would collapse it to 138px. */
-.lp-stack > .lp-tier--open:first-child { min-height: 403px; }
+.lp-stack > .lp-tier.lp-tier--open:first-child { min-height: 403px; }
 .lp-tier-brand { display: flex; align-items: flex-start; gap: 10px; }
 .lp-tier-brand img { width: 151px; height: auto; } /* design Vector 151x53 */
 /* Design: Kepler Std Condensed Subhead Italic 21, ls 10%. */
@@ -863,8 +878,10 @@
 	.lp-tier { min-height: 176px; margin-top: -64px; padding: 24px 22px; }
 	.lp-stack > .lp-tier:first-child { min-height: 112px; }
 	.lp-stack > .lp-tier:not(:first-child) { padding-top: 92px; }
-	.lp-stack > .lp-tier--open,
-	.lp-stack > .lp-tier--open:first-child { min-height: 0; }
+	.lp-stack > .lp-tier.lp-tier--open,
+	.lp-stack > .lp-tier.lp-tier--open:first-child { min-height: 0; }
+	/* Same reasoning as the desktop rule; the base overlap here is -64. */
+	.lp-stack > .lp-tier.lp-tier--open:not(:first-child) { margin-top: -22px; }
 	.lp-tier-brand img { width: 118px; }
 	.lp-tier-body { margin-top: 44px; }
 	.lp-tier-sub { font-size: 32px; line-height: 32px; margin-bottom: 16px; }
@@ -931,4 +948,16 @@ html:has(.lp)::-webkit-scrollbar-thumb:hover {
 	.lp-legal-body { margin-top: 44px; gap: 34px; }
 	.lp-legal h2 { font-size: 23px; }
 	.lp-legal p, .lp-legal li { font-size: 17px; }
+}
+
+/* ── Tier switcher on a narrow phone ──────────────────────────────────────
+ * At the desktop size the capsule measures 376px, so it cannot fit a 375 or 320
+ * viewport once the page gutter is off, and it was wrapping to two rows inside
+ * a 99px radius. Everything scales down instead: 12px type, tighter padding and
+ * a smaller dot bring it to roughly 250px, which clears 320.
+ * ========================================================================= */
+@media (max-width: 480px) {
+	.lp-howjoin .lp-switcher { gap: 2px; padding: 4px; }
+	.lp-switch-tag { font-size: 12px; padding: 8px 11px; gap: 7px; letter-spacing: 0.04em; }
+	.lp-switch-tag .dot { width: 9px; height: 9px; border-radius: 2px; }
 }
