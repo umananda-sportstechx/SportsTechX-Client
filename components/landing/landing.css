@@ -278,12 +278,17 @@
 .lp-partner { flex: 0 0 286px; padding: 0 38px; position: relative; }
 .lp-partner::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px dashed rgba(20, 18, 26, 0.18); }
 .lp-partner-photo { position: relative; height: 232px; border-radius: 10px; overflow: hidden; }
+/* A flat dim over the whole photo. The marks that sit on these are white,
+   and a light headshot swallows one — the ::after gradient only darkens the
+   bottom strip, which is not enough once a real logo is wider than the
+   wordmark it replaces. Below the logo, which carries z-index: 2. */
+.lp-partner-photo::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
 .lp-partner-photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 72px; background: linear-gradient(to top, rgba(8, 10, 18, 0.9), rgba(8, 10, 18, 0)); }
 .lp-partner-logo { position: absolute; left: 0; right: 0; bottom: 15px; z-index: 2; text-align: center; color: #fff; font-family: var(--lp-display-stack); font-weight: 700; font-size: 25px; letter-spacing: 0.04em; line-height: 1; }
 .lp-partner-logo--img { display: block; width: auto; height: auto; max-width: 40%; max-height: 36px; margin: 0 auto; object-fit: contain; }
 /* Per-run styles (fig --overrides): Zuume Regular 17, then Space Mono 11 ls -3% @70%. */
-.lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: 17px; line-height: 1.2; color: var(--lp-ink); }
-.lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 11px; letter-spacing: -0.03em; line-height: 1.4; color: var(--lp-ink-soft); }
+.lp-partner-name { margin-top: 16px; text-align: center; font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: 19px; line-height: 1.2; color: var(--lp-ink); }
+.lp-partner-title { margin-top: 4px; text-align: center; font-family: var(--lp-mono), monospace; font-size: 13px; letter-spacing: -0.03em; line-height: 1.4; color: var(--lp-ink-soft); }
 .lp-carousel-arrow { position: absolute; top: 116px; transform: translateY(-50%); z-index: 3; background: none; border: none; cursor: pointer; color: var(--lp-ink-soft); padding: 6px; line-height: 0; transition: color 0.12s ease; }
 .lp-carousel-arrow:hover { color: var(--lp-ink); }
 .lp-carousel-arrow--prev { left: max(2px, calc(var(--lp-pad) - 42px)); }
@@ -716,7 +721,7 @@
 	.lp-faq-q { font-size: 18px; line-height: 25px; gap: 14px; }
 	.lp-faq-a { font-size: 16px; line-height: 25px; }
 	.lp-trusted-head p { font-size: 16px; line-height: 27px; }
-	.lp-partner-name { font-size: 16px; }
+	.lp-partner-name { font-size: 18px; }
 
 	/* E7: both of these are `white-space: nowrap` and only fit today because the
 	   rule element beside them collapses to zero width. One longer string and
