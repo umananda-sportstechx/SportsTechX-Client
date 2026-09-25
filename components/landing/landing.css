@@ -347,17 +347,26 @@
 	content: ""; position: absolute; inset: auto 0 0 0; height: 13%; pointer-events: none;
 	background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.092) 100%);
 }
-/* A card that is not first is overlapped from above by 84px, so its content
-   starts below that; the design puts the collapsed header at y=112.5. */
-.lp-stack > .lp-tier:not(:first-child) { padding-top: 116px; }
-/* Deck seen from the top: the FIRST card sits above, each following one tucks
-   in behind it. The overlap (22px) stays clear of the wordmark, so every tier
-   label is still readable. */
-.lp-stack > .lp-tier:nth-child(1) { z-index: 3; }
-.lp-stack > .lp-tier:nth-child(2) { z-index: 2; }
-.lp-stack > .lp-tier:nth-child(3) { z-index: 1; }
-/* Nothing overlaps the first card, so its box is its visible height. */
+/* Nothing precedes the first card, so it is never pulled up. */
 .lp-stack > .lp-tier:first-child { margin-top: 0; min-height: 138px; }
+/* Layering is set inline by the component (how-to-join.tsx), because it depends
+ * on which tier is open, not on DOM order. What CSS has to follow from that is
+ * the hidden edge: every card keeps its -84px overlap with the next one, but
+ * only the card that is *behind* loses those 84px, and which card that is now
+ * flips around the open tier.
+ *
+ * These rules must stay after :first-child above — same (0,3,0), so order is
+ * what lets `above` raise the first card's box. */
+
+/* Behind the card before it: top 84 hidden, so content clears it. Design puts
+   the collapsed header at y=112.5. */
+.lp-stack > .lp-tier[data-pos='below'] { padding-top: 116px; }
+/* Above the open card, so it is the one overlapped from below — its bottom 84
+   goes, not its top. The box carries the hidden 84 on top of the 138px collapsed
+   bar, and the padding is the `below` rule's mirror image: a <button> centres its
+   content in the content box, so without the matching padding-bottom the wordmark
+   centres in the whole 222 and its baseline lands flush against the next card. */
+.lp-stack > .lp-tier[data-pos='above'] { min-height: 222px; padding-bottom: 116px; }
 
 /* Clicking a tier brings it in front of the whole deck.
  *
@@ -877,7 +886,8 @@
 	   Both --open rules need min-height: 0 or the open card cannot shrink. */
 	.lp-tier { min-height: 176px; margin-top: -64px; padding: 24px 22px; }
 	.lp-stack > .lp-tier:first-child { min-height: 112px; }
-	.lp-stack > .lp-tier:not(:first-child) { padding-top: 92px; }
+	.lp-stack > .lp-tier[data-pos='below'] { padding-top: 92px; }
+	.lp-stack > .lp-tier[data-pos='above'] { min-height: 176px; padding-bottom: 88px; }
 	.lp-stack > .lp-tier.lp-tier--open,
 	.lp-stack > .lp-tier.lp-tier--open:first-child { min-height: 0; }
 	/* Same reasoning as the desktop rule; the base overlap here is -64. */
