@@ -51,6 +51,12 @@
 	/* Space Grotesk (nav, final-hero CTA, copyright) comes from the root layout. */
 	--lp-ui: var(--font-space-grotesk), system-ui, sans-serif;
 
+	/* The sportstechx.com body face, and the one the product section now uses
+	   instead of the serif. It is already on this page: app/layout.tsx loads
+	   Adobe kit jyx6vei for it, so this adds no request. The kit ships 400/500/
+	   700 only — there is no light cut, so ask for 400 rather than 300. */
+	--lp-sans: "new-frank", var(--lp-body);
+
 	/* One fluid width system. The design is a fixed 1512 frame, which left the
 	   content at only ~71% of a 1909 screen; these give ~92% on normal desktops
 	   and ~84% from 1700 up, with an absolute ceiling so ultra-wide monitors do
@@ -171,7 +177,9 @@
 .lp-nav-link { font-family: var(--lp-ui); font-weight: 500; font-size: 16px; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 19px; }
-.lp-nav-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; }
+/* Visible at every width: this is the only route back to the main site, so it
+   cannot stay phone-only. Was `display: none` + a mobile override. */
+.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; background: none; border: none; color: #fff; cursor: pointer; }
 
 /* ── Hero (Intro + Final share .lp-hero) ───────────────────────────────── */
 .lp-hero { position: relative; background: var(--lp-dark); overflow: hidden; }
@@ -303,13 +311,16 @@
 
 /* Eyebrow: serif label followed by a rule running to the column edge. */
 .lp-howjoin-eyebrow { display: flex; align-items: center; gap: 22px; margin-bottom: 26px; }
-/* Design: Kepler Std Light Display 23, ls 5%. */
-.lp-howjoin-eyebrow span { font-family: var(--lp-serif); font-weight: 300; font-size: 23px; letter-spacing: 0.05em; color: var(--lp-ink); white-space: nowrap; }
+/* Design says Kepler Std Light Display 23/5%, but the product section reads as
+   sans now (team feedback "Atlas Page fonts") — and the Kepler the design asked
+   for was never in the kit, so what shipped here was the Newsreader fallback. */
+.lp-howjoin-eyebrow span { font-family: var(--lp-sans); font-weight: 400; font-size: 23px; letter-spacing: 0.05em; color: var(--lp-ink); white-space: nowrap; }
 .lp-howjoin-eyebrow i { flex: 1; height: 1px; background: rgba(20, 18, 26, 0.22); }
 
 .lp-howjoin-title { font-size: clamp(40px, 5.69vw, 86px); line-height: 1; color: var(--lp-ink-heading); margin-bottom: 26px; }
-/* Design: Kepler Std Display 34/45. */
-.lp-howjoin-desc { font-family: var(--lp-serif); font-size: clamp(19px, 2.25vw, 34px); line-height: 1.324; color: var(--lp-ink); max-width: 560px; margin: 0 0 34px; }
+/* Sans, per the same note on the eyebrow above. Size and leading are the
+   design's (34/45); only the family changed. */
+.lp-howjoin-desc { font-family: var(--lp-sans); font-size: clamp(19px, 2.25vw, 34px); line-height: 1.324; color: var(--lp-ink); max-width: 560px; margin: 0 0 34px; }
 .lp-howjoin-rule { height: 1px; background: rgba(20, 18, 26, 0.16); margin-top: 46px; }
 
 /* Switcher — one rounded container holding the three tier tags (design). */
@@ -402,7 +413,7 @@
 /* Design Points: 3 items of 28 on a 53px pitch. */
 .lp-points { display: grid; gap: 25px; }
 /* Design: Kepler Std Light Display 19. */
-.lp-point { display: flex; align-items: center; min-height: 28px; gap: 14px; font-family: var(--lp-serif); font-weight: 300; font-size: 19px; line-height: 1.25; color: rgba(255, 255, 255, 0.92); }
+.lp-point { display: flex; align-items: center; min-height: 28px; gap: 14px; font-family: var(--lp-sans); font-weight: 400; font-size: 19px; line-height: 1.25; color: rgba(255, 255, 255, 0.92); }
 .lp-point-ico { width: 24px; height: 24px; border-radius: 6px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.16); color: #fff; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
@@ -619,6 +630,28 @@
    left-aligned and never notice; a full-width centred pill would have its end
    cut off. */
 .lp-drawer-cta { margin-top: 34px; width: min(calc(70.4vw - 60px), 223px); }
+.lp-drawer-home { display: inline-block; text-decoration: none; }
+/* Shown only in the desktop overlay — see the note in the ≥1025 block. */
+.lp-drawer-close {
+	display: none; position: absolute; top: 20px; right: 22px;
+	width: 40px; height: 40px; align-items: center; justify-content: center;
+	background: none; border: none; color: rgba(255, 255, 255, 0.7); cursor: pointer;
+	transition: color 0.12s ease;
+}
+.lp-drawer-close:hover { color: #fff; }
+.lp-drawer-group {
+	display: block; margin-top: 8px; padding: 14px 0 6px;
+	font-family: var(--lp-mono), monospace; font-size: 12px; letter-spacing: 0.14em;
+	text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+}
+/* Indented children of Solutions. Sentence case and lighter than a top-level
+   link, so the group reads as a group without needing a disclosure control. */
+.lp-drawer-link--sub {
+	padding: 10px 0 10px 14px; font-size: 16px; letter-spacing: 0.02em;
+	text-transform: none; color: rgba(255, 255, 255, 0.86);
+}
+.lp-drawer-own { width: 100%; }
+.lp-drawer-sep { display: block; height: 1px; margin: 26px 0 4px; background: rgba(255, 255, 255, 0.14); }
 
 .lp-shell {
 	position: relative;
@@ -659,10 +692,24 @@
 	.lp-drawer, .lp-shell, .lp-shell-page, .lp-notch { transition: none; }
 }
 
-/* Above 1024 the links live in the bar, so the drawer must not be reachable —
-   and the shell must not keep a slide left over from a resize. */
+/* Above 1024 the page's own links are in the bar, so the drawer carries only the
+   SportsTechX block. The drawer itself stays reachable at every width now — it
+   is the only way back to the main site. */
 @media (min-width: 1025px) {
-	.lp-drawer, .lp-notch { display: none; }
+	.lp-drawer-own { display: none; }
+
+	/* Overlay here, push on a phone. The slide works on a phone because the bar
+	   holds only the hamburger and the mark; at desktop width the links capsule
+	   and the LOG IN pill ride 283px off the right edge and clip mid-word, which
+	   reads as broken rather than as a menu.
+	   The panel is already `fixed`, so an overlay is just dropping the shell's
+	   translate — except the shell is z-20 and the panel z-10 (the phone only
+	   sees the panel because the shell moves off it), so the panel has to come up
+	   over the shell and its nav. Still under the grain at 60. */
+	.lp-drawer { z-index: 50; }
+	.lp-drawer-inner { position: relative; }
+	.lp-drawer-close { display: inline-flex; }
+	.lp-notch { display: none; }
 	.lp-shell.is-open {
 		translate: none;
 		overflow: visible;
@@ -670,7 +717,6 @@
 		border-left: none;
 		box-shadow: none;
 	}
-	.lp-shell.is-open .lp-shell-page { opacity: 1; filter: none; }
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
@@ -721,7 +767,6 @@
 	.lp-nav-mark img { height: 32px; }
 	/* The button carried no width/height/padding, so the tap target was the
 	   26px glyph. */
-	.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; }
 	/* 12, not 18: the toggle's 44px tap box now sets the bar's height, and the
 	   desktop padding on top of it built an 81px band across a phone. */
 	.lp-nav-inner { gap: 14px; padding-top: 12px; padding-bottom: 12px; }
