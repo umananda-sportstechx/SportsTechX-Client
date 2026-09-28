@@ -169,7 +169,10 @@
    content. Normalised to --lp-pad so it lines up with every other section. */
 .lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 18px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
 .lp-nav.is-scrolled .lp-nav-inner { padding-top: 10px; padding-bottom: 10px; }
-.lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; }
+/* margin-right:auto, not a wrapper: .lp-nav-inner is space-between and the
+   burger is permanent now, so without this the mark centres itself between
+   the burger and the links. Was in the <=1024 block only. */
+.lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; margin-right: auto; }
 .lp-nav-mark img { height: 56px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
    The LOG IN pill sits OUTSIDE it, 19px to the right. */
@@ -608,7 +611,7 @@
 	flex-direction: column;
 	align-items: flex-start;
 }
-.lp-drawer-mark { height: 30px; width: auto; }
+.lp-drawer-mark { height: 40px; width: auto; }
 .lp-drawer-nav { display: flex; flex-direction: column; margin-top: 52px; width: 100%; }
 .lp-drawer-link {
 	display: block;
@@ -770,9 +773,6 @@
 	/* 12, not 18: the toggle's 44px tap box now sets the bar's height, and the
 	   desktop padding on top of it built an 81px band across a phone. */
 	.lp-nav-inner { gap: 14px; padding-top: 12px; padding-bottom: 12px; }
-	/* The toggle leads the bar and the mark follows it, so the mark takes the
-	   leftover space rather than being pushed against the burger. */
-	.lp-nav-mark { margin-right: auto; }
 }
 @media (max-width: 760px) {
 	.lp { --lp-pad: 22px; }
