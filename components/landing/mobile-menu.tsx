@@ -38,7 +38,10 @@ export const LINKS: [string, string][] = [
    "Investors Circle" is another name for Playmakers and has no page of its own;
    the STX site's own footer points both at joinplaymakers.co, so this matches
    rather than inventing a destination. */
-const STX_HOME = 'https://sportstechx.com';
+/* TEMPORARY host. The STX site is served from a Vercel preview until it moves
+   back to its own domain — put https://sportstechx.com back here when it does.
+   No trailing slash: the links below append their own paths. */
+const STX_HOME = 'https://sports-tech-x-landing.vercel.app';
 export const STX_SOLUTIONS: [string, string][] = [
 	['Playmakers', 'https://joinplaymakers.co'],
 	['Atlas', 'https://atlas.sportstechx.com'],
