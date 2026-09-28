@@ -35,17 +35,19 @@ export const LINKS: [string, string][] = [
    so these have to be absolute — a root-relative '/#solutions' lands on Atlas's
    own landing page, which has no such section.
 
-   "Investors Circle" is another name for Playmakers and has no page of its own;
-   the STX site's own footer points both at joinplaymakers.co, so this matches
-   rather than inventing a destination. */
+   "Investors Circle" is another name for Playmakers and has no page of its own,
+   so both entries share one destination. */
 /* TEMPORARY host. The STX site is served from a Vercel preview until it moves
    back to its own domain — put https://sportstechx.com back here when it does.
    No trailing slash: the links below append their own paths. */
 const STX_HOME = 'https://sports-tech-x-landing.vercel.app';
+/* TEMPORARY host, same story as STX_HOME — restore https://joinplaymakers.co
+   when Playmakers is back on its own domain. */
+const PLAYMAKERS_HOME = 'https://playmakers-omega.vercel.app';
 export const STX_SOLUTIONS: [string, string][] = [
-	['Playmakers', 'https://joinplaymakers.co'],
+	['Playmakers', PLAYMAKERS_HOME],
 	['Atlas', 'https://atlas.sportstechx.com'],
-	['Investors Circle', 'https://joinplaymakers.co'],
+	['Investors Circle', PLAYMAKERS_HOME],
 ];
 export const STX_LINKS: [string, string][] = [
 	['MEDIA', `${STX_HOME}/#media`],
