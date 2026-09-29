@@ -16,10 +16,6 @@
   --atlas-field: #FFFFFF;
   --atlas-field-hover: #F7F6F2;
   --atlas-navy: #1B4C78;
-  /* The login testimonial panel. Its own token, not --atlas-navy: that one
-     is a link/accent colour and goes light (#7FB0DC) in dark mode, which
-     leaves the panel's white text at about 1.9:1. */
-  --atlas-quote-panel: #1B4C78;
   --atlas-btn: #1F1E1C;
   --atlas-btn-fg: #FFFFFF;
   --atlas-danger-bg: #FCEBEB;
@@ -41,7 +37,6 @@
   --atlas-field: #262420;
   --atlas-field-hover: #2E2B26;
   --atlas-navy: #7FB0DC;
-  --atlas-quote-panel: #14314B;
   --atlas-btn: #F4F2EC;
   --atlas-btn-fg: #1F1E1C;
   --atlas-danger-bg: rgba(226, 75, 74, 0.14);
