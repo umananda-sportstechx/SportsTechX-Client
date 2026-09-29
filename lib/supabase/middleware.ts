@@ -1,23 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-
-/**
- * Public route allowlist — every other route requires an auth cookie.
- *
- * Patterns can be exact paths or path prefixes (matched as `path` or
- * `path/...`). Keep this list tight: anything not listed gets redirected to
- * /login when the user has no auth cookie.
- */
-const PUBLIC_PATHS = [
-  '/',                // public marketing landing page (app/page.tsx)
-  '/login',
-  '/signup',
-  '/forgot-password',
-  '/reset-password',
-  '/auth',            // /auth/callback and any other supabase auth flow pages
-  '/privacy-policy',
-  '/terms-of-service',
-  '/w',               // /w/[token] — public read-only shared watchlist pages
-];
+import { isPublicPath } from '@/lib/public-paths';
 
 /**
  * Auth pages a *signed-in* user shouldn't see — visiting these redirects them
@@ -104,9 +86,7 @@ function authCookieLive(request: NextRequest): boolean | null {
  */
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  const isPublic = isPublicPath(pathname);
   const isAuthPage = AUTH_PAGES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
