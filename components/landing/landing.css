@@ -135,7 +135,7 @@
 .lp-btn--login { background: rgba(243, 33, 99, 0.16); color: #ffa7c2; border-color: rgba(243, 33, 99, 0.7); }
 .lp-btn--login:hover { background: rgba(243, 33, 99, 0.28); color: #fff; }
 /* Nav LOG IN pill — design: Space Grotesk Medium 16, ls 10%, on a 58px pill. */
-.lp-btn--sm { font-family: var(--lp-ui); height: 48px; font-size: 16px; letter-spacing: 1.6px; padding: 0 22px; }
+.lp-btn--sm { font-family: var(--lp-ui); height: 50px; font-size: 16px; letter-spacing: 1.6px; padding: 0 22px; }
 /* Final-hero CTA — design: Space Grotesk Medium 21, ls 10%. */
 .lp-btn--ui { font-family: var(--lp-ui); font-size: 21px; line-height: 26px; letter-spacing: 2.1px; height: 62px; padding: 0 34px; }
 
@@ -178,16 +178,27 @@
 .lp-nav-mark img { height: 48px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
    The LOG IN pill sits OUTSIDE it, 19px to the right. */
-.lp-nav-links { display: inline-flex; align-items: center; height: 48px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
+.lp-nav-links { display: inline-flex; align-items: center; height: 50px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
 .lp-nav-link { font-family: var(--lp-ui); font-weight: 500; font-size: 16px; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 19px; }
 /* The SportsTechX mark closes the bar. Sized to the LOG IN pill's optical
    weight rather than its box, so it reads as a mark and not a third button. */
-.lp-nav-stx { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; transition: opacity 0.12s ease, scale 0.16s ease; }
-.lp-nav-stx img { height: 30px; width: auto; }
+.lp-nav-stx { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; transition: opacity 0.12s ease, scale 0.16s ease; }
+.lp-nav-stx img { height: 36px; width: auto; }
 .lp-nav-stx:hover { opacity: 0.8; scale: 1.06; }
-.lp-nav-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; }
+/* The bordered circle the STX and Playmakers bars both use for this control.
+   Only `display` is responsive — see the <=1024 block. */
+.lp-nav-toggle {
+	display: none; align-items: center; justify-content: center;
+	width: 44px; height: 44px; border-radius: 999px; cursor: pointer;
+	border: 1.5px solid rgba(255, 255, 255, 0.7);
+	background: rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(4px);
+	color: #fff;
+	transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.lp-nav-toggle[aria-expanded='true'] { background: #fff; border-color: #fff; color: var(--lp-dark); }
 
 /* ── Hero (Intro + Final share .lp-hero) ───────────────────────────────── */
 .lp-hero { position: relative; background: var(--lp-dark); overflow: hidden; }
@@ -739,7 +750,10 @@
 	.lp-nav-links { display: none; }
 	.lp-nav-mark img { height: 32px; }
 	/* The burger is the phone's menu; above 1024 the links are in the bar. */
-	.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; }
+	.lp-nav-toggle { display: inline-flex; }
+	/* The CTA is desktop-only, as on sportstechx.com — the drawer carries it on
+	   a phone, and three controls plus a wordmark do not fit a 390 bar. */
+	.lp-nav-right .lp-btn--login { display: none; }
 	/* The button carried no width/height/padding, so the tap target was the
 	   26px glyph. */
 	/* 12, not 18: the toggle's 44px tap box now sets the bar's height, and the
