@@ -8,6 +8,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { logoutState } from '@/lib/logout-state';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Loader2, Sun, Moon } from 'lucide-react';
+import { AuthQuotes } from '@/components/auth/auth-quotes';
 import './../atlas-auth.css';
 
 export default function LoginPage() {
@@ -127,6 +128,9 @@ export default function LoginPage() {
     <div className="atlas-auth min-h-dvh flex flex-col items-center justify-center bg-[var(--atlas-page)] px-4 py-10">
       <ThemeToggle />
 
+      {/* Form and testimonials side by side above lg. The panel drops away
+          below that rather than pushing the form down a phone screen. */}
+      <div className="flex w-full max-w-[420px] items-stretch justify-center gap-10 lg:max-w-[1040px]">
       <div className="w-full max-w-[420px]">
         <div className="rounded-xl border border-[var(--atlas-border)] bg-[var(--atlas-card)] px-8 py-9 shadow-sm">
           {/* Wordmark */}
@@ -238,6 +242,9 @@ export default function LoginPage() {
             <Link href="/signup" className="text-[var(--atlas-navy)] hover:underline">Sign up</Link>
           </p>
         </div>
+      </div>
+
+        <AuthQuotes />
       </div>
 
       <style jsx global>{`
