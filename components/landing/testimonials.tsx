@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 import type { SiteItem } from '@/lib/site-content';
+import { PLACEHOLDER_QUOTES as BASE_QUOTES, quoted } from '@/lib/testimonial-quotes';
 import { photoBg } from './trusted-by';
 
 /**
@@ -33,21 +34,9 @@ const TONES = [
 	'linear-gradient(150deg,#c8bcc4,#7f747c)',
 ];
 
-/* Shown until an admin fills Site assets → Atlas → Testimonials. */
-const PLACEHOLDER_QUOTES: Quote[] = [
-	{ quote: '“We walked into our raise knowing the market cold. That confidence changed every conversation.”', name: 'Alexander Janssen', role: 'CEO, Dutch SportsTech Fund', img: '/landing/testi-1.jpg', tone: TONES[0] },
-	{ quote: '“We walked into our raise knowing the market cold. That confidence changed every conversation.”', name: 'Alexander Janssen', role: 'CEO, Dutch SportsTech Fund', img: '/landing/testi-2.jpg', tone: TONES[1] },
-	{ quote: '“The intelligence and the introductions paid for the membership in the first month.”', name: 'Maria Alvarez', role: 'Founder, Pitch Analytics', img: '/landing/testi-3.jpg', tone: TONES[2] },
-	{ quote: '“The intelligence and the introductions paid for the membership in the first month.”', name: 'Maria Alvarez', role: 'Founder, Pitch Analytics', img: '/landing/testi-4.jpg', tone: TONES[3] },
-];
-
-/** Admins type a plain message; the design's curly quotes are added here rather
- *  than being something they have to remember to paste. */
-function quoted(text: string): string {
-	const t = text.trim();
-	if (!t) return '';
-	return /^[“"]/.test(t) ? t : `“${t}”`;
-}
+/* Shown until an admin fills Site assets → Atlas → Testimonials. The copy is
+   shared with the login panel; only the avatar gradient is this section's. */
+const PLACEHOLDER_QUOTES: Quote[] = BASE_QUOTES.map((q, i) => ({ ...q, tone: TONES[i % TONES.length] }));
 
 export function Testimonials({ items }: { items?: SiteItem[] }) {
 	const track = useRef<HTMLDivElement | null>(null);
