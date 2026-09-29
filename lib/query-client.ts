@@ -5,6 +5,7 @@ import { getSupabaseBrowser } from './supabase/client';
 import { sessionRefreshLock } from './session-refresh-lock';
 import { logoutState } from './logout-state';
 import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
+import { isPublicPath } from './public-paths';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
 //
@@ -61,12 +62,9 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
 
 /**
  * Paths where a hard-navigation to `/login?reason=session_expired` would loop:
- *  - we're already there, OR
- *  - we're in the middle of confirming/resetting a session (so the SWR layer
- *    hasn't lost the cookie yet but the backend isn't honouring it).
+ * we're already there, or we're mid-way through confirming/resetting a session
+ * (so the SWR layer still has the cookie but the backend isn't honouring it).
  *
- * If the user lands on any of these with an unauthenticated 401, we let the
- * page handle the failure inline (show an error) instead of redirecting.
  * Otherwise: stale cookies → SWR fires → 401 → hard nav → page mounts →
  * SWR fires → 401 → hard nav → … (state-wiping infinite loop every ~1.5s).
  */
@@ -75,9 +73,18 @@ const AUTH_PATHS = new Set([
   '/auth/callback', '/confirm',
 ]);
 
-function onAuthPath(): boolean {
+/**
+ * Whether a 401 here should be handled inline rather than by leaving the page.
+ *
+ * Public routes are in this set as well as the auth ones. The root providers
+ * call useUserProfile() on every route, so a visitor arriving at the marketing
+ * page with an expired cookie got a 401 and was hard-navigated to /login — the
+ * page is public and must not do that, whatever is in the cookie jar.
+ */
+function noRedirectHere(): boolean {
   if (typeof window === 'undefined') return false;
-  return AUTH_PATHS.has(window.location.pathname);
+  const { pathname } = window.location;
+  return AUTH_PATHS.has(pathname) || isPublicPath(pathname);
 }
 
 async function handleResponse(res: Response, _context?: string): Promise<void> {
@@ -86,7 +93,7 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
   const text = await res.text().catch(() => res.statusText);
 
   if ((res.status === 401 || res.status === 403) && !logoutState.isLoggingOut()) {
-    if (logoutState.hasValidSession() && !onAuthPath()) {
+    if (logoutState.hasValidSession() && !noRedirectHere()) {
       setTimeout(() => {
         window.location.href = '/login?reason=session_expired';
       }, 1500);

@@ -6,6 +6,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { enableQueryPolling, clearAuthCache } from '@/lib/query-client';
 import { sessionRefreshLock } from '@/lib/session-refresh-lock';
 import { logoutState } from '@/lib/logout-state';
+import { isPublicPath } from '@/lib/public-paths';
 import type { User } from '@supabase/supabase-js';
 
 export interface AuthSessionState {
@@ -73,14 +74,19 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		void globalMutate(() => true, undefined, { revalidate: false });
 		logoutState.setSessionValid(false);
 		setState({ user: null, loading: false, sessionValid: false });
-		// If we're already on an auth page, don't hard-navigate — that
-		// reloads the page, resets all React state, and starves the user
-		// of any in-progress form input. Cookies and SWR cache are
-		// cleared above, so the SWR queries gated on `sessionValid` won't
-		// re-fire and we won't loop. Forgot/reset/confirm flows likewise
-		// need to stay put.
-		const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/confirm'];
-		if (typeof window !== 'undefined' && !AUTH_PATHS.includes(window.location.pathname)) {
+		// Don't hard-navigate off an auth page — that reloads it, resets all
+		// React state and starves the user of any in-progress form input.
+		// Cookies and the SWR cache are cleared above, so the queries gated on
+		// `sessionValid` won't re-fire and we won't loop.
+		//
+		// And never off a PUBLIC one. This provider is mounted in the root
+		// providers, so it runs on the marketing landing page too: a visitor
+		// whose session had expired was being thrown from `/` to /login, which
+		// is the whole bug — the landing page is public and has to stay put
+		// whatever state the session is in.
+		const STAY_PUT = ['/confirm'];
+		const here = typeof window !== 'undefined' ? window.location.pathname : '';
+		if (here && !STAY_PUT.includes(here) && !isPublicPath(here)) {
 			window.location.href = '/login?reason=session_expired';
 		}
 	}, [clearAuthCookies]);
