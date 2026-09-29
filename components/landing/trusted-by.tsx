@@ -113,7 +113,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 	const reps = looping ? Math.max(1, Math.ceil((railW || naturalW) / naturalW)) : 1;
 	const copy = reps === 1 ? partners : Array.from({ length: reps }, () => partners).flat();
 	const copyW = copy.length * STRIDE;
-	const duration = copyW / 46; // ≈46px per second
+	const duration = copyW / 50; // ≈50px per second, the rate all three sites run at
 	// Reduces to STRIDE/46 whatever the count, so one arrow press is always one
 	// card regardless of how many times the list had to be repeated.
 	const step = (STRIDE / copyW) * duration;
