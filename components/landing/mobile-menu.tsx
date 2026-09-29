@@ -31,29 +31,6 @@ export const LINKS: [string, string][] = [
 	['FAQ', '/#faq'],
 ];
 
-/* Back to the mothership. Atlas is its own deployment on atlas.sportstechx.com,
-   so these have to be absolute — a root-relative '/#solutions' lands on Atlas's
-   own landing page, which has no such section.
-
-   "Investors Circle" is another name for Playmakers and has no page of its own,
-   so both entries share one destination. */
-/* TEMPORARY host. The STX site is served from a Vercel preview until it moves
-   back to its own domain — put https://sportstechx.com back here when it does.
-   No trailing slash: the links below append their own paths. */
-const STX_HOME = 'https://sports-tech-x-landing.vercel.app';
-/* TEMPORARY host, same story as STX_HOME — restore https://joinplaymakers.co
-   when Playmakers is back on its own domain. */
-const PLAYMAKERS_HOME = 'https://playmakers-omega.vercel.app';
-export const STX_SOLUTIONS: [string, string][] = [
-	['Playmakers', PLAYMAKERS_HOME],
-	['Atlas', 'https://atlas.sportstechx.com'],
-	['Investors Circle', PLAYMAKERS_HOME],
-];
-export const STX_LINKS: [string, string][] = [
-	['MEDIA', `${STX_HOME}/#media`],
-	['ABOUT', `${STX_HOME}/about`],
-];
-
 type MenuState = {
 	open: boolean;
 	toggle: () => void;
@@ -163,44 +140,11 @@ export function MobileMenuPanel() {
 		<>
 			<div id="lp-drawer" className={`lp-drawer${open ? ' is-open' : ''}`} aria-hidden={!open}>
 				<div className="lp-drawer-inner">
-					{/* SportsTechX, not Atlas: this panel exists because neither sub-site
-					    had any way back to the main site (team feedback "Sub-Page
-					    Navigation"). The Atlas page links below it are the drawer's
-					    original job and stay phone-only — above 1024 they are in the bar. */}
-					{/* Desktop only. On a phone the page slides right and carries the
-					    nav's own X into view; as an overlay the panel covers it, so the
-					    drawer needs its own way out besides Escape and the click-away. */}
-					<button
-						type="button"
-						className="lp-drawer-close"
-						onClick={close}
-						aria-label="Close menu"
-						tabIndex={open ? undefined : -1}
-					>
-						<svg viewBox="0 0 24 24" aria-hidden width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.5}>
-							<path d="M6 6 18 18M18 6 6 18" />
-						</svg>
-					</button>
+					{/* eslint-disable-next-line @next/next/no-img-element -- SVG; next/image does not optimise it */}
+					<img className="lp-drawer-mark" src="/landing/atlas-wordmark-white.svg" alt="Atlas" />
 
-					<a href={STX_HOME} className="lp-drawer-home" onClick={close} tabIndex={open ? undefined : -1}>
-						{/* eslint-disable-next-line @next/next/no-img-element -- fixed-size bitmap mark */}
-						<img className="lp-drawer-mark" src="/landing/stx-wordmark-white.png" alt="SportsTechX" />
-					</a>
-
-					<nav className="lp-drawer-nav" aria-label="SportsTechX">
-						<span className="lp-drawer-group">Solutions</span>
-						{STX_SOLUTIONS.map(([label, href]) => (
-							<a
-								key={label}
-								className="lp-drawer-link lp-drawer-link--sub"
-								href={href}
-								onClick={close}
-								tabIndex={open ? undefined : -1}
-							>
-								{label}
-							</a>
-						))}
-						{STX_LINKS.map(([label, href]) => (
+					<nav className="lp-drawer-nav" aria-label="Mobile">
+						{LINKS.map(([label, href]) => (
 							<a
 								key={label}
 								className="lp-drawer-link"
@@ -213,26 +157,9 @@ export function MobileMenuPanel() {
 						))}
 					</nav>
 
-					<div className="lp-drawer-own">
-						<span className="lp-drawer-sep" aria-hidden />
-						<nav className="lp-drawer-nav" aria-label="This page">
-							{LINKS.map(([label, href]) => (
-								<a
-									key={label}
-									className="lp-drawer-link"
-									href={href}
-									onClick={close}
-									tabIndex={open ? undefined : -1}
-								>
-									{label}
-								</a>
-							))}
-						</nav>
-
-						<Link className="lp-btn lp-btn--login lp-drawer-cta" href="/login" onClick={close} tabIndex={open ? undefined : -1}>
-							LOG IN
-						</Link>
-					</div>
+					<Link className="lp-btn lp-btn--login lp-drawer-cta" href="/login" onClick={close} tabIndex={open ? undefined : -1}>
+						LOG IN
+					</Link>
 				</div>
 			</div>
 

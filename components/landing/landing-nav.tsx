@@ -4,6 +4,10 @@ import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { LINKS, MobileMenuButton, useMobileMenu } from '@/components/landing/mobile-menu';
 
+/* TEMPORARY host. The STX site is served from a Vercel preview until it moves
+   back to its own domain — put https://sportstechx.com back here when it does. */
+const STX_HOME = 'https://sports-tech-x-landing.vercel.app';
+
 const subscribe = (onChange: () => void) => {
 	window.addEventListener('scroll', onChange, { passive: true });
 	return () => window.removeEventListener('scroll', onChange);
@@ -56,8 +60,10 @@ export function LandingNav() {
 				    drawer was invisible. */}
 				<MobileMenuButton />
 				<Link href="/" className="lp-nav-mark" aria-label="Atlas">
+					{/* The full lockup, not the bare A: the three sites show their whole
+					    wordmark in the bar now. */}
 					{/* eslint-disable-next-line @next/next/no-img-element -- SVG; next/image does not optimise it */}
-					<img src="/landing/atlas-a.svg" alt="Atlas" />
+					<img src="/landing/atlas-wordmark-white.svg" alt="Atlas" />
 				</Link>
 				<div className="lp-nav-right">
 					<div className="lp-nav-links">
@@ -70,6 +76,13 @@ export function LandingNav() {
 					<Link className="lp-btn lp-btn--login lp-btn--sm" href="/login">
 						LOG IN
 					</Link>
+
+					{/* The way back to sportstechx.com, in the bar rather than behind a
+					    hamburger. Last in the row, after LOG IN, on every site. */}
+					<a href={STX_HOME} className="lp-nav-stx" aria-label="SportsTechX">
+						{/* eslint-disable-next-line @next/next/no-img-element -- fixed-size bitmap mark */}
+						<img src="/landing/stx-s-white.png" alt="" />
+					</a>
 				</div>
 			</div>
 		</nav>
