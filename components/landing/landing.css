@@ -167,22 +167,27 @@
 /* Design: nav frame at x=107, y=85 — a wider gutter than the content sections. */
 /* Design puts the nav at 1291 @ x=107 — 26px tighter per side than the
    content. Normalised to --lp-pad so it lines up with every other section. */
-.lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 18px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
-.lp-nav.is-scrolled .lp-nav-inner { padding-top: 10px; padding-bottom: 10px; }
+/* 24/12 rather than 18/10: the three sites share one vertical rhythm, and
+   sportstechx.com sets it (bar 24 from the top at rest, 12 once docked). */
+.lp-nav-inner { max-width: var(--lp-shell); margin: 0 auto; padding: 24px var(--lp-pad); display: flex; align-items: center; justify-content: space-between; gap: 24px; transition: padding 0.25s ease; }
+.lp-nav.is-scrolled .lp-nav-inner { padding-top: 12px; padding-bottom: 12px; }
 /* margin-right:auto, not a wrapper: .lp-nav-inner is space-between and the
    burger is permanent now, so without this the mark centres itself between
    the burger and the links. Was in the <=1024 block only. */
 .lp-nav-mark { display: inline-flex; align-items: center; text-decoration: none; margin-right: auto; }
-.lp-nav-mark img { height: 56px; width: auto; }
+.lp-nav-mark img { height: 48px; width: auto; }
 /* Links capsule — design: 397x58, 35px side padding, 36px gap, pill radius.
    The LOG IN pill sits OUTSIDE it, 19px to the right. */
 .lp-nav-links { display: inline-flex; align-items: center; height: 48px; gap: 36px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 0 35px; backdrop-filter: blur(4px); }
 .lp-nav-link { font-family: var(--lp-ui); font-weight: 500; font-size: 16px; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-decoration: none; transition: color 0.12s ease; }
 .lp-nav-link:hover { color: #fff; }
 .lp-nav-right { display: flex; align-items: center; gap: 19px; }
-/* Visible at every width: this is the only route back to the main site, so it
-   cannot stay phone-only. Was `display: none` + a mobile override. */
-.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; background: none; border: none; color: #fff; cursor: pointer; }
+/* The SportsTechX mark closes the bar. Sized to the LOG IN pill's optical
+   weight rather than its box, so it reads as a mark and not a third button. */
+.lp-nav-stx { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; transition: opacity 0.12s ease, scale 0.16s ease; }
+.lp-nav-stx img { height: 30px; width: auto; }
+.lp-nav-stx:hover { opacity: 0.8; scale: 1.06; }
+.lp-nav-toggle { display: none; background: none; border: none; color: #fff; cursor: pointer; }
 
 /* ── Hero (Intro + Final share .lp-hero) ───────────────────────────────── */
 .lp-hero { position: relative; background: var(--lp-dark); overflow: hidden; }
@@ -611,7 +616,7 @@
 	flex-direction: column;
 	align-items: flex-start;
 }
-.lp-drawer-mark { height: 40px; width: auto; }
+.lp-drawer-mark { height: 30px; width: auto; }
 .lp-drawer-nav { display: flex; flex-direction: column; margin-top: 52px; width: 100%; }
 .lp-drawer-link {
 	display: block;
@@ -633,28 +638,6 @@
    left-aligned and never notice; a full-width centred pill would have its end
    cut off. */
 .lp-drawer-cta { margin-top: 34px; width: min(calc(70.4vw - 60px), 223px); }
-.lp-drawer-home { display: inline-block; text-decoration: none; }
-/* Shown only in the desktop overlay — see the note in the ≥1025 block. */
-.lp-drawer-close {
-	display: none; position: absolute; top: 20px; right: 22px;
-	width: 40px; height: 40px; align-items: center; justify-content: center;
-	background: none; border: none; color: rgba(255, 255, 255, 0.7); cursor: pointer;
-	transition: color 0.12s ease;
-}
-.lp-drawer-close:hover { color: #fff; }
-.lp-drawer-group {
-	display: block; margin-top: 8px; padding: 14px 0 6px;
-	font-family: var(--lp-mono), monospace; font-size: 12px; letter-spacing: 0.14em;
-	text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
-}
-/* Indented children of Solutions. Sentence case and lighter than a top-level
-   link, so the group reads as a group without needing a disclosure control. */
-.lp-drawer-link--sub {
-	padding: 10px 0 10px 14px; font-size: 16px; letter-spacing: 0.02em;
-	text-transform: none; color: rgba(255, 255, 255, 0.86);
-}
-.lp-drawer-own { width: 100%; }
-.lp-drawer-sep { display: block; height: 1px; margin: 26px 0 4px; background: rgba(255, 255, 255, 0.14); }
 
 .lp-shell {
 	position: relative;
@@ -695,24 +678,10 @@
 	.lp-drawer, .lp-shell, .lp-shell-page, .lp-notch { transition: none; }
 }
 
-/* Above 1024 the page's own links are in the bar, so the drawer carries only the
-   SportsTechX block. The drawer itself stays reachable at every width now — it
-   is the only way back to the main site. */
+/* Above 1024 the links live in the bar, so the drawer must not be reachable —
+   and the shell must not keep a slide left over from a resize. */
 @media (min-width: 1025px) {
-	.lp-drawer-own { display: none; }
-
-	/* Overlay here, push on a phone. The slide works on a phone because the bar
-	   holds only the hamburger and the mark; at desktop width the links capsule
-	   and the LOG IN pill ride 283px off the right edge and clip mid-word, which
-	   reads as broken rather than as a menu.
-	   The panel is already `fixed`, so an overlay is just dropping the shell's
-	   translate — except the shell is z-20 and the panel z-10 (the phone only
-	   sees the panel because the shell moves off it), so the panel has to come up
-	   over the shell and its nav. Still under the grain at 60. */
-	.lp-drawer { z-index: 50; }
-	.lp-drawer-inner { position: relative; }
-	.lp-drawer-close { display: inline-flex; }
-	.lp-notch { display: none; }
+	.lp-drawer, .lp-notch { display: none; }
 	.lp-shell.is-open {
 		translate: none;
 		overflow: visible;
@@ -720,6 +689,7 @@
 		border-left: none;
 		box-shadow: none;
 	}
+	.lp-shell.is-open .lp-shell-page { opacity: 1; filter: none; }
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
@@ -768,6 +738,8 @@
 @media (max-width: 1024px) {
 	.lp-nav-links { display: none; }
 	.lp-nav-mark img { height: 32px; }
+	/* The burger is the phone's menu; above 1024 the links are in the bar. */
+	.lp-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; }
 	/* The button carried no width/height/padding, so the tap target was the
 	   26px glyph. */
 	/* 12, not 18: the toggle's 44px tap box now sets the bar's height, and the
