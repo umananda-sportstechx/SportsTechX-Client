@@ -1,19 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PLACEHOLDER_QUOTES, quoted, type Quote } from '@/lib/testimonial-quotes';
 
 /**
  * The testimonial panel beside the sign-in form (team feedback "Atlas login
  * page", referencing app.trykondo.com/signin).
  *
+ * Shaped after that reference: one card on the page's own background — not a
+ * coloured block — with the person at the top and the quote under them, and a
+ * round arrow either side to step through. Everything is drawn from the Atlas
+ * auth tokens, so it follows the light/dark switch with the rest of the page.
+ *
  * It reads the same admin-managed section the Atlas landing does, so a quote
  * added in Site assets → Atlas → Testimonials shows up in both places. The CMS
- * call goes straight to the public endpoint from the browser rather than being
- * fetched on the server: next.config rewrites /api/* to the backend, the route
- * needs no session, and doing it this way leaves the auth page itself a client
- * component — restructuring the login route around a decorative panel is not a
- * trade worth making.
+ * call goes straight to the public endpoint from the browser: next.config
+ * rewrites /api/* to the backend, the route needs no session, and doing it this
+ * way leaves the auth page a client component — restructuring the login route
+ * around a decorative panel is not a trade worth making.
  *
  * A failure of any kind keeps the built-in set. The panel never blocks sign-in.
  */
@@ -29,6 +34,8 @@ interface SiteItem {
 export function AuthQuotes() {
   const [quotes, setQuotes] = useState<Quote[]>(PLACEHOLDER_QUOTES);
   const [i, setI] = useState(0);
+  // Once someone drives it themselves, stop moving it under them.
+  const manual = useRef(false);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -53,9 +60,19 @@ export function AuthQuotes() {
   useEffect(() => {
     if (quotes.length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = window.setInterval(() => setI((n) => (n + 1) % quotes.length), ROTATE_MS);
+    const t = window.setInterval(() => {
+      if (!manual.current) setI((n) => (n + 1) % quotes.length);
+    }, ROTATE_MS);
     return () => window.clearInterval(t);
   }, [quotes.length]);
+
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      manual.current = true;
+      setI((n) => (n + dir + quotes.length) % quotes.length);
+    },
+    [quotes.length],
+  );
 
   const q = quotes[i % quotes.length];
   if (!q) return null;
@@ -63,44 +80,61 @@ export function AuthQuotes() {
   return (
     <aside
       aria-label="What members say"
-      className="hidden w-[46%] max-w-[560px] shrink-0 flex-col justify-center rounded-xl px-12 py-14 lg:flex"
-      style={{ background: 'var(--atlas-quote-panel)' }}
+      className="hidden w-[46%] max-w-[560px] shrink-0 items-center justify-center gap-2 lg:flex"
     >
-      <p className="text-[11px] tracking-[0.16em] text-white/55 uppercase">Atlas testimonials</p>
+      <Arrow side="left" onClick={() => step(-1)} disabled={quotes.length < 2} />
 
-      <blockquote
-        key={i}
-        className="atlas-quote-in mt-7 text-[22px] leading-[1.45] font-medium text-white"
+      <div
+        className="w-full max-w-[380px] rounded-xl border px-6 py-6"
+        style={{ background: 'var(--atlas-card)', borderColor: 'var(--atlas-border)' }}
       >
-        {q.quote}
-      </blockquote>
-
-      <figcaption className="mt-8 flex items-center gap-3">
-        {q.img && (
-          // eslint-disable-next-line @next/next/no-img-element -- a CMS URL or a
-          // static file; next/image would add a wrapper for no gain at 40px.
-          <img src={q.img} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-        )}
-        <span className="min-w-0">
-          <span className="block text-[13px] font-medium text-white">{q.name}</span>
-          {q.role && <span className="block text-[12px] text-white/60">{q.role}</span>}
-        </span>
-      </figcaption>
-
-      {quotes.length > 1 && (
-        <div className="mt-9 flex gap-1.5" aria-hidden>
-          {quotes.map((_, n) => (
-            <span
-              key={n}
-              className="h-1 rounded-full transition-all duration-300"
-              style={{
-                width: n === i % quotes.length ? 20 : 8,
-                background: n === i % quotes.length ? 'rgb(255 255 255 / 0.85)' : 'rgb(255 255 255 / 0.25)',
-              }}
-            />
-          ))}
+        <div className="flex items-center gap-3">
+          {q.img && (
+            // eslint-disable-next-line @next/next/no-img-element -- a CMS URL or
+            // a static file; next/image would add a wrapper for no gain at 40px.
+            <img src={q.img} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+          )}
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold text-[var(--atlas-ink)]">{q.name}</span>
+            {q.role && (
+              <span className="block truncate text-[12px] text-[var(--atlas-muted)]">{q.role}</span>
+            )}
+          </span>
         </div>
-      )}
+
+        <blockquote
+          key={i}
+          className="mt-5 text-[14px] leading-[1.6] text-[var(--atlas-muted)]"
+        >
+          {q.quote}
+        </blockquote>
+      </div>
+
+      <Arrow side="right" onClick={() => step(1)} disabled={quotes.length < 2} />
     </aside>
+  );
+}
+
+function Arrow({
+  side,
+  onClick,
+  disabled,
+}: {
+  side: 'left' | 'right';
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={side === 'left' ? 'Previous testimonial' : 'Next testimonial'}
+      className="grid size-8 shrink-0 place-items-center rounded-full border text-[var(--atlas-muted)] transition-colors hover:text-[var(--atlas-ink)] disabled:opacity-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-navy)]"
+      style={{ background: 'var(--atlas-field)', borderColor: 'var(--atlas-border)' }}
+    >
+      <Icon size={16} strokeWidth={1.75} />
+    </button>
   );
 }
