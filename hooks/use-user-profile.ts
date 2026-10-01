@@ -34,6 +34,8 @@ export interface Profile {
   // Drives feature gating in the user-facing app, NOT admin access.
   user_type: string | null;
   user_type_detail: string | null;
+  // Free-text "what brings you to Atlas", from Explore onboarding.
+  background?: string | null;
   // `account_type` is the self-declared persona set at onboarding.
   account_type: AccountType | null;
   // Set once the user has seen the post-login plan paywall.
@@ -58,9 +60,9 @@ export interface Profile {
   // advances through the post-signup flow; the per-tier complete flags mark a
   // finished onboarding for that tier.
   onboarding_stage: string | null;
-  onboarding_complete_free: boolean | null;
-  onboarding_complete_growth: boolean | null;
-  onboarding_complete_pro: boolean | null;
+  onboarding_complete_explore: boolean | null;
+  onboarding_complete_raise: boolean | null;
+  onboarding_complete_scout: boolean | null;
   created_at: string;
 }
 
