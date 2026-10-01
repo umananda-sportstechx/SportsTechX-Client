@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
+import { getUserType, type UserType } from '@/hooks/use-user-profile';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { apiRequest } from '@/lib/query-client';
 
@@ -15,13 +16,12 @@ import { apiRequest } from '@/lib/query-client';
 // Atlas identity palette (from the mockup SVGs).
 const INK = '#1F1E1C', MUTED = '#6B6A64', FAINT = '#9B9A93', BORDER = '#E4E2DB', NAVY = '#1B4C78', SURFACE = '#FFFFFF', PAGE = '#F4F2EC';
 
-type Plan = 'free' | 'general' | 'raise' | 'scout';
+type Plan = UserType;
 interface PlanDef { key: Plan; name: string; price: string; tagline: string; features: string[]; highlight?: boolean }
 const PLANS: PlanDef[] = [
-	{ key: 'free', name: 'Free', price: '€0', tagline: 'Explore the ecosystem', features: ['Browse the public directory', 'Events & newsletter', 'Basic filters'] },
-	{ key: 'general', name: 'General', price: '€500', tagline: 'Full platform access', features: ['Everything in Free', 'Companies, investors & deals directories', 'Advanced filters', 'Market reports'] },
-	{ key: 'raise', name: 'Raise', price: '€600', tagline: 'Raise capital like a pro', features: ['Atlas Raise fundraising workspace', 'Investor database + matching', 'AI pitch-deck analysis', 'Pipeline & market sizing', 'Quarterly 1:1 with STX leadership'], highlight: true },
-	{ key: 'scout', name: 'Scout', price: '€2,500', tagline: 'Sourcing & dealflow intelligence', features: ['Everything in General', 'Dealflow & M&A intelligence', 'Full contacts + export', 'Deep-dive analytics'] },
+	{ key: 'explore', name: 'Explore', price: '€0', tagline: 'Explore the ecosystem', features: ['Browse the public directory', 'Events & newsletter', 'Programs & the sector framework'] },
+	{ key: 'raise', name: 'Raise', price: '€600', tagline: 'Raise capital like a pro', features: ['Atlas Raise fundraising workspace', 'Companies, investors & deals directories', 'Investor database + matching', 'AI pitch-deck analysis', 'Advanced filters, exports & market reports'], highlight: true },
+	{ key: 'scout', name: 'Scout', price: '€2,500', tagline: 'Sourcing & dealflow intelligence', features: ['Everything in Raise', 'Dealflow & M&A intelligence', 'Full contacts + export', 'Deep-dive analytics'] },
 ];
 
 export function PaywallGate() {
@@ -35,7 +35,7 @@ export function PaywallGate() {
 		setBusy(plan ?? 'dismiss');
 		try {
 			// Free / dismiss: set the tier directly and close the wall (no payment).
-			if (!plan || plan === 'free') {
+			if (!plan || plan === 'explore') {
 				await apiRequest('POST', '/api/profiles/plan', plan ? { plan } : {});
 				await mutate();
 				return;
@@ -51,7 +51,9 @@ export function PaywallGate() {
 		finally { setBusy(null); }
 	};
 
-	const current = profile.user_type ?? 'free';
+	// getUserType validates rather than casts, so a profile holding a retired
+	// label highlights the base tier instead of nothing at all.
+	const current = getUserType(profile);
 	return (
 		<div style={{ position: 'fixed', inset: 0, zIndex: 200, background: PAGE, color: INK, overflowY: 'auto', fontFamily: 'Helvetica, Arial, sans-serif' }}>
 			<div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(32px, 6vh, 72px) 24px' }}>
@@ -75,7 +77,7 @@ export function PaywallGate() {
 								<div style={{ fontSize: 12, color: FAINT, margin: '2px 0 14px' }}>{p.tagline}</div>
 								<div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 18 }}>
 									<span style={{ fontSize: 30, fontWeight: 700, color: INK }}>{p.price}</span>
-									{p.price.startsWith('€') && p.key !== 'free' && <span style={{ fontSize: 13, color: MUTED }}>/year</span>}
+									{p.price.startsWith('€') && p.key !== 'explore' && <span style={{ fontSize: 13, color: MUTED }}>/year</span>}
 								</div>
 								<ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'grid', gap: 9, flex: 1 }}>
 									{p.features.map((f) => (
@@ -94,7 +96,7 @@ export function PaywallGate() {
 										fontSize: 14, fontWeight: 600, cursor: isCurrent ? 'default' : 'pointer',
 										display: 'grid', placeItems: 'center',
 									}}>
-									{busy === p.key ? <Loader2 className="spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'free' ? 'Continue on Free' : `Choose ${p.name}`}
+									{busy === p.key ? <Loader2 className="spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'explore' ? 'Continue on Explore' : `Choose ${p.name}`}
 								</button>
 							</div>
 						);

@@ -101,7 +101,7 @@ export function useTechTagOptions(): [string, string][] {
 /** Locked teaser shown in place of the advanced filters when the user's tier
  *  doesn't include them (feature slug `advanced_filters`). */
 export function LockedFilters({ requiredTier }: { requiredTier?: string | null }) {
-	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Growth';
+	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Raise';
 	return (
 		<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--a-faint)', border: '1px dashed var(--a-border-strong)', borderRadius: 999, padding: '6px 12px' }}>
 			<Lock size={13} /> Advanced filters (sector tiers, location, tech tags) · {tier}+

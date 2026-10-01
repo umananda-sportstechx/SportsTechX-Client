@@ -3,16 +3,42 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { useAuthSession } from '@/hooks/use-auth-session';
-import { useUserProfile, useIsAdmin, getUserType, type UserType } from '@/hooks/use-user-profile';
+import { useUserProfile, useIsAdmin, getUserType, UPGRADE_PATH, type UserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 
 export interface Feature {
-  id: number;
+  /** A uuid. This was typed `number` and never was one. */
+  id: string;
   slug: string;
   name: string;
-  free: boolean;
-  growth: boolean;
-  pro: boolean;
+  /** One flag per tier. No inheritance — a feature lists every tier that has
+   *  it, so `feature[userType]` is the whole answer. */
+  explore: boolean;
+  raise: boolean;
+  scout: boolean;
+  /** @deprecated The retired ladder. `/api/features` serves both key sets
+   *  while day-old cached responses are still in circulation; these go once
+   *  that window has passed. */
+  free?: boolean;
+  growth?: boolean;
+  pro?: boolean;
+}
+
+/**
+ * Read a tier flag off a feature, falling back to the retired key.
+ *
+ * A response cached before the server started sending the real tier names
+ * carries only `{free, growth, pro}` — `/api/features` is public with
+ * `max-age=3600, stale-while-revalidate=86400`, so one can be served for a
+ * day. Without the fallback every feature in that body reads as locked.
+ */
+const LEGACY_KEY: Record<UserType, 'free' | 'growth' | 'pro'> = {
+  explore: 'free',
+  raise: 'growth',
+  scout: 'pro',
+};
+function allows(feature: Feature, tier: UserType): boolean {
+  return feature[tier] ?? feature[LEGACY_KEY[tier]] ?? false;
 }
 
 /** A per-user override fetched from /api/me/feature-grants. Merged on top of
@@ -109,26 +135,17 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
       return { hasAccess: true, isLocked: false, userType, requiredTier: null, isLoading: false, error: false };
     }
 
-    let hasAccess = false;
-    let requiredTier: UserType | null = null;
+    // The matrix carries one flag per tier with no inheritance, so the user's
+    // own flag is the answer. The previous version collapsed five tier names
+    // onto three access levels and then OR-ed the flags together, which is why
+    // `requiredTier` could only ever come back 'raise' or 'general' — and why
+    // every lock badge in the app read "GROWTH".
+    const hasAccess = allows(feature, userType);
 
-    // The feature matrix stays in access-LEVELS (free/growth/pro). Plans map onto
-    // a level: raise/scout (and legacy pro) → full; general (and legacy growth) →
-    // mid; free → base. Upgrade targets are surfaced as plan names.
-    const level: 'free' | 'growth' | 'pro' =
-      (userType === 'raise' || userType === 'scout' || userType === 'pro') ? 'pro'
-        : (userType === 'general' || userType === 'growth') ? 'growth'
-          : 'free';
-
-    if (level === 'pro') {
-      hasAccess = feature.free || feature.growth || feature.pro;
-    } else if (level === 'growth') {
-      hasAccess = feature.free || feature.growth;
-      if (!hasAccess) requiredTier = 'raise'; // a pro-level feature — cheapest unlock is raise
-    } else {
-      hasAccess = feature.free;
-      if (!hasAccess) requiredTier = feature.growth ? 'general' : 'raise';
-    }
+    // Cheapest tier above the user's that does have it.
+    const requiredTier: UserType | null = hasAccess
+      ? null
+      : UPGRADE_PATH.slice(UPGRADE_PATH.indexOf(userType) + 1).find((t) => allows(feature, t)) ?? null;
 
     return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false, error: false };
   };

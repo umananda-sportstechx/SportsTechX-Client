@@ -3,14 +3,17 @@
 import Link from 'next/link';
 import { Lock, ArrowRight } from 'lucide-react';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { TIER_LABEL, type UserType } from '@/hooks/use-user-profile';
 
-function tierLabel(required: string | null): { TIER: string; label: string } {
-  const t = required === 'pro' ? 'pro' : 'growth';
-  return { TIER: t.toUpperCase(), label: t === 'pro' ? 'Pro' : 'Growth' };
+// Falls back to Raise, the cheapest paid tier — the branch is only reached
+// when the matrix has not named a required tier.
+function tierLabel(required: UserType | null): { TIER: string; label: string } {
+  const label = TIER_LABEL[required ?? 'raise'];
+  return { TIER: label.toUpperCase(), label };
 }
 
 /**
- * Small PRO/GROWTH pill for a tab label when the tab's feature is locked for
+ * Small RAISE/SCOUT pill for a tab label when the tab's feature is locked for
  * the current user. Renders nothing when the user has access.
  */
 export function TabLockBadge({ slug }: { slug: string }) {

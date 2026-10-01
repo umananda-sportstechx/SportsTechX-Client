@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useFeatureAccess, useFeatureAccessContext } from '@/contexts/feature-access-context';
-import type { UserType } from '@/hooks/use-user-profile';
+import { TIER_LABEL, type UserType } from '@/hooks/use-user-profile';
 
 /**
  * Full-page tier-gate upsell. Ported pixel-for-pixel from ui_design_3
@@ -19,7 +19,7 @@ import type { UserType } from '@/hooks/use-user-profile';
  * always reflects actual entitlements.
  */
 
-type LockTier = 'growth' | 'pro';
+type LockTier = Exclude<UserType, 'explore'>;
 
 interface LockCopy {
 	title: string;
@@ -110,7 +110,7 @@ const SCREEN_LOCK_COPY: Record<string, LockCopy> = {
 export function ScreenLock({ screen, requiredTier }: { screen: string; requiredTier: LockTier }) {
 	const tier = requiredTier;
 	const TIER = tier.toUpperCase();
-	const TIER_LABEL = tier === 'growth' ? 'Growth' : 'Pro';
+	const label = TIER_LABEL[tier];
 	const copy = SCREEN_LOCK_COPY[screen] || {
 		title: 'Premium feature',
 		icon: Lock,
@@ -130,8 +130,8 @@ export function ScreenLock({ screen, requiredTier }: { screen: string; requiredT
 						</svg>
 						<span>{TIER}</span>
 					</div>
-					<div className="screen-lock-eyebrow">{TIER_LABEL} plan · {copy.title}</div>
-					<h1 className="screen-lock-title">{copy.title} is part of {TIER_LABEL}.</h1>
+					<div className="screen-lock-eyebrow">{label} plan · {copy.title}</div>
+					<h1 className="screen-lock-title">{copy.title} is part of {label}.</h1>
 					<p className="screen-lock-lead">{copy.lead}</p>
 					<ul className="screen-lock-bullets">
 						{copy.bullets.map((b, i) => (
@@ -147,7 +147,7 @@ export function ScreenLock({ screen, requiredTier }: { screen: string; requiredT
 					</ul>
 					<div className="screen-lock-actions">
 						<Link href="/subscriptions" className="btn screen-lock-cta">
-							Upgrade to {TIER_LABEL}
+							Upgrade to {label}
 							<ArrowRight size={13} />
 						</Link>
 						<Link href="/subscriptions" className="btn ghost">Compare plans</Link>
@@ -202,7 +202,8 @@ export function FeatureGate({
 	// Matrix failed to load — show a retry, NOT a (wrong) paywall or a blank page.
 	if (access.error) return <FeatureMatrixError onRetry={reload} />;
 	if (access.isLocked) {
-		const tier: LockTier = access.requiredTier === 'pro' ? 'pro' : 'growth';
+		// Anything the matrix cannot place falls back to the cheapest paid tier.
+		const tier: LockTier = access.requiredTier === 'scout' ? 'scout' : 'raise';
 		return <ScreenLock screen={screen} requiredTier={tier} />;
 	}
 	return <>{children}</>;
