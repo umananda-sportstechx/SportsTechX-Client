@@ -20,7 +20,7 @@ export default function OnboardingPage() {
     setBusy(true);
     try {
       if (persona === 'user') {
-        await patchOnboarding({ account_type: 'user', onboarding_stage: 'complete', onboarding_complete_free: true });
+        await patchOnboarding({ account_type: 'user', onboarding_stage: 'complete', onboarding_complete_explore: true });
         goDashboard();
         return;
       }
@@ -44,7 +44,7 @@ export default function OnboardingPage() {
   // When the claim is submitted, mark onboarding done; closing the modal (incl.
   // the "Back to the platform" button on the done screen) returns to the app.
   function onClaimSubmitted() {
-    void patchOnboarding({ onboarding_stage: 'complete', onboarding_complete_free: true });
+    void patchOnboarding({ onboarding_stage: 'complete', onboarding_complete_explore: true });
   }
 
   if (claimRole) {
