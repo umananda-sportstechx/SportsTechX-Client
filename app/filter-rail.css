@@ -144,22 +144,22 @@
   background: var(--bg);
   text-transform: uppercase;
 }
-.flt-tier-PRO {
+.flt-tier-SCOUT {
   border-color: oklch(70% 0.16 60);
   color: oklch(82% 0.13 60);
   background: oklch(28% 0.05 60 / 0.4);
 }
-.flt-tier-GROWTH {
+.flt-tier-RAISE {
   border-color: oklch(70% 0.12 230);
   color: oklch(82% 0.10 230);
   background: oklch(28% 0.04 230 / 0.4);
 }
-[data-theme="light"] .flt-tier-PRO {
+[data-theme="light"] .flt-tier-SCOUT {
   border-color: oklch(70% 0.16 60);
   color: oklch(45% 0.16 60);
   background: oklch(96% 0.04 60);
 }
-[data-theme="light"] .flt-tier-GROWTH {
+[data-theme="light"] .flt-tier-RAISE {
   border-color: oklch(70% 0.12 230);
   color: oklch(40% 0.13 230);
   background: oklch(96% 0.03 230);

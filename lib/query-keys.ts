@@ -129,7 +129,7 @@ export const qk = {
   reports: {
     list: (params: Record<string, unknown> = {}) => ['/api/reports', params] as const,
     detail: (idOrSlug: string) => [`/api/reports/${idOrSlug}`] as const,
-    sections: (idOrSlug: string, as?: 'free' | 'growth' | 'pro') =>
+    sections: (idOrSlug: string, as?: 'explore' | 'raise' | 'scout') =>
       [`/api/reports/${idOrSlug}/sections`, as ? { as } : {}] as const,
     sectionData: (sectionId: string) => [`/api/reports/sections/${sectionId}/data`] as const,
     pollResults: (pollId: string) => [`/api/reports/polls/${pollId}/results`] as const,
@@ -217,12 +217,14 @@ export const qk = {
 
   // ── Credits ─────────────────────────────────────────────────────────────
   credits: {
-    // type MUST go through as an object so buildUrl emits `?type=…`; a bare
-    // string is dropped by buildUrl, which made every call resolve to the
-    // default ('ai') — so integration ("export") balances never loaded.
-    balance: (type: 'ai' | 'integration' = 'ai') => ['/api/credits/balance', { type }] as const,
-    // `all` merges both pools into one time-ordered feed (credit history page).
-    ledger: (type: 'ai' | 'integration' | 'all', cursor?: string, limit = 50) =>
+    // One wallet, so no pool to select. The server still accepts a `type`
+    // query and ignores it; not sending one keeps a single SWR cache entry
+    // instead of two that would hold the same number.
+    balance: () => ['/api/credits/balance'] as const,
+    // The ledger still records a CATEGORY per spend ('ai' = AI features,
+    // 'integration' = exports and CRM sync) even though one balance funds
+    // both, so filtering the history stays useful. 'all' is the whole feed.
+    ledger: (type: 'ai' | 'integration' | 'stx' | 'all', cursor?: string, limit = 50) =>
       ['/api/credits/ledger', { type, cursor, limit }] as const,
   },
 

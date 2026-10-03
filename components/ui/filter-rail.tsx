@@ -27,6 +27,7 @@ import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Check, ChevronRight, Search, X, List, Grid3x3 } from 'lucide-react';
 import { useFeatureAccessContext, type FeatureAccessResult } from '@/contexts/feature-access-context';
+import { TIER_LABEL, type UserType } from '@/hooks/use-user-profile';
 
 // ─── Facet types ──────────────────────────────────────────────────────────
 
@@ -494,7 +495,9 @@ function FRAmount({
 
 // ─── Tier-lock badge (PRO / GROWTH) ───────────────────────────────────────
 
-function TierLock({ tier }: { tier: 'GROWTH' | 'PRO' }) {
+type PaidTier = Exclude<UserType, 'explore'>;
+
+function TierLock({ tier }: { tier: Uppercase<PaidTier> }) {
 	return (
 		<span className={`flt-tier flt-tier-${tier}`}>
 			<svg width="8" height="9" viewBox="0 0 8 9" fill="none" aria-hidden="true">
@@ -512,10 +515,13 @@ function TierLock({ tier }: { tier: 'GROWTH' | 'PRO' }) {
  * the tier badge reflects the minimum tier from the feature matrix.
  */
 function LockedGroup({ label, requiredTier }: { label: string; requiredTier: FeatureAccessResult['requiredTier'] }) {
-	const tier: 'GROWTH' | 'PRO' = requiredTier === 'pro' ? 'PRO' : 'GROWTH';
+	// Raise is the fallback: the cheapest paid tier, and the only sensible
+	// answer when the matrix has not named one.
+	const plan: PaidTier = requiredTier === 'scout' ? 'scout' : 'raise';
+	const tier = TIER_LABEL[plan].toUpperCase() as Uppercase<PaidTier>;
 	return (
 		<div className="flt-group locked">
-			<Link href="/subscriptions" className="flt-group-h" title={`Unlock with ${tier === 'PRO' ? 'Pro' : 'Growth'}`}>
+			<Link href="/subscriptions" className="flt-group-h" title={`Unlock with ${TIER_LABEL[plan]}`}>
 				<span className="flt-group-title">{label}</span>
 				<span className="flt-group-meta">
 					<TierLock tier={tier} />

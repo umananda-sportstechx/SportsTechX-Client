@@ -343,8 +343,8 @@ export function CrmSubscriptionWizard({
 	const quoteRows = mode === 'list' ? Math.min(companies.length, rowLimit) : Math.min(matched, rowLimit);
 	const quoteCredits = Math.ceil(quoteRows * perRow);
 
-	// Proactive credit check — export credits are the 'integration' pool.
-	const { data: creditBalance } = useSWR<{ total_available: number }>(qk.credits.balance('integration'), { revalidateOnFocus: false, dedupingInterval: 30_000 });
+	// Proactive credit check against the single STX wallet.
+	const { data: creditBalance } = useSWR<{ total_available: number }>(qk.credits.balance(), { revalidateOnFocus: false, dedupingInterval: 30_000 });
 	const availableCredits = creditBalance?.total_available ?? null;
 	const shortCredits = availableCredits != null && quoteCredits > availableCredits;
 
