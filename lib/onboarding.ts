@@ -13,7 +13,7 @@ import { qk } from '@/lib/query-keys';
 export async function patchOnboarding(patch: {
   account_type?: 'founder' | 'investor' | 'user';
   onboarding_stage?: string;
-  onboarding_complete_free?: boolean;
+  onboarding_complete_explore?: boolean;
 }): Promise<void> {
   await apiRequest('PATCH', '/api/me', patch);
   await mutate(qk.profile());
