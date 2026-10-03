@@ -28,19 +28,19 @@ return <AnalyticsDashboard />;
 
 | Tier | What it unlocks | Notes |
 |---|---|---|
-| `free` | Public-feeling features marked `free: true` in the feature matrix | Default for new signups |
-| `growth` | `free` + everything marked `growth: true` | Mid-tier — most paid features |
-| `pro` | `growth` + everything marked `pro: true` | Highest user tier |
+| `explore` | Features marked `explore: true` in the feature matrix | Default for new signups; free |
+| `raise` | Features marked `raise: true` — the founder workspace plus the full directories | €600/yr |
+| `scout` | Features marked `scout: true` — the investor workspace | €2,500/yr, highest tier |
 | `admin` (role, not tier) | EVERYTHING — bypasses all gates | The check runs first in `checkAccess()` |
 
-`UserType` is `'free' | 'growth' | 'pro'` (see [hooks/use-user-profile.ts](../hooks/use-user-profile.ts)). There's no "enterprise" tier in the client matrix yet (only the backend defines it for billing). All enterprise users effectively get `pro` access on the frontend.
+`UserType` is `'explore' | 'raise' | 'scout'` (see [hooks/use-user-profile.ts](../hooks/use-user-profile.ts)). The matrix has one flag per tier with **no inheritance** — a feature lists every tier that has it, so `feature[userType]` is the whole answer. The `user_tier` enum still carries retired labels (general/growth/pro/enterprise) that no profile holds; `getUserType()` validates against the three live tiers and falls back to `explore`.
 
 ## The matrix
 
 DB-driven: the `features` + `feature_tier_access` tables, joined and served by [server/src/modules/features/features.controller.ts](../../server/src/modules/features/features.controller.ts) (cached 5 min). Admins edit the tier × feature matrix via `/admin/features` — **no redeploy needed**. On-wire row shape is unchanged from the old hardcoded array:
 
 ```ts
-{ id, slug: 'reports_access', name: 'Reports library access', free: false, growth: true, pro: true }
+{ id, slug: 'reports_access', name: 'Reports library access', explore: false, raise: true, scout: true }
 ```
 
 The client fetches `/api/features` and rebuilds its in-memory `Map<slug, Feature>` lazily.
@@ -49,8 +49,8 @@ Seeding a brand-new slug into the tables (when the admin UI isn't enough — e.g
 
 ### Slugs that gate sub-page surfaces (not whole pages)
 
-- `advanced_filters` (growth+) — the advanced facets in the filter rail: Companies' Tech tags / City / Continent / Region, and Funding's Investor picker. See "Gated filter facets" below.
-- `company_contacts` (pro) — the "Primary contact" reveal on the company drawer + detail page.
+- `advanced_filters` (raise+) — the advanced facets in the filter rail: Companies' Tech tags / City / Continent / Region, and Funding's Investor picker. See "Gated filter facets" below.
+- `company_contacts` (scout) — the "Primary contact" reveal on the company drawer + detail page.
 
 ## Gated filter facets
 
@@ -72,7 +72,7 @@ if (access.isLocked) {
   return (
     <UpgradeCard
       title="Export to CSV"
-      tier={access.requiredTier}              // 'growth' or 'pro'
+      tier={access.requiredTier}              // 'raise' or 'scout'
       onUpgrade={() => router.push('/subscriptions')}
     />
   );
@@ -84,10 +84,10 @@ return <CsvExportButton />;
 
 ## Where it's used today
 
-- [app/(app)/api-keys/page.tsx](<../app/(app)/api-keys/page.tsx>) — gates the entire page on `api_access` (pro-only).
-- [app/(app)/analytics/page.tsx](<../app/(app)/analytics/page.tsx>) — gates on `analytics_access` (pro-only).
-- [app/(app)/saved-searches/page.tsx](<../app/(app)/saved-searches/page.tsx>) — gates on `saved_searches` (growth+).
-- [components/shell/ai-panel.tsx](../components/shell/ai-panel.tsx) — gates the AI chat surface on `ai_chat` (growth+).
+- [app/(app)/api-keys/page.tsx](<../app/(app)/api-keys/page.tsx>) — gates the entire page on `api_access` (scout-only).
+- [app/(app)/analytics/page.tsx](<../app/(app)/analytics/page.tsx>) — gates on `analytics_access` (scout-only).
+- [app/(app)/saved-searches/page.tsx](<../app/(app)/saved-searches/page.tsx>) — gates on `saved_searches` (raise+).
+- [components/shell/ai-panel.tsx](../components/shell/ai-panel.tsx) — gates the AI chat surface on `ai_chat` (raise+).
 - [components/ui/filter-rail.tsx](../components/ui/filter-rail.tsx) — per-facet `gate` on `advanced_filters` (Companies + Funding rails).
 - [components/ui/company-drawer.tsx](../components/ui/company-drawer.tsx) + [app/(app)/companies/[slug]/page.tsx](<../app/(app)/companies/[slug]/page.tsx>) — Primary contact reveal on `company_contacts`.
 - Various other inline checks — grep for `useFeatureAccess(`.
@@ -122,6 +122,6 @@ Use sparingly. Most components should consume the derived `checkAccess` result v
 
 ## Don't do this
 
-- Don't hardcode tier comparisons (`if (userType === 'pro')`). Use `useFeatureAccess(slug)` so the matrix stays the single source of truth.
+- Don't hardcode tier comparisons (`if (userType === 'scout')`). Use `useFeatureAccess(slug)` so the matrix stays the single source of truth.
 - Don't render gated UI behind an `if (isAdmin)` check that's separate from `useFeatureAccess`. Admins already bypass; double-gating creates confusion when the matrix changes.
 - Don't fetch `/api/features` from a page directly. Always go through the context.
