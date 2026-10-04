@@ -8,11 +8,11 @@ import { Plus, X, Loader2, Archive, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { H1, Button, Field, Input, Select, Textarea, Loading } from '@/components/atlas/kit';
-import { Logo, Flag } from '@/components/atlas/entity-logo';
+import { Button, Field, Input, Select, Textarea, Loading, Eyebrow, Logo, Flag, ListSwitcher } from '@/components/atlas';
+import { RaiseSectionHeader } from '@/components/raise/raise-section-header';
 
 /**
- * Atlas Raise — investor Pipeline (mock-up 14 / Notion "Pipeline"). Full-width
+ * Atlas Raise — investor Watchlist, formerly "Pipeline" (mock-up 14 / Notion "Pipeline"). Route stays /raise/pipeline. Full-width
  * Kanban across the 8 stages with drag-and-drop between columns (native HTML5).
  * Click a card for the detail panel; add investors from the Atlas database or as
  * a custom entry. Board fills the content area so the horizontal scroll sits at
@@ -32,11 +32,18 @@ const STAGES: [string, string][] = [
 	['closed', 'Closed'], ['passed', 'Passed'],
 ];
 const FILTERS: [string, string][] = [['', 'All'], ['overdue', 'Overdue next step'], ['no_next_step', 'No next step'], ['committed', 'Committed'], ['archived', 'Show archived']];
+// Page gutters — track the Atlas Screen padding (57/56 desktop → 16 on phones).
+const PAD_X = 'clamp(16px, 4vw, 56px)';
+const PAD_TOP = 'clamp(24px, 4vw, 57px)';
 const nameOf = (p: Pipe) => p.investor_name ?? p.custom_name ?? 'Investor';
 const money = (v: string | null) => (v == null ? null : `€${Number(v).toLocaleString()}`);
 const overdue = (d: string | null) => !!d && new Date(d) < new Date(new Date().toDateString());
 
+/** Placeholder watchlists until multiple lists exist in the backend. */
+const WATCHLISTS = [{ id: 'main', name: 'Main watchlist' }];
+
 export default function RaisePipelinePage() {
+	const [watchlist, setWatchlist] = useState('main');
 	const initialFilter = useSearchParams().get('filter') ?? '';
 	const [filter, setFilter] = useState(initialFilter);
 	const [open, setOpen] = useState<Pipe | null>(null);
@@ -71,46 +78,53 @@ export default function RaisePipelinePage() {
 
 	return (
 		<div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-			<div style={{ padding: '32px 40px 14px' }}>
-				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-					<H1>Pipeline</H1>
-					<Button size="sm" onClick={() => setAdding(true)}><Plus size={13} /> Add investor</Button>
+			<div style={{ padding: `${PAD_TOP} ${PAD_X} 18px` }}>
+				<RaiseSectionHeader
+					actions={<>
+						{/* Placeholder: one watchlist today (the investor board). Multiple named
+						    watchlists need backend support — swap WATCHLISTS for real data then. */}
+						<ListSwitcher noun="watchlist" lists={WATCHLISTS.map((w) => ({ ...w, meta: String(rows.length) }))} value={watchlist} onChange={setWatchlist} createSoon />
+						<Button onClick={() => setAdding(true)}><Plus size={13} /> Add investor</Button>
+					</>}
+				/>
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+					<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+						{FILTERS.map(([f, l]) => (
+							<button key={f} aria-pressed={filter === f} className={filter === f ? 'atlas-btn atlas-btn--primary' : 'atlas-btn atlas-btn--outline'} onClick={() => setFilter(f)}>{l}</button>
+						))}
+					</div>
+					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{rows.length} investor{rows.length === 1 ? '' : 's'} in this watchlist</span>
 				</div>
-				<div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
-					{FILTERS.map(([f, l]) => (
-						<button key={f} aria-pressed={filter === f} className="atlas-btn atlas-btn--outline atlas-btn--sm" style={filter === f ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined} onClick={() => setFilter(f)}>{l}</button>
-					))}
-				</div>
-				<div style={{ fontSize: 12, color: 'var(--a-faint)', marginTop: 10 }}>{rows.length} investor{rows.length === 1 ? '' : 's'} in pipeline</div>
 			</div>
 
 			{isLoading ? <Loading /> : (
-				<div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0 40px 20px' }}>
-					<div style={{ display: 'flex', gap: 12, minWidth: 'max-content', height: '100%' }}>
+				<div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: `0 ${PAD_X} 20px` }}>
+					<div style={{ display: 'flex', gap: 14, minWidth: 'max-content', height: '100%' }}>
 						{STAGES.map(([s, label]) => (
 							<div key={s}
 								onDragOver={(e) => { e.preventDefault(); if (dragOver !== s) setDragOver(s); }}
 								onDragLeave={() => setDragOver((cur) => (cur === s ? null : cur))}
 								onDrop={(e) => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData('text/plain'); if (id) void moveCard(id, s); }}
-								style={{ flex: '0 0 236px', minWidth: 236, display: 'flex', flexDirection: 'column' }}>
-								<div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, display: 'flex', justifyContent: 'space-between', color: 'var(--a-ink)' }}>
+								className="atlas-card"
+								style={{ flex: '0 0 248px', minWidth: 248, display: 'flex', flexDirection: 'column', padding: '14px 12px 12px', borderColor: dragOver === s ? 'var(--a-border-strong)' : undefined }}>
+								<div style={{ fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0 4px 12px', marginBottom: 10, borderBottom: '1px solid var(--a-border)', display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--a-ink)' }}>
 									<span>{label}</span><span style={{ color: 'var(--a-faint)' }}>{byStage[s]?.length ?? 0}</span>
 								</div>
-								<div style={{ display: 'grid', gap: 8, gridAutoRows: 'min-content', minHeight: 60, flex: 1, borderRadius: 8, background: dragOver === s ? 'var(--a-navy-soft)' : 'transparent', outline: dragOver === s ? '1px dashed var(--a-navy)' : 'none', padding: dragOver === s ? 6 : 0, transition: 'background 0.1s' }}>
+								<div style={{ display: 'grid', gap: 8, gridAutoRows: 'min-content', minHeight: 60, flex: 1, borderRadius: 'var(--a-radius-sm)', background: dragOver === s ? 'var(--a-navy-soft)' : 'transparent', outline: dragOver === s ? '1px dashed var(--a-navy)' : 'none', padding: dragOver === s ? 6 : 0, transition: 'background 0.1s' }}>
 									{(byStage[s] ?? []).length === 0 && dragOver !== s
-										? <div style={{ border: '1px dashed var(--a-border)', borderRadius: 8, padding: '14px 10px', textAlign: 'center', fontSize: 11, color: 'var(--a-faint)' }}>No investors yet</div>
+										? <div style={{ border: '1px dashed var(--a-border-strong)', borderRadius: 'var(--a-radius-sm)', padding: '14px 10px', textAlign: 'center', fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>No investors yet</div>
 										: (byStage[s] ?? []).map((p) => (
 											<div key={p.id} draggable
 												onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }}
 												onClick={() => setOpen(p)}
-												style={{ textAlign: 'left', cursor: 'grab', background: 'var(--a-rail)', border: '1px solid var(--a-border)', borderRadius: 8, padding: 12 }}>
-												<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-													<Logo co={{ name: nameOf(p), website: p.investor_website, custom_logo_url: p.investor_logo_url }} size={26} radius={6} />
-													<div style={{ fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(p)}</div>
+												style={{ textAlign: 'left', cursor: 'grab', background: 'var(--a-field)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', padding: 12 }}>
+												<div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+													<Logo co={{ name: nameOf(p), website: p.investor_website, custom_logo_url: p.investor_logo_url }} size={28} radius={7} />
+													<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 13, color: 'var(--a-ink)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(p)}</div>
 												</div>
-												<div style={{ fontSize: 11, color: 'var(--a-faint)' }}>{p.contact_name ? `Contact: ${p.contact_name}` : 'No contact yet'}</div>
-												{p.potential_amount && <div style={{ fontSize: 11, color: 'var(--a-navy)', marginTop: 4 }}>{money(p.potential_amount)} potential</div>}
-												{p.next_step && <div style={{ fontSize: 11, color: overdue(p.next_step_due) ? 'var(--a-danger)' : 'var(--a-muted)', marginTop: 6 }}>
+												<div style={{ fontSize: 11, color: 'var(--a-muted)', lineHeight: 1.45 }}>{p.contact_name ? `Contact: ${p.contact_name}` : 'No contact yet'}</div>
+												{p.potential_amount && <div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-navy)', marginTop: 6 }}>{money(p.potential_amount)} potential</div>}
+												{p.next_step && <div style={{ fontSize: 11, lineHeight: 1.45, color: overdue(p.next_step_due) ? 'var(--a-danger)' : 'var(--a-muted)', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--a-border)' }}>
 													Next: {p.next_step}{p.next_step_due ? ` · ${new Date(p.next_step_due).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}{overdue(p.next_step_due) ? ' — overdue' : ''}
 												</div>}
 											</div>
@@ -150,7 +164,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 				<Field label="Next step due"><Input type="date" value={f.next_step_due ?? ''} onChange={(e) => set('next_step_due', e.target.value)} /></Field>
 				<Field label="Notes"><Textarea value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
 			</div>
-			<div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+			<div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
 				<Button disabled={busy} onClick={() => void save({
 					stage: f.stage, contact_name: f.contact_name || null, potential_amount: f.potential_amount || null,
 					next_step: f.next_step || null, next_step_due: f.next_step_due || null, notes: f.notes || null,
@@ -159,14 +173,14 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 			</div>
 
 			<div style={{ marginTop: 24 }}>
-				<div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--a-faint)', marginBottom: 10, fontFamily: 'var(--a-mono)' }}>Activity</div>
-				<div style={{ display: 'grid', gap: 8 }}>
+				<div style={{ marginBottom: 10 }}><Eyebrow>Activity</Eyebrow></div>
+				<div className="atlas-card" style={{ padding: 0, overflow: 'hidden' }}>
 					{(act?.data ?? []).map((a, i) => (
-						<div key={i} style={{ fontSize: 12, color: 'var(--a-muted)', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-							<span>{describe(a)}</span><span style={{ color: 'var(--a-faint)', whiteSpace: 'nowrap' }}>{new Date(a.occurred_at).toLocaleDateString()}</span>
+						<div key={i} style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, display: 'flex', justifyContent: 'space-between', gap: 10, padding: '11px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--a-border)' }}>
+							<span>{describe(a)}</span><span style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', color: 'var(--a-faint)', whiteSpace: 'nowrap' }}>{new Date(a.occurred_at).toLocaleDateString()}</span>
 						</div>
 					))}
-					{(act?.data?.length ?? 0) === 0 && <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No activity yet.</div>}
+					{(act?.data?.length ?? 0) === 0 && <div style={{ fontSize: 12, color: 'var(--a-faint)', padding: '11px 16px' }}>No activity yet.</div>}
 				</div>
 			</div>
 		</Drawer>
@@ -196,45 +210,45 @@ function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved
 
 	return (
 		<Drawer onClose={onClose} title="Add investor">
-			<div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>From the Atlas database</div>
-			<div style={{ fontSize: 12, color: 'var(--a-muted)', marginBottom: 10 }}>Search the investor database — adds with a full profile.</div>
+			<div style={{ marginBottom: 8 }}><Eyebrow>From the Atlas database</Eyebrow></div>
+			<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 12 }}>Search the investor database — adds with a full profile.</div>
 			<div style={{ position: 'relative' }}>
-				<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
-				<Input placeholder="Search investors by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} autoFocus />
+				<Search size={13} style={{ position: 'absolute', left: 12, top: 8, color: 'var(--a-ink)', pointerEvents: 'none' }} />
+				<Input className="atlas-input--search" placeholder="Search investors by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 31 }} autoFocus />
 			</div>
 			{dq.trim().length >= 2 && (
-				<div style={{ marginTop: 8, border: '1px solid var(--a-border)', borderRadius: 8, overflow: 'hidden' }}>
+				<div className="atlas-card" style={{ marginTop: 10, padding: 0, overflow: 'hidden' }}>
 					{results.isLoading ? <div style={{ padding: 12, fontSize: 13, color: 'var(--a-faint)' }}>Searching…</div>
 						: (results.data?.data.length ?? 0) === 0 ? <div style={{ padding: 12, fontSize: 13, color: 'var(--a-faint)' }}>No investors found.</div>
 							: results.data!.data.map((inv) => {
 								const added = existing.has(inv.id);
 								return (
 									<button key={inv.id} onClick={() => void addDb(inv)} disabled={added || busy}
-										style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--a-border)', cursor: added ? 'default' : 'pointer', textAlign: 'left' }}>
+										style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--a-border)', cursor: added ? 'default' : 'pointer', textAlign: 'left', color: 'inherit', font: 'inherit' }}>
 										<span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
 										<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={24} radius={6} />
-										<span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{inv.name}</span>
+										<span style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 13, color: 'var(--a-ink)' }}>{inv.name}</span>
 										{inv.hq_country && <Flag cc={inv.hq_country} size={13} />}
-										{inv.category && <span style={{ fontSize: 11, color: 'var(--a-faint)' }}>{inv.category}</span>}
+										{inv.category && <span style={{ fontFamily: 'var(--a-mono)', fontSize: 9, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>{inv.category}</span>}
 									</span>
-										<span style={{ fontSize: 12, color: added ? 'var(--a-faint)' : 'var(--a-navy)' }}>{added ? 'In pipeline' : '+ Add'}</span>
+										<span style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: added ? 'var(--a-faint)' : 'var(--a-ink)' }}>{added ? 'In watchlist' : '+ Add'}</span>
 									</button>
 								);
 							})}
 				</div>
 			)}
 
-			<div style={{ height: 1, background: 'var(--a-border)', margin: '22px 0' }} />
-			<div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Or add a custom investor</div>
-			<div style={{ fontSize: 12, color: 'var(--a-muted)', marginBottom: 10 }}>For an investor not yet in the Atlas database.</div>
+			<hr className="atlas-divider" style={{ margin: '24px 0' }} />
+			<div style={{ marginBottom: 8 }}><Eyebrow>Or add a custom investor</Eyebrow></div>
+			<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 12 }}>For an investor not yet in the Atlas database.</div>
 			<Field label="Investor name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-			<div style={{ marginTop: 12 }}><Button variant="outline" disabled={busy || !name.trim()} onClick={() => void addCustom()}>{busy ? <Loader2 className="spin" size={13} /> : 'Add custom investor'}</Button></div>
+			<div style={{ marginTop: 14 }}><Button variant="outline" disabled={busy || !name.trim()} onClick={() => void addCustom()}>{busy ? <Loader2 className="spin" size={13} /> : 'Add custom investor'}</Button></div>
 		</Drawer>
 	);
 }
 
 function describe(a: Activity): string {
-	if (a.type === 'created') return 'Added to pipeline';
+	if (a.type === 'created') return 'Added to watchlist';
 	if (a.type === 'stage_change') return `Moved ${String(a.payload?.from ?? '')} → ${String(a.payload?.to ?? '')}`;
 	if (a.type === 'commitment') return `Amount recorded: €${Number(a.payload?.amount ?? 0).toLocaleString()}`;
 	return a.type;
@@ -243,9 +257,9 @@ function describe(a: Activity): string {
 function Drawer({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
 	return (
 		<div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}>
-			<div className="atlas" onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 100%)', height: '100%', background: 'var(--a-page)', borderLeft: '1px solid var(--a-border)', padding: 28, overflowY: 'auto' }}>
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-					<div style={{ fontSize: 18, fontWeight: 600 }}>{title}</div>
+			<div className="atlas" onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 100%)', height: '100%', background: 'var(--a-page)', borderLeft: '1px solid var(--a-card-border)', boxShadow: '-12px 0 40px rgba(0,0,0,0.12)', padding: 28, overflowY: 'auto' }}>
+				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingBottom: 18, marginBottom: 22, borderBottom: '1px solid var(--a-border)' }}>
+					<div className="atlas-h2" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
 					<button className="atlas-btn atlas-btn--ghost atlas-btn--sm" aria-label="Close" onClick={onClose}><X size={16} /></button>
 				</div>
 				{children}

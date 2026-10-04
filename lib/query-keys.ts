@@ -51,6 +51,7 @@ export const qk = {
     // resolved to the list endpoint and the drawer/detail page were empty.
     detail: (idOrSlug: string) => [`/api/companies/${idOrSlug}`] as const,
     news: (idOrSlug: string) => [`/api/companies/${idOrSlug}/news`] as const,
+    sports: (idOrSlug: string) => [`/api/companies/${idOrSlug}/sports`] as const,
     team: (idOrSlug: string) => [`/api/companies/${idOrSlug}/team`] as const,
     contacts: (idOrSlug: string) => [`/api/companies/${idOrSlug}/contacts`] as const,
     similar: (idOrSlug: string) => [`/api/companies/${idOrSlug}/similar`] as const,

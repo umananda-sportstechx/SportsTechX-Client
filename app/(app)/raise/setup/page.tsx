@@ -9,9 +9,8 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Screen, H1, Card, Field, Input, Select, Button, Loading } from '@/components/atlas/kit';
-import { Logo } from '@/components/atlas/entity-logo';
-import { InvestorExclude } from '@/components/atlas/investor-exclude';
+import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
+import { InvestorExclude } from '@/components/raise/investor-exclude';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
@@ -180,27 +179,32 @@ export default function RaiseSetupPage() {
 
 	return (
 		<Screen width={720}>
-			<div style={{ marginBottom: 24 }}>
-				<div style={{ fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--a-navy)', marginBottom: 10 }}>
+			<header className="atlas-pagehead">
+				<div className="atlas-eyebrow" style={{ marginBottom: 14 }}>
 					Set up your raise · Step {step + 1} of {STEPS.length}
 				</div>
-				<div style={{ display: 'flex', gap: 6 }}>
-					{STEPS.map((_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? 'var(--a-navy)' : 'var(--a-inset)' }} />)}
+				<div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))`, gap: 6, marginBottom: 26 }}>
+					{STEPS.map((label, i) => (
+						<div key={i} style={{ minWidth: 0 }}>
+							<div style={{ height: 6, borderRadius: 3, background: i <= step ? 'var(--a-ink)' : 'var(--a-track)', transition: 'background 0.15s' }} />
+							<div style={{ marginTop: 8, fontFamily: 'var(--a-mono)', fontSize: 9, lineHeight: 1.3, letterSpacing: '0.05em', textTransform: 'uppercase', color: i === step ? 'var(--a-ink)' : i < step ? 'var(--a-muted)' : 'var(--a-faint)', overflowWrap: 'anywhere' }}>{label}</div>
+						</div>
+					))}
 				</div>
-				<H1 className="atlas-h1" >{STEPS[step]}</H1>
-			</div>
+				<H1>{STEPS[step]}</H1>
+			</header>
 
-			<Card style={{ padding: 24 }}>
+			<Card style={{ padding: 23 }}>
 				{errors.size > 0 && (
-					<div style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #F1D6D6', background: 'var(--a-danger-bg, #FCEBEB)', color: 'var(--a-danger, #A32D2D)', padding: '10px 14px', fontSize: 13 }}>
+					<div style={{ marginBottom: 16, borderRadius: 'var(--a-radius-sm)', border: '1px solid color-mix(in srgb, var(--a-danger) 22%, transparent)', background: 'var(--a-danger-bg)', color: 'var(--a-danger)', padding: '10px 14px', fontSize: 12, lineHeight: 1.55 }}>
 						Required — please complete: {(REQUIRED[step] ?? []).filter((r) => errors.has(r.key)).map((r) => r.label).join(', ')}.
 					</div>
 				)}
 				<div style={{ display: 'grid', gap: 16 }}>
 					{step === 0 && <>
 						{linked ? (
-							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid var(--a-border)', borderRadius: 10, padding: '12px 14px', background: 'var(--a-navy-soft)' }}>
-								<div style={{ fontSize: 13, color: 'var(--a-ink)' }}>Linked to <strong>{linked.name}</strong> from the Atlas database. You can verify your company later to manage its public profile.</div>
+							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', padding: '12px 14px', background: 'var(--a-navy-soft)' }}>
+								<div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-ink-2)' }}>Linked to <strong>{linked.name}</strong> from the Atlas database. You can verify your company later to manage its public profile.</div>
 								<button type="button" className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={unlinkCompany} style={{ flexShrink: 0 }}>Not your company?</button>
 							</div>
 						) : (
@@ -250,7 +254,7 @@ export default function RaiseSetupPage() {
 							<Field label="Do you have a financial model?"><Select placeholder="Select…" value={s(form.financial_model_status)} onChange={(e) => set('financial_model_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
 							<Field label="Do you have a data room?"><Select placeholder="Select…" value={s(form.data_room_status)} onChange={(e) => set('data_room_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
 						</Grid>
-						<div style={{ fontSize: 13, color: 'var(--a-faint)', lineHeight: 1.5 }}>
+						<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55 }}>
 							You’ll upload your deck and build out your investor pipeline from the workspace once setup is complete — the Pitch Deck and Pipeline pages walk you through it.
 						</div>
 					</>}
@@ -306,24 +310,22 @@ function TransitionScreen({ onEnter, onVerify }: { onEnter: () => void; onVerify
 	return (
 		<div style={{ textAlign: 'center', padding: '32px 0' }}>
 			<H1>Your raise workspace is ready.</H1>
-			<Card variant="cream" style={{ margin: '24px 0', textAlign: 'left' }}>
-				<div style={{ display: 'grid', gap: 12 }}>
-					{['Round configured', 'Investor criteria defined', 'Initial matches identified', 'First actions generated'].map((t) => (
-						<div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
-							<span style={{ width: 20, height: 20, borderRadius: '50%', background: '#3B6D11', display: 'grid', placeItems: 'center' }}><Check size={13} color="#fff" /></span> {t}
-						</div>
-					))}
-				</div>
+			<Card style={{ margin: '27px 0', textAlign: 'left', padding: 0, overflow: 'hidden' }}>
+				{['Round configured', 'Investor criteria defined', 'Initial matches identified', 'First actions generated'].map((t, i) => (
+					<div key={t} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 23px', borderTop: i ? '1px solid var(--a-border)' : 'none', fontSize: 13, color: 'var(--a-ink-2)' }}>
+						<span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: '50%', background: 'var(--a-ok)', color: 'var(--a-page)', display: 'grid', placeItems: 'center' }}><Check size={12} /></span> {t}
+					</div>
+				))}
 			</Card>
-			<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Here’s how Atlas Raise works</div>
+			<div className="atlas-eyebrow" style={{ marginBottom: 14, textAlign: 'left' }}>Here’s how Atlas Raise works</div>
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24, textAlign: 'left' }}>
 				{[['Prepare', 'Strengthen your pitch and get investor-ready.'], ['Connect', 'Find the right investors and organise your outreach.'], ['Close', 'Navigate due diligence, terms and closing.']].map(([t, d]) => (
-					<Card key={t}><div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.5 }}>{d}</div></Card>
+					<Card key={t}><div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55 }}>{d}</div></Card>
 				))}
 			</div>
-			<Card variant="cream" style={{ textAlign: 'left', marginBottom: 20 }}>
-				<div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>Verify your company</div>
-				<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, marginBottom: 14 }}>
+			<Card glow="blue" style={{ textAlign: 'left', marginBottom: 20 }}>
+				<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Verify your company</div>
+				<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 16 }}>
 					Get your company verified on SportsTechX. We&apos;ve pre-filled everything you told us — you just add a few details and our team reviews it. Optional, and you can do it later from settings.
 				</div>
 				<Button onClick={onVerify}>Verify your company <ArrowRight size={13} /></Button>
@@ -343,21 +345,21 @@ function CompanySearch({ onPick }: { onPick: (c: CoRow) => void }) {
 	return (
 		<Field label="Find your company">
 			<div style={{ position: 'relative' }}>
-				<Search size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--a-faint)', pointerEvents: 'none' }} />
+				<Search size={14} style={{ position: 'absolute', left: 13, top: 10, color: 'var(--a-faint)', pointerEvents: 'none' }} />
 				<Input placeholder="Search the Atlas database by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} />
 				{term.length >= 2 && rows.length > 0 && (
-					<div style={{ position: 'absolute', zIndex: 5, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--a-surface)', border: '1px solid var(--a-border)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.10)' }}>
-						{rows.map((c) => (
+					<div style={{ position: 'absolute', zIndex: 5, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--a-field)', border: '1px solid var(--a-border-strong)', borderRadius: 'var(--a-radius-sm)', overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.10)' }}>
+						{rows.map((c, i) => (
 							<button key={c.id} type="button" onClick={() => { onPick(c); setQ(''); }}
-								style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--a-border)', cursor: 'pointer', textAlign: 'left' }}>
+								style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderTop: i ? '1px solid var(--a-border)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
 								<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={26} radius={6} />
-								<span style={{ minWidth: 0 }}><span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{c.name}</span>{c.website && <span style={{ fontSize: 11, color: 'var(--a-faint)', marginLeft: 6 }}>{c.website.replace(/^https?:\/\//, '')}</span>}</span>
+								<span style={{ minWidth: 0 }}><span style={{ fontSize: 13, color: 'var(--a-ink)' }}>{c.name}</span>{c.website && <span style={{ fontFamily: 'var(--a-mono)', fontSize: 10, color: 'var(--a-faint)', marginLeft: 8 }}>{c.website.replace(/^https?:\/\//, '')}</span>}</span>
 							</button>
 						))}
 					</div>
 				)}
 			</div>
-			<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 6 }}>Find your company to prefill its details. Can’t find it? Just fill in the form below to add it as new.</div>
+			<div style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--a-faint)', marginTop: 6 }}>Find your company to prefill its details. Can’t find it? Just fill in the form below to add it as new.</div>
 		</Field>
 	);
 }
@@ -369,7 +371,7 @@ function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: stri
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" aria-pressed={active} className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
+			return <button key={o} type="button" aria-pressed={active} className={`atlas-btn ${active ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`}
 				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
 	</div></Field>;

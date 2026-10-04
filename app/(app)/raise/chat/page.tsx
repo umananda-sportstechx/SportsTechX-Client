@@ -6,12 +6,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useChat, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
 import { qk } from '@/lib/query-keys';
-import {
-	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS,
-	founderPageContext, founderActionFromTool, FounderMessages,
-} from '@/components/atlas/founder-chat';
-import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/atlas/raise-search';
-import '@/components/atlas/raise-chatpage.css';
+import { FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, founderPageContext, founderActionFromTool, FounderMessages } from '@/components/raise/chat/founder-chat';
+import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
+import { Button } from '@/components/atlas';
+import '@/components/raise/chat/raise-chatpage.css';
 
 /**
  * Atlas Raise — full chat page (Claude/ChatGPT layout): transcript above, composer
@@ -92,9 +90,11 @@ export default function RaiseChatPage() {
 			</div>
 
 			<aside className="raise-chatpage-rail">
-				<button className="raise-chatpage-new" onClick={newChat}>
-					<Plus size={15} /> New chat
-				</button>
+				<div className="raise-chatpage-railhead">
+					<Button variant="primary" className="raise-chatpage-new" onClick={newChat}>
+						<Plus strokeWidth={1.5} /> New chat
+					</Button>
+				</div>
 				<div className="raise-chatpage-convos">
 					{(conversations?.length ?? 0) === 0 ? (
 						<div className="raise-chatpage-empty">No conversations yet.</div>

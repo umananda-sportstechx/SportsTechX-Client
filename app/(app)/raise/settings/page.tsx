@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { Screen, H1, Sub, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas/kit';
-import { InvestorExclude } from '@/components/atlas/investor-exclude';
+import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
+import { InvestorExclude } from '@/components/raise/investor-exclude';
 
 /**
  * Atlas Raise — Company & Raise settings (mock-up 16 / Notion "Company & Raise
@@ -96,12 +96,11 @@ export default function RaiseSettingsPage() {
 
 	return (
 		<Screen>
-			<H1>Raise settings</H1>
-			<Sub>Edit the underlying information Atlas uses to run your raise.</Sub>
+			<PageHead title="Thesis settings" sub="Edit the underlying information Atlas uses to run your raise." />
 
-			<div style={{ display: 'grid', gap: 18, marginTop: 24 }}>
+			<div style={{ display: 'grid', gap: 18 }}>
 				<Section title="Company profile">
-					{linked && <div style={{ fontSize: 12, color: 'var(--a-muted)', border: '1px solid var(--a-border)', borderRadius: 8, padding: '10px 14px', background: 'var(--a-navy-soft)' }}>Your company is linked to the Atlas database. Its public details are read-only here — use Get verified to request changes.</div>}
+					{linked && <div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-ink-2)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', padding: '10px 14px', background: 'var(--a-navy-soft)' }}>Your company is linked to the Atlas database. Its public details are read-only here — use Get verified to request changes.</div>}
 					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field></Grid>
 					<Grid n={3}>
 						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field>
@@ -150,8 +149,8 @@ export default function RaiseSettingsPage() {
 				</div>
 
 				<Section title="Raise controls">
-					<div style={{ fontSize: 12, color: 'var(--a-faint)', marginBottom: 12 }}>
-						Current stage: <strong style={{ color: 'var(--a-muted)' }}>{derivedStage}</strong> · automatically determined from your pipeline activity, not editable here.
+					<div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)', marginBottom: 4 }}>
+						Current stage: <strong style={{ fontFamily: 'var(--a-mono)', fontWeight: 400, fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-ink)' }}>{derivedStage}</strong> · automatically determined from your pipeline activity, not editable here.
 					</div>
 					<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
 						<Button variant="outline" disabled={busy} onClick={() => void setStatus('funded', 'Round marked as funded')}>Mark round as funded</Button>
@@ -166,7 +165,12 @@ export default function RaiseSettingsPage() {
 
 function s(v: unknown): string { return v == null ? '' : String(v); }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-	return <Card style={{ padding: 22 }}><div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>{title}</div><div style={{ display: 'grid', gap: 16 }}>{children}</div></Card>;
+	return (
+		<Card>
+			<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', paddingBottom: 14, marginBottom: 18, borderBottom: '1px solid var(--a-border)' }}>{title}</div>
+			<div style={{ display: 'grid', gap: 16 }}>{children}</div>
+		</Card>
+	);
 }
 function Grid({ n, children }: { n: number; children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${n >= 3 ? 180 : 220}px, 1fr))`, gap: 16 }}>{children}</div>; }
 function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
@@ -174,7 +178,7 @@ function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: stri
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" aria-pressed={active} className="atlas-btn atlas-btn--outline atlas-btn--sm" style={active ? { borderColor: 'var(--a-navy)', color: 'var(--a-navy)' } : undefined}
+			return <button key={o} type="button" aria-pressed={active} className={`atlas-btn ${active ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`}
 				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
 	</div></Field>;

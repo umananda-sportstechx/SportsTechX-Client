@@ -1,110 +1,34 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
-import { Home, FileText, Globe, Heart, Grid3x3, CalendarDays, BookOpen, Settings, User, CreditCard, Menu, X, Sun, Moon } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { Brand } from '@/components/ui/brand';
-import { RaiseChat } from '@/components/atlas/raise-chat';
-import './raise-shell.css';
+import { AtlasShell } from '@/components/atlas';
+import { RaiseChat } from '@/components/raise/chat/raise-chat';
+import { RAISE_HOME, RAISE_ACCOUNT, RAISE_BOTTOM_NAV } from '@/components/raise/shell-config';
+import { useRaiseNav } from '@/components/raise/use-raise-nav';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import '@/components/raise/raise.css';
 
 /**
- * Atlas Raise founder workspace shell — clean sidebar + content (raise mock-ups).
- * Desktop: fixed 220px rail. Mobile (≤720px): a top bar with the logo (left) + a
- * hamburger (right); tapping it slides the rail in from the left as an overlay
- * drawer (with its own logo + close). Rendered by AppShell for `/raise` routes.
+ * Atlas Raise founder workspace shell — the shared AtlasShell configured for
+ * Raise (nav in components/raise/shell-config.ts) plus the floating co-pilot.
+ * Rendered by AppShell for `/raise` routes.
  */
-
-interface RaiseNavItem { name: string; icon: LucideIcon; path: string }
-
-// Order follows the mock-ups: Home · Pitch deck · Market · Investors · Pipeline · Resources.
-const NAV: RaiseNavItem[] = [
-	{ name: 'Home', icon: Home, path: '/raise' },
-	{ name: 'Pitch deck', icon: FileText, path: '/raise/pitch' },
-	{ name: 'Market', icon: Globe, path: '/raise/market' },
-	{ name: 'Investors', icon: Heart, path: '/raise/investors' },
-	{ name: 'Pipeline', icon: Grid3x3, path: '/raise/pipeline' },
-	{ name: 'Programs & Events', icon: CalendarDays, path: '/raise/programs-events' },
-	{ name: 'Resources', icon: BookOpen, path: '/raise/resources' },
-];
-
-const BOTTOM_NAV: RaiseNavItem[] = [
-	{ name: 'Raise settings', icon: Settings, path: '/raise/settings' },
-	{ name: 'Subscription', icon: CreditCard, path: '/billing' },
-	{ name: 'Account', icon: User, path: '/raise/account' },
-];
-
 export function RaiseShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
-	const [open, setOpen] = useState(false);
-	// Close the mobile drawer whenever the route changes (i.e. a nav item was tapped).
-	useEffect(() => { setOpen(false); }, [pathname]);
-
-	const isActive = (path: string) =>
-		path === '/raise' ? pathname === '/raise' : pathname === path || pathname.startsWith(path + '/');
-
-	const renderItem = (item: RaiseNavItem) => {
-		const Icon = item.icon;
-		return (
-			<Link key={item.path} href={item.path} className={`raise-nav-item ${isActive(item.path) ? 'active' : ''}`} onClick={() => setOpen(false)}>
-				<Icon size={18} />
-				<span className="raise-label">{item.name}</span>
-			</Link>
-		);
-	};
-
+	const { data: profile } = useUserProfile();
+	const nav = useRaiseNav();
 	return (
-		<div className="atlas raise-shell">
-			<aside className={`raise-rail ${open ? 'open' : ''}`}>
-				<div className="raise-rail-head">
-					<div className="raise-brand"><Brand variant="horizontal" height={34} /></div>
-					<button className="raise-rail-close" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20} /></button>
-				</div>
-				<nav className="raise-nav">{NAV.map(renderItem)}</nav>
-				<nav className="raise-nav-bottom">{BOTTOM_NAV.map(renderItem)}<ThemeToggle /></nav>
-			</aside>
-
-			<div className="raise-main">
-				<header className="raise-topbar">
-					<Brand variant="horizontal" height={32} />
-					<div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-						<ThemeToggle compact />
-						<button className="raise-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={22} /></button>
-					</div>
-				</header>
-				<div className="raise-content">{children}</div>
-			</div>
-
-			{open && <div className="raise-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />}
-
-			{/* The full chat page is itself the co-pilot — don't show the FAB drawer there. */}
-			{!pathname.startsWith('/raise/chat') && <RaiseChat />}
-		</div>
-	);
-}
-
-/** Light/dark switch — compact icon button for the top bar, labelled row for the sidebar. */
-function ThemeToggle({ compact }: { compact?: boolean }) {
-	const { resolvedTheme, setTheme } = useTheme();
-	const [mounted, setMounted] = useState(false);
-	useEffect(() => setMounted(true), []);
-	const isDark = resolvedTheme === 'dark';
-	const toggle = () => setTheme(isDark ? 'light' : 'dark');
-	const Icon = isDark ? Sun : Moon;
-
-	if (compact) {
-		return (
-			<button className="raise-hamburger" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
-				{mounted ? <Icon size={20} /> : <Moon size={20} />}
-			</button>
-		);
-	}
-	return (
-		<button className="raise-nav-item" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
-			{mounted ? <Icon size={18} /> : <Moon size={18} />}
-			<span className="raise-label">{mounted && isDark ? 'Light mode' : 'Dark mode'}</span>
-		</button>
+		<AtlasShell
+			product="Raise"
+			homePath={RAISE_HOME}
+			nav={nav}
+			bottomNav={RAISE_BOTTOM_NAV}
+			accountPath={RAISE_ACCOUNT}
+			accountName={profile?.full_name ?? profile?.display_name}
+			// The full chat page is itself the co-pilot — don't show the FAB drawer there.
+			overlay={pathname.startsWith('/raise/chat') ? null : <RaiseChat />}
+		>
+			{children}
+		</AtlasShell>
 	);
 }

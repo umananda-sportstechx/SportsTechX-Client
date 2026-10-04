@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
-import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty } from '@/components/atlas/kit';
-import { Logo, Flag } from '@/components/atlas/entity-logo';
+import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 
 /**
  * Atlas Raise — Investor profile (mock-ups 12/13 / canvas isProfileBaseline &
@@ -59,14 +58,14 @@ export default function InvestorProfilePage() {
 
 	return (
 		<Screen>
-			<button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-muted)', fontSize: 18, padding: 0, display: 'inline-flex' }} aria-label="Back"><ArrowLeft size={18} /></button>
+			<button onClick={() => router.back()} className="atlas-action" aria-label="Back"><span className="atlas-action__icon"><ArrowLeft /></span>Back</button>
 
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, marginTop: 20 }}>
-				<div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-					<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={48} radius={10} />
-					<div>
-						<div style={{ fontSize: 20, fontWeight: 600 }}>{inv.name}</div>
-						<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--a-faint)', marginTop: 4 }}>
+			<div className="atlas-pagehead" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginTop: 28 }}>
+				<div style={{ display: 'flex', gap: 20, alignItems: 'center', minWidth: 0 }}>
+					<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={72} radius={9} />
+					<div style={{ minWidth: 0 }}>
+						<h1 className="atlas-h1" style={{ fontSize: 30, lineHeight: 1.15 }}>{inv.name}</h1>
+						<div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)', marginTop: 10 }}>
 							{inv.category && <span>{inv.category}</span>}
 							{inv.category && geoOf(inv) !== '—' && <span>·</span>}
 							{inv.hq_country && <Flag cc={inv.hq_country} size={15} />}
@@ -81,12 +80,12 @@ export default function InvestorProfilePage() {
 
 			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
 
-			<div style={{ fontSize: 15, fontWeight: 600, margin: record ? '30px 0 14px' : '24px 0 14px' }}>{record ? 'About this investor' : ''}</div>
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 16 }}>
+			<div className="atlas-eyebrow" style={{ margin: record ? '32px 0 14px' : '0 0 14px' }}>{record ? 'About this investor' : ''}</div>
+			<div className="atlas-kpis" style={{ marginBottom: 24 }}>
 				<Tile label="Stages" value={stages} />
 				<Tile label="Typical cheque size" value="Not confirmed" muted />
 				<Tile label="Geography" value={geoText} />
-				<Tile label="Website" value={inv.website ? <a href={inv.website} target="_blank" rel="noreferrer" style={{ color: 'var(--a-navy)' }}>Visit</a> : '—'} />
+				<Tile label="Website" value={inv.website ? <a href={inv.website} target="_blank" rel="noreferrer" style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Visit</a> : '—'} />
 			</div>
 
 			{inv.description && <Section title="Overview">{inv.description}</Section>}
@@ -98,19 +97,19 @@ export default function InvestorProfilePage() {
 				const recent = rows.slice(0, 6);
 				return <>
 					{portfolio.length > 0 && (
-						<Card style={{ marginBottom: 16 }}>
-							<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Portfolio</div>
-							<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.6 }}>Includes: {portfolio.join(', ')}.</div>
+						<Card style={{ marginBottom: 20 }}>
+							<div style={{ fontSize: 17, fontFamily: 'var(--a-font)', fontWeight: 700, marginBottom: 12 }}>Portfolio</div>
+							<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55 }}>Includes: {portfolio.join(', ')}.</div>
 						</Card>
 					)}
 					{recent.length > 0 && (
-						<Card style={{ marginBottom: 16 }}>
-							<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Recent investment activity</div>
-							<div style={{ display: 'grid', gap: 8 }}>
-								{recent.map((d) => (
-									<div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, color: 'var(--a-muted)' }}>
-										<span><span style={{ color: 'var(--a-ink)' }}>{d.company_name ?? 'Company'}</span>{d.round_type_name ? ` · ${d.round_type_name}` : ''}{d.amount_usd ? ` · $${(Number(d.amount_usd) / 1e6).toFixed(1)}m` : ''}</span>
-										<span style={{ color: 'var(--a-faint)', whiteSpace: 'nowrap' }}>{d.announced_date ? new Date(d.announced_date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : ''}</span>
+						<Card style={{ marginBottom: 20 }}>
+							<div style={{ fontSize: 17, fontFamily: 'var(--a-font)', fontWeight: 700, marginBottom: 6 }}>Recent investment activity</div>
+							<div>
+								{recent.map((d, i) => (
+									<div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, fontSize: 13, color: 'var(--a-muted)', padding: '14px 0', borderTop: i === 0 ? 'none' : '1px solid var(--a-border)' }}>
+										<span><span style={{ color: 'var(--a-ink)', fontFamily: 'var(--a-font)', fontWeight: 700 }}>{d.company_name ?? 'Company'}</span>{d.round_type_name ? ` · ${d.round_type_name}` : ''}{d.amount_usd ? ` · $${(Number(d.amount_usd) / 1e6).toFixed(1)}m` : ''}</span>
+										<span style={{ color: 'var(--a-faint)', whiteSpace: 'nowrap', fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{d.announced_date ? new Date(d.announced_date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : ''}</span>
 									</div>
 								))}
 							</div>
@@ -131,7 +130,7 @@ function AddButton({ investorId, onAdded }: { investorId: string; onAdded: () =>
 		catch (e) { toast.error((e as Error).message); }
 		finally { setBusy(false); }
 	};
-	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="spin" size={14} /> : 'Add to pipeline'}</Button>;
+	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="spin" size={14} /> : 'Add to watchlist'}</Button>;
 }
 
 function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => void }) {
@@ -148,8 +147,8 @@ function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => 
 	};
 
 	return (
-		<Card focus style={{ marginTop: 24, padding: '20px 20px 24px' }}>
-			<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 18 }}>Your pipeline record</div>
+		<Card focus glow="blue" style={{ padding: '22px 23px 24px' }}>
+			<div style={{ fontSize: 18, fontFamily: 'var(--a-font)', fontWeight: 700, marginBottom: 20 }}>Your watchlist record</div>
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
 				<Field label="Stage"><Select value={f.stage} onChange={(e) => set('stage', e.target.value)} options={STAGES} /></Field>
 				<Field label="Relevant contact"><Input value={f.contact_name ?? ''} onChange={(e) => set('contact_name', e.target.value)} /></Field>
@@ -163,30 +162,30 @@ function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => 
 				<Button size="sm" variant="danger" disabled={busy} onClick={() => void save({ is_archived: true })}><Archive size={13} /> Archive investor</Button>
 			</div>
 
-			<div style={{ height: 1, background: 'var(--a-border)', margin: '22px 0 18px' }} />
-			<div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Activity history</div>
-			<div style={{ display: 'grid', gap: 8 }}>
+			<hr className="atlas-divider" style={{ margin: '22px 0 16px' }} />
+			<div className="atlas-eyebrow" style={{ marginBottom: 6 }}>Activity history</div>
+			<div>
 				{(act?.data ?? []).map((a, i) => (
-					<div key={i} style={{ fontSize: 12, color: 'var(--a-muted)', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-						<span>{describe(a)}</span><span style={{ color: 'var(--a-faint)' }}>{new Date(a.occurred_at).toLocaleDateString()}</span>
+					<div key={i} style={{ fontSize: 12, color: 'var(--a-muted)', display: 'flex', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderTop: i === 0 ? 'none' : '1px solid var(--a-border)' }}>
+						<span>{describe(a)}</span><span style={{ color: 'var(--a-faint)', fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em' }}>{new Date(a.occurred_at).toLocaleDateString()}</span>
 					</div>
 				))}
-				{(act?.data?.length ?? 0) === 0 && <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No activity yet.</div>}
+				{(act?.data?.length ?? 0) === 0 && <div style={{ fontSize: 12, color: 'var(--a-faint)', padding: '11px 0' }}>No activity yet.</div>}
 			</div>
 		</Card>
 	);
 }
 
 function describe(a: Activity): string {
-	if (a.type === 'created') return 'Added to pipeline';
+	if (a.type === 'created') return 'Added to watchlist';
 	if (a.type === 'stage_change') return `Moved ${String(a.payload?.from ?? '')} → ${String(a.payload?.to ?? '')}`;
 	if (a.type === 'commitment') return `Amount recorded: €${Number(a.payload?.amount ?? 0).toLocaleString()}`;
 	return a.type;
 }
 
 function Tile({ label, value, muted }: { label: string; value: React.ReactNode; muted?: boolean }) {
-	return <div className="atlas-stat"><div className="atlas-stat__label">{label}</div><div className="atlas-stat__value" style={{ fontSize: 13, fontWeight: 500, color: muted ? 'var(--a-faint)' : undefined }}>{value}</div></div>;
+	return <div className="atlas-kpi"><div className="atlas-kpi__label">{label}</div><div className="atlas-kpi__value" style={{ fontSize: 18, lineHeight: 1.3, whiteSpace: 'normal', overflowWrap: 'anywhere', marginBottom: 0, color: muted ? 'var(--a-faint)' : undefined }}>{value}</div></div>;
 }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-	return <Card style={{ marginBottom: 16 }}><div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>{title}</div><p style={{ margin: 0, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{children}</p></Card>;
+	return <Card style={{ marginBottom: 20 }}><div style={{ fontSize: 17, fontFamily: 'var(--a-font)', fontWeight: 700, marginBottom: 12 }}>{title}</div><p style={{ margin: 0, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55 }}>{children}</p></Card>;
 }

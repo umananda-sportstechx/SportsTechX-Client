@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
-import { Screen, H1, Card, Field, ReadOnly, Button } from '@/components/atlas/kit';
+import { Screen, PageHead, Card, ReadOnly, Button } from '@/components/atlas';
 
 /**
  * Atlas Raise — Account (mock-up 17): profile, security and notification
@@ -43,16 +43,16 @@ export default function RaiseAccountPage() {
 
 	return (
 		<Screen>
-			<H1>Account</H1>
+			<PageHead title="Account" />
 
-			<div style={{ display: 'grid', gap: 18, marginTop: 24 }}>
-				<Card style={{ padding: 22 }}>
-					<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Profile</div>
+			<div style={{ display: 'grid', gap: 18 }}>
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Profile</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-						<div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--a-inset)', display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 600, color: 'var(--a-muted)' }}>{initial}</div>
-						<div>
-							<div style={{ fontSize: 14, fontWeight: 500 }}>{name || '—'}</div>
-							<div style={{ fontSize: 12, color: 'var(--a-faint)' }}>{profile?.account_type === 'founder' ? 'Founder' : profile?.account_type ?? ''}{profile?.company_name ? `, ${profile.company_name}` : ''}</div>
+						<div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 'var(--a-radius-sm)', background: 'var(--a-primary)', display: 'grid', placeItems: 'center', fontSize: 16, fontFamily: 'var(--a-mono)', color: 'var(--a-primary-ink)' }}>{initial}</div>
+						<div style={{ minWidth: 0 }}>
+							<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{name || '—'}</div>
+							<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)', marginTop: 4 }}>{profile?.account_type === 'founder' ? 'Founder' : profile?.account_type ?? ''}{profile?.company_name ? `, ${profile.company_name}` : ''}</div>
 						</div>
 					</div>
 					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
@@ -61,26 +61,26 @@ export default function RaiseAccountPage() {
 					</div>
 				</Card>
 
-				<Card style={{ padding: 22 }}>
-					<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Security</div>
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
 					<SplitRow label="Password" sub="Managed through email reset">
 						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="spin" size={13} /> : 'Change password'}</Button>
 					</SplitRow>
-					<div style={{ height: 1, background: 'var(--a-border)', margin: '14px 0' }} />
+					<hr className="atlas-divider" style={{ margin: '14px 0' }} />
 					<SplitRow label="Two-factor authentication" sub="Not enabled">
 						<Button variant="outline" size="sm" disabled title="Coming soon">Enable</Button>
 					</SplitRow>
 				</Card>
 
-				<Card style={{ padding: 22 }}>
-					<div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Notifications</div>
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 6 }}>Notifications</div>
 					<Toggle label="Weekly raise recap" on={prefs.weekly} set={(v) => setPrefs((p) => ({ ...p, weekly: v }))} />
 					<Toggle label="Overdue follow-up reminders" on={prefs.overdue} set={(v) => setPrefs((p) => ({ ...p, overdue: v }))} />
 					<Toggle label="Product updates" on={prefs.product} set={(v) => setPrefs((p) => ({ ...p, product: v }))} />
-					<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 10 }}>Notification preferences are saved locally for now.</div>
+					<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 12 }}>Notification preferences are saved locally for now.</div>
 				</Card>
 
-				<button onClick={() => void logout()} disabled={signingOut} style={{ background: 'none', border: 'none', color: 'var(--a-danger)', fontSize: 13, cursor: 'pointer', padding: '4px 0', justifySelf: 'start' }}>
+				<button onClick={() => void logout()} disabled={signingOut} style={{ background: 'none', border: 'none', color: 'var(--a-danger)', fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: '4px 0', justifySelf: 'start' }}>
 					{signingOut ? 'Logging out…' : 'Log out'}
 				</button>
 			</div>
@@ -90,16 +90,16 @@ export default function RaiseAccountPage() {
 
 function SplitRow({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
 	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-		<div><div style={{ fontSize: 13 }}>{label}</div>{sub && <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>{sub}</div>}</div>
+		<div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--a-ink)' }}>{label}</div>{sub && <div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 2 }}>{sub}</div>}</div>
 		{children}
 	</div>;
 }
 function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
-	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
-		<span style={{ fontSize: 13 }}>{label}</span>
+	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderTop: '1px solid var(--a-border)' }}>
+		<span style={{ fontSize: 13, color: 'var(--a-ink-2)' }}>{label}</span>
 		<button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => set(!on)}
-			style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'var(--a-primary)' : 'var(--a-border-strong)', position: 'relative', transition: 'background 0.15s' }}>
-			<span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.15s' }} />
+			style={{ width: 39, height: 22, flexShrink: 0, borderRadius: 'var(--a-radius-pill)', border: '0.5px solid var(--a-border)', padding: 0, cursor: 'pointer', background: on ? 'var(--a-primary)' : 'var(--a-track)', position: 'relative', transition: 'background 0.15s' }}>
+			<span style={{ position: 'absolute', top: 2.5, left: on ? 19.5 : 2.5, width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--a-primary-ink)' : 'var(--a-field)', boxShadow: '0 1px 2px rgba(0,0,0,0.18)', transition: 'left 0.15s, background 0.15s' }} />
 		</button>
 	</div>;
 }

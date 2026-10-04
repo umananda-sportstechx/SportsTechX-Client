@@ -4,14 +4,16 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowUpRight } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem, DeckScorecard } from '@/lib/deck-analysis';
-import { Screen, H1, Sub, Card, Button, Badge, Loading } from '@/components/atlas/kit';
-import { StagedLoader, DECK_ANALYSIS_STAGES } from '@/components/atlas/staged-loader';
+import { Screen, Card, Button, Badge, Loading, StagedLoader } from '@/components/atlas';
+import { rating } from '@/components/raise/score-tone';
+import { DECK_ANALYSIS_STAGES } from '@/components/raise/deck-stages';
+import { RaiseSectionHeader } from '@/components/raise/raise-section-header';
 
 /**
  * Atlas Raise — Pitch deck (canvas: deckEmpty / deckProcessing / deckSummary).
@@ -27,14 +29,6 @@ const AREAS = [
 	{ h: 'Business and traction', items: ['Business model', 'Competition', 'Go-to-market', 'Traction'] },
 	{ h: 'Numbers and team', items: ['Financials', 'Team', 'The ask'] },
 ];
-
-function rating(score: number): { label: string; ring: string; bg: string; fg: string } {
-	if (score < 50) return { label: 'Early Stage', ring: '#C0392B', bg: '#FCEBEB', fg: '#791F1F' };
-	if (score < 70) return { label: 'Developing', ring: '#EF9F27', bg: '#FAEEDA', fg: '#854F0B' };
-	if (score < 83) return { label: 'Investor Ready', ring: '#9B9A93', bg: '#F2F1EC', fg: '#6B6A64' };
-	if (score < 93) return { label: 'Strong', ring: '#3B6D11', bg: '#EAF3DE', fg: '#27500A' };
-	return { label: 'Exceptional', ring: '#27500A', bg: '#EAF3DE', fg: '#27500A' };
-}
 
 export default function RaisePitchPage() {
 	const router = useRouter();
@@ -80,10 +74,9 @@ export default function RaisePitchPage() {
 	const trigger = () => fileRef.current?.click();
 
 	const header = (
-		<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
-			<div><H1>Pitch deck</H1><Sub>Analyse and improve your fundraising deck.</Sub></div>
-			{latest && <Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Upload new deck'}</Button>}
-		</div>
+		<RaiseSectionHeader
+			actions={latest ? <Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Upload new deck'}</Button> : undefined}
+		/>
 	);
 	const fileInput = <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />;
 
@@ -100,19 +93,18 @@ export default function RaisePitchPage() {
 	// Empty state
 	if (!latest) return (
 		<Screen>{header}{fileInput}
-			<Card focus style={{ marginTop: 24, padding: '28px 32px' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-					<span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--a-border)' }} />
-					<div style={{ fontSize: 16, fontWeight: 600 }}>See how investors will read your deck</div>
-				</div>
-				<p style={{ margin: '20px 0 0', fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5, maxWidth: 940 }}>Upload your current pitch deck and Atlas will score it, flag what&apos;s missing or unproven, and tell you the highest-priority fixes before you send it to investors.</p>
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 24, margin: '32px 0', maxWidth: 1000 }}>
+			<Card glow="blue" style={{ padding: '21px 21px 30px' }}>
+				<div className="atlas-h2">See how investors will read your deck</div>
+				<p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--a-muted)', lineHeight: '19px', maxWidth: 632 }}>Upload your current pitch deck and Atlas will score it, flag what&apos;s missing or unproven, and tell you the highest-priority fixes before you send it to investors.</p>
+				<hr className="atlas-divider" style={{ margin: '33px 0 37px' }} />
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, maxWidth: 880 }}>
 					{AREAS.map((a) => (
-						<div key={a.h}><div style={{ fontSize: 12, fontWeight: 600 }}>{a.h}</div>
-							<div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 13, color: 'var(--a-muted)' }}>{a.items.map((it) => <span key={it}>{it}</span>)}</div></div>
+						<div key={a.h}><div style={{ fontSize: 12, fontWeight: 700 }}>{a.h}</div>
+							<div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', fontSize: 12, lineHeight: '19px', color: 'var(--a-muted)' }}>{a.items.map((it) => <span key={it}>{it}</span>)}</div></div>
 					))}
 				</div>
-				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={14} /> : 'Analyse your pitch deck'}</Button>
+				<hr className="atlas-divider" style={{ margin: '48px 0 30px' }} />
+				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={14} /> : <>Analyse your pitch deck <ArrowUpRight /></>}</Button>
 			</Card>
 		</Screen>
 	);
@@ -137,43 +129,45 @@ export default function RaisePitchPage() {
 	const improvements = (card?.suggestions ?? []).slice(0, 3);
 	return (
 		<Screen>{header}{fileInput}
-			<Card focus style={{ marginTop: 24, padding: '22px 24px 28px' }}>
+			<Card glow="blue" style={{ padding: '21px 23px 28px' }}>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-						<Badge>latest</Badge><span style={{ fontSize: 15, fontWeight: 600 }}>{latest.filename ?? 'Pitch deck'}</span>
+						<Badge>latest</Badge><span style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{latest.filename ?? 'Pitch deck'}</span>
 					</div>
-					<span style={{ fontSize: 12, color: 'var(--a-faint)' }}>Analysed {new Date(latest.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+					<span style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)' }}>Analysed {new Date(latest.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
 				</div>
 				<div style={{ display: 'flex', gap: 40, marginTop: 26, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
 						<div style={{ width: 92, height: 92, borderRadius: '50%', border: `6px solid ${r.ring}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
-							<span style={{ fontSize: 22, fontWeight: 600, lineHeight: 1 }}>{score}</span><span style={{ fontSize: 10, color: 'var(--a-faint)', marginTop: 3 }}>/100</span>
+							<span style={{ fontSize: 25, fontFamily: 'var(--a-mono)', lineHeight: 1 }}>{score}</span><span style={{ fontFamily: 'var(--a-mono)', fontSize: 9, color: 'var(--a-faint)', marginTop: 4 }}>/100</span>
 						</div>
-						<span style={{ background: r.bg, color: r.fg, borderRadius: 6, padding: '4px 20px', fontSize: 11 }}>{r.label}</span>
+						<span style={{ background: r.bg, color: r.fg, border: `1px solid color-mix(in srgb, ${r.ring} 25%, transparent)`, borderRadius: 3, padding: '4px 12px 3px', fontFamily: 'var(--a-mono)', fontSize: 9, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{r.label}</span>
 					</div>
 					<p style={{ margin: '6px 0 0', flex: 1, minWidth: 240, fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.5 }}>{card?.verdict ?? 'Your deck has been analysed. Open the full analysis for the detailed area-by-area read.'}</p>
 				</div>
 				{improvements.length > 0 && <>
-					<div style={{ marginTop: 28, fontSize: 13, fontWeight: 600 }}>Top priority improvements</div>
+					<hr className="atlas-divider" style={{ margin: '28px 0 22px' }} />
+					<div className="atlas-eyebrow">Top priority improvements</div>
 					<div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 13, color: 'var(--a-muted)' }}>
 						{improvements.map((s, i) => <span key={i}>{i + 1}. {s.suggestion}</span>)}
 					</div>
 				</>}
-				<div style={{ display: 'flex', gap: 16, marginTop: 26 }}>
-					<Button onClick={() => router.push(`/raise/pitch/${latest.id}`)}>View full analysis</Button>
+				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
+				<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+					<Button onClick={() => router.push(`/raise/pitch/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
 					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Analyse revised deck'}</Button>
 				</div>
 			</Card>
 
 			{list.length > 1 && <>
-				<div style={{ margin: '26px 0 12px', fontSize: 13, fontWeight: 600 }}>Previous analyses</div>
-				<Card variant="cream" style={{ padding: '20px 24px' }}>
+				<div className="atlas-eyebrow" style={{ margin: '32px 0 12px' }}>Previous analyses</div>
+				<Card style={{ padding: '6px 23px' }}>
 					{list.map((d, i) => (
 						<div key={d.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,3fr) 120px 90px 90px', gap: 16, fontSize: 13, padding: '12px 0', borderBottom: i < list.length - 1 ? '1px solid var(--a-border)' : 'none', alignItems: 'center' }}>
 							<span>{d.filename ?? 'Pitch deck'}</span>
 							<span style={{ color: 'var(--a-muted)' }}>{new Date(d.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
 							<span style={{ textAlign: 'right' }}>{d.overall_score ?? '—'}</span>
-							<a href={`/raise/pitch/${d.id}`} style={{ textAlign: 'right', color: 'var(--a-navy)' }}>Open</a>
+							<a href={`/raise/pitch/${d.id}`} className="atlas-action" style={{ justifySelf: 'end' }}><span className="atlas-action__icon"><ArrowUpRight /></span>Open</a>
 						</div>
 					))}
 				</Card>

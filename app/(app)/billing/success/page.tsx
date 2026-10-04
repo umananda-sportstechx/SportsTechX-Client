@@ -6,7 +6,7 @@ import { Check } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { Brand } from '@/components/ui/brand';
-import { Button } from '@/components/atlas/kit';
+import { Button, Card } from '@/components/atlas';
 
 /** Stripe Checkout success landing. The tier is set by the billing webhook; we
  *  revalidate the profile so it reflects as soon as it's processed. */
@@ -25,12 +25,14 @@ export default function BillingSuccessPage() {
 
 	const plan = getUserType(profile);
 	return (
-		<div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 14, padding: 24 }}>
-			<Brand variant="horizontal" height={32} />
-			<span style={{ width: 44, height: 44, borderRadius: '50%', background: '#3B6D11', display: 'grid', placeItems: 'center', marginTop: 16 }}><Check size={22} color="#fff" /></span>
-			<h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--a-ink)', margin: 0, letterSpacing: '-0.02em' }}>Payment successful</h1>
-			<p style={{ fontSize: 14, color: 'var(--a-muted)', maxWidth: 440, lineHeight: 1.5, margin: 0 }}>Thanks! Your plan is being activated — if it doesn&apos;t reflect right away it&apos;ll update shortly.</p>
-			<Button onClick={() => router.push(plan === 'raise' ? '/raise' : '/coming-soon')}>Continue</Button>
+		<div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--a-page)', color: 'var(--a-ink)' }}>
+			<Card glow="blue" style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16, padding: '36px 28px 32px' }}>
+				<Brand variant="horizontal" height={32} />
+				<span style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--a-ok-bg)', color: 'var(--a-ok)', border: '1px solid color-mix(in srgb, var(--a-ok) 25%, transparent)', display: 'grid', placeItems: 'center', marginTop: 12 }}><Check size={22} /></span>
+				<h1 style={{ fontFamily: 'var(--a-font)', fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: 'var(--a-ink)', margin: 0 }}>Payment successful</h1>
+				<p style={{ fontSize: 13, color: 'var(--a-muted)', maxWidth: 400, lineHeight: 1.55, margin: 0 }}>Thanks! Your plan is being activated — if it doesn&apos;t reflect right away it&apos;ll update shortly.</p>
+				<div style={{ marginTop: 6 }}><Button onClick={() => router.push(plan === 'raise' ? '/raise' : '/coming-soon')}>Continue</Button></div>
+			</Card>
 		</div>
 	);
 }

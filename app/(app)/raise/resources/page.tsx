@@ -1,6 +1,7 @@
 'use client';
 
-import { Screen, H1, Sub, Card, Badge, Button } from '@/components/atlas/kit';
+import { Screen, Badge } from '@/components/atlas';
+import { RaiseSectionHeader } from '@/components/raise/raise-section-header';
 
 /**
  * Atlas Raise — Resources (mock-up 15 / Notion "Resources"). Prepare → Connect →
@@ -28,7 +29,7 @@ const GROUPS: { phase: string; blurb: string; items: Item[] }[] = [
 			{ title: 'Warm-introduction request', desc: 'Ask for intros without burning goodwill.', kind: 'Template' },
 			{ title: 'Investor meeting guide', desc: 'Running a first investor meeting.', kind: 'Guide' },
 			{ title: 'Follow-up templates', desc: 'Keeping momentum after the meeting.', kind: 'Template' },
-			{ title: 'Pipeline-management guidance', desc: 'Keep your pipeline current, without busywork.', kind: 'Guide' },
+			{ title: 'Watchlist-management guidance', desc: 'Keep your watchlist current, without busywork.', kind: 'Guide' },
 		],
 	},
 	{
@@ -47,29 +48,31 @@ const ACTION: Record<Kind, string> = { Guide: 'Open', Template: 'View', Checklis
 export default function RaiseResourcesPage() {
 	return (
 		<Screen>
-			<H1>Resources</H1>
-			<Sub>Practical guidance, templates and checklists across the fundraising process.</Sub>
+			<RaiseSectionHeader />
 
-			<div style={{ display: 'grid', gap: 32, marginTop: 28 }}>
+			<div style={{ display: 'grid', gap: 36 }}>
 				{GROUPS.map((g) => (
-					<div key={g.phase}>
-						<div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12 }}>
-							<div style={{ fontSize: 16, fontWeight: 600 }}>{g.phase}</div>
-							<span style={{ fontSize: 13, color: 'var(--a-faint)' }}>{g.blurb}</span>
+					<section key={g.phase}>
+						<div style={{ marginBottom: 14 }}>
+							<div className="atlas-eyebrow" style={{ marginBottom: 6 }}>{g.phase}</div>
+							<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55 }}>{g.blurb}</div>
 						</div>
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+						{/* Hairline-separated rows with navy hover — reuses the Raise home list styles. */}
+						<div className="atlas-rowlist">
 							{g.items.map((it) => (
-								<Card key={it.title} style={{ padding: 16, display: 'flex', flexDirection: 'column' }}>
-									<div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-										<div style={{ fontWeight: 500, fontSize: 13 }}>{it.title}</div>
-										<Badge>{it.kind}</Badge>
+								<div key={it.title} className="atlas-rowlist__row">
+									<div className="atlas-rowlist__main">
+										<div className="atlas-rowlist__title">{it.title}</div>
+										<div className="atlas-rowlist__desc">{it.desc}</div>
 									</div>
-									<div style={{ fontSize: 12, color: 'var(--a-faint)', lineHeight: 1.5, marginBottom: 14 }}>{it.desc}</div>
-									<button className="atlas-btn atlas-btn--ghost atlas-btn--sm" style={{ marginTop: 'auto', alignSelf: 'flex-start' }} disabled title="Coming soon">{ACTION[it.kind]}</button>
-								</Card>
+									<div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+										<Badge>{it.kind}</Badge>
+										<button className="atlas-btn atlas-btn--outline atlas-btn--sm" disabled title="Coming soon">{ACTION[it.kind]}</button>
+									</div>
+								</div>
 							))}
 						</div>
-					</div>
+					</section>
 				))}
 			</div>
 		</Screen>

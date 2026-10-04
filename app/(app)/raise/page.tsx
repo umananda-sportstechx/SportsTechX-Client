@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, UserRound } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
-import { H1, Badge, Button } from '@/components/atlas/kit';
-import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/atlas/raise-search';
+import { H1, Badge, SectionHead, FeedCard } from '@/components/atlas';
+import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
 
 /**
  * Atlas Raise — Home. Search-first: a centred composer as the focal point, with
@@ -18,6 +19,18 @@ import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/atlas/raise-search'
 
 interface Attention { id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number }
 interface Home { attention: Attention[] }
+
+/** Category tag + icon per attention item (ids come from the raise-home service). */
+const ATTENTION_TAG: Record<string, { tag: string; icon: LucideIcon }> = {
+	setup: { tag: 'Setup', icon: Settings },
+	deck: { tag: 'Pitch deck', icon: FileCheck },
+	overdue: { tag: 'Watchlist', icon: Bookmark },
+	'next-steps': { tag: 'Watchlist', icon: Bookmark },
+	amounts: { tag: 'Watchlist', icon: Bookmark },
+	'add-first': { tag: 'Investors', icon: Presentation },
+	strategy: { tag: 'Strategy', icon: CalendarCheck },
+};
+const DEFAULT_TAG = { tag: 'For you', icon: UserRound };
 
 export default function RaiseHomePage() {
 	const router = useRouter();
@@ -45,21 +58,26 @@ export default function RaiseHomePage() {
 			</section>
 
 			<section className="raise-attn">
-				<div className="raise-attn-head">What needs your attention</div>
+				<SectionHead title="What needs your attention" />
 				{data.attention.length === 0 ? (
-					<div className="raise-attn-empty">You’re all caught up. Keep your pipeline moving.</div>
+					<div className="raise-attn-empty">You’re all caught up. Keep your watchlist moving.</div>
 				) : (
-					<div className="raise-attn-list">
-						{data.attention.map((a) => (
-							<div key={a.id} className="raise-attn-card">
-								<div className="raise-attn-card-main">
-									<div className="raise-attn-card-title">{a.title}</div>
-									<div className="raise-attn-card-why">{a.why}</div>
-									{a.count != null && <div style={{ marginTop: 10 }}><Badge tone="danger">{a.count} overdue</Badge></div>}
-								</div>
-								<Button href={a.cta_href} variant="outline" size="sm">{a.cta_label} <ArrowRight size={13} /></Button>
-							</div>
-						))}
+					<div className="atlas-feed-grid">
+						{data.attention.map((a) => {
+							const t = ATTENTION_TAG[a.id] ?? DEFAULT_TAG;
+							return (
+								<FeedCard
+									key={a.id}
+									tag={t.tag}
+									icon={t.icon}
+									title={a.title}
+									body={a.why}
+									href={a.cta_href}
+									actionLabel={a.cta_label}
+									extra={a.count != null ? <Badge tone="danger">{a.count} overdue</Badge> : undefined}
+								/>
+							);
+						})}
 					</div>
 				)}
 			</section>
