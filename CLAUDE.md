@@ -52,6 +52,7 @@ Frontend-only redesign of Atlas Raise to the Atlas Product UX v3 design. If you 
 - **Don't touch `app/(scout)/`** or other products' routes.
 - **Build from the Atlas design system** — `import { … } from '@/components/atlas'`. Read [components/atlas/README.md](components/atlas/README.md) first. Colours/fonts only via tokens in `components/atlas/styles/tokens.css`; no hardcoded colours.
 - **Where things live:** Raise pages `app/(app)/raise/**`; Raise-only parts `components/raise/**` (sidebar + section tabs in `components/raise/shell-config.ts`); shared features `components/features/**`.
-- **Mock API:** `lib/mock-api/` answers `/api/*` in the browser when `NEXT_PUBLIC_MOCK_API=1` (set on the atlas-raise-preview Vercel project; off everywhere else). If a page needs an endpoint the mock lacks, add a route in `lib/mock-api/routes.ts`.
-- **Before pushing:** `npx tsc --noEmit -p .` must pass and `npx eslint <changed files>` must add no new errors. Pushes to this branch auto-deploy to https://atlas-raise-preview.vercel.app (~3 min).
+- **Run it locally with no backend (mock mode):** `.env.local` needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ask Vishnu) and `NEXT_PUBLIC_MOCK_API=1`; then `npm install` and `npm run dev` → http://localhost:3000. `lib/mock-api/` answers every `/api/*` call in the browser; if a page needs an endpoint it lacks, add a route in `lib/mock-api/routes.ts`. Mock mode is off unless that variable is set.
+- **Shared branch:** several people work on `feature/vishnu/raise-ui`. At the start of a session run `git pull`; when done, commit and `git push` to this same branch (never to `main` / `development`). Never commit `.env.local` or `app/(scout)/`.
+- **Before pushing:** `npx tsc --noEmit -p .` must pass and `npx eslint <changed files>` must add no new errors.
 - Commit with a clear `feat:` / `fix:` message. Never push to `main` / `development`.
