@@ -67,7 +67,7 @@ export function Topbar({
 		: profile?.email?.[0]?.toUpperCase() ?? 'U';
 	const name = profile?.display_name ?? 'Your account';
 	const email = profile?.email ?? '';
-	const planLabel = (profile?.user_type ?? 'free').toUpperCase();
+	const planLabel = (profile?.user_type ?? 'explore').toUpperCase();
 
 	useEffect(() => {
 		if (!userOpen) return;
