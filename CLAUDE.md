@@ -43,3 +43,15 @@ npx tsc --noEmit     # typecheck (no script alias yet)
 ```
 
 Dev server: `http://localhost:3000`. Talks to backend on `BACKEND_URL` (`http://localhost:5000` by default — see [next.config.ts](next.config.ts)).
+
+## Raise UI work (branch `feature/vishnu/raise-ui`)
+
+Frontend-only redesign of Atlas Raise to the Atlas Product UX v3 design. If you are working on Raise:
+
+- **UI only — never change the backend** (server repo, database, migrations, API contracts). If a feature has no backend support yet, build the UI and mark it **Coming soon** (greyed, `soon: true` / SOON pill, not functional).
+- **Don't touch `app/(scout)/`** or other products' routes.
+- **Build from the Atlas design system** — `import { … } from '@/components/atlas'`. Read [components/atlas/README.md](components/atlas/README.md) first. Colours/fonts only via tokens in `components/atlas/styles/tokens.css`; no hardcoded colours.
+- **Where things live:** Raise pages `app/(app)/raise/**`; Raise-only parts `components/raise/**` (sidebar + section tabs in `components/raise/shell-config.ts`); shared features `components/features/**`.
+- **Mock API:** `lib/mock-api/` answers `/api/*` in the browser when `NEXT_PUBLIC_MOCK_API=1` (set on the atlas-raise-preview Vercel project; off everywhere else). If a page needs an endpoint the mock lacks, add a route in `lib/mock-api/routes.ts`.
+- **Before pushing:** `npx tsc --noEmit -p .` must pass and `npx eslint <changed files>` must add no new errors. Pushes to this branch auto-deploy to https://atlas-raise-preview.vercel.app (~3 min).
+- Commit with a clear `feat:` / `fix:` message. Never push to `main` / `development`.
