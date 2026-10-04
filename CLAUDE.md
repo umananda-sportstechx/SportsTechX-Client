@@ -44,7 +44,7 @@ npx tsc --noEmit     # typecheck (no script alias yet)
 
 Dev server: `http://localhost:3000`. Talks to backend on `BACKEND_URL` (`http://localhost:5000` by default — see [next.config.ts](next.config.ts)).
 
-## Raise UI work (branch `feature/vishnu/raise-ui`)
+## Raise UI work (branch `feature/vishnu/raise-ui` and branches made from it)
 
 Frontend-only redesign of Atlas Raise to the Atlas Product UX v3 design. If you are working on Raise:
 
@@ -53,6 +53,6 @@ Frontend-only redesign of Atlas Raise to the Atlas Product UX v3 design. If you 
 - **Build from the Atlas design system** — `import { … } from '@/components/atlas'`. Read [components/atlas/README.md](components/atlas/README.md) first. Colours/fonts only via tokens in `components/atlas/styles/tokens.css`; no hardcoded colours.
 - **Where things live:** Raise pages `app/(app)/raise/**`; Raise-only parts `components/raise/**` (sidebar + section tabs in `components/raise/shell-config.ts`); shared features `components/features/**`.
 - **Run it locally with no backend (mock mode):** `.env.local` needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ask Vishnu) and `NEXT_PUBLIC_MOCK_API=1`; then `npm install` and `npm run dev` → http://localhost:3000. `lib/mock-api/` answers every `/api/*` call in the browser; if a page needs an endpoint it lacks, add a route in `lib/mock-api/routes.ts`. Mock mode is off unless that variable is set.
-- **Shared branch:** several people work on `feature/vishnu/raise-ui`. At the start of a session run `git pull`; when done, commit and `git push` to this same branch (never to `main` / `development`). Never commit `.env.local` or `app/(scout)/`.
+- **Branches:** `feature/vishnu/raise-ui` is the base. Each other person works on their own branch made from it (e.g. Rohn → `feature/rohn/raise-ui`) and pushes only to that branch; Vishnu or Umananda merge it back. At the start of a session `git pull`; when done, commit and push to your own branch (never to `main` / `development`, never to someone else's branch). Never commit `.env.local` or `app/(scout)/`.
 - **Before pushing:** `npx tsc --noEmit -p .` must pass and `npx eslint <changed files>` must add no new errors.
 - Commit with a clear `feat:` / `fix:` message. Never push to `main` / `development`.
