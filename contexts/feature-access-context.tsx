@@ -16,29 +16,12 @@ export interface Feature {
   explore: boolean;
   raise: boolean;
   scout: boolean;
-  /** @deprecated The retired ladder. `/api/features` serves both key sets
-   *  while day-old cached responses are still in circulation; these go once
-   *  that window has passed. */
-  free?: boolean;
-  growth?: boolean;
-  pro?: boolean;
 }
 
-/**
- * Read a tier flag off a feature, falling back to the retired key.
- *
- * A response cached before the server started sending the real tier names
- * carries only `{free, growth, pro}` — `/api/features` is public with
- * `max-age=3600, stale-while-revalidate=86400`, so one can be served for a
- * day. Without the fallback every feature in that body reads as locked.
- */
-const LEGACY_KEY: Record<UserType, 'free' | 'growth' | 'pro'> = {
-  explore: 'free',
-  raise: 'growth',
-  scout: 'pro',
-};
+/** Read a tier flag off a feature. The server is the only source of truth for
+ *  gating — this never infers access the response did not grant. */
 function allows(feature: Feature, tier: UserType): boolean {
-  return feature[tier] ?? feature[LEGACY_KEY[tier]] ?? false;
+  return feature[tier] ?? false;
 }
 
 /** A per-user override fetched from /api/me/feature-grants. Merged on top of
