@@ -44,7 +44,7 @@ export const RAISE_NAV: ShellNavEntry[] = [
 		{ name: 'Framework', icon: LayoutGrid, path: '/raise/resources/framework' },
 		{ name: 'Reports', icon: Files, path: '/raise/resources/reports', placeholder: true },
 		{ name: 'Events', icon: CalendarRange, path: '/raise/events' },
-		{ name: 'Newsletter', icon: Newspaper, path: '/raise/resources/newsletter', placeholder: true },
+		{ name: 'Newsletter', icon: Newspaper, path: '/raise/resources/newsletter' },
 	] },
 ];
 

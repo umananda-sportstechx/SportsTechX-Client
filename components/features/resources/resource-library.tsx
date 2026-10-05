@@ -1,18 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CardGrid, Empty, FilterBar, PlaceholderTag, type FilterDef } from '@/components/atlas';
+import { CardGrid, Empty, FilterBar, Loading, PlaceholderTag, type FilterDef } from '@/components/atlas';
 import { FeaturedResource, ResourceCard, fmtLongDate } from './resource-card';
 import type { SampleResource } from './sample-resources';
 
 /**
  * Featured item + filterable library, shared by Reports and Newsletter in every
- * product. Backend Not Connected: rows are sample data (sample-resources.ts).
+ * product. Takes a ready array — each caller owns its own fetch and maps the
+ * API row onto `SampleResource`, so this component stays presentation-only.
+ *
+ * `items` must arrive **newest first**: the first element becomes the hero and
+ * the `'old'` sort is a positional `reverse()`, not a date comparison.
  */
 const SORTS: [string, string][] = [['new', 'Newest'], ['old', 'Oldest'], ['az', 'Title A–Z']];
 const ACCESS: [string, string][] = [['Free', 'Free'], ['Premium', 'Premium']];
 
-export function ResourceLibrary({ items, featuredLabel, libraryTitle, noun }: {
+export function ResourceLibrary({ items, featuredLabel, libraryTitle, noun, isLoading, placeholder }: {
 	items: SampleResource[];
 	/** e.g. "Latest report". */
 	featuredLabel: string;
@@ -20,6 +24,11 @@ export function ResourceLibrary({ items, featuredLabel, libraryTitle, noun }: {
 	libraryTitle: string;
 	/** Singular noun for counts, e.g. "report". */
 	noun: string;
+	/** First load with nothing to show yet. Distinguishes "fetching" from "none". */
+	isLoading?: boolean;
+	/** Still fed by sample rows — tags the hero so the screen doesn't imply
+	 *  the data is real. Drop it as each feed is connected. */
+	placeholder?: boolean;
 }) {
 	const [featured, ...rest] = items;
 	const [q, setQ] = useState('');
@@ -42,7 +51,7 @@ export function ResourceLibrary({ items, featuredLabel, libraryTitle, noun }: {
 			{featured && (
 				<FeaturedResource
 					meta={`${featuredLabel} · Published ${fmtLongDate(featured.date)} · ${featured.access}`}
-					title={<>{featured.title}<PlaceholderTag /></>}
+					title={placeholder ? <>{featured.title}<PlaceholderTag /></> : featured.title}
 					desc={featured.desc}
 					tags={featured.tags}
 				/>
@@ -56,7 +65,9 @@ export function ResourceLibrary({ items, featuredLabel, libraryTitle, noun }: {
 				onClear={() => { setQ(''); setTag(''); setAccess(''); }}
 				count={`${rows.length} ${noun}${rows.length === 1 ? '' : 's'}`}
 			/>
-			{rows.length === 0 ? <Empty>No {noun}s match your filters.</Empty> : <CardGrid>{rows.map((r) => <ResourceCard key={r.title} r={r} />)}</CardGrid>}
+			{isLoading && rows.length === 0 ? <Loading />
+				: rows.length === 0 ? <Empty>No {noun}s match your filters.</Empty>
+					: <CardGrid>{rows.map((r) => <ResourceCard key={r.title} r={r} />)}</CardGrid>}
 		</>
 	);
 }

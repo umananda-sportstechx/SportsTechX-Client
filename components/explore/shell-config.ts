@@ -20,7 +20,7 @@ export const EXPLORE_NAV: ShellNavEntry[] = [
 	{ title: 'Intelligence', items: [
 		{ name: 'Framework', icon: LayoutGrid, path: '/explore/intelligence/framework' },
 		{ name: 'Reports', icon: Files, path: '/explore/intelligence/reports', placeholder: true },
-		{ name: 'Newsletter', icon: Newspaper, path: '/explore/intelligence/newsletter', placeholder: true },
+		{ name: 'Newsletter', icon: Newspaper, path: '/explore/intelligence/newsletter' },
 	] },
 	{ title: 'Market', items: [
 		{ name: 'Analysis', icon: ChartPie, path: '/explore/market/analysis' },

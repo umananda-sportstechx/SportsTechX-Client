@@ -5,14 +5,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Newspaper, Files, CalendarDays, UserRound, SlidersHorizontal } from 'lucide-react';
 import { AgentComposer, FeedCard, H1, PlaceholderTag, SectionHead } from '@/components/atlas';
+import useSWR from 'swr';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { SAMPLE_EDITIONS, SAMPLE_REPORTS } from '@/components/features/resources/sample-resources';
+import { qk } from '@/lib/query-keys';
+import type { NewsletterArticle } from '@/types/api';
+import { SAMPLE_REPORTS } from '@/components/features/resources/sample-resources';
 import { useInterests, marketInterests } from './interests';
 
 /**
  * Explore Home (Claude Design "Home"): greeting, interests count, a search bar
  * (searches the live company database) and "What needs your attention". The
- * roundup card is live; newsletter and report cards (sample) and "For you"
+ * roundup and newsletter cards are live; the report card (sample) and "For you"
  * (interests) are Backend Not Connected.
  */
 const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -23,7 +26,12 @@ export function ExploreHome() {
 	const { data: profile } = useUserProfile();
 	const [interests] = useInterests();
 	const [q, setQ] = useState('');
-	const latestNews = SAMPLE_EDITIONS[0];
+	// Shares its SWR key with the Newsletter page, so visiting both costs one
+	// request. Editions arrive newest-first from the feed, but sort rather than
+	// trust that — the hero must genuinely be the latest.
+	const news = useSWR<NewsletterArticle[]>(qk.newsletter.articles());
+	const latestNews = [...(news.data ?? [])]
+		.sort((a, b) => Date.parse(b.pubDate) - Date.parse(a.pubDate))[0];
 	const latestReport = SAMPLE_REPORTS[0];
 	const picked = marketInterests(interests);
 	const first = (profile?.display_name ?? profile?.full_name ?? '').split(' ')[0] || 'there';
@@ -62,7 +70,9 @@ export function ExploreHome() {
 			<section className="explore-home__attn">
 				<SectionHead title="What needs your attention" meta="Based on your interests · updated today" />
 				<div className="atlas-feed-grid">
-					<FeedCard tag="Newsletter" icon={Newspaper} title={<>{latestNews.title}<PlaceholderTag /></>} body={`${fmt(latestNews.date)} · ${latestNews.desc}`} href="/explore/intelligence/newsletter" actionLabel="Read" />
+					{latestNews && (
+						<FeedCard tag="Newsletter" icon={Newspaper} title={latestNews.title} body={`${fmt(latestNews.pubDate)} · ${latestNews.description}`} href="/explore/intelligence/newsletter" actionLabel="Read" />
+					)}
 					<FeedCard tag="Report" icon={Files} title={<>{latestReport.title}<PlaceholderTag /></>} body={`Published ${fmt(latestReport.date)} · ${latestReport.desc}`} href="/explore/intelligence/reports" actionLabel="Open" />
 					<FeedCard tag="Monthly roundup" icon={CalendarDays} title={`${lastMonth} market roundup`} body="The month’s most relevant funding rounds, acquisitions and industry developments in one read." href="/explore/market/roundup" />
 					{picked.length === 0 ? (
