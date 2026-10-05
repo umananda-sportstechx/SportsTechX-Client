@@ -20,15 +20,19 @@ import { Card, Button, Badge, Loading, PageHead, Action } from '@/components/atl
  * Checkout would create a SECOND subscription and double-bill), while a user
  * with no active plan starts one via Checkout.
  */
+// The retired labels stay in the lookup only so a historical `stripe_subscriptions`
+// row still renders a name instead of a raw enum value. They are not offered.
 const PLAN: Record<string, { label: string; price: string }> = {
-	free: { label: 'Free', price: '€0' },
-	general: { label: 'General', price: '€500 / year' },
+	explore: { label: 'Explore', price: '€0' },
 	raise: { label: 'Raise', price: '€600 / year' },
 	scout: { label: 'Scout', price: '€2,500 / year' },
-	growth: { label: 'General (legacy)', price: '—' },
-	pro: { label: 'Raise (legacy)', price: '—' },
+	free: { label: 'Explore (legacy)', price: '—' },
+	general: { label: 'General (retired)', price: '—' },
+	growth: { label: 'Growth (retired)', price: '—' },
+	pro: { label: 'Pro (retired)', price: '—' },
 };
-const PLANS: [string, string][] = [['general', 'General'], ['raise', 'Raise'], ['scout', 'Scout']];
+/** Plans a user can actually move onto. */
+const PLANS: [string, string][] = [['raise', 'Raise'], ['scout', 'Scout']];
 
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
 interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
@@ -59,9 +63,9 @@ export default function BillingPage() {
 	const invoices = useSWR<Invoice[]>(['/api/billing/invoices']);
 	const packs = useSWR<{ data: Pack[] }>(['/api/billing/credit-packs']);
 	const ledger = useSWRInfinite<{ data: LedgerRow[]; nextCursor: string | null }>(
-		(index, prev) => (prev && !prev.nextCursor) ? null : qk.credits.ledger('ai', index === 0 ? undefined : (prev?.nextCursor ?? undefined), 25),
+		(index, prev) => (prev && !prev.nextCursor) ? null : qk.credits.ledger('all', index === 0 ? undefined : (prev?.nextCursor ?? undefined), 25),
 	);
-	const { balance: bal } = useCreditBalance('ai');
+	const { balance: bal } = useCreditBalance();
 	const [busy, setBusy] = useState<string | null>(null);
 
 	// A live subscription exists → plan changes must go through the portal so we

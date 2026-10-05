@@ -8,8 +8,8 @@ import { CREDITS_EVENT, type CreditExhaustedDetail } from '@/lib/credit-events';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 
 /**
- * Global "out of AI credits" modal. Mounted once (app/providers.tsx); opens when
- * any AI feature hits a 402 INSUFFICIENT_CREDITS (the API layer dispatches
+ * Global "out of STX credits" modal. Mounted once (app/providers.tsx); opens
+ * when anything hits a 402 INSUFFICIENT_CREDITS (the API layer dispatches
  * `stx:credits-exhausted`). The single CTA sends the user to /subscriptions —
  * which hosts both plan upgrades and one-off credit packs.
  *
@@ -21,8 +21,7 @@ export function CreditExhaustionHost() {
 	const [open, setOpen] = useState(false);
 	const [detail, setDetail] = useState<CreditExhaustedDetail>({});
 	const isExport = detail.creditType === 'integration';
-	const { balance: aiBalance } = useCreditBalance('ai');
-	const { balance: exportBalance } = useCreditBalance('integration');
+	const { balance } = useCreditBalance();
 
 	useEffect(() => {
 		const onEvent = (e: Event) => {
@@ -33,9 +32,10 @@ export function CreditExhaustionHost() {
 		return () => window.removeEventListener(CREDITS_EVENT, onEvent);
 	}, []);
 
-	// "export credits" = the integration pool; everything else is AI credits.
-	const label = isExport ? 'export credits' : 'AI credits';
-	const available = detail.available ?? (isExport ? exportBalance?.total_available : aiBalance?.total_available);
+	// One wallet funds both, so the balance is the same either way — only the
+	// wording changes, to name what the user was trying to do.
+	const label = 'STX credits';
+	const available = detail.available ?? balance?.total_available;
 
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -66,7 +66,7 @@ export function CreditExhaustionHost() {
 							? `This needs ${detail.required.toLocaleString()} ${label}, but you have ${available.toLocaleString()} left. `
 							: `You don’t have enough ${label} for this. `}
 						{isExport
-							? 'Each exported row costs 1 export credit. Upgrade your plan or top up to export more.'
+							? 'Each exported row costs 1 credit. Top up with a credit pack or upgrade your plan for a larger monthly allowance.'
 							: 'Top up with a credit pack or upgrade your plan for a larger monthly allowance.'}
 					</p>
 					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>

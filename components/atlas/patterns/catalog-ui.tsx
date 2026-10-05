@@ -9,7 +9,9 @@ import { Button } from '../ui/button';
 /** Locked teaser shown in place of the advanced filters when the user's tier
  *  doesn't include them (feature slug `advanced_filters`). */
 export function lockedFiltersNote(requiredTier?: string | null): string {
-	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Growth';
+	// 'Raise' is the cheapest tier that unlocks advanced filters. The old default
+	// said 'Growth', a tier retired in the explore/raise/scout rename.
+	const tier = requiredTier ? requiredTier[0].toUpperCase() + requiredTier.slice(1) : 'Raise';
 	return `Advanced filters (sector tiers, location, tech tags) · ${tier}+`;
 }
 export function LockedFilters({ requiredTier }: { requiredTier?: string | null }) {

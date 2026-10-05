@@ -47,7 +47,7 @@ export function ExportButton({ entity, search, filters }: { entity: string; sear
 
 function ExportModal({ entity, search, filters, onClose }: { entity: string; search?: string | null; filters?: Record<string, unknown> | null; onClose: () => void }) {
 	const { data, isLoading } = useSWR<ColumnsResp>(qk.exports.columns(entity), { dedupingInterval: 60_000 });
-	const { balance } = useCreditBalance('integration');
+	const { balance } = useCreditBalance();
 	const [format, setFormat] = useState<ExportFormat>('xlsx');
 	const [selected, setSelected] = useState<Set<string> | null>(null);
 	const [busy, setBusy] = useState(false);
