@@ -1,6 +1,6 @@
 /**
  * Atlas design system — the single import surface for every product
- * (Raise today; Scout and Explore next):
+ * (Raise and Scout today; Explore next):
  *
  *   import { Screen, PageHead, Card, Button, FilterBar, ComboBarLine } from '@/components/atlas';
  *
@@ -43,4 +43,7 @@ export type { AtlasShellProps } from './shell/atlas-shell';
 export { isSection, pickActive, flattenNav } from './shell/nav';
 export type { ShellNavItem, ShellNavSection, ShellNavEntry } from './shell/nav';
 export { TabbedPageHeader } from './patterns/tabbed-page-header';
+export { NavSectionHeader } from './patterns/nav-section-header';
+export { PlaceholderTag, PLACEHOLDER_LABEL } from './patterns/placeholder-tag';
+export { AgentComposer } from './patterns/agent-composer';
 export type { HeaderTab } from './patterns/tabbed-page-header';

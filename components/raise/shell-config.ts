@@ -8,8 +8,9 @@ import type { ShellNavEntry, ShellNavItem } from '@/components/atlas';
  * Raise's sidebar — the only product-specific part of the shell. Each section
  * is also a page: its title is the page heading and its items are the page tabs
  * (see RaiseSectionHeader).
- * Items marked `soon` show a SOON pill until their page exists; to ship one,
- * give it a real `path` and drop `soon`.
+ * Items marked `placeholder` are built to the design without a backend yet
+ * (sample data) and show a "Not connected" pill; drop it once wired up.
+ * (`soon` — greyed, not clickable — is still supported but no longer used.)
  */
 export const RAISE_HOME = '/raise';
 export const RAISE_ACCOUNT = '/raise/account';
@@ -24,13 +25,13 @@ export const RAISE_NAV: ShellNavEntry[] = [
 	{ title: 'Discover', items: [
 		{ name: 'Companies', icon: Building2, path: '/raise/discover/companies' },
 		{ name: 'Recommended', icon: Sparkles, path: '/raise/discover/recommended' },
-		{ name: 'Signals', icon: Radar, path: '/raise/discover/signals', soon: true },
+		{ name: 'Signals', icon: Radar, path: '/raise/discover/signals', placeholder: true },
 	] },
 	{ title: 'Intelligence', items: [
 		{ name: 'Analytics', icon: ChartPie, path: '/raise/intelligence/analytics' },
 		{ name: 'Monthly Roundup', icon: CalendarDays, path: '/raise/intelligence/roundup' },
 		{ name: 'My Market', icon: Target, path: '/raise/intelligence/my-market' },
-		{ name: 'Recently Funded', icon: TrendingUp, path: '/raise/intelligence/recently-funded', soon: true },
+		{ name: 'Recently Funded', icon: TrendingUp, path: '/raise/intelligence/recently-funded' },
 	] },
 	{ title: 'Watchlists', items: [
 		// Formerly "Pipeline" (investor board). The user's company watchlists are inserted
@@ -39,11 +40,11 @@ export const RAISE_NAV: ShellNavEntry[] = [
 		{ name: 'All watchlists', icon: List, path: '/raise/watchlists' },
 	] },
 	{ title: 'Resources', items: [
-		{ name: 'Fundraising Guide', icon: BookOpen, path: '/raise/resources' },
+		{ name: 'Fundraising Guide', icon: BookOpen, path: '/raise/resources', placeholder: true },
 		{ name: 'Framework', icon: LayoutGrid, path: '/raise/resources/framework' },
-		{ name: 'Reports', icon: Files, path: '/raise/resources/reports', soon: true },
+		{ name: 'Reports', icon: Files, path: '/raise/resources/reports', placeholder: true },
 		{ name: 'Events', icon: CalendarRange, path: '/raise/events' },
-		{ name: 'Newsletter', icon: Newspaper, path: '/raise/resources/newsletter', soon: true },
+		{ name: 'Newsletter', icon: Newspaper, path: '/raise/resources/newsletter', placeholder: true },
 	] },
 ];
 

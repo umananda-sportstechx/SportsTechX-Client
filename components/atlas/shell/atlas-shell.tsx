@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { X, ChevronUp } from 'lucide-react';
 import { MenuIcon } from '../brand/menu-icon';
+import { PLACEHOLDER_LABEL } from '../patterns/placeholder-tag';
 import { AtlasLogo } from '../brand/atlas-logo';
 import { ThemeToggle } from './theme-toggle';
 import { isSection, pickActive, type ShellNavEntry, type ShellNavItem } from './nav';
@@ -39,10 +40,12 @@ export interface AtlasShellProps {
 	accountName?: string | null;
 	/** Rendered after the sidebar as a sibling (e.g. a floating assistant button). */
 	overlay?: ReactNode;
+	/** Extra sidebar content above the bottom nav (e.g. Explore's upgrade cards). Hidden when the rail is collapsed. */
+	railExtra?: ReactNode;
 	children: ReactNode;
 }
 
-export function AtlasShell({ product, productColor, homePath, nav, bottomNav, accountPath, accountName, overlay, children }: AtlasShellProps) {
+export function AtlasShell({ product, productColor, homePath, nav, bottomNav, accountPath, accountName, overlay, railExtra, children }: AtlasShellProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const railKey = `stx:${product.toLowerCase()}-rail-collapsed`;
@@ -77,6 +80,7 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, ac
 			<Link key={item.path} href={item.path} className={`${cls} ${isActive(item.path) ? 'active' : ''}`} aria-current={isActive(item.path) ? 'page' : undefined} title={collapsed ? item.name : undefined} onClick={() => setOpen(false)}>
 				<Icon size={17} strokeWidth={1.25} />
 				<span className="atlas-nav-label">{item.name}</span>
+				{item.placeholder && <span className="atlas-soon" title={PLACEHOLDER_LABEL}>Not connected</span>}
 			</Link>
 		);
 	};
@@ -107,6 +111,7 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, ac
 					<button className="atlas-rail-close" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} strokeWidth={1.5} /></button>
 				</div>
 				<nav className="atlas-nav">{nav.map(renderEntry)}</nav>
+				{railExtra && !collapsed && <div className="atlas-rail-extra">{railExtra}</div>}
 				<nav className="atlas-nav-bottom">{bottomNav.map(renderItem)}<ThemeToggle collapsed={collapsed} /></nav>
 				<Link href={accountPath} className={`atlas-account ${isActive(accountPath) ? 'active' : ''}`} title={collapsed ? 'Account' : undefined} onClick={() => setOpen(false)}>
 					<span className="atlas-account-badge" aria-hidden="true">{initialsOf(accountName)}</span>

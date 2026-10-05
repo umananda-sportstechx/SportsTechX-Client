@@ -13,51 +13,6 @@
   margin: 18px 0 27px; padding-bottom: 22px; border-bottom: 1px solid var(--a-border);
 }
 
-/* Search composer (the focal point) */
-.raise-search { width: 100%; }
-.raise-search-box {
-	display: flex; flex-direction: column; gap: 8px;
-	background: color-mix(in srgb, #D9D9D9 20%, var(--a-page));
-	border: 1px solid var(--a-border-strong);
-	border-radius: 17px;
-	padding: 14px 12px 10px 15px;
-	transition: border-color 0.15s, box-shadow 0.15s;
-}
-[data-theme="dark"] .atlas .raise-search-box { background: var(--a-surface); }
-.raise-search-box:focus-within {
-	border-color: var(--a-ink);
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 8%, transparent);
-}
-.raise-search-input {
-	width: 100%; resize: none; border: none; outline: none; background: transparent;
-	color: var(--a-ink); font-family: var(--a-body); font-size: 14px; line-height: 1.6;
-	min-height: 56px; max-height: 240px; padding: 0 2px;
-}
-.raise-search-input::placeholder { color: color-mix(in srgb, var(--a-ink) 55%, transparent); }
-.raise-search-row { display: flex; align-items: flex-start; gap: 12px; }
-.raise-search-row .raise-search-glyph { margin-top: 1px; }
-.raise-search-actions { display: flex; align-items: center; justify-content: flex-end; }
-.raise-search-glyph { color: var(--a-ink); flex-shrink: 0; }
-.raise-search-send {
-	width: 35px; height: 24px; border-radius: var(--a-radius-pill); flex-shrink: 0;
-	display: inline-flex; align-items: center; justify-content: center;
-	background: var(--a-primary); color: var(--a-primary-ink); border: 0.5px solid var(--a-border); cursor: pointer;
-	transition: opacity 0.15s;
-}
-.raise-search-send svg { width: 13px; height: 13px; }
-.raise-search-send:disabled { opacity: 0.35; cursor: not-allowed; }
-.raise-search-send:not(:disabled):hover { opacity: 0.85; }
-
-.raise-search-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-start; margin-top: 21px; padding: 0 11px; }
-.raise-search-suggest-label { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); margin-right: 1px; }
-.raise-search-chip {
-	font-family: var(--a-mono); font-size: 11px; line-height: 1; text-transform: uppercase;
-	padding: 8px 10px; border-radius: var(--a-radius-tag); cursor: pointer;
-	border: 1px solid var(--a-border); background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-ink);
-	transition: background 0.12s, border-color 0.12s;
-}
-.raise-search-chip:hover { background: var(--a-inset); border-color: var(--a-border-strong); }
-
 /* Attention panel — section header + feed grid come from the design system
    (SectionHead, FeedCard). Spacing per Figma Home: 73px below the suggestions. */
 .raise-attn { width: 100%; margin: 0; padding: 73px 0 96px; }

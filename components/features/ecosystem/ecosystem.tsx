@@ -11,8 +11,8 @@ import { useSportOptions, useLocationFacetOptions } from '@/hooks/use-catalog-op
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 /**
- * Ecosystem catalogues for Raise — Programs and Events lists (formerly the two
- * tabs of "Programs & Events"), rendered by /raise/programs and /raise/events.
+ * Ecosystem catalogues — Programs and Events lists (shared by Raise and Scout;
+ * e.g. /raise/programs, /raise/events, /scout/resources/events).
  */
 interface Eco {
 	id: string; name: string; slug: string | null; entity_type: string;

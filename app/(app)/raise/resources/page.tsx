@@ -67,7 +67,7 @@ export default function RaiseResourcesPage() {
 									</div>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
 										<Badge>{it.kind}</Badge>
-										<button className="atlas-btn atlas-btn--outline atlas-btn--sm" disabled title="Coming soon">{ACTION[it.kind]}</button>
+										<button className="atlas-btn atlas-btn--outline atlas-btn--sm" disabled title="Backend Not Connected (Placeholders)">{ACTION[it.kind]}</button>
 									</div>
 								</div>
 							))}

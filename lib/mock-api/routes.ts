@@ -167,7 +167,12 @@ const routes: Array<[string, string, Handler]> = [
 	}],
 	['GET', '/api/companies/:id', ({ url, params, captured }) =>
 		captured[capKey(url)] ?? allCompanies(captured).find((c) => c.id === params.id || c.slug === params.id) ?? json({ error: { message: 'Company not found' } }, 404)],
-	['GET', '/api/deals', ({ url, captured }) => captured[capKey(url)] ?? { data: [], total: 0, totalPages: 1 }],
+	['GET', '/api/deals', ({ url, captured }) => {
+		const exact = captured[capKey(url)];
+		if (exact) return exact;
+		if (url.searchParams.get('company_id')) return { data: [], total: 0, totalPages: 1 };
+		return recentDeals(url, captured);
+	}],
 	['GET', '/api/acquisitions', () => ({ data: [], total: 0, totalPages: 1 })],
 
 	// Ecosystem (programs / events)
@@ -315,6 +320,36 @@ function matchPath(pattern: string, pathname: string): Record<string, string> | 
 type Row = Record<string, any> & { id: string; name: string };
 function allCompanies(captured: Record<string, Json>): Row[] { return capturedRows<Row>(captured, '/api/companies', (k) => !k.includes('sector_slug')); }
 function allInvestors(captured: Record<string, Json>): Row[] { return capturedRows<Row>(captured, '/api/investors'); }
+
+/**
+ * Recent funding rounds for list views (Recently Funded) — only per-company deal
+ * lists were captured, so rows are synthesised from captured companies with a
+ * disclosed last round, dated across the last ~6 months.
+ */
+function recentDeals(url: URL, captured: Record<string, Json>) {
+	const investors = allInvestors(captured).map((i) => i.name);
+	let rows = allCompanies(captured).filter((c) => c.last_round_type).slice(0, 80).map((c, i) => ({
+		id: `deal-${c.id}`, company_id: c.id, company_name: c.name, company_slug: c.slug ?? null,
+		company_website: c.website ?? null, company_custom_logo_url: c.custom_logo_url ?? null,
+		hq_city: c.hq_city ?? null, hq_country: c.hq_country ?? null, primary_sector: c.primary_sector ?? null,
+		announced_date: new Date(Date.now() - (i * 2 + 1) * 864e5).toISOString().slice(0, 10),
+		amount_usd: c.total_funding_usd ? Math.round(Number(c.total_funding_usd) * 0.4) : null,
+		round_type_name: c.last_round_type, round_type_slug: String(c.last_round_type).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+		lead_investor: investors[i % Math.max(1, investors.length)] ?? null,
+		investors: investors.length ? [investors[i % investors.length], investors[(i + 7) % investors.length]] : [],
+	}));
+	const q = url.searchParams.get('q')?.toLowerCase();
+	const from = url.searchParams.get('from');
+	const round = url.searchParams.get('round_type_slug');
+	const country = url.searchParams.get('country');
+	if (q) rows = rows.filter((r) => `${r.company_name} ${r.investors.join(' ')}`.toLowerCase().includes(q));
+	if (from) rows = rows.filter((r) => r.announced_date >= from);
+	if (round) rows = rows.filter((r) => r.round_type_slug === round);
+	if (country) { const cs = country.split(',').map((x) => x.toLowerCase()); rows = rows.filter((r) => cs.includes(String(r.hq_country ?? '').toLowerCase())); }
+	if (url.searchParams.get('sort') === '-amount_usd') rows = [...rows].sort((a, b) => (b.amount_usd ?? 0) - (a.amount_usd ?? 0));
+	return paged(rows, url);
+}
+
 
 function homeFor(state: MockState) {
 	const today = new Date().toISOString().slice(0, 10);

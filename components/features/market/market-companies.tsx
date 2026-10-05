@@ -34,11 +34,11 @@ const COMPANY_SORTS: [string, string][] = [['-created_at', 'Newest'], ['name', '
  */
 /** `companyHref` → rows link to a company profile page; omitted → rows open the side drawer. */
 export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: string) => string } = {}) {
-	const [q, setQ] = useState('');
+	// Deep links (e.g. from the framework or Scout) can preselect ?q=, ?sector=<pillar>&sub=<category>.
+	const searchParams = useSearchParams();
+	const [q, setQ] = useState(() => searchParams.get('q') ?? '');
 	const dq = useDebouncedValue(q);
 	const [model, setModel] = useState('');
-	// Deep links (e.g. from the framework) can preselect ?sector=<pillar>&sub=<category>.
-	const searchParams = useSearchParams();
 	const [sector, setSector] = useState(() => searchParams.get('sector') ?? '');
 	const [subSector, setSubSector] = useState(() => searchParams.get('sub') ?? '');
 	const [subSubSector, setSubSubSector] = useState(() => searchParams.get('subsub') ?? '');

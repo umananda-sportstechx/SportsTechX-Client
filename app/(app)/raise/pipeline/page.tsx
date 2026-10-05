@@ -83,7 +83,7 @@ export default function RaisePipelinePage() {
 					actions={<>
 						{/* Placeholder: one watchlist today (the investor board). Multiple named
 						    watchlists need backend support — swap WATCHLISTS for real data then. */}
-						<ListSwitcher noun="watchlist" lists={WATCHLISTS.map((w) => ({ ...w, meta: String(rows.length) }))} value={watchlist} onChange={setWatchlist} createSoon />
+						<ListSwitcher noun="watchlist" lists={WATCHLISTS.map((w) => ({ ...w, meta: String(rows.length) }))} value={watchlist} onChange={setWatchlist} createPlaceholder />
 						<Button onClick={() => setAdding(true)}><Plus size={13} /> Add investor</Button>
 					</>}
 				/>

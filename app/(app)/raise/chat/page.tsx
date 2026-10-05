@@ -69,7 +69,7 @@ export default function RaiseChatPage() {
 						{!hasThread && (
 							<div className="raise-chatpage-suggest">
 								{RAISE_SUGGESTIONS.map((s) => (
-									<button key={s} type="button" className="raise-search-chip" onClick={() => void send(s)}>{s}</button>
+									<button key={s} type="button" className="atlas-composer-chip" onClick={() => void send(s)}>{s}</button>
 								))}
 							</div>
 						)}

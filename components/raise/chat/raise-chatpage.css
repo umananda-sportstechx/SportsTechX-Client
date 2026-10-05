@@ -42,7 +42,7 @@
 	padding: 14px 56px 24px;
 	background: var(--a-page);
 }
-.raise-chatpage-composer .raise-search { max-width: 760px; margin: 0 auto; }
+.raise-chatpage-composer .atlas-composer { max-width: 760px; margin: 0 auto; }
 
 /* Right rail: past conversations as hairline-separated rows. */
 .raise-chatpage-rail {

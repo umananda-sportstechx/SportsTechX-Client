@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import useSWR from 'swr';
 import { ArrowUpLeft, ArrowUpRight, Globe } from 'lucide-react';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
@@ -44,7 +44,7 @@ function ago(d?: string | null): string {
 }
 const place = (city?: string | null, country?: string | null) => [city, country].filter(Boolean).join(', ');
 
-export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref }: {
+export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, railTop }: {
 	idOrSlug: string;
 	/** "Return to results" target. */
 	backHref: string;
@@ -52,6 +52,8 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref }: {
 	companyHref: (idOrSlug: string) => string;
 	/** Company list filtered by sector path, for "View related companies". */
 	listHref: (filter: { sector?: string; sub?: string; subsub?: string }) => string;
+	/** Product-specific card at the top of the right rail (e.g. Scout's thesis match). */
+	railTop?: ReactNode;
 }) {
 	const detail = useSWR<Company>(qk.companies.detail(idOrSlug));
 	const c = detail.data;
@@ -145,6 +147,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref }: {
 				</div>
 
 				<aside className="atlas-co__rail">
+					{railTop}
 					<section className="atlas-card atlas-co__side">
 						<h2 className="atlas-co__h">Recent signals</h2>
 						{newsRows.length === 0 ? <p className="atlas-co__empty">No recent signals for this company yet.</p> : newsRows.map((n) => (

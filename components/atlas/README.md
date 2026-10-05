@@ -1,6 +1,6 @@
 # Atlas design system
 
-The shared look and UI for every SportsTechX product: **Raise** today, **Scout** and **Explore** next. It's built from the *Atlas Product UX v3* Figma file.
+The shared look and UI for every SportsTechX product: **Raise**, **Scout** and **Explore**. It's built from the *Atlas Product UX v3* Figma file.
 
 The design system holds styles and presentational components only. It has no product logic and does no data fetching. Products bring their own pages, data and navigation, and plug into it.
 
@@ -80,7 +80,8 @@ public/fonts/atlas/           ← Satoshi + CommitMono (self-hosted, licences in
 | Data | `Badge`, `Stat`, `Progress`, `Logo`, `Flag`, `Pager`, `CardGrid` |
 | Filtering | `FilterBar`: search, applied-filter pills, black **+ Add filter** menu, **Sort by** |
 | Charts | `ComboBarLine`, `PieDonut` (+ `PieLegend`), `HBarDrilldown`, palettes |
-| Frame | `AtlasShell`, `AtlasLogo` |
+| Frame | `AtlasShell`, `AtlasLogo`, `NavSectionHeader` (section title + tabs from the nav) |
+| Status | `PlaceholderTag` — "Backend Not Connected (Placeholders)" pill (SOON style) for screens with no backend yet; nav items take `placeholder: true` |
 
 CSS-only patterns, applied with `className`:
 
@@ -98,7 +99,9 @@ CSS-only patterns, applied with `className`:
 
 ---
 
-## Adding a product (Scout, Explore…)
+## Adding a product
+
+Scout (`components/scout/*`, `app/(scout)/scout/**`) and Explore (`components/explore/*`, `app/(explore)/explore/**`) are worked examples after Raise. `AtlasShell` takes `railExtra` for sidebar content such as Explore's upgrade cards.
 
 1. **Navigation.** Create `components/<product>/shell-config.ts` with its `ShellNavItem[]` lists. Copy `components/raise/shell-config.ts` as a starting point.
 2. **Shell.** Render the frame:
@@ -110,5 +113,5 @@ CSS-only patterns, applied with `className`:
    </AtlasShell>
    ```
 
-3. **Pages.** Build pages from `@/components/atlas`, starting each with `<Screen>` and then `<PageHead>` or `H1` + `Tabs`. Reuse shared features such as `components/features/market/*` as they are.
+3. **Pages.** Build pages from `@/components/atlas`, starting each with `<Screen>` and then `<PageHead>`, or the product's section header — a one-line wrapper over `<NavSectionHeader nav={…} homePath={…} subs={…} />` (see `RaiseSectionHeader`, `ScoutSectionHeader`). Reuse shared features in `components/features/*` (market, company, watchlists, framework, deck-analysis, funding, resources, ecosystem, account) as they are.
 4. **Product-only styles** go in `components/<product>/<product>.css`, imported by that product's shell. Only add them for things that genuinely belong to that product.

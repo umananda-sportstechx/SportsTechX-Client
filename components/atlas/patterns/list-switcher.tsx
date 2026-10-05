@@ -10,17 +10,17 @@ export interface SwitcherList { id: string; name: string; /** Small right-aligne
 /**
  * ListSwitcher — pill button showing the current list; opens the black menu
  * with a search box, the user's lists (dot = current) and a "+ New …" action.
- * Used for watchlists. `onCreate` omitted + `createSoon` → the create row shows
- * a SOON pill and is disabled.
+ * Used for watchlists. `onCreate` omitted + `createPlaceholder` → the create row
+ * shows a "Not connected" pill and is disabled (no backend yet).
  */
-export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, createSoon }: {
+export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, createPlaceholder }: {
 	lists: SwitcherList[];
 	value: string;
 	onChange: (id: string) => void;
 	/** Singular noun for labels: "Search watchlists…", "+ New watchlist". */
 	noun?: string;
 	onCreate?: () => void;
-	createSoon?: boolean;
+	createPlaceholder?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const [q, setQ] = useState('');
@@ -57,7 +57,7 @@ export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, 
 					<div className="atlas-switcher__foot">
 						<button type="button" className="atlas-menu__item" disabled={!onCreate} aria-disabled={!onCreate} onClick={() => { onCreate?.(); close(); }}>
 							<Plus size={11} aria-hidden="true" /> New {noun}
-							{createSoon && <span className="atlas-switcher__soon">Soon</span>}
+							{createPlaceholder && <span className="atlas-switcher__soon">Not connected</span>}
 						</button>
 					</div>
 				</div>

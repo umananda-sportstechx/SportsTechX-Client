@@ -12,6 +12,8 @@ export interface ShellNavItem {
 	path: string;
 	/** Not built yet — shown greyed with a SOON pill, not clickable. */
 	soon?: boolean;
+	/** Built to the design but no backend yet — clickable, with a "Not connected" pill. */
+	placeholder?: boolean;
 	/** Active when the page is open without this item's query (the page's default tab). */
 	isDefault?: boolean;
 }

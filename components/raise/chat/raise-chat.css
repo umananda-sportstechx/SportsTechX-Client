@@ -148,7 +148,7 @@
 	color: var(--a-muted);
 }
 
-/* ── Input (drawer composer; mirrors .raise-search-box) ────────────────────*/
+/* ── Input (drawer composer; mirrors .atlas-composer-box) ────────────────────*/
 .raise-chat-input-row {
 	display: flex; gap: 8px; align-items: flex-end;
 	margin: 12px 16px 16px; padding: 10px 10px 10px 14px;

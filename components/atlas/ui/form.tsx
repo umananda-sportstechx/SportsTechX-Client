@@ -1,12 +1,24 @@
 'use client';
 
-import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { cloneElement, isValidElement, useId } from 'react';
+import type { ReactElement, ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './cx';
 
 /** Form fields — mono uppercase labels, rounded inputs. Add `className="atlas-input--search"` for a pill search box. */
 
 export function Field({ label, children }: { label?: string; children: ReactNode }) {
-	return <div>{label && <label className="atlas-label">{label}</label>}{children}</div>;
+	const autoId = useId();
+	// Tie the label to a single Atlas control (screen readers + click-to-focus).
+	// Other children (button groups, read-only values) keep a plain label.
+	const control = isValidElement<{ id?: string }>(children) && (children.type === Input || children.type === Select || children.type === Textarea)
+		? (children as ReactElement<{ id?: string }>) : null;
+	const id = control ? (control.props.id ?? autoId) : undefined;
+	return (
+		<div>
+			{label && <label className="atlas-label" htmlFor={id}>{label}</label>}
+			{control ? cloneElement(control, { id }) : children}
+		</div>
+	);
 }
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
