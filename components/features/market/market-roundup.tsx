@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
+import type { Deal } from '@/types/api';
 import { Card, Loading, Badge, PieDonut, PieLegend, type PieSegment, paletteAt } from '@/components/atlas';
 import { MONTHS } from '@/lib/catalog-options';
 import { fmtUsd, fmtCount } from './format';
@@ -23,10 +24,7 @@ interface Roundup {
 	news: NewsItem[]; stats: RoundupStats;
 	by_sector: Grouping[]; by_round_type: Grouping[]; by_geo: Grouping[];
 }
-interface Deal {
-	id: string; company_name: string | null; hq_city: string | null; hq_country: string | null;
-	round_type_name: string | null; amount_usd: string | number | null;
-}
+
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const YEARS: [string, string][] = (() => {

@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { ArrowUpLeft, ArrowUpRight, Globe } from 'lucide-react';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { qk } from '@/lib/query-keys';
+import type { Deal } from '@/types/api';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import './company-profile.css';
@@ -27,7 +28,7 @@ interface Company {
 interface Sport { id: string; name: string; is_primary?: boolean }
 interface NewsItem { id: string; title: string; url?: string | null; source?: string | null; summary?: string | null; published_at?: string | null }
 interface Similar { id: string; name: string; slug?: string | null; hq_city?: string | null; hq_country?: string | null; last_round_type?: string | null; primary_sector?: string | null }
-interface Deal { id: string; announced_date?: string | null; amount_usd?: number | string | null; round_type_name?: string | null; lead_investor?: string | null; investors?: string[] | null }
+
 interface SectorRef { id: string; name: string; slug: string; parent_id?: string | null }
 
 const BUSINESS_MODELS: Record<string, string> = { b2b: 'B2B', b2c: 'B2C', b2b2c: 'B2B2C', d2c: 'D2C', b2g: 'B2G', other: 'Other' };

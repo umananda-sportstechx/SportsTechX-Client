@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
+import type { Deal } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useRoundTypeOptions } from '@/hooks/use-catalog-options';
 import { COUNTRY_OPTIONS } from '@/lib/catalog-options';
@@ -16,13 +17,7 @@ import './funding.css';
  * Toolbar: search · round · country · period; table: company, date, round,
  * investors, amount. Shared feature — products pass where company links go.
  */
-interface DealRow {
-	id: string; company_id: string; company_name: string; company_slug?: string | null;
-	company_website?: string | null; company_custom_logo_url?: string | null;
-	hq_city?: string | null; hq_country?: string | null; primary_sector?: string | null;
-	announced_date?: string | null; amount_usd?: number | string | null; round_type_name?: string | null;
-	lead_investor?: string | null; investors?: string[] | null;
-}
+
 
 const PAGE_SIZE = 25;
 const PERIODS: [string, string][] = [['30', 'Last 30 days'], ['90', 'Last 90 days'], ['365', 'Last 12 months']];
@@ -52,7 +47,7 @@ export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string
 		if (period) p.from = isoDaysAgo(Number(period));
 		return p;
 	}, [page, sort, dq, round, country, period]);
-	const res = useSWR<{ data: DealRow[]; total: number; totalPages: number }>(qk.deals.list(params), { keepPreviousData: true });
+	const res = useSWR<{ data: Deal[]; total: number; totalPages: number }>(qk.deals.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
 	const total = res.data?.total ?? 0;
 	const anyFilter = !!(dq || round || country || period);

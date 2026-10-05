@@ -27,6 +27,7 @@ interface PrimaryContactData {
 	role: string | null;
 }
 import { openClaim } from '@/lib/claim-events';
+import type { Deal, Page } from '@/types/api';
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
@@ -65,20 +66,7 @@ interface Company {
 	linkedin_url?: string | null;
 }
 
-interface InvestorLink { name: string; slug?: string | null; is_lead?: boolean | null }
 
-interface Deal {
-	id: string;
-	announced_date?: string | null;
-	amount_usd?: number | string | null;
-	round_type_name?: string | null;
-	round_type?: string | null;
-	lead_investor?: string | null;
-	investors?: string[] | null;
-	investor_links?: InvestorLink[] | null;
-}
-
-interface DealsResponse { data: Deal[] }
 
 interface Acquisition {
 	id: string;
@@ -125,7 +113,7 @@ export function CompanyDrawer({
 		}
 	};
 
-	const { data: dealsResp } = useSWR<DealsResponse>(
+	const { data: dealsResp } = useSWR<Page<Deal>>(
 		company?.id ? qk.deals.list({ company_id: company.id, limit: 30, sort: '-announced_date' }) : null,
 		{ dedupingInterval: 5 * 60_000 },
 	);
@@ -485,7 +473,7 @@ function Funding({ company, deals, onOpenFull }: { company: Company; deals: Deal
 						<div style={{ flex: 1 }}>
 							<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
 								<span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-									{r.round_type_name ?? r.round_type ?? '—'}
+									{r.round_type_name ?? '—'}
 								</span>
 								<span className="num" style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
 									{formatDollars(r.amount_usd)}

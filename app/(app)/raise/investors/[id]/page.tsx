@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import type { Deal } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 
@@ -30,7 +31,7 @@ interface Pipe {
 	next_step_due: string | null; notes: string | null;
 }
 interface Activity { type: string; payload: Record<string, unknown> | null; occurred_at: string }
-interface Deal { id: string; company_name: string | null; company_slug: string | null; amount_usd: string | null; announced_date: string | null; round_type_name: string | null }
+
 
 const STAGES: [string, string][] = [
 	['target', 'Target'], ['contacted', 'Contacted'], ['in_conversation', 'In conversation'],
