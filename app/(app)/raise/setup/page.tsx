@@ -372,7 +372,7 @@ function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: stri
 		{opts.map((o) => {
 			const active = sel.has(o);
 			return <button key={o} type="button" aria-pressed={active} className={`atlas-btn ${active ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`}
-				onClick={() => { const nn = new Set(sel); nn.has(o) ? nn.delete(o) : nn.add(o); on([...nn]); }}>{o}</button>;
+				onClick={() => { const nn = new Set(sel); if (nn.has(o)) nn.delete(o); else nn.add(o); on([...nn]); }}>{o}</button>;
 		})}
 	</div></Field>;
 }

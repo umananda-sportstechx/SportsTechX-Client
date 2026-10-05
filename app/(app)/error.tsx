@@ -28,7 +28,7 @@ export default function AppShellError({
         <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
           <AlertTriangle className="h-7 w-7 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold mb-2">Couldn't load this page</h2>
+        <h2 className="text-xl font-semibold mb-2">Couldn&apos;t load this page</h2>
         <p className="text-sm text-muted-foreground mb-2">
           {process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong.'}
         </p>

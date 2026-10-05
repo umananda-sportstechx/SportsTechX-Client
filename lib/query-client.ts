@@ -87,7 +87,7 @@ function noRedirectHere(): boolean {
   return AUTH_PATHS.has(pathname) || isPublicPath(pathname);
 }
 
-async function handleResponse(res: Response, _context?: string): Promise<void> {
+async function handleResponse(res: Response, context?: string): Promise<void> {
   if (res.ok) return;
 
   const text = await res.text().catch(() => res.statusText);
@@ -140,8 +140,12 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
   } catch {
     if (text && text.trim() && text.length < 300) message = text;
   }
-  const e = new Error(message) as Error & { status?: number };
+  const e = new Error(message) as Error & { status?: number; context?: string };
   e.status = res.status;
+  // The callers all pass `${method} ${url}`. Attaching it rather than dropping
+  // it is what makes a logged failure identifiable; the message itself stays
+  // user-facing and unchanged.
+  if (context) e.context = context;
   throw e;
 }
 

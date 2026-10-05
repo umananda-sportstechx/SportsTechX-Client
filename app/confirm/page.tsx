@@ -73,7 +73,7 @@ export default function ConfirmPage() {
 					<>
 						<CheckCircle2 size={48} color="var(--accent)" />
 						<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, margin: 0 }}>
-							You're in.
+							You&apos;re in.
 						</h1>
 						<p style={{ color: 'var(--fg-2)', margin: 0 }}>
 							Email confirmed — redirecting…
@@ -84,7 +84,7 @@ export default function ConfirmPage() {
 					<>
 						<AlertCircle size={48} color="#dc2626" />
 						<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, margin: 0 }}>
-							Couldn't confirm
+							Couldn&apos;t confirm
 						</h1>
 						<p style={{ color: 'var(--fg-2)', margin: 0, maxWidth: 480 }}>
 							{message}

@@ -11,12 +11,19 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVari
 type LinkBtnProps = { variant?: BtnVariant; size?: 'sm'; href: string; children: ReactNode; className?: string };
 
 export function Button(props: ButtonProps | LinkBtnProps) {
-	const { variant = 'primary', size, className, children } = props as LinkBtnProps & ButtonProps;
+	// One destructure: `rest` is what reaches the DOM, so every prop this
+	// wrapper consumes itself must be named here or React warns about an
+	// unknown attribute. (There used to be a second, underscore-prefixed
+	// destructure whose only job was that stripping.)
+	// Cast to an explicit shape, not `ButtonProps & LinkBtnProps`: the two
+	// declare `href` as `undefined` and `string`, so intersecting them makes it
+	// `never` and the rest-spread stops type-checking.
+	const { variant = 'primary', size, className, children, href, ...rest } =
+		props as ButtonHTMLAttributes<HTMLButtonElement> & {
+			variant?: BtnVariant; size?: 'sm'; href?: string; children?: ReactNode;
+		};
 	const cls = cx('atlas-btn', `atlas-btn--${variant}`, size === 'sm' && 'atlas-btn--sm', className);
-	if ('href' in props && props.href) {
-		return <Link href={props.href} className={cls}>{children}</Link>;
-	}
-	const { variant: _v, size: _s, className: _c, href: _h, ...rest } = props as ButtonProps & { href?: string };
+	if (href) return <Link href={href} className={cls}>{children}</Link>;
 	return <button className={cls} {...rest}>{children}</button>;
 }
 
