@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Check, Plus, ArrowUpRight, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import type { InvestorListItem as Investor } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, lockedFiltersNote } from '@/components/atlas';
@@ -23,8 +24,19 @@ import { useFeatureAccess } from '@/contexts/feature-access-context';
  */
 interface Match { id: string; name: string; slug: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null; category: string | null; description: string | null; score: number; match_reasons: string[] }
 interface MatchResult { company: { id: string; name: string } | null; reason?: string; results: Match[] }
-interface Investor { id: string; name: string; slug: string | null; category: string | null; description: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null }
+
 interface RoundRef { id: string; name: string; slug: string }
+
+/**
+ * The render contract for InvestorCard, which shows both directory rows
+ * (`InvestorListItem`) and recommendation rows (`Match`). Those two carry
+ * different field sets, so the card asks for the intersection it renders
+ * rather than for a whole investor.
+ */
+type InvestorCardData = {
+	id: string; name: string; website: string | null; description: string | null;
+	category: string | null; logo_url?: string | null; hq_country?: string | null;
+};
 
 const PAGE_SIZE = 24;
 // Firm-type enum → founder-facing label (mirrors the investors.category enum).
@@ -234,7 +246,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 	);
 }
 
-function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void }) {
+function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: InvestorCardData; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void }) {
 	const [busy, setBusy] = useState(false);
 	const doAdd = async () => { setBusy(true); await onAdd(); setBusy(false); };
 	return (

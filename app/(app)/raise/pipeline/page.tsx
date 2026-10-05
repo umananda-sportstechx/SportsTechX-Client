@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Archive, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import type { PipelineActivity as Activity } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Field, Input, Select, Textarea, Loading, Eyebrow, Logo, Flag, ListSwitcher } from '@/components/atlas';
@@ -24,7 +25,7 @@ interface Pipe {
 	contact_name: string | null; potential_amount: string | null; last_contact_at: string | null;
 	next_step: string | null; next_step_due: string | null; notes: string | null; is_archived: boolean;
 }
-interface Activity { type: string; payload: Record<string, unknown> | null; occurred_at: string }
+
 
 const STAGES: [string, string][] = [
 	['target', 'Target'], ['contacted', 'Contacted'], ['in_conversation', 'In conversation'],

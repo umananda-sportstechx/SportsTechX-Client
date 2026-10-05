@@ -209,3 +209,85 @@ export interface Company extends CompanyListItem {
 	last_deal_date: string | null;
 	last_round_type: string | null;
 }
+
+export type InvestorCategory =
+	| 'venture_capital' | 'private_equity' | 'financial_services'
+	| 'family_investment_office' | 'sovereign_wealth_fund' | 'angel' | 'other';
+
+/**
+ * What both investor endpoints agree on: `investors.*` (mirrors `InvestorRow`
+ * in `server/src/db/types.ts`) plus the location join and the deal count.
+ *
+ * Unlike companies, the investor detail projection is **not** a superset of
+ * the list one — the list carries `thesis` and `total_aum_usd`, the detail
+ * carries `hq_region` and the socials. Hence a shared base and two extensions
+ * rather than one `extends` chain; picking either as "the" Investor is what
+ * produced the two divergent local copies.
+ */
+interface InvestorBase {
+	id: string;
+	name: string;
+	website: string | null;
+	slug: string | null;
+	description: string | null;
+	status: 'active' | 'inactive' | 'paused';
+	category: InvestorCategory | null;
+	year_launched: number | null;
+	location_id: string | null;
+	social_profile_id: string | null;
+	is_verified: boolean;
+	actively_investing: boolean;
+	keywords: string | null;
+	num_employees: number | null;
+	logo_url: string | null;
+	total_funding: string | null;
+	latest_funding: string | null;
+	latest_funding_amount: string | null;
+	last_raised_at: string | null;
+	annual_revenue: string | null;
+	num_exits: number | null;
+	num_investments: number | null;
+	analyst_notes: string | null;
+	added_by_profile_id: string | null;
+	created_at: string;
+	updated_at: string;
+	// --- joined by both projections ---
+	deals_count: number | null;
+	hq_city: string | null;
+	hq_country: string | null;
+}
+
+/** `GET /api/investors` → `Page<InvestorListItem>`. Mirrors the `db.rows<…>`
+ *  generic in `server/src/modules/investors/investors.repository.ts` `list()`. */
+export interface InvestorListItem extends InvestorBase {
+	thesis: string | null;
+	total_aum_usd: string | null;
+}
+
+/** `GET /api/investors/:idOrSlug`. Mirrors `detailSql()` in the same
+ *  repository, which joins `social_profiles` on top of the base. */
+export interface Investor extends InvestorBase {
+	hq_region: string | null;
+	twitter_url: string | null;
+	instagram_url: string | null;
+	facebook_url: string | null;
+	linkedin_url: string | null;
+	youtube_url: string | null;
+	contact_email: string | null;
+}
+
+/**
+ * One event on a raise-pipeline record — `GET /api/raise/pipeline/:id/activity`
+ * → `Page<PipelineActivity>`.
+ *
+ * Mirrors the literal select in `server/src/modules/raise/
+ * raise-pipeline.repository.ts` (`SELECT type, payload, occurred_at`), which is
+ * the whole projection: no id reaches the client, so render these by index.
+ * `payload` is free-form jsonb that varies by `type` — narrow it at the use
+ * site, don't widen this.
+ */
+export interface PipelineActivity {
+	type: string;
+	payload: Record<string, unknown> | null;
+	occurred_at: string;
+}

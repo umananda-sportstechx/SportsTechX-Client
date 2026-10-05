@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import type { Deal } from '@/types/api';
+import type { Deal, Investor, PipelineActivity as Activity } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 
@@ -16,10 +16,7 @@ import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo
  * and in-pipeline (your pipeline record + activity). Wired to GET /api/investors/:id
  * and the founder's raise pipeline.
  */
-interface Investor {
-	id: string; name: string; slug: string | null; category: string | null; description: string | null;
-	website: string | null; logo_url: string | null; hq_country: string | null; hq_city: string | null; hq_region: string | null;
-}
+
 interface ThesisBundle {
 	thesis: { description?: string | null } | null;
 	round_types: Array<{ name: string }>;
@@ -30,7 +27,7 @@ interface Pipe {
 	potential_amount: string | null; last_contact_at: string | null; next_step: string | null;
 	next_step_due: string | null; notes: string | null;
 }
-interface Activity { type: string; payload: Record<string, unknown> | null; occurred_at: string }
+
 
 
 const STAGES: [string, string][] = [
