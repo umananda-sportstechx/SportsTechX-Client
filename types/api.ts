@@ -129,3 +129,83 @@ export interface Deal {
 	investors: string[] | null;
 	investor_links: DealInvestorLink[] | null;
 }
+
+export type CompanyStatus =
+	| 'active' | 'inactive' | 'needs_review' | 'dead'
+	| 'acquired' | 'ipo' | 'not_sportstech';
+
+/**
+ * A company as `GET /api/companies` sends it — `Page<CompanyListItem>`.
+ *
+ * Mirrors the `ListRow` generic in `server/src/modules/companies/
+ * companies.repository.ts` `list()`: the CTE selects `c.*` (all of
+ * `CompanyRow` in `server/src/db/types.ts`) and the outer query joins the
+ * sector, location and primary sport.
+ *
+ * `total_funding_usd` is a **number**, not a string: the repository reads a
+ * cached `bigint` and coerces it with `Number()` before returning, in both
+ * the list and detail paths. Every other `numeric` on the API is still a
+ * string, so this one is the exception.
+ */
+export interface CompanyListItem {
+	// --- companies.* ---
+	id: string;
+	name: string;
+	website: string;
+	slug: string | null;
+	custom_logo_url: string | null;
+	description: string | null;
+	status: CompanyStatus;
+	founded_year: number | null;
+	ipo_date: string | null;
+	sector_id: string | null;
+	business_model: BusinessModel | null;
+	location_id: string | null;
+	social_profile_id: string | null;
+	is_verified: boolean;
+	is_unicorn: boolean;
+	is_actively_raising: boolean;
+	poc_first_name: string | null;
+	poc_last_name: string | null;
+	poc_job_position: string | null;
+	poc_email: string | null;
+	poc_linkedin: string | null;
+	accelerator: string | null;
+	cohort: string | null;
+	added_by_profile_id: string | null;
+	created_at: string;
+	updated_at: string;
+	// --- joined by `list()` ---
+	primary_sector: string | null;
+	primary_sector_slug: string | null;
+	hq_city: string | null;
+	hq_country: string | null;
+	primary_sport: string | null;
+	total_funding_usd: number;
+}
+
+/**
+ * A company as `GET /api/companies/:idOrSlug` sends it.
+ *
+ * Mirrors `detailSql()` in the same repository, which is a strict superset of
+ * the list projection — hence `extends`. The repository's own `DetailRow`
+ * declares only four of these eighteen extra columns and then casts the result
+ * to the bare `CompanyRow`, so this is derived from the SQL, not the types.
+ *
+ * The socials come from the joined `social_profiles` row and are null whenever
+ * the company has none — render them conditionally, never as empty links.
+ */
+export interface Company extends CompanyListItem {
+	hq_region: string | null;
+	twitter_url: string | null;
+	instagram_url: string | null;
+	facebook_url: string | null;
+	linkedin_url: string | null;
+	youtube_url: string | null;
+	contact_email: string | null;
+	sport_count: number;
+	tech_tag_count: number;
+	deal_count: number;
+	last_deal_date: string | null;
+	last_round_type: string | null;
+}

@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { ArrowUpLeft, ArrowUpRight, Globe } from 'lucide-react';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { qk } from '@/lib/query-keys';
-import type { Deal } from '@/types/api';
+import type { Company, Deal } from '@/types/api';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import './company-profile.css';
@@ -18,13 +18,7 @@ import './company-profile.css';
  * products pass where links go.
  */
 
-interface Company {
-	id: string; name: string; slug?: string | null; description?: string | null; website?: string | null;
-	custom_logo_url?: string | null; primary_sector?: string | null; primary_sector_slug?: string | null;
-	hq_city?: string | null; hq_country?: string | null; founded_year?: number | null;
-	total_funding_usd?: number | string | null; last_round_type?: string | null; deal_count?: number | null;
-	business_model?: string | null;
-}
+
 interface Sport { id: string; name: string; is_primary?: boolean }
 interface NewsItem { id: string; title: string; url?: string | null; source?: string | null; summary?: string | null; published_at?: string | null }
 interface Similar { id: string; name: string; slug?: string | null; hq_city?: string | null; hq_country?: string | null; last_round_type?: string | null; primary_sector?: string | null }

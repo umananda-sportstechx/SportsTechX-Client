@@ -27,7 +27,7 @@ interface PrimaryContactData {
 	role: string | null;
 }
 import { openClaim } from '@/lib/claim-events';
-import type { Deal, Page } from '@/types/api';
+import type { Company, Deal, Page } from '@/types/api';
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
 } from './drawer';
@@ -35,38 +35,6 @@ import {
 	Logo, Flag, Tag, AudiencePill, VerifiedBadge, RaisingPill, KV, Empty,
 } from './atoms';
 import { WatchlistPicker } from './watchlist-picker';
-
-interface Company {
-	id: string;
-	name: string;
-	slug?: string | null;
-	description?: string | null;
-	website?: string | null;
-	custom_logo_url?: string | null;
-	primary_sector?: string | null;
-	primary_sector_slug?: string | null;
-	primary_sport?: string | null;
-	hq_city?: string | null;
-	hq_country?: string | null;
-	hq_region?: string | null;
-	founded_year?: number | null;
-	total_funding_usd?: number | string | null;
-	last_round_type?: string | null;
-	last_deal_date?: string | null;
-	deal_count?: number | null;
-	business_model?: string | null;
-	is_verified?: boolean | null;
-	is_actively_raising?: boolean | null;
-	is_unicorn?: boolean | null;
-	// Optional socials — rendered only when the API provides them (no fakes).
-	contact_email?: string | null;
-	twitter_url?: string | null;
-	instagram_url?: string | null;
-	facebook_url?: string | null;
-	linkedin_url?: string | null;
-}
-
-
 
 interface Acquisition {
 	id: string;

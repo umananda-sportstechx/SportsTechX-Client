@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Globe, ArrowUpRight } from 'lucide-react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
+import type { CompanyListItem as Company } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, lockedFiltersNote } from '@/components/atlas';
 import { COUNTRY_OPTIONS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
@@ -16,12 +17,7 @@ import './company-drawer-atlas.css';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import './market.css';
 
-interface Company {
-	id: string; name: string; slug: string | null; website: string | null;
-	custom_logo_url?: string | null; business_model?: string | null; description?: string | null;
-	hq_country?: string | null; hq_city?: string | null; founded_year?: number | null;
-	primary_sector?: string | null; primary_sport?: string | null; total_funding_usd?: string | number | null;
-}
+
 
 const PAGE_SIZE = 24;
 const BUSINESS_MODELS: [string, string][] = [['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C'], ['d2c', 'D2C'], ['b2g', 'B2G'], ['other', 'Other']];
