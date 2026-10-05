@@ -1,0 +1,99 @@
+/*
+ * Explore-only styles (the base product). Everything reusable lives in
+ * components/atlas/styles; this file lays out Explore's own screens using Atlas
+ * tokens, so light/dark mode come for free.
+ */
+
+.atlas .explore-muted { margin: 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-muted); }
+.atlas .explore-error { margin: 14px 0 0; font-family: var(--a-body); font-size: 12px; color: var(--a-danger); }
+.atlas .explore-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.atlas .explore-card { padding: 22px 23px 24px; }
+
+/* ── Sidebar upgrade cards ───────────────────────────────────────────────── */
+.atlas .explore-upgrade {
+	display: flex; flex-direction: column; gap: 6px; padding: 12px 13px; border-radius: var(--a-radius-sm); text-decoration: none;
+	background: var(--a-field); box-shadow: inset 0 0 0 1px var(--a-border); color: var(--a-ink); transition: box-shadow 0.15s;
+}
+.atlas .explore-upgrade:hover { box-shadow: inset 0 0 0 1px var(--a-ink); }
+.atlas .explore-upgrade__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.atlas .explore-upgrade__name { display: inline-flex; align-items: center; gap: 7px; font-family: var(--a-font); font-size: 13px; font-weight: 700; }
+.atlas .explore-upgrade__name::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--explore-dot); }
+.atlas .explore-upgrade--raise { --explore-dot: #1479FF; }
+.atlas .explore-upgrade--scout { --explore-dot: #0FB86A; }
+.atlas .explore-upgrade__action {
+	padding: 3px 8px; border-radius: var(--a-radius-pill); background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .explore-upgrade__body { font-family: var(--a-body); font-size: 11px; line-height: 1.45; color: var(--a-muted); }
+
+/* ── Home ────────────────────────────────────────────────────────────────── */
+.atlas .explore-home { padding: 57px 56px 0; max-width: 1180px; margin-inline: auto; }
+.atlas .explore-home__sub {
+	display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 18px;
+	margin: 18px 0 27px; padding-bottom: 22px; border-bottom: 1px solid var(--a-border);
+	font-family: var(--a-body); font-size: 14px; color: var(--a-muted);
+}
+.atlas .explore-home__interests {
+	display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--a-radius-pill); text-decoration: none;
+	box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .explore-home__interests b { font-weight: 400; padding: 1px 6px; border-radius: var(--a-radius-pill); background: var(--a-primary); color: var(--a-primary-ink); }
+.atlas .explore-home__attn { padding: 73px 0 96px; }
+@media (max-width: 1100px) { .atlas .explore-home { padding: 40px 32px 0; } }
+@media (max-width: 640px) { .atlas .explore-home { padding: 24px 16px 0; } .atlas .explore-home__attn { padding-top: 48px; } }
+
+/* ── Interests (page + onboarding) ───────────────────────────────────────── */
+.atlas .explore-interests { display: grid; gap: 24px; }
+.atlas .explore-interests__label { margin-bottom: 10px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .explore-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.atlas .explore-chip {
+	padding: 8px 12px; border: none; border-radius: var(--a-radius-tag); cursor: pointer;
+	background: var(--a-inset); box-shadow: inset 0 0 0 1px var(--a-border); color: var(--a-deep);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.atlas .explore-chip.on { background: var(--a-purple-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-purple) 40%, transparent); }
+
+/* ── Investors upsell ────────────────────────────────────────────────────── */
+.atlas .explore-upsell { display: grid; gap: 18px; }
+.atlas .explore-upsell__main { padding: 28px 30px; display: flex; flex-direction: column; gap: 14px; }
+.atlas .explore-upsell__lock { display: inline-flex; align-items: center; gap: 7px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .explore-upsell__title { margin: 0; font-family: var(--a-font); font-size: 26px; font-weight: 700; line-height: 1.2; color: var(--a-ink); }
+.atlas .explore-upsell__body { margin: 0; max-width: 680px; font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-muted); }
+.atlas .explore-upsell__cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.atlas .explore-upsell__about { padding: 24px 26px; display: flex; flex-direction: column; gap: 10px; }
+.atlas .explore-upsell__points { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-top: 10px; }
+.atlas .explore-upsell__point { margin-bottom: 4px; font-family: var(--a-font); font-size: 14px; font-weight: 700; color: var(--a-ink); }
+
+/* ── Account → Product access ────────────────────────────────────────────── */
+.atlas .explore-access__title { margin-bottom: 6px; font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); }
+.atlas .explore-access__row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--a-border); }
+.atlas .explore-access__row:first-of-type { border-top: none; }
+.atlas .explore-access__name { font-family: var(--a-font); font-size: 14px; font-weight: 700; color: var(--a-ink); margin-bottom: 3px; }
+
+/* ── Onboarding (full-screen) ────────────────────────────────────────────── */
+.atlas .explore-onb { min-height: 100dvh; background: var(--a-page); color: var(--a-ink); }
+.atlas .explore-onb__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 26px 32px; }
+.atlas .explore-onb__step { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .explore-onb__progress { height: 3px; background: var(--a-border); }
+.atlas .explore-onb__progress > div { height: 100%; background: var(--a-ink); transition: width 0.2s; }
+.atlas .explore-onb__main { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+.atlas .explore-onb__title { margin: 10px 0 0; }
+.atlas .explore-onb__lead { margin: 14px 0 26px; max-width: 620px; font-family: var(--a-body); font-size: 14px; line-height: 1.6; color: var(--a-muted); }
+.atlas .explore-onb__facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 30px; padding: 0; list-style: none; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint); }
+.atlas .explore-onb__points { display: grid; gap: 10px; margin: 18px 0 26px; padding: 0; list-style: none; font-family: var(--a-body); font-size: 14px; color: var(--a-ink); }
+.atlas .explore-onb__points li { display: flex; align-items: flex-start; gap: 10px; }
+.atlas .explore-onb__points svg { margin-top: 3px; color: var(--a-ok); flex-shrink: 0; }
+.atlas .explore-onb__form { display: grid; gap: 16px; margin: 26px 0 12px; max-width: 520px; }
+.atlas .explore-onb__how { margin: 10px 0 14px; }
+.atlas .explore-onb__how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.atlas .explore-onb__raise { margin-top: 26px; }
+.atlas .explore-onb__raise a { color: var(--a-ink); }
+.atlas .explore-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.atlas .explore-option {
+	padding: 13px 15px; border: none; border-radius: var(--a-radius-sm); text-align: left; cursor: pointer;
+	background: var(--a-field); box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink);
+	font-family: var(--a-body); font-size: 14px;
+}
+.atlas .explore-option.on { background: var(--a-purple-soft); box-shadow: inset 0 0 0 1.5px var(--a-ink); }
+@media (max-width: 640px) { .atlas .explore-onb__head { padding: 20px 16px; } .atlas .explore-onb__main { padding: 32px 16px 64px; } }
