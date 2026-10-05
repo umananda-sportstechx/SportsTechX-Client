@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 
@@ -65,10 +66,12 @@ export default function RaiseSettingsPage() {
 		set('company_category', id && label ? label.split(' → ') : null);
 	};
 
-	const RAISE_KEYS = ['company_name', 'company_website', 'hq_city', 'hq_country', 'company_description',
+	// Typed against the DTOs, so a renamed or dropped server field fails the
+	// build instead of 400-ing the Save — these arrays are what gets sent.
+	const RAISE_KEYS: (keyof RaiseUpsert)[] = ['company_name', 'company_website', 'hq_city', 'hq_country', 'company_description',
 		'company_sector_id', 'company_category', 'company_stage', 'revenue_status', 'round_type', 'target_amount', 'target_close_date', 'valuation',
 		'prior_capital_raised', 'structure'];
-	const CRIT_KEYS = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'excluded_investor_ids'];
+	const CRIT_KEYS: (keyof RaiseCriteria)[] = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'excluded_investor_ids'];
 
 	const save = async () => {
 		const rp = Object.fromEntries(RAISE_KEYS.filter((k) => dirty.current.has(k) && form[k] !== '').map((k) => [k, form[k]]));

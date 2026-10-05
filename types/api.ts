@@ -291,3 +291,102 @@ export interface PipelineActivity {
 	payload: Record<string, unknown> | null;
 	occurred_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Write payloads
+//
+// These mirror Zod `.strict()` schemas, so an unknown key is a 400 — not a
+// silently ignored field. Keep them exact.
+//
+// Money fields are `z.coerce.number()` server-side, which accepts a numeric
+// string, so `number | string` is deliberate: the forms hold `<input>` values.
+// `.nullish()` becomes `?: T | null` — null clears a field, absent leaves it.
+// ---------------------------------------------------------------------------
+
+/** `POST /api/raise` (upsert) and `PATCH /api/raise`. Mirrors
+ *  `raiseUpsertSchema` in `server/src/modules/raise/raise.dto.ts`.
+ *
+ *  Every field is optional by design: the setup wizard auto-saves step by
+ *  step, so a PATCH carries whatever subset the founder just touched. */
+export interface RaiseUpsert {
+	company_id?: string | null;
+	company_name?: string | null;
+	company_website?: string | null;
+	hq_country?: string | null;
+	hq_city?: string | null;
+	company_description?: string | null;
+	company_category?: string[] | null;
+	company_sector_id?: string | null;
+	company_stage?: 'pre_seed' | 'seed' | 'series_a' | 'series_b_plus' | 'other' | null;
+	revenue_status?: 'pre_revenue' | 'generating' | null;
+	fundraising_process?: 'exploring' | 'preparing' | 'approaching' | 'due_diligence' | 'negotiating' | null;
+	round_type?: 'pre_seed' | 'seed' | 'series_a' | 'series_b_plus' | 'bridge' | 'other' | null;
+	target_amount?: number | string | null;
+	committed_amount?: number | string | null;
+	currency_code?: string | null;
+	target_close_date?: string | null;
+	valuation?: string | null;
+	structure?: 'equity' | 'safe' | 'convertible' | 'undecided' | 'other' | null;
+	lead_investor_status?: 'yes' | 'no' | 'in_discussion' | null;
+	prior_capital_raised?: number | string | null;
+	last_round_date?: string | null;
+	annual_revenue?: number | string | null;
+	revenue_growth_pct?: number | string | null;
+	paying_customers?: number | string | null;
+	monthly_burn?: number | string | null;
+	runway_months?: number | string | null;
+	strongest_traction?: string | null;
+	pitch_deck_status?: 'have' | 'later' | null;
+	financial_model_status?: 'ready' | 'in_progress' | 'not_started' | null;
+	data_room_status?: 'ready' | 'in_progress' | 'not_started' | null;
+	has_target_list?: boolean | null;
+	status?: 'active' | 'paused' | 'funded' | 'closed' | null;
+	setup_completed?: boolean | null;
+}
+
+/** `PUT /api/raise/criteria`. Mirrors `raiseCriteriaSchema` in the same file. */
+export interface RaiseCriteria {
+	investor_types?: string[] | null;
+	geographies?: string[] | null;
+	cheque_min?: number | string | null;
+	cheque_max?: number | string | null;
+	lead_preference?: 'lead' | 'followers' | 'both' | null;
+	strategic_ok?: boolean | null;
+	excluded_investor_ids?: string[] | null;
+	desired_expertise?: string[] | null;
+	biggest_concern?: string | null;
+}
+
+/** The eight pipeline stages, in order. Mirrors `PIPELINE_STAGES` in
+ *  `server/src/modules/raise/raise-pipeline.dto.ts`. */
+export const PIPELINE_STAGES = [
+	'target', 'contacted', 'in_conversation', 'due_diligence',
+	'term_sheet', 'committed', 'closed', 'passed',
+] as const;
+export type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+/** `POST /api/raise/pipeline`. Mirrors `pipelineAddSchema`. The server also
+ *  refuses a body with neither `investor_id` nor `custom_name` (mirroring a DB
+ *  CHECK), which a type can't express — supply exactly one. */
+export interface PipelineAdd {
+	investor_id?: string | null;
+	custom_name?: string | null;
+	stage?: PipelineStage;
+	contact_name?: string | null;
+	potential_amount?: number | string | null;
+	next_step?: string | null;
+	next_step_due?: string | null;
+	notes?: string | null;
+}
+
+/** `PATCH /api/raise/pipeline/:id`. Mirrors `pipelineUpdateSchema`. */
+export interface PipelineUpdate {
+	stage?: PipelineStage;
+	contact_name?: string | null;
+	potential_amount?: number | string | null;
+	last_contact_at?: string | null;
+	next_step?: string | null;
+	next_step_due?: string | null;
+	notes?: string | null;
+	is_archived?: boolean;
+}

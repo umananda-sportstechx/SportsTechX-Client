@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Archive, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import type { PipelineActivity as Activity } from '@/types/api';
+import type { PipelineActivity as Activity, PipelineStage, PipelineUpdate } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Field, Input, Select, Textarea, Loading, Eyebrow, Logo, Flag, ListSwitcher } from '@/components/atlas';
@@ -21,13 +21,13 @@ import { RaiseSectionHeader } from '@/components/raise/raise-section-header';
  */
 interface Pipe {
 	id: string; investor_id: string | null; custom_name: string | null;
-	investor_name: string | null; investor_slug: string | null; investor_logo_url: string | null; investor_website: string | null; stage: string;
+	investor_name: string | null; investor_slug: string | null; investor_logo_url: string | null; investor_website: string | null; stage: PipelineStage;
 	contact_name: string | null; potential_amount: string | null; last_contact_at: string | null;
 	next_step: string | null; next_step_due: string | null; notes: string | null; is_archived: boolean;
 }
 
 
-const STAGES: [string, string][] = [
+const STAGES: [PipelineStage, string][] = [
 	['target', 'Target'], ['contacted', 'Contacted'], ['in_conversation', 'In conversation'],
 	['due_diligence', 'Due diligence'], ['term_sheet', 'Term sheet'], ['committed', 'Committed'],
 	['closed', 'Closed'], ['passed', 'Passed'],
@@ -68,7 +68,7 @@ export default function RaisePipelinePage() {
 	const refresh = () => void mutate();
 
 	// Drag-and-drop: move a card to the dropped column's stage.
-	const moveCard = async (id: string, stage: string) => {
+	const moveCard = async (id: string, stage: PipelineStage) => {
 		const card = rows.find((r) => r.id === id);
 		if (!card || card.stage === stage) return;
 		// optimistic
@@ -149,7 +149,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 	const { data: act } = useSWR<{ data: Activity[] }>(qk.raise.pipelineActivity(row.id));
 	const set = (k: keyof Pipe, v: unknown) => setF((x) => ({ ...x, [k]: v }));
 
-	const save = async (patch: Record<string, unknown>) => {
+	const save = async (patch: PipelineUpdate) => {
 		setBusy(true);
 		try { await apiRequest('PATCH', `/api/raise/pipeline/${row.id}`, patch); onSaved(); }
 		catch (e) { toast.error((e as Error).message); setBusy(false); }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowRight, ArrowLeft, Check, Loader2, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
@@ -117,7 +118,9 @@ export default function RaiseSetupPage() {
 	// it (so gaps the company leaves empty can still be filled into the snapshot).
 	const coLock = (k: string) => !!linked && !!s(form[k]);
 
-	const stepFields = useMemo<string[][]>(() => [
+	// Typed against the DTO, so a renamed or dropped server field fails the
+	// build instead of 400-ing the step's auto-save.
+	const stepFields = useMemo<(keyof RaiseUpsert)[][]>(() => [
 		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
 		['fundraising_process', 'round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
 		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
@@ -153,7 +156,7 @@ export default function RaiseSetupPage() {
 		setSaving(true);
 		try {
 			const critPayload = Object.fromEntries(
-				['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern']
+				(['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern'] as (keyof RaiseCriteria)[])
 					.filter((k) => dirtyC.current.has(k) && crit[k] !== '').map((k) => [k, crit[k]]),
 			);
 			await apiRequest('PUT', '/api/raise/criteria', critPayload);

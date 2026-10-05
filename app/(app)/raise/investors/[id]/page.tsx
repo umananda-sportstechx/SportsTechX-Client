@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import type { Deal, Investor, PipelineActivity as Activity } from '@/types/api';
+import type { Deal, Investor, PipelineActivity as Activity, PipelineStage, PipelineUpdate } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 
@@ -23,7 +23,7 @@ interface ThesisBundle {
 	geo: Array<{ scope_type: string; scope_value: string }>;
 }
 interface Pipe {
-	id: string; investor_id: string | null; stage: string; contact_name: string | null;
+	id: string; investor_id: string | null; stage: PipelineStage; contact_name: string | null;
 	potential_amount: string | null; last_contact_at: string | null; next_step: string | null;
 	next_step_due: string | null; notes: string | null;
 }
@@ -137,7 +137,7 @@ function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => 
 	const { data: act } = useSWR<{ data: Activity[] }>(qk.raise.pipelineActivity(record.id));
 	const set = (k: keyof Pipe, v: unknown) => setF((x) => ({ ...x, [k]: v }));
 
-	const save = async (patch: Record<string, unknown>) => {
+	const save = async (patch: PipelineUpdate) => {
 		setBusy(true);
 		try { await apiRequest('PATCH', `/api/raise/pipeline/${record.id}`, patch); toast.success('Updated'); onChanged(); }
 		catch (e) { toast.error((e as Error).message); }
