@@ -10,9 +10,12 @@
  * (EXPLORE_NAV / RAISE_NAV / SCOUT_NAV) before they were deleted, so this is a
  * record of the signed-off sidebar, not of the implementation.
  */
-import assert from 'node:assert/strict';
 import { buildNav } from './nav.ts';
 import { ROUTES, forTier } from './routes.ts';
+// The real guard, not a local copy: a hand-rolled `e is {title, items}`
+// predicate is not a subtype of ShellNavEntry, so `.filter()` never narrows.
+import { isSection } from '../components/atlas/shell/nav.ts';
+import type { ShellNavItem } from '../components/atlas/shell/nav.ts';
 import { access, type Tier } from './access.ts';
 
 /** `Section: a, b, c` — `*` marks a placeholder item. */
@@ -53,9 +56,7 @@ const EXPECTED: Record<Tier, Shape> = {
 	},
 };
 
-const label = (i: { name: string; placeholder?: boolean }) => `${i.name}${i.placeholder ? '*' : ''}`;
-const isSection = (e: unknown): e is { title: string; items: { name: string; placeholder?: boolean; path: string }[] } =>
-	typeof e === 'object' && e !== null && 'items' in e;
+const label = (i: ShellNavItem) => `${i.name}${i.placeholder ? '*' : ''}`;
 
 let failures = 0;
 const check = (ok: boolean, msg: string) => {
@@ -68,7 +69,7 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 	const { nav, bottomNav } = buildNav(tier, false);
 	const want = EXPECTED[tier];
 
-	const top = nav.filter((e) => !isSection(e)).map((e) => label(e as { name: string }));
+	const top = nav.filter((e) => !isSection(e)).map((e) => label(e as ShellNavItem));
 	check(JSON.stringify(top) === JSON.stringify(want.top), `top-level: ${top.join(', ')}`);
 
 	const got = nav.filter(isSection).map((s) => [s.title, s.items.map(label)] as [string, string[]]);
@@ -84,7 +85,7 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 
 	// `path` is the identity used for active state, section lookup and React
 	// keys, so a duplicate would silently break one of them.
-	const paths = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as { path: string }])), ...bottomNav].map((i) => i.path);
+	const paths = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as ShellNavItem])), ...bottomNav].map((i) => i.path);
 	check(new Set(paths).size === paths.length, `${paths.length} unique paths`);
 
 	// Nothing from the other paid product may appear.

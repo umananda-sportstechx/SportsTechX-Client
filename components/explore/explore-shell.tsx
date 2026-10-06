@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
+import { RouteGate } from '@/components/auth/route-gate';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useNav } from '@/hooks/use-nav';
 import { EXPLORE_COLOR } from './shell-config';
@@ -34,7 +35,7 @@ export function ExploreShell({ children }: { children: React.ReactNode }) {
 			accountName={profile?.full_name ?? profile?.display_name}
 			railExtra={<UpgradeCards />}
 		>
-			{children}
+			<RouteGate>{children}</RouteGate>
 		</AtlasShell>
 	);
 }

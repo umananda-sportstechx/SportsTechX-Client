@@ -229,22 +229,27 @@ export const pathOf = (id: string, tier: Tier): string =>
 	forTier(ROUTE_BY_ID.get(id)?.path, tier) ?? '/';
 
 /**
- * The tier that owns a URL, by longest-prefix match — so `/raise/investors/abc`
- * resolves through `/raise/investors`. Undefined means the free base.
+ * The route a URL belongs to, by longest-prefix match — so
+ * `/raise/investors/abc` resolves through `/raise/investors` and detail pages
+ * inherit their parent's gate without needing their own entry.
  */
-export function tierForPath(pathname: string, tier: Tier): Tier | undefined {
-	let owner: Tier | undefined;
+export function routeForPath(pathname: string, tier: Tier): RouteDef | undefined {
+	let best: RouteDef | undefined;
 	let bestLen = -1;
 	for (const r of ROUTES) {
 		const p = forTier(r.path, tier);
 		if (!p) continue;
 		if ((pathname === p || pathname.startsWith(p + '/')) && p.length > bestLen) {
-			owner = r.tier;
+			best = r;
 			bestLen = p.length;
 		}
 	}
-	return owner;
+	return best;
 }
+
+/** The tier that owns a URL. Undefined means the free base. */
+export const tierForPath = (pathname: string, tier: Tier): Tier | undefined =>
+	routeForPath(pathname, tier)?.tier;
 
 /** Can this viewer open this URL? */
 export function accessForPath(pathname: string, tier: Tier, isAdmin: boolean) {

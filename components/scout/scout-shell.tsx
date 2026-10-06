@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
+import { RouteGate } from '@/components/auth/route-gate';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useNav } from '@/hooks/use-nav';
 import { PaywallGate } from '@/components/paywall/paywall-gate';
@@ -30,7 +31,7 @@ export function ScoutShell({ children }: { children: React.ReactNode }) {
 				accountPath={accountPath}
 				accountName={profile?.full_name ?? profile?.display_name}
 			>
-				{children}
+				<RouteGate>{children}</RouteGate>
 			</AtlasShell>
 			<PaywallGate />
 		</>

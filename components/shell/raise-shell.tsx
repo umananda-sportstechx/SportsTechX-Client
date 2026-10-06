@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
+import { RouteGate } from '@/components/auth/route-gate';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useNav } from '@/hooks/use-nav';
 import { RaiseChat } from '@/components/raise/chat/raise-chat';
@@ -26,7 +27,7 @@ export function RaiseShell({ children }: { children: React.ReactNode }) {
 			// The full chat page is itself the co-pilot — don't show the FAB drawer there.
 			overlay={pathname.startsWith('/raise/chat') ? null : <RaiseChat />}
 		>
-			{children}
+			<RouteGate>{children}</RouteGate>
 		</AtlasShell>
 	);
 }
