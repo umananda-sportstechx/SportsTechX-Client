@@ -12,6 +12,7 @@ import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem, DeckScorecard } from '@/lib/deck-analysis';
 import { Screen, Card, Button, Badge, Loading, StagedLoader } from '@/components/atlas';
+import { hrefOf } from '@/lib/routes';
 import { rating } from './score-tone';
 import { DECK_ANALYSIS_STAGES } from './deck-stages';
 
@@ -19,7 +20,7 @@ import { DECK_ANALYSIS_STAGES } from './deck-stages';
  * Deck analysis — upload + latest summary (canvas: deckEmpty / deckProcessing /
  * deckSummary). Shared by Raise "Pitch Deck" and Scout "Deck Screener": same
  * backend (upload → /api/deck-analysis → stream), product-specific copy. The
- * full analysis lives at `${basePath}/[id]` (DeckAnalysisDetail).
+ * full analysis lives at `/app/deck/[id]` (DeckAnalysisDetail).
  */
 const BUCKET = 'user-uploads';
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -48,14 +49,14 @@ export const FOUNDER_DECK_COPY: DeckSummaryCopy = {
 	fallbackName: 'Pitch deck',
 };
 
-export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
-	/** Route of this page; the full analysis opens at `${basePath}/${id}`. */
-	basePath: string;
+export function DeckSummary({ header, copy = FOUNDER_DECK_COPY }: {
 	/** Page header; receives the "Upload new deck" action once a deck exists. */
 	header: (actions?: ReactNode) => ReactNode;
 	copy?: DeckSummaryCopy;
 }) {
 	const router = useRouter();
+	// This page's own route; the full analysis opens at `${DECK}/${id}`.
+	const DECK = hrefOf('deck');
 	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(), { dedupingInterval: 10_000, refreshInterval: (d) => (d?.[0] && d[0].status !== 'done' ? 4000 : 0) });
 	const latest = list?.[0] ?? null;
 	const fileRef = useRef<HTMLInputElement>(null);
@@ -89,7 +90,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 			}
 			const { id } = (await res.json()) as { id: string };
 			await mutate();
-			router.push(`${basePath}/${id}`);
+			router.push(`${DECK}/${id}`);
 		} catch (e) {
 			if (!isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Upload failed');
 		} finally { setUploading(false); }
@@ -139,7 +140,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 				note="This usually takes about a minute. Feel free to keep working elsewhere — we'll update this page when it's ready."
 			/>
 			<div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-				<Button variant="outline" size="sm" onClick={() => router.push(`${basePath}/${latest.id}`)}>View live progress</Button>
+				<Button variant="outline" size="sm" onClick={() => router.push(`${DECK}/${latest.id}`)}>View live progress</Button>
 			</div>
 		</Screen>
 	);
@@ -175,7 +176,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 				</>}
 				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-					<Button onClick={() => router.push(`${basePath}/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
+					<Button onClick={() => router.push(`${DECK}/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
 					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={13} /> : 'Analyse revised deck'}</Button>
 				</div>
 			</Card>
@@ -188,7 +189,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 							<span>{d.filename ?? copy.fallbackName}</span>
 							<span style={{ color: 'var(--a-muted)' }}>{new Date(d.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
 							<span style={{ textAlign: 'right' }}>{d.overall_score ?? '—'}</span>
-							<a href={`${basePath}/${d.id}`} className="atlas-action" style={{ justifySelf: 'end' }}><span className="atlas-action__icon"><ArrowUpRight /></span>Open</a>
+							<a href={`${DECK}/${d.id}`} className="atlas-action" style={{ justifySelf: 'end' }}><span className="atlas-action__icon"><ArrowUpRight /></span>Open</a>
 						</div>
 					))}
 				</Card>

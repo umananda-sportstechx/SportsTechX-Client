@@ -8,6 +8,7 @@ import { apiRequest, getAuthHeaders } from '@/lib/query-client';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
 import { Screen, Card, Button, Loading, StagedLoader } from '@/components/atlas';
+import { hrefOf } from '@/lib/routes';
 import { rating } from './score-tone';
 import { DECK_ANALYSIS_STAGES } from './deck-stages';
 
@@ -31,7 +32,8 @@ export const FOUNDER_DETAIL_COPY: DeckDetailCopy = {
 	recommendations: 'Specific recommendations', strengths: 'Strengths', concerns: 'Main investor concerns',
 };
 
-export function DeckAnalysisDetail({ id, basePath, copy = FOUNDER_DETAIL_COPY }: { id: string; basePath: string; copy?: DeckDetailCopy }) {
+export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: string; copy?: DeckDetailCopy }) {
+	const basePath = hrefOf('deck');
 	const router = useRouter();
 	const [row, setRow] = useState<DeckRow | null>(null);
 	const [md, setMd] = useState('');

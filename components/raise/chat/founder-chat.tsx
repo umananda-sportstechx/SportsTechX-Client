@@ -5,11 +5,12 @@ import {
 	MarkdownMessage, ThinkingDots, currentFilters,
 	type ChatAction, type ChatMessage, type PageContext, type RewritePath,
 } from '@/components/chat/chat-core';
+import { pathOf } from '@/lib/routes';
 import './raise-chat.css';
 
 /**
  * Shared founder-chat policy + transcript renderer, used by BOTH the FAB drawer
- * (raise-chat.tsx) and the full chat page (raise/chat/page.tsx) so route mapping,
+ * (raise-chat.tsx) and the full chat page (app/app/chat) so route mapping,
  * greeting and the message render stay in one place.
  */
 
@@ -19,16 +20,30 @@ export const FOUNDER_GREETING =
 export const FOUNDER_INSUFFICIENT_CREDITS =
 	"_You're out of AI credits._ [Top up or upgrade](/billing) to keep chatting.";
 
-/** Page context sent with each message. Only investor/pitch detail pages map to a
- *  known entity; everything else sends just the path (+ any active filters). */
+/** Detail routes whose `[id]` segment names an entity the model can be told about. */
+const ENTITY_ROUTES: [routeId: string, entityType: 'investor' | 'deck_analysis'][] = [
+	['investors', 'investor'],
+	['deck', 'deck_analysis'],
+];
+
+/** Page context sent with each message. Only investor/deck detail pages map to a
+ *  known entity; everything else sends just the path (+ any active filters).
+ *
+ *  Matched against the route manifest rather than by segment position, which is
+ *  what this did before (`segs[0] === 'raise' && segs[1] === 'pitch'`). That
+ *  broke silently the moment the routes moved: the model simply stopped being
+ *  told which investor or deck the user was looking at, with nothing in the UI
+ *  to say so. */
 export function founderPageContext(path: string | null): PageContext | undefined {
 	if (!path) return undefined;
-	const segs = path.split('?')[0]!.split('/').filter(Boolean); // ['raise','investors','id']
-	const filters = currentFilters();
-	if (segs[0] === 'raise' && segs[2]) {
-		if (segs[1] === 'investors') return { path, entityType: 'investor', entityId: segs[2] };
-		if (segs[1] === 'pitch') return { path, entityType: 'deck_analysis', entityId: segs[2] };
+	const clean = path.split('?')[0]!;
+	for (const [routeId, entityType] of ENTITY_ROUTES) {
+		const base = pathOf(routeId, 'raise');
+		if (!clean.startsWith(base + '/')) continue;
+		const entityId = clean.slice(base.length + 1).split('/')[0];
+		if (entityId) return { path, entityType, entityId };
 	}
+	const filters = currentFilters();
 	return filters ? { path, filters } : { path };
 }
 
@@ -39,24 +54,27 @@ export function founderActionFromTool(tool: string, input: unknown): ChatAction 
 		const p = input as { entity_type?: string; id_or_slug?: string };
 		if (p?.entity_type === 'investor' && p?.id_or_slug) {
 			const name = p.id_or_slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-			return { kind: 'open_entity', label: `Open ${name}`, href: `/raise/investors/${encodeURIComponent(p.id_or_slug)}` };
+			return { kind: 'open_entity', label: `Open ${name}`, href: `${pathOf('investors', 'raise')}/${encodeURIComponent(p.id_or_slug)}` };
 		}
 		return null;
 	}
 	if (tool === 'navigate_and_filter') {
 		const p = input as { page?: string };
-		const NAV: Record<string, { label: string; href: string }> = {
-			home: { label: 'Open Home', href: '/raise' },
-			pitch: { label: 'Open Pitch deck', href: '/raise/pitch' },
-			market: { label: 'Open Analytics', href: '/raise/intelligence/analytics' },
-			investors: { label: 'View Investors', href: '/raise/investors' },
-			pipeline: { label: 'Open Pipeline', href: '/raise/pipeline' },
-			programs: { label: 'Open Programs', href: '/raise/programs' },
-			events: { label: 'Open Events', href: '/raise/events' },
-			resources: { label: 'Open Resources', href: '/raise/resources' },
+		// The agent's page names (server: `chat.tools.ts`) mapped to route ids, so
+		// each URL comes from the manifest. Hardcoding them is how three of these
+		// chips came to point at routes that no longer existed.
+		const NAV: Record<string, { label: string; routeId: string }> = {
+			home: { label: 'Open Home', routeId: 'home' },
+			pitch: { label: 'Open Pitch deck', routeId: 'deck' },
+			market: { label: 'Open Analytics', routeId: 'analytics' },
+			investors: { label: 'View Investors', routeId: 'investors' },
+			pipeline: { label: 'Open Pipeline', routeId: 'pipeline' },
+			programs: { label: 'Open Programs', routeId: 'programs' },
+			events: { label: 'Open Events', routeId: 'events' },
+			resources: { label: 'Open Resources', routeId: 'guide' },
 		};
 		const m = p?.page ? NAV[p.page] : undefined;
-		return m ? { kind: 'navigate', label: m.label, href: m.href } : null;
+		return m ? { kind: 'navigate', label: m.label, href: pathOf(m.routeId, 'raise') } : null;
 	}
 	return null;
 }
@@ -65,7 +83,7 @@ export function founderActionFromTool(tool: string, input: unknown): ChatAction 
  *  here (flatten to text); investor links point at the raise workspace. */
 export const founderRewritePath: RewritePath = (href) => {
 	if (href.startsWith('/companies/')) return null;
-	if (href.startsWith('/investors/')) return '/raise' + href;
+	if (href.startsWith('/investors/')) return pathOf('investors', 'raise') + href.slice('/investors'.length);
 	return href;
 };
 

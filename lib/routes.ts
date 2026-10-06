@@ -39,7 +39,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
 	House, LayoutGrid, Files, Newspaper, ChartPie, CalendarDays, Building2, CalendarRange,
 	Presentation, SlidersHorizontal, FileCheck, Ticket, Sparkles, Radar, Target, TrendingUp,
-	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users, FileSearch,
+	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users,
 	MessageSquare, Rocket, Wrench,
 } from 'lucide-react';
 import { access, type Tier, type TierReq } from './access.ts';
@@ -98,7 +98,7 @@ export const ROUTES: RouteDef[] = [
 		// founder, recommended companies for an investor. Dispatched inside the
 		// page — a user only ever holds one paid tier.
 		id: 'recommended', icon: Sparkles, name: 'Recommended',
-		path: { raise: '/raise/discover/recommended', scout: '/scout/discover/recommended' },
+		path: '/app/discover/recommended', tier: ['raise', 'scout'],
 		placeholder: { scout: true },
 	},
 	{
@@ -142,28 +142,34 @@ export const ROUTES: RouteDef[] = [
 		path: { explore: '/explore/account', raise: '/raise/account', scout: '/scout/account' },
 	},
 	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
-	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/explore/interests', placeholder: true },
+	{
+		// Both paid products include this: a founder checks their own pitch, an
+		// investor screens someone else's. Same backend and component, different
+		// copy and a different name in each sidebar.
+		id: 'deck', icon: FileCheck,
+		name: { raise: 'Pitch Deck', scout: 'Deck Screener' },
+		path: '/app/deck', tier: ['raise', 'scout'],
+	},
+	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore', placeholder: true },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
-	{ id: 'pitch', icon: FileCheck, name: 'Pitch Deck', path: '/raise/pitch', tier: 'raise' },
-	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/raise/investors', tier: 'raise' },
-	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/raise/programs', tier: 'raise' },
-	{ id: 'my-market', icon: Target, name: 'My Market', path: '/raise/intelligence/my-market', tier: 'raise' },
-	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/raise/pipeline', tier: 'raise' },
-	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/raise/resources', tier: 'raise', placeholder: true },
-	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/raise/settings', tier: 'raise' },
+	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/app/discover/investors', tier: 'raise' },
+	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/app/programs', tier: 'raise' },
+	{ id: 'my-market', icon: Target, name: 'My Market', path: '/app/my-market', tier: 'raise' },
+	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/app/pipeline', tier: 'raise' },
+	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/app/resources/guide', tier: 'raise', placeholder: true },
+	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/app/settings', tier: 'raise' },
 	// Gated, never listed.
-	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/raise/setup', tier: 'raise' },
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/raise/chat', tier: 'raise' },
-	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/raise/strategy', tier: 'raise' },
+	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/app/setup', tier: 'raise' },
+	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: 'raise' },
+	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/app/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
-	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/scout/deal-flow', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/scout/deal-flow/featured', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/scout/deal-flow/verified', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/scout/deal-flow/circle', tier: 'scout', placeholder: true },
-	{ id: 'screener', icon: FileSearch, name: 'Deck Screener', path: '/scout/deal-flow/screener', tier: 'scout' },
-	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/scout/thesis', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout', placeholder: true },
+	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout', placeholder: true },
 ];
 
 export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));
@@ -190,7 +196,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 	],
 	raise: [
 		{ title: null, items: ['home'] },
-		{ title: 'Raise', items: ['pitch', 'investors', 'programs'] },
+		{ title: 'Raise', items: ['deck', 'investors', 'programs'] },
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
@@ -202,7 +208,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['watchlists'] },
-		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'screener'] },
+		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 		{ title: null, bottom: true, items: ['thesis', 'billing'] },
 	],
