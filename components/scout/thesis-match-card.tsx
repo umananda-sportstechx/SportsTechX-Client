@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { PlaceholderTag } from '@/components/atlas';
 import { useThesis, thesisTags } from './use-thesis';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * "Scout · Thesis match" card for the company profile rail. Backend Not
@@ -16,7 +17,7 @@ export function ThesisMatchCard() {
 			<div><PlaceholderTag /></div>
 			<p className="atlas-co__sub">Atlas will score this company against your thesis once matching is connected:</p>
 			<div className="scout-tags">{thesisTags(thesis).map((t) => <span key={t} className="scout-tag">{t}</span>)}</div>
-			<Link href="/scout/thesis" className="scout-link">Edit thesis</Link>
+			<Link href={hrefOf('thesis')} className="scout-link">Edit thesis</Link>
 		</section>
 	);
 }

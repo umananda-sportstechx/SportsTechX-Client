@@ -12,6 +12,7 @@ import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
+import { hrefOf } from '@/lib/routes';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
@@ -178,7 +179,7 @@ export default function RaiseSetupPage() {
 	};
 
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (done) return <Screen width={620}><TransitionScreen onEnter={() => router.push('/raise')} onVerify={verify} /></Screen>;
+	if (done) return <Screen width={620}><TransitionScreen onEnter={() => router.push(hrefOf('home'))} onVerify={verify} /></Screen>;
 
 	return (
 		<Screen width={720}>

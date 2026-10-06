@@ -13,6 +13,7 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { InterestFields, NO_INTERESTS, useInterests, type Interests } from './interests';
 import { EXPLORE_COLOR, LANDING_RAISE, LANDING_SCOUT } from './shell-config';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Explore onboarding (Claude Design): intro → 1 About you → 2 Background →
@@ -111,7 +112,7 @@ function Flow({ initial }: { initial: { name: string; company: string; role: str
 					<Card key={h}><div className="explore-access__name">{h}</div><p className="explore-muted">{b}</p></Card>
 				))}
 			</div>
-			<Button onClick={() => router.push('/explore')}>Enter Atlas</Button>
+			<Button onClick={() => router.push(hrefOf('home'))}>Enter Atlas</Button>
 			{answers.relevance !== RELEVANCE[0] && (
 				<p className="explore-muted explore-onb__raise">You may also find Atlas Raise useful — a dedicated workspace for improving your pitch, finding investors and managing your raise. <Link href={LANDING_RAISE}>Explore Atlas Raise</Link></p>
 			)}

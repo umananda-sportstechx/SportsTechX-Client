@@ -9,12 +9,16 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import { H1, Badge, SectionHead, FeedCard } from '@/components/atlas';
 import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Atlas Raise — Home. Search-first: a centred composer as the focal point, with
  * "What needs your attention" as elongated cards peeking from the bottom edge
  * (scroll to reveal more). Data unchanged (GET /api/raise/home); only `attention`
  * is used here now. The search bar is UI-only for now (see RaiseSearch).
+ *
+ * A component rather than a page: `/app` picks one of the three product homes
+ * by tier, the way Explore and Scout always did.
  */
 
 interface Attention { id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number }
@@ -32,12 +36,12 @@ const ATTENTION_TAG: Record<string, { tag: string; icon: LucideIcon }> = {
 };
 const DEFAULT_TAG = { tag: 'For you', icon: UserRound };
 
-export default function RaiseHomePage() {
+export function RaiseHome() {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const { data, isLoading } = useSWR<Home>(qk.raise.home());
 	const [q, setQ] = useState('');
-	const goChat = (text: string) => { const t = text.trim(); if (t) router.push(`/raise/chat?q=${encodeURIComponent(t)}`); };
+	const goChat = (text: string) => { const t = text.trim(); if (t) router.push(`${hrefOf('chat')}?q=${encodeURIComponent(t)}`); };
 
 	if (isLoading || !data) {
 		return <div className="raise-home"><div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}><Loader2 className="animate-spin" size={22} /></div></div>;

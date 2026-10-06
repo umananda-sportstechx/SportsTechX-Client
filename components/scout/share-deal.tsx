@@ -7,6 +7,7 @@ import { Action, Button, Card, Field, Input, PlaceholderTag, Textarea, cx } from
 import { ChipSet, toggleIn } from './thesis-fields';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import type { SampleDeal } from './sample-data';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * From the Circle → Share a deal (Claude Design "Add deal"): company, round,
@@ -62,7 +63,7 @@ export function ShareDeal() {
 				<h2 className="atlas-h2">{d.company || 'Your deal'} has been submitted.</h2>
 				<p className="scout-body">SportsTechX will review eligibility, usually within two working days. We’ll email you once it’s live in From the Circle, or if we need anything else.</p>
 				<div className="scout-intro__actions">
-					<Button href="/scout/deal-flow/circle" variant="outline">Back to From the Circle</Button>
+					<Button href={hrefOf('deal-flow-circle')} variant="outline">Back to From the Circle</Button>
 					<Button onClick={() => { setD(BLANK); setStep(0); setDone(false); }}>Share another deal</Button>
 				</div>
 			</Card>
@@ -72,7 +73,7 @@ export function ShareDeal() {
 	const s = STEPS[step];
 	return (
 		<>
-			<Action icon={<ArrowUpLeft />} href="/scout/deal-flow/circle">From the Circle</Action>
+			<Action icon={<ArrowUpLeft />} href={hrefOf('deal-flow-circle')}>From the Circle</Action>
 			<div className="scout-subhead scout-subhead--page">
 				<div><h1 className="atlas-h1">Share a deal with the Circle<PlaceholderTag /></h1><p className="scout-muted">Share an opportunity with Investor Circle members. SportsTechX checks eligibility before it’s published.</p></div>
 			</div>
@@ -136,7 +137,7 @@ export function ShareDeal() {
 				)}
 				{err && <p className="scout-error" role="alert">{err}</p>}
 				<div className="scout-intro__actions">
-					{step === 0 ? <Link href="/scout/deal-flow/circle" className="atlas-btn atlas-btn--outline">Cancel</Link> : <Button variant="outline" onClick={() => setStep(step - 1)}>← Back</Button>}
+					{step === 0 ? <Link href={hrefOf('deal-flow-circle')} className="atlas-btn atlas-btn--outline">Cancel</Link> : <Button variant="outline" onClick={() => setStep(step - 1)}>← Back</Button>}
 					<Button onClick={next}>{step === 3 ? 'Submit deal' : 'Continue'}</Button>
 				</div>
 			</Card>

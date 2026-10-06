@@ -11,6 +11,7 @@ import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { useThesis } from './use-thesis';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Investor onboarding (Claude Design "Onboarding"): Profile → Fund → Stage &
@@ -64,7 +65,7 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 					['03', 'Full access after approval', 'Deal Flow introductions and the Investor Circle unlock once you’re verified.'],
 				].map(([n, h, b]) => <Card key={n} className="scout-verify__step"><span className="atlas-eyebrow">{n}</span><div className="scout-verify__h">{h}</div><p className="scout-muted">{b}</p></Card>)}
 			</div>
-			<Button onClick={() => router.push('/scout')}>Go to Scout</Button>
+			<Button onClick={() => router.push(hrefOf('home'))}>Go to Scout</Button>
 		</Frame>
 	);
 
@@ -90,7 +91,7 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 			</Card>
 			{err && <p className="scout-error" role="alert">{err}</p>}
 			<div className="scout-intro__actions">
-				{step === 0 ? <Link href="/scout" className="atlas-btn atlas-btn--outline">Skip to app</Link> : <Button variant="outline" onClick={() => { setStep(step - 1); top(); }}>← Back</Button>}
+				{step === 0 ? <Link href={hrefOf('home')} className="atlas-btn atlas-btn--outline">Skip to app</Link> : <Button variant="outline" onClick={() => { setStep(step - 1); top(); }}>← Back</Button>}
 				<Button onClick={next}>{step === 4 ? 'Submit for verification' : 'Continue'}</Button>
 			</div>
 		</Frame>

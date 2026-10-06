@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { SAMPLE_DEALS, type DealKind, type SampleDeal } from './sample-data';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Deal Flow (Claude Design "Deal Flow"): Featured deal, Verified Raises and
@@ -40,7 +41,7 @@ export function DealFlow({ kind }: { kind?: DealKind }) {
 				<section className="scout-df__section">
 					<div className="scout-df__head">
 						<h2 className="scout-df__title">From the Circle</h2>
-						<Link href="/scout/deal-flow/circle/share" className="scout-df__btn">+ Share a deal</Link>
+						<Link href={`${hrefOf('deal-flow-circle')}/share`} className="scout-df__btn">+ Share a deal</Link>
 					</div>
 					<p className="scout-df__note">Opportunities shared by Investor Circle members. Eligibility checked by SportsTechX; not independently selected or endorsed.</p>
 					<div className="scout-df__grid">{deals.filter((d) => d.kind === 'circle').map((d) => <CircleCard key={d.id} d={d} />)}</div>

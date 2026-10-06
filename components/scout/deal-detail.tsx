@@ -8,6 +8,7 @@ import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { DEAL_HISTORY, DEAL_SECTIONS, sampleCompany } from './sample-data';
 import { sampleCompanyHref } from './sample-company-bits';
 import { useDeals } from './deal-flow';
+import { hrefOf } from '@/lib/routes';
 
 /** One Deal Flow opportunity (Claude Design "Deal"): terms, summary, documents, funding history, introduction request. */
 export function DealDetail({ id }: { id: string }) {
@@ -22,7 +23,7 @@ export function DealDetail({ id }: { id: string }) {
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, [open]);
-	if (!d) return <Empty>Opportunity not found. <Link href="/scout/deal-flow">Back to Deal Flow</Link></Empty>;
+	if (!d) return <Empty>Opportunity not found. <Link href={hrefOf('deal-flow')}>Back to Deal Flow</Link></Empty>;
 
 	const co = sampleCompany(d.id);
 	const sent = intros.includes(d.id);
@@ -33,7 +34,7 @@ export function DealDetail({ id }: { id: string }) {
 
 	return (
 		<div className="scout-df">
-			<Link href={d.kind === 'circle' ? '/scout/deal-flow/circle' : '/scout/deal-flow'} className="scout-df-card__link">← {d.kind === 'circle' ? 'From the Circle' : 'Deal Flow'}</Link>
+			<Link href={hrefOf(d.kind === 'circle' ? 'deal-flow-circle' : 'deal-flow')} className="scout-df-card__link">← {d.kind === 'circle' ? 'From the Circle' : 'Deal Flow'}</Link>
 			<header className="scout-dd-head">
 				<Logo co={{ name: d.name, website: co?.site ?? null, custom_logo_url: null }} size={80} radius={9} />
 				<div className="scout-dd-head__id">

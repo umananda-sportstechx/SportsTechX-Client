@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { SAMPLE_COMPANIES, sampleCompany } from './sample-data';
 import { SampleLogo, ThesisChecks, WatchSample, SampleCompanyLinks } from './sample-company-bits';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Discover → Recommended (Claude Design "Recommended for you") — companies
@@ -20,7 +21,7 @@ export function Recommended() {
 		<>
 			<div className="scout-subhead">
 				<div><h2 className="atlas-h2">Recommended for you</h2><p className="scout-muted">Companies matching your investment thesis.</p></div>
-				<Link href="/scout/thesis" className="scout-link">Edit thesis</Link>
+				<Link href={hrefOf('thesis')} className="scout-link">Edit thesis</Link>
 			</div>
 			{last && (
 				<div className="scout-undo">

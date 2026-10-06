@@ -10,6 +10,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useThesis, listText, thesisTags } from './use-thesis';
 import { SAMPLE_COMPANIES, SAMPLE_DEALS } from './sample-data';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Scout Home (Claude Design "Home"): greeting, the thesis it's tuned to,
@@ -47,7 +48,7 @@ export function ScoutHome() {
 				<div className="scout-home__thesis">
 					<span className="atlas-eyebrow">Tuned to your thesis</span>
 					<div className="scout-tags">{tags.map((t) => <span key={t} className="scout-tag">{t}</span>)}</div>
-					<Link href="/scout/thesis" className="scout-link">Edit thesis</Link>
+					<Link href={hrefOf('thesis')} className="scout-link">Edit thesis</Link>
 				</div>
 				<div className="scout-home__composer">
 					<AgentComposer
@@ -65,16 +66,16 @@ export function ScoutHome() {
 				<SectionHead title={<>What needs your attention<PlaceholderTag /></>} meta="Based on your thesis · since your last visit" />
 				<div className="atlas-feed-grid">
 					{onboarded
-						? <FeedCard tag="Recommended" icon={Sparkles} title={`${matches} companies match your thesis`} body={`${listText(thesis.stages)} companies in ${listText(thesis.sectors)} across ${listText(thesis.regions)}.`} href="/scout/discover/recommended" />
-						: <FeedCard tag="Recommended" icon={Sparkles} title="Complete your investment thesis" body="Tell Atlas what you’re looking for to personalise Scout." href="/scout/onboarding" actionLabel="Set up" />}
+						? <FeedCard tag="Recommended" icon={Sparkles} title={`${matches} companies match your thesis`} body={`${listText(thesis.stages)} companies in ${listText(thesis.sectors)} across ${listText(thesis.regions)}.`} href={hrefOf('recommended')} />
+						: <FeedCard tag="Recommended" icon={Sparkles} title="Complete your investment thesis" body="Tell Atlas what you’re looking for to personalise Scout." href="/onboarding/scout" actionLabel="Set up" />}
 					<FeedCard
 						tag="Watchlist" icon={Bookmark}
 						title={lists.length ? `${lists.length} watchlist${lists.length === 1 ? '' : 's'} to review` : 'Start your first watchlist'}
 						body={lists.length ? `Including “${lists[0].name}”. Track stages on the board view.` : 'Save companies from any profile to follow their signals and funding.'}
-						href="/scout/watchlists"
+						href={hrefOf('watchlists')}
 					/>
-					<FeedCard tag="Deal Flow" icon={Layers} title={`${fits} live raises fit your thesis`} body="Deal Flow ranked by fit: 1 Featured Deal and verified raises." href="/scout/deal-flow" />
-					<FeedCard tag="Monthly Roundup" icon={CalendarDays} title={`${month} market roundup`} body="Funding, deals and news across sports tech for the month." href="/scout/intelligence/roundup" />
+					<FeedCard tag="Deal Flow" icon={Layers} title={`${fits} live raises fit your thesis`} body="Deal Flow ranked by fit: 1 Featured Deal and verified raises." href={hrefOf('deal-flow')} />
+					<FeedCard tag="Monthly Roundup" icon={CalendarDays} title={`${month} market roundup`} body="Funding, deals and news across sports tech for the month." href={hrefOf('roundup')} />
 				</div>
 			</section>
 		</div>

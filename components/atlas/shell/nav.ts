@@ -27,7 +27,7 @@ export const isSection = (e: ShellNavEntry): e is ShellNavSection => 'items' in 
  * carries equals the URL's — or the param is absent and the item is `isDefault`.
  * If nothing matches strictly (e.g. a tab with no nav item), fall back to the
  * page's `isDefault` / query-less item, and for sub-pages of a tabbed page
- * (e.g. /raise/investors/123) to that page's `isDefault` item.
+ * (e.g. /app/discover/investors/123) to that page's `isDefault` item.
  */
 export function pickActive(items: ShellNavItem[], homePath: string, pathname: string, params: { get(k: string): string | null; has(k: string): boolean }): string | null {
 	const parsed = items.filter((i) => !i.soon).map((i) => {
@@ -36,8 +36,8 @@ export function pickActive(items: ShellNavItem[], homePath: string, pathname: st
 	});
 	const pathMatches = (p: string, hasQuery: boolean) =>
 		p === homePath ? pathname === homePath : pathname === p || (!hasQuery && pathname.startsWith(p + '/'));
-	// Most specific first: exact path, then the longest parent (so /raise/resources/framework/x
-	// picks "Framework", not "Fundraising Guide" at /raise/resources).
+	// Most specific first: exact path, then the longest parent (so /app/resources/framework/x
+	// picks "Framework", not "Fundraising Guide" at /app/resources/guide).
 	const candidates = parsed
 		.filter((c) => pathMatches(c.p, c.q.size > 0))
 		.sort((a, b) => Number(b.p === pathname) - Number(a.p === pathname) || b.p.length - a.p.length);
@@ -45,7 +45,7 @@ export function pickActive(items: ShellNavItem[], homePath: string, pathname: st
 	if (strict) return strict.item.path;
 	const fallback = candidates.find((c) => c.item.isDefault) ?? candidates.find((c) => c.q.size === 0);
 	if (fallback) return fallback.item.path;
-	// Sub-pages of a tabbed page (e.g. /raise/investors/123) → that page's default item.
+	// Sub-pages of a tabbed page (e.g. /app/discover/investors/123) → that page's default item.
 	const parent = parsed.find((c) => c.q.size > 0 && c.item.isDefault && pathname.startsWith(c.p + '/'));
 	return parent?.item.path ?? null;
 }

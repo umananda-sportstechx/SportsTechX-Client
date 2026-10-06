@@ -32,7 +32,7 @@
  * Routes listed in `ROUTES` but in no `NAV_LAYOUT` are real pages that are
  * gated but never listed — detail pages, wizards, the chat. A route's tier is
  * resolved for an arbitrary URL by longest-prefix match, so
- * `/raise/investors/abc` inherits the gate from `/raise/investors`.
+ * `/app/discover/investors/abc` inherits the gate from `/app/discover/investors`.
  */
 
 import type { LucideIcon } from 'lucide-react';
@@ -83,7 +83,7 @@ export const ROUTES: RouteDef[] = [
 	// ── Shared: the free Explore base, open to every signed-in user ──────────
 	{
 		id: 'home', icon: House, name: 'Home',
-		path: { explore: '/explore', raise: '/raise', scout: '/scout' },
+		path: '/app',
 	},
 	{
 		id: 'companies', icon: Building2, name: 'Companies',
@@ -139,7 +139,7 @@ export const ROUTES: RouteDef[] = [
 		// Reached from the account badge, which AtlasShell renders separately.
 		// Listed so the gate and `pickActive` know about it.
 		id: 'account', icon: Settings, name: 'Account',
-		path: { explore: '/explore/account', raise: '/raise/account', scout: '/scout/account' },
+		path: '/app/account',
 	},
 	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
 	{
@@ -260,7 +260,7 @@ export const pathOf = (id: string, tier: Tier): string =>
 
 /**
  * The route a URL belongs to, by longest-prefix match — so
- * `/raise/investors/abc` resolves through `/raise/investors` and detail pages
+ * `/app/discover/investors/abc` resolves through `/app/discover/investors` and detail pages
  * inherit their parent's gate without needing their own entry.
  */
 export function routeForPath(pathname: string, tier: Tier): RouteDef | undefined {

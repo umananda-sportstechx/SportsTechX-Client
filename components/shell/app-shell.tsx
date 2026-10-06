@@ -12,6 +12,7 @@ import { useNav } from '@/hooks/use-nav';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { TIER_LABEL } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
+import { hrefOf } from '@/lib/routes';
 import '@/components/raise/raise.css';
 import '@/components/explore/explore.css';
 import '@/components/scout/scout.css';
@@ -27,6 +28,12 @@ import '@/components/scout/scout.css';
  * `product` stays per-tier rather than becoming a constant: `AtlasShell` seeds
  * `stx:<product>-rail-collapsed` and `stx:<product>-nav-closed` from it, so
  * flattening it would silently reset everyone's sidebar preferences.
+ *
+ * It no longer sniffs paths. The two branches it had — billing/coming-soon and
+ * onboarding, both wanting the Atlas palette with no chrome — are route
+ * *layouts* now (`app/billing/layout.tsx`, `app/(onboarding)/layout.tsx`),
+ * which is where "this page has different chrome" belongs. `/coming-soon` is
+ * gone entirely.
  */
 const COLOR: Record<Tier, string | undefined> = {
 	explore: EXPLORE_COLOR,
@@ -39,19 +46,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname() ?? '';
 	const { data: profile } = useUserProfile();
 	const { tier, nav, bottomNav, homePath, accountPath } = useNav();
-
-	// Plan-agnostic surfaces (billing, and the coming-soon placeholder until it
-	// goes) render on the Atlas palette with no chrome, reachable by any plan.
-	if (pathname === '/coming-soon' || pathname.startsWith('/billing')) {
-		return <div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}<PaywallGate /></div>;
-	}
-
-	// Onboarding is deliberately chrome-less — it is a focused flow, not a
-	// workspace screen. (These two move into the (onboarding) group with the
-	// route consolidation, which removes this sniff.)
-	if (pathname.endsWith('/onboarding')) {
-		return <div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}</div>;
-	}
 
 	return (
 		<>
@@ -67,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				railExtra={tier === 'explore' ? <UpgradeCards /> : undefined}
 				// Raise's co-pilot FAB. The full chat page is itself the co-pilot,
 				// so don't stack a drawer on top of it there.
-				overlay={tier === 'raise' && !pathname.includes('/chat') ? <RaiseChat /> : undefined}
+				overlay={tier === 'raise' && !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>

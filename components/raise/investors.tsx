@@ -13,6 +13,7 @@ import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, 
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
 import { SINCE_YEARS, DEALS_BUCKETS } from '@/lib/catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Raise investor views, shared by Discover → Recommended (/raise/discover/recommended)
@@ -98,13 +99,13 @@ export function RecommendedInvestors() {
 	return (
 		matches.isLoading ? <Loading />
 			: matches.data?.reason === 'no_company_claim' || !matches.data?.company ? (
-				<Empty>Atlas needs your company category to match investors. Set it under{' '}<Link href="/raise/settings" style={{ color: 'var(--a-navy)' }}>Thesis settings → Category</Link>.</Empty>
+				<Empty>Atlas needs your company category to match investors. Set it under{' '}<Link href={hrefOf('raise-settings')} style={{ color: 'var(--a-navy)' }}>Thesis settings → Category</Link>.</Empty>
 			) : (matches.data?.results.length ?? 0) === 0 ? <Empty>No matches yet. Broaden your investor criteria in setup.</Empty>
 				: <>
 					{criteriaSummary && (
 						<div className="atlas-card atlas-card--glow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', padding: '16px 23px', marginBottom: 20 }}>
 							<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{criteriaSummary}</span>
-							<Button href="/raise/settings" variant="outline" size="sm">Edit criteria</Button>
+							<Button href={hrefOf('raise-settings')} variant="outline" size="sm">Edit criteria</Button>
 						</div>
 					)}
 					<Grid>

@@ -103,6 +103,17 @@ for (const tier of ['raise', 'scout'] as Tier[]) {
 		`[${tier}] watchlists splice: ${names.join(', ')}`);
 }
 
+// Every nav destination is canonical. `/billing` is the one exception and is
+// meant to be: Stripe builds its return URLs from that path server-side, so it
+// stays put (see app/billing/layout.tsx). Any other non-/app path means a route
+// was missed by the consolidation.
+for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
+	const { nav, bottomNav } = buildNav(tier, false);
+	const all = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as ShellNavItem])), ...bottomNav];
+	const stray = all.filter((i) => !i.path.startsWith('/app') && i.path !== '/billing');
+	check(stray.length === 0, `[${tier}] all paths canonical${stray.length ? ': ' + stray.map((i) => i.path).join(', ') : ''}`);
+}
+
 // Admin sees every product's items; an explore user sees none of them.
 const adminPaths = buildNav('raise', true).nav.length;
 check(adminPaths > 0, 'admin builds a nav');

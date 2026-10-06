@@ -22,7 +22,7 @@ import './atlas-shell.css';
  * `nav` mixes plain items and collapsible sections (Figma "Menu Section Title /
  * Toggle"). Every item shows its icon + label (icon only in the collapsed rail).
  * An item with `soon` renders greyed with a SOON pill and no link.
- * Item paths may carry a query (e.g. `/raise/market?tab=roundup`) to deep-link a
+ * Item paths may carry a query (e.g. `/app/intelligence/analytics?tab=roundup`) to deep-link a
  * tab; `isDefault` marks the item that's active when that query key is absent.
  */
 

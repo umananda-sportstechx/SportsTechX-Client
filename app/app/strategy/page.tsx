@@ -8,6 +8,7 @@ import { Check, Lock, Loader2, Calendar } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, PageHead, Card, Button, Loading } from '@/components/atlas';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Atlas Raise — Strategy Session (Notion "2d"). Quarterly session with STX
@@ -58,7 +59,7 @@ export default function RaiseStrategyPage() {
 									))}
 								</div>
 								<div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 6, paddingTop: 14, borderTop: '1px solid var(--a-border)' }}>
-									<span style={{ fontFamily: 'var(--a-mono)', fontSize: 11 }}>{s.steps.filter((x) => x.done).length} of {s.steps.length}</span> complete · continue from your <Link href="/raise" style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Home</Link>.
+									<span style={{ fontFamily: 'var(--a-mono)', fontSize: 11 }}>{s.steps.filter((x) => x.done).length} of {s.steps.length}</span> complete · continue from your <Link href={hrefOf('home')} style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Home</Link>.
 								</div>
 							</>
 						)}

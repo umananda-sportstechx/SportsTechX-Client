@@ -10,6 +10,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import type { NewsletterArticle, Page, ReportListItem } from '@/types/api';
 import { useInterests, marketInterests } from './interests';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Explore Home (Claude Design "Home"): greeting, interests count, a search bar
@@ -18,7 +19,7 @@ import { useInterests, marketInterests } from './interests';
  * Backend Not Connected.
  */
 const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
-const COMPANIES = '/explore/market/companies';
+const COMPANIES = hrefOf('companies');
 
 export function ExploreHome() {
 	const router = useRouter();
@@ -48,9 +49,9 @@ export function ExploreHome() {
 	const search = (text: string) => { const t = text.trim(); router.push(t ? `${COMPANIES}?q=${encodeURIComponent(t)}` : COMPANIES); };
 	const suggestions: Record<string, string> = {
 		'Fan engagement companies': `${COMPANIES}?q=${encodeURIComponent('fan engagement')}`,
-		'Latest funding rounds': '/explore/market/roundup',
-		'Upcoming events': '/explore/market/events',
-		'How sports tech is structured': '/explore/intelligence/framework',
+		'Latest funding rounds': hrefOf('roundup'),
+		'Upcoming events': hrefOf('events'),
+		'How sports tech is structured': hrefOf('framework'),
 	};
 
 	return (
@@ -59,7 +60,7 @@ export function ExploreHome() {
 				<H1>{greeting}, {first}</H1>
 				<div className="explore-home__sub">
 					<span>Here&apos;s what has changed across the sports-tech market.</span>
-					<Link href="/explore/interests" className="explore-home__interests"><SlidersHorizontal size={12} aria-hidden="true" />Interests <b>{picked.length}</b></Link>
+					<Link href={hrefOf('interests')} className="explore-home__interests"><SlidersHorizontal size={12} aria-hidden="true" />Interests <b>{picked.length}</b></Link>
 				</div>
 				<div className="explore-home__search">
 					<AgentComposer
@@ -77,14 +78,14 @@ export function ExploreHome() {
 				<SectionHead title="What needs your attention" meta="Based on your interests · updated today" />
 				<div className="atlas-feed-grid">
 					{latestNews && (
-						<FeedCard tag="Newsletter" icon={Newspaper} title={latestNews.title} body={`${fmt(latestNews.pubDate)} · ${latestNews.description}`} href="/explore/intelligence/newsletter" actionLabel="Read" />
+						<FeedCard tag="Newsletter" icon={Newspaper} title={latestNews.title} body={`${fmt(latestNews.pubDate)} · ${latestNews.description}`} href={hrefOf('newsletter')} actionLabel="Read" />
 					)}
 					{latestReport && (
-						<FeedCard tag="Report" icon={Files} title={latestReport.title} body={`${latestReport.report_year ?? ''} · ${latestReport.description ?? ''}`.trim()} href="/explore/intelligence/reports" actionLabel="Open" />
+						<FeedCard tag="Report" icon={Files} title={latestReport.title} body={`${latestReport.report_year ?? ''} · ${latestReport.description ?? ''}`.trim()} href={hrefOf('reports')} actionLabel="Open" />
 					)}
-					<FeedCard tag="Monthly roundup" icon={CalendarDays} title={`${lastMonth} market roundup`} body="The month’s most relevant funding rounds, acquisitions and industry developments in one read." href="/explore/market/roundup" />
+					<FeedCard tag="Monthly roundup" icon={CalendarDays} title={`${lastMonth} market roundup`} body="The month’s most relevant funding rounds, acquisitions and industry developments in one read." href={hrefOf('roundup')} />
 					{picked.length === 0 ? (
-						<FeedCard tag="For you" icon={UserRound} title="Your market view is broad" body="Select sectors, sports or countries to make these recommendations sharper." href="/explore/interests" actionLabel="Choose" />
+						<FeedCard tag="For you" icon={UserRound} title="Your market view is broad" body="Select sectors, sports or countries to make these recommendations sharper." href={hrefOf('interests')} actionLabel="Choose" />
 					) : (
 						<FeedCard
 							tag="For you" icon={UserRound}

@@ -8,6 +8,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Card, Tabs, Button, Loading, Empty, Logo, Flag } from '@/components/atlas';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Market → My market. The founder's OWN market: LLM-estimated TAM/SAM plus
@@ -59,7 +60,7 @@ export function MyMarket() {
 	if (isLoading) return <Loading />;
 	if (!data || data.unavailable) return (
 		<Empty>Atlas needs your company category to map your market. Set it under{' '}
-			<Link href="/raise/settings" style={{ color: 'var(--a-navy)' }}>Thesis settings → Category</Link>.</Empty>
+			<Link href={hrefOf('raise-settings')} style={{ color: 'var(--a-navy)' }}>Thesis settings → Category</Link>.</Empty>
 	);
 
 	return (

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
+import { hrefOf } from '@/lib/routes';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { Brand } from '@/components/ui/brand';
@@ -119,7 +120,7 @@ export default function BillingPage() {
 	return (
 		<div className="atlas" style={{ maxWidth: 820, margin: '0 auto', padding: '40px 20px 64px', background: 'var(--a-page)', color: 'var(--a-ink)' }}>
 			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 36 }}>
-				<Action icon={<ArrowLeft />} onClick={() => router.push(plan === 'raise' ? '/raise' : '/coming-soon')}>Back</Action>
+				<Action icon={<ArrowLeft />} onClick={() => router.push(hrefOf('home'))}>Back</Action>
 				<Brand variant="horizontal" height={30} />
 			</div>
 			<PageHead title={'Plan & billing'} />

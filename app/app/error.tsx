@@ -6,9 +6,13 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
- * Authenticated-shell error boundary. Catches errors thrown inside any
- * (app)/ page so the sidebar + header stay rendered and the user can
- * navigate elsewhere instead of bouncing to the global app/error.tsx.
+ * Authenticated-shell error boundary. Catches errors thrown inside any /app
+ * page so the sidebar + header stay rendered and the user can navigate
+ * elsewhere instead of bouncing to the global app/error.tsx.
+ *
+ * This used to cover only the Raise tree — Explore and Scout had no boundary at
+ * all, so an error there escaped to the global one and took the shell with it.
+ * One tree means one boundary for all three.
  */
 export default function AppShellError({
   error,
@@ -40,7 +44,7 @@ export default function AppShellError({
             <RotateCcw className="h-4 w-4 mr-2" />Try again
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/app">Home</Link>
           </Button>
         </div>
       </div>

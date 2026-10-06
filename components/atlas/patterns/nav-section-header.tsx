@@ -8,8 +8,11 @@ import { pickActive, flattenNav, isSection, type ShellNavEntry } from '../shell/
 /**
  * Page header for any page that sits in a sidebar section: the section title is
  * the heading and the section's items are the tabs (one URL each), so the page
- * always mirrors the navigation. Renders nothing outside a section. Products
- * wrap it with their own nav (RaiseSectionHeader, ScoutSectionHeader).
+ * always mirrors the navigation. Renders nothing outside a section.
+ *
+ * `SectionHeader` is the wrapper every page uses; it supplies the nav from the
+ * route manifest. The three per-product wrappers this used to name are gone —
+ * the nav is derived from the viewer's tier, not from which tree they are in.
  */
 export function NavSectionHeader({ nav, homePath, subs, actions }: {
 	nav: ShellNavEntry[];

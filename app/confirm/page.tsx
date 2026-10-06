@@ -35,7 +35,7 @@ export default function ConfirmPage() {
 	const tokenHash = params.get('token_hash');
 	const type = (params.get('type') ?? 'signup') as
 		| 'signup' | 'invite' | 'recovery' | 'magiclink' | 'email_change';
-	const next = params.get('next') ?? '/raise';
+	const next = params.get('next') ?? '/app';
 
 	useEffect(() => {
 		if (!tokenHash) {

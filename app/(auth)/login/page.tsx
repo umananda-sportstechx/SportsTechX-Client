@@ -14,7 +14,7 @@ import './../atlas-auth.css';
 export default function LoginPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirectTo = params.get('redirectTo') ?? '/raise';
+  const redirectTo = params.get('redirectTo') ?? '/app';
   const reason = params.get('reason');
 
   const [email, setEmail] = useState('');

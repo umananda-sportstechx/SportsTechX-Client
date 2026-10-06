@@ -16,6 +16,15 @@
  * A public page has to stay readable whatever is in the cookie jar.
  *
  * Entries match as an exact path or a path prefix (`/w` covers `/w/<token>`).
+ *
+ * Now that the signed-in product is all under `/app`, this could invert into
+ * "gate `/app`, `/onboarding` and `/billing`" — shorter, and a new public page
+ * could no longer be private by accident. It deliberately hasn't: the failure
+ * directions are not symmetric. Forgetting to add a public page here makes that
+ * page ask for a login, which someone notices immediately. Forgetting to list a
+ * private prefix in the inverted version makes it readable without one, which
+ * nobody notices. `/docs` and `/confirm` are private today only because they are
+ * absent from this list, so inverting would publish both as a side effect.
  */
 export const PUBLIC_PATHS = [
   '/', // public marketing landing page (app/page.tsx)
