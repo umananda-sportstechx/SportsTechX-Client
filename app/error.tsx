@@ -1,48 +1,59 @@
 'use client';
 
+import '@/components/atlas/styles/tokens.css';
+import '@/components/atlas/styles/base.css';
+import '@/components/atlas/styles/components.css';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 /**
  * Global error boundary. Catches anything that throws during render outside
  * of a route group's own error.tsx. Lives at app/error.tsx per Next.js 16
  * App Router convention. Must be a client component to use the reset() prop.
+ *
+ * Like the 404, this is reachable by a logged-out visitor, so the secondary CTA
+ * is `/` — `/app` alone would bounce them to a login screen.
  */
 export default function GlobalError({
-  error,
-  reset,
+	error,
+	reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+	error: Error & { digest?: string };
+	reset: () => void;
 }) {
-  useEffect(() => {
-    // Forward to Sentry / your monitoring of choice once wired
-    // eslint-disable-next-line no-console
-    console.error('[GlobalError]', error);
-  }, [error]);
+	useEffect(() => {
+		// Forward to Sentry / your monitoring of choice once wired
+		// (sentry.client.config.ts exists but nothing calls captureException yet).
+		// eslint-disable-next-line no-console
+		console.error('[GlobalError]', error);
+	}, [error]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-          <AlertTriangle className="h-8 w-8 text-destructive" />
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-        <p className="text-sm text-muted-foreground mb-6">
-          An unexpected error stopped this page from rendering. You can try again, or head back to the dashboard.
-        </p>
-        {error.digest && (
-          <p className="text-xs text-muted-foreground font-mono mb-6">Reference: {error.digest}</p>
-        )}
-        <div className="flex gap-3 justify-center">
-          <Button onClick={reset}>Try again</Button>
-          <Button variant="outline" asChild>
-            <Link href="/app">Go to your workspace</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--a-page)' }}>
+			<div style={{ textAlign: 'center', maxWidth: 440 }}>
+				<span style={{
+					display: 'grid', placeItems: 'center', width: 44, height: 44, margin: '0 auto 16px',
+					borderRadius: 'var(--a-radius-pill)', background: 'var(--a-danger-bg)', color: 'var(--a-danger)',
+				}}>
+					<AlertTriangle size={22} />
+				</span>
+				<h1 style={{ margin: 0, fontFamily: 'var(--a-font)', fontSize: 26, fontWeight: 700, color: 'var(--a-ink)' }}>
+					Something went wrong
+				</h1>
+				<p style={{ margin: '10px 0 0', fontFamily: 'var(--a-body)', fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)' }}>
+					An unexpected error stopped this page from rendering. You can try again, or head back.
+				</p>
+				{error.digest && (
+					<p style={{ margin: '12px 0 0', fontFamily: 'var(--a-mono)', fontSize: 11, color: 'var(--a-faint)' }}>
+						Reference: {error.digest}
+					</p>
+				)}
+				<div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 24 }}>
+					<button type="button" className="atlas-btn atlas-btn--primary" onClick={reset}>Try again</button>
+					<Link href="/" className="atlas-btn atlas-btn--outline">Go to homepage</Link>
+				</div>
+			</div>
+		</div>
+	);
 }

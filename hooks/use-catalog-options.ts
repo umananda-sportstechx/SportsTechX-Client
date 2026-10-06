@@ -4,12 +4,19 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import { useSectorTiers, expandSectorSelection, type SectorRef } from '@/hooks/use-sector-tiers';
-import type { LocationFacets } from '@/lib/location-facets';
 
 /**
  * Filter options backed by reference data (sectors, locations, tech tags,
  * sports, round types), as [value, label] pairs ready for a FilterBar.
  */
+
+/** Shape returned by `GET /api/locations/facets`. Moved here from
+ *  `lib/location-facets.ts`, whose other exports had no callers. */
+export interface LocationFacets {
+	cities: string[];
+	continents: string[];
+	regions: string[];
+}
 
 export interface SectorTierData {
 	/** Top-level pillars — the primary (ungated) Sector select. */

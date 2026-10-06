@@ -109,6 +109,11 @@
 .atlas .auth-centred { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--a-page); }
 .atlas .auth-centred__card { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 18px; padding: 34px 32px 30px; }
 
+/* Status medallion on /confirm — same shape billing/success uses. */
+.atlas .confirm-medallion { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--a-radius-pill); }
+.atlas .confirm-medallion--ok { background: var(--a-ok-bg); color: var(--a-ok); }
+.atlas .confirm-medallion--bad { background: var(--a-danger-bg); color: var(--a-danger); }
+
 /* ── Theme toggle (pre-login, so the app's in-shell toggle isn't reachable) ─ */
 
 .atlas .auth-theme {

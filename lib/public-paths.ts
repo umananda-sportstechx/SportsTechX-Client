@@ -23,8 +23,14 @@
  * directions are not symmetric. Forgetting to add a public page here makes that
  * page ask for a login, which someone notices immediately. Forgetting to list a
  * private prefix in the inverted version makes it readable without one, which
- * nobody notices. `/docs` and `/confirm` are private today only because they are
- * absent from this list, so inverting would publish both as a side effect.
+ * nobody notices.
+ *
+ * That reasoning stands, but an earlier version of this comment drew the wrong
+ * conclusion from it — it observed that `/docs` and `/confirm` were private only
+ * by being absent here, and treated that as acceptable. For `/confirm` it was a
+ * broken signup: a user awaiting email confirmation has no session, so no auth
+ * cookie, so the middleware bounced them to /login before `verifyOtp` could run.
+ * Being absent from a list is not the same as being deliberately private.
  */
 export const PUBLIC_PATHS = [
   '/', // public marketing landing page (app/page.tsx)
@@ -33,6 +39,10 @@ export const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/auth', // /auth/callback and any other supabase auth flow pages
+  // The email-confirmation landing. It MUST be public: the whole point is that
+  // the visitor has no session yet — they are carrying a token_hash that
+  // `verifyOtp` is about to exchange for one.
+  '/confirm',
   '/privacy-policy',
   '/terms-of-service',
   '/w', // /w/[token] — public read-only shared watchlist pages

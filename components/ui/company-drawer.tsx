@@ -36,6 +36,7 @@ import {
 	Logo, Flag, Tag, AudiencePill, VerifiedBadge, RaisingPill, KV, Empty,
 } from './atoms';
 import { WatchlistPicker } from './watchlist-picker';
+import '@/app/company-detail.css';
 
 interface Acquisition {
 	id: string;
