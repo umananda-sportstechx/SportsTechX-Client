@@ -5,7 +5,9 @@ import { getSupabaseBrowser } from './supabase/client';
 import { sessionRefreshLock } from './session-refresh-lock';
 import { logoutState } from './logout-state';
 import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
+import { openTierRequired, TierRequiredError } from './tier-events';
 import { isPublicPath } from './public-paths';
+import type { Tier } from './access';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
 //
@@ -87,6 +89,35 @@ function noRedirectHere(): boolean {
   return AUTH_PATHS.has(pathname) || isPublicPath(pathname);
 }
 
+/** This app's error envelope, as the server's exceptions filter emits it. */
+interface ApiErrorBody {
+  message?: unknown;
+  error?: {
+    code?: string;
+    message?: string;
+    /** TIER_REQUIRED only — top level, not under `details`. */
+    requiredTiers?: Tier[];
+    currentTier?: Tier;
+    details?: {
+      required?: number;
+      available?: number;
+      credit_type?: 'ai' | 'integration';
+      issues?: Array<{ path?: unknown[]; message?: string }>;
+    };
+  } | string;
+}
+
+/** This app's structured `{error:{code,...}}` envelope, or null if the body is
+ *  not JSON or carries only a bare string error (NestJS's default shape). */
+function parseApiError(text: string): Exclude<ApiErrorBody['error'], string | undefined> | null {
+  try {
+    const { error } = JSON.parse(text) as ApiErrorBody;
+    return error && typeof error === 'object' ? error : null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleResponse(res: Response, context?: string): Promise<void> {
   if (res.ok) return;
 
@@ -100,23 +131,35 @@ async function handleResponse(res: Response, context?: string): Promise<void> {
     }
   }
 
-  // Out of credits — pop the global "get more credits" modal and throw a typed
-  // error so callers can skip their own toast (the modal carries the message).
+  // A 402 is one of two refusals: out of credits, or the plan doesn't include
+  // this. Both pop a global modal and throw a typed error so callers can skip
+  // their own toast — the modal carries the message.
+  //
+  // Matched on status *and* code. `api-key.guard.ts` throws the same
+  // TIER_REQUIRED code at 403, which is a different situation (and 403 already
+  // bounces to /login above); only a 402 is a plan refusal.
   if (res.status === 402) {
-    let detail: { required?: number; available?: number; creditType?: 'ai' | 'integration' } = {};
-    let message = "You're out of credits.";
-    try {
-      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number; credit_type?: 'ai' | 'integration' } } };
-      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available, creditType: body.error.details.credit_type };
-      if (body.error?.message) message = body.error.message;
-      if (body.error?.code === 'INSUFFICIENT_CREDITS') {
-        openCreditExhausted(detail);
-        throw new InsufficientCreditsError(message, detail);
-      }
-    } catch (e) {
-      if (e instanceof InsufficientCreditsError) throw e;
-      // not JSON / not a credits error — fall through to the generic throw
+    const err = parseApiError(text);
+
+    if (err?.code === 'INSUFFICIENT_CREDITS') {
+      const detail = {
+        required: err.details?.required,
+        available: err.details?.available,
+        creditType: err.details?.credit_type,
+      };
+      openCreditExhausted(detail);
+      throw new InsufficientCreditsError(err.message ?? "You're out of credits.", detail);
     }
+
+    if (err?.code === 'TIER_REQUIRED') {
+      // Note the shape: TierGuard puts `requiredTiers`/`currentTier` at the top
+      // level of `error`, NOT under `details` like the credits path. Reading
+      // `details` here would silently find nothing.
+      const detail = { requiredTiers: err.requiredTiers, currentTier: err.currentTier, message: err.message };
+      openTierRequired(detail);
+      throw new TierRequiredError(err.message ?? 'Your plan does not include this.', detail);
+    }
+    // Any other 402 falls through to the generic message below.
   }
 
   // Surface the server's human message (NestJS `{message}` / this app's
@@ -300,7 +343,12 @@ export const swrConfig: SWRConfiguration = {
   revalidateOnReconnect: true,
   errorRetryCount: 2,
   shouldRetryOnError: (err: unknown) => {
-    if (err instanceof Error && (err as Error & { status?: number }).status === 404) return false;
+    if (!(err instanceof Error)) return true;
+    // A 404 won't become a 200, and neither refusal a 402 carries — out of
+    // credits, wrong plan — changes on retry. Retrying them just fires the
+    // global modal's event three times for one user action.
+    if ((err as Error & { status?: number }).status === 404) return false;
+    if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return false;
     return true;
   },
   keepPreviousData: true,

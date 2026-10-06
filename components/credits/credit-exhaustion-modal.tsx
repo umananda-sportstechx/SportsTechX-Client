@@ -2,19 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Coins, Sparkles } from 'lucide-react';
+import { Button } from '@/components/atlas';
+import { Modal } from '@/components/atlas/patterns/modal';
 import { CREDITS_EVENT, type CreditExhaustedDetail } from '@/lib/credit-events';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
+import { hrefOf } from '@/lib/routes';
 
 /**
  * Global "out of STX credits" modal. Mounted once (app/providers.tsx); opens
  * when anything hits a 402 INSUFFICIENT_CREDITS (the API layer dispatches
- * `stx:credits-exhausted`). The single CTA sends the user to /subscriptions —
- * which hosts both plan upgrades and one-off credit packs.
+ * `stx:credits-exhausted`). The CTA goes to /billing, which hosts both plan
+ * upgrades and one-off credit packs.
  *
  * In the chatbot the exhaustion is shown inline instead (the chat owns its own
  * error surface), so this modal is for everywhere else.
+ *
+ * Was raw Radix with inline styles on the *legacy* token set (`--fg`, `--bg-2`,
+ * `--accent`, `className="btn"`), which left it looking nothing like the rest
+ * of the app — and nothing like the tier modal that now sits beside it. Both
+ * share `Modal` so there is one dialog shape, not two.
  */
 export function CreditExhaustionHost() {
 	const router = useRouter();
@@ -39,50 +46,26 @@ export function CreditExhaustionHost() {
 	const available = detail.available ?? balance?.total_available;
 
 	return (
-		<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-			<DialogPrimitive.Portal>
-				<DialogPrimitive.Overlay
-					style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', zIndex: 200 }}
-				/>
-				<DialogPrimitive.Content
-					aria-describedby={undefined}
-					style={{
-						position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-						width: 'min(92vw, 440px)', background: 'var(--surface, var(--bg-2))',
-						border: '1px solid var(--border-strong)', borderRadius: 4, padding: 'var(--space-5)',
-						boxShadow: '0 20px 60px rgba(0,0,0,0.4)', zIndex: 201,
-					}}
-				>
-					<div style={{
-						width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center',
-						background: 'color-mix(in oklab, var(--accent) 16%, transparent)', color: 'var(--accent)', marginBottom: 14,
-					}}>
-						<Coins size={20} />
-					</div>
-					<DialogPrimitive.Title style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, margin: 0, color: 'var(--fg)' }}>
-						You&apos;re out of {label}
-					</DialogPrimitive.Title>
-					<p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--fg-2)', margin: '10px 0 0' }}>
-						{detail.required != null && available != null
-							? `This needs ${detail.required.toLocaleString()} ${label}, but you have ${available.toLocaleString()} left. `
-							: `You don’t have enough ${label} for this. `}
-						{isExport
-							? 'Each exported row costs 1 credit. Top up with a credit pack or upgrade your plan for a larger monthly allowance.'
-							: 'Top up with a credit pack or upgrade your plan for a larger monthly allowance.'}
-					</p>
-					<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'var(--space-5)' }}>
-						<button type="button" className="btn ghost" onClick={() => setOpen(false)}>Maybe later</button>
-						<button
-							type="button"
-							className="btn"
-							onClick={() => { setOpen(false); router.push('/subscriptions'); }}
-							style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-						>
-							<Sparkles size={14} /> Get more credits
-						</button>
-					</div>
-				</DialogPrimitive.Content>
-			</DialogPrimitive.Portal>
-		</DialogPrimitive.Root>
+		<Modal
+			open={open}
+			onOpenChange={setOpen}
+			icon={<Coins size={18} />}
+			title={<>You&apos;re out of {label}</>}
+			footer={
+				<>
+					<Button variant="ghost" onClick={() => setOpen(false)}>Maybe later</Button>
+					<Button onClick={() => { setOpen(false); router.push(hrefOf('billing')); }}>
+						<Sparkles size={14} /> Get more credits
+					</Button>
+				</>
+			}
+		>
+			{detail.required != null && available != null
+				? `This needs ${detail.required.toLocaleString()} ${label}, but you have ${available.toLocaleString()} left. `
+				: `You don’t have enough ${label} for this. `}
+			{isExport
+				? 'Each exported row costs 1 credit. Top up with a credit pack or upgrade your plan for a larger monthly allowance.'
+				: 'Top up with a credit pack or upgrade your plan for a larger monthly allowance.'}
+		</Modal>
 	);
 }

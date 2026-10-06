@@ -27,6 +27,7 @@ interface PrimaryContactData {
 	role: string | null;
 }
 import { openClaim } from '@/lib/claim-events';
+import { hrefOf } from '@/lib/routes';
 import type { Company, Deal, Page } from '@/types/api';
 import {
 	Drawer, DrawerHead, DrawerTabs, DrawerBody, DrawerFoot,
@@ -355,7 +356,7 @@ function ConnectBlock({ company }: { company: Company }) {
 
 /**
  * Primary-contact block. Pro-gated via the `company_contacts` feature:
- *   - not entitled → upgrade teaser with a working link to /subscriptions;
+ *   - not entitled → upgrade teaser with a working link to /billing;
  *   - entitled → the real contact, or an honest empty state. No fabricated data.
  */
 function PrimaryContact({ company }: { company: Company }) {
@@ -379,7 +380,7 @@ function PrimaryContact({ company }: { company: Company }) {
 						<div className="co-locked-icon"><Lock size={20} /></div>
 						<div className="co-locked-title">Unlock contact details</div>
 						<div className="co-locked-sub">Pro members can see the founder&apos;s email and LinkedIn for every company.</div>
-						<Link href="/subscriptions" className="btn co-locked-btn">Upgrade to Pro</Link>
+						<Link href={hrefOf('billing')} className="btn co-locked-btn">Upgrade to Pro</Link>
 					</div>
 				</div>
 			</div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import type { Tier } from '@/lib/access';
+import { hrefOf } from '@/lib/routes';
 import './tier-gate.css';
 
 /**
@@ -21,11 +22,12 @@ import './tier-gate.css';
  * upgrade cards and the billing page — rather than invented for this screen.
  */
 
-/** Where "Get Atlas …" goes. The public landing section, as the upgrade cards
- *  already use; `/subscriptions`, which the legacy upsells pointed at, 404s. */
+/** Where "Talk to the team" goes — the public landing's join section, as the
+ *  sidebar upgrade cards already use. (`/subscriptions`, which every legacy
+ *  upsell pointed at, has never been a route.) */
 const LANDING = '/#how-to-join';
 
-const PRODUCT: Record<Exclude<Tier, 'explore'>, {
+export const PRODUCT: Record<Exclude<Tier, 'explore'>, {
 	name: string;
 	/** One line on what the product is for — from the sidebar upgrade cards. */
 	tagline: string;
@@ -71,7 +73,7 @@ export function TierGate({ tier, feature }: {
 				<h2 className="tier-gate__title">{p.tagline}</h2>
 				<p className="tier-gate__body">{p.blurb}</p>
 				<div className="tier-gate__cta">
-					<Link href={LANDING} className="atlas-btn atlas-btn--primary">Get {p.name}</Link>
+					<Link href={hrefOf('billing')} className="atlas-btn atlas-btn--primary">Get {p.name}</Link>
 					<Link href={LANDING} className="atlas-btn atlas-btn--outline">Talk to the team</Link>
 				</div>
 			</section>
