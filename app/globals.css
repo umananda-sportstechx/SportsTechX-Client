@@ -270,7 +270,3 @@ body {
   --space-6: 36px;
 }
 
-/* Brand logo theme swap (next-themes sets data-theme on <html>) */
-.brand-white { display: none; }
-[data-theme="dark"] .brand-white { display: block; }
-[data-theme="dark"] .brand-black { display: none; }

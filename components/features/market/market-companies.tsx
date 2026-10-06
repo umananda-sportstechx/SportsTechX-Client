@@ -12,7 +12,10 @@ import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, l
 import { COUNTRY_OPTIONS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
 import { fmtUsd } from './format';
-import { CompanyDrawer } from '@/components/ui/company-drawer';
+import dynamic from 'next/dynamic';
+// ~650 lines (plus the watchlist picker and drawer primitive it pulls in) for a
+// panel that only opens on a row click, and only in the drawer variant.
+const CompanyDrawer = dynamic(() => import('@/components/ui/company-drawer').then((m) => m.CompanyDrawer), { ssr: false });
 import './company-drawer-atlas.css';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import './market.css';
@@ -82,7 +85,18 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 		return p;
 	}, [page, sort, dq, model, sectors, sector, subSector, subSubSector, sport, country, funding, founded, verified, raising, unicorn, adv.hasAccess, city, continent, region, techTag]);
 
-	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(qk.companies.list(params), { keepPreviousData: true });
+	// Two inputs to `params` resolve asynchronously: the sector hierarchy (which
+	// is what turns a `?sector=` deep link into a `sector_slug`) and the
+	// entitlement check (which is what lets the advanced `?sub=`/`?subsub=`
+	// params into the query at all). Firing before they settle means a first
+	// request with the filter missing and a second once it appears — so hold
+	// the key until both have answered. `keepPreviousData` is on, so a paging
+	// or filter change still shows the old rows rather than flashing empty.
+	const filtersReady = sectors.ready && !adv.isLoading;
+	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(
+		filtersReady ? qk.companies.list(params) : null,
+		{ keepPreviousData: true },
+	);
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
 	const anyFilter = !!(dq || model || sector || subSector || subSubSector || sport || country || city || continent || region || techTag || funding || founded || verified || raising || unicorn);
@@ -132,7 +146,10 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 				onClear={clearAll}
 			/>
 
-			{all.isLoading && rows.length === 0 ? <Loading />
+			{/* `!filtersReady` counts as loading: the key is still null then, so
+			    SWR reports isLoading=false and this would fall through to
+			    "No companies match your filters" before the first request. */}
+			{(all.isLoading || !filtersReady) && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No companies match your filters.</Empty>
 					: (
 						<div className="atlas-card atlas-chart-card" style={{ marginTop: 10 }}>

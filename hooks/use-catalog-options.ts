@@ -20,6 +20,13 @@ export interface SectorTierData {
 	subSubOptions: [string, string][];
 	/** Merge tier selections → a deduped, descendant-expanded `sector_slug` value. */
 	sectorSlug: (top: string, sub: string, subSub: string) => string | undefined;
+	/**
+	 * Has the hierarchy loaded? Until it has, `sectorSlug` can only answer
+	 * `undefined`, which is indistinguishable from "no sector selected" — so a
+	 * caller that builds a request key from it would fetch once without the
+	 * filter and again with it. Callers gate their key on this.
+	 */
+	ready: boolean;
 }
 
 /** Sector hierarchy split into pillar / sub / sub-sub tiers, each filtering by
@@ -29,6 +36,8 @@ export function useSectorTierData(): SectorTierData {
 	// Sibling hooks tolerate both shapes; /api/sectors is a bare array today, but
 	// guard anyway so an envelope switch can't crash useSectorTiers(list).
 	const { data } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	// `undefined` only while in flight; an empty list still counts as loaded.
+	const ready = data !== undefined;
 	const list = useMemo<SectorRef[]>(() => (Array.isArray(data) ? data : (data?.data ?? [])), [data]);
 	const tiers = useSectorTiers(list);
 	return useMemo(() => {
@@ -50,8 +59,9 @@ export function useSectorTierData(): SectorTierData {
 				const chosen = subSub || sub || top;
 				return chosen ? expandSectorSelection(tiers, [chosen]) : undefined;
 			},
+			ready,
 		};
-	}, [list, tiers]);
+	}, [list, tiers, ready]);
 }
 
 /** City / continent / region options from the shared location facets endpoint. */

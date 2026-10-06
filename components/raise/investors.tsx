@@ -179,7 +179,14 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 		return p;
 	}, [page, sort, dq, category, roundType, sectors, sector, subSector, subSubSector, sport, country, launched, deals, verified, active, adv.hasAccess, city, continent, region, techTag]);
 
-	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(qk.investors.list(params), { keepPreviousData: true });
+	// Same gate as the companies list: `sectors` and `adv` both resolve after a
+	// round trip, and a `?sector=`/`?sub=` deep link only enters `params` once
+	// they have. Firing before that is two requests for one page.
+	const filtersReady = sectors.ready && !adv.isLoading;
+	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(
+		filtersReady ? qk.investors.list(params) : null,
+		{ keepPreviousData: true },
+	);
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
 	const totalPages = all.data?.totalPages ?? 1;
@@ -232,7 +239,9 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 			/>
 			<div style={{ borderTop: '1px solid var(--a-border)', margin: '6px 0 30px' }} />
 
-			{all.isLoading && rows.length === 0 ? <Loading />
+			{/* `!filtersReady` counts as loading — with a null key SWR reports
+			    isLoading=false, which would show the empty state first. */}
+			{(all.isLoading || !filtersReady) && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No investors match your filters.</Empty>
 					: <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => onAdd(inv.id)} />)}</Grid>}
 

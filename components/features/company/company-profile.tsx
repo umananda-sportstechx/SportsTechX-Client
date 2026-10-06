@@ -42,9 +42,15 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 }) {
 	const detail = useSWR<Company>(qk.companies.detail(idOrSlug));
 	const c = detail.data;
-	const sports = useSWR<unknown>(c ? qk.companies.sports(idOrSlug) : null);
-	const news = useSWR<unknown>(c ? qk.companies.news(idOrSlug) : null);
-	const similar = useSWR<unknown>(c ? qk.companies.similar(idOrSlug) : null);
+	// These three key off `idOrSlug`, which is known on the first render, so
+	// they start alongside `detail` rather than waiting for it. They used to be
+	// gated on `c` as well, which bought nothing and cost the page a whole
+	// serial round trip before any of the rail could load.
+	const sports = useSWR<unknown>(qk.companies.sports(idOrSlug));
+	const news = useSWR<unknown>(qk.companies.news(idOrSlug));
+	const similar = useSWR<unknown>(qk.companies.similar(idOrSlug));
+	// `deals` genuinely has to wait: it keys off the resolved `c.id`, and
+	// `idOrSlug` may be a slug.
 	const deals = useSWR<{ data: Deal[] }>(c ? qk.deals.list({ company_id: c.id, limit: 30, sort: '-announced_date' }) : null);
 	const sectors = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
 

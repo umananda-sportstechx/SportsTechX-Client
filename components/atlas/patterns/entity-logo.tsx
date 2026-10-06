@@ -85,9 +85,16 @@ function extractDomain(website: string | null | undefined): string | null {
 }
 
 // ── Flag ────────────────────────────────────────────────────────────────────
-/** Real country flag (flagcdn.com SVG) from an ISO-2 code or a country name.
+/** Real country flag (flagcdn.com) from an ISO-2 code or a country name.
  *  Degrades to a 3-stripe gradient if the image fails, so a flag cell is never
  *  empty. Renders nothing if the country is unknown/empty. */
+//
+// `w40` rather than the full `.svg`: every call site renders this between 11px
+// and 18px, so 40px covers all of them at 2x DPR. The SVGs are the real
+// artwork — tens of KB for the detailed flags — and the companies list puts 24
+// of them in 11x7.7px boxes, which was most of that page's image weight for
+// pixels nobody can resolve.
+const FLAG_SRC = (code: string) => `https://flagcdn.com/w40/${code}.png`;
 export function Flag({ cc, size = 18, name }: { cc?: string | null; size?: number; name?: string }) {
 	const iso = countryToIso(cc);
 	const [failed, setFailed] = useState(false);
@@ -109,7 +116,7 @@ export function Flag({ cc, size = 18, name }: { cc?: string | null; size?: numbe
 			{!failed && (
 				/* eslint-disable-next-line @next/next/no-img-element */
 				<img
-					src={`https://flagcdn.com/${code}.svg`}
+					src={FLAG_SRC(code)}
 					alt=""
 					width={size}
 					height={size * 0.7}

@@ -1,10 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
 import { PaywallGate } from '@/components/paywall/paywall-gate';
-import { RaiseChat } from '@/components/raise/chat/raise-chat';
+// Raise-only, so a static import here shipped the co-pilot to Explore and
+// Scout users who can never open it.
+const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
 import { UpgradeCards } from '@/components/explore/upgrade-cards';
 import { EXPLORE_COLOR } from '@/components/explore/shell-config';
 import { SCOUT_COLOR } from '@/components/scout/shell-config';
