@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuthSession } from '@/hooks/use-auth-session';
-import { useUserProfile, useIsAdmin, getUserType, UPGRADE_PATH, type UserType } from '@/hooks/use-user-profile';
+import { useUserProfile, useIsAdmin, getUserType, type UserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 
 export interface Feature {
@@ -23,6 +23,10 @@ export interface Feature {
 function allows(feature: Feature, tier: UserType): boolean {
   return feature[tier] ?? false;
 }
+
+/** Paid tiers, cheapest first (Raise €600/yr, Scout €2,500/yr). Explore is free,
+ *  so it is never an upgrade target. */
+const PAID_BY_PRICE: UserType[] = ['raise', 'scout'];
 
 /** A per-user override fetched from /api/me/feature-grants. Merged on top of
  *  the tier matrix. expires_at=null means permanent. */
@@ -129,10 +133,15 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
     // every lock badge in the app read "GROWTH".
     const hasAccess = allows(feature, userType);
 
-    // Cheapest tier above the user's that does have it.
+    // The cheapest paid tier that actually has it.
+    //
+    // This used to walk UPGRADE_PATH from the user's own position, which
+    // assumes a ladder. Raise and Scout are siblings, so for a Scout user
+    // locked out of a Raise feature the slice was empty and `requiredTier`
+    // came back null — leaving the lock badge unable to name a tier at all.
     const requiredTier: UserType | null = hasAccess
       ? null
-      : UPGRADE_PATH.slice(UPGRADE_PATH.indexOf(userType) + 1).find((t) => allows(feature, t)) ?? null;
+      : PAID_BY_PRICE.find((t) => t !== userType && allows(feature, t)) ?? null;
 
     return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false, error: false };
   }, [isAdmin, profileLoading, isLoading, matrixError, features, featureMap, grantedSlugs, userType]);
