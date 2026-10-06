@@ -351,6 +351,24 @@ export const swrConfig: SWRConfiguration = {
     if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return false;
     return true;
   },
+  /**
+   * Last stop for a failed request.
+   *
+   * There was no `onError` at all, which meant any API failure a component
+   * didn't explicitly render was absorbed in silence — and with no error
+   * reporter in this client, the whole API failure rate was unobservable.
+   * This at least puts it in the console with its key, so a failure is visible
+   * to anyone with devtools open and to a session replay later.
+   *
+   * Deliberately quiet for the two cases that already have UI: both open a
+   * modal of their own, and a 401 is the signed-out path, not a fault.
+   */
+  onError: (err: unknown, key: string) => {
+    if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return;
+    if (err instanceof Error && (err as Error & { status?: number }).status === 401) return;
+    const ctx = err instanceof Error ? (err as Error & { context?: string }).context : undefined;
+    console.error('[swr]', key, ctx ?? '', err);
+  },
   keepPreviousData: true,
 };
 

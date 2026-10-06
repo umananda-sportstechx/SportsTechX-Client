@@ -17,6 +17,8 @@ import { ROUTES, forTier } from './routes.ts';
 import { isSection } from '../components/atlas/shell/nav.ts';
 import type { ShellNavItem } from '../components/atlas/shell/nav.ts';
 import { access, type Tier } from './access.ts';
+import { PRIVATE_PREFIXES } from './public-paths.ts';
+import { readdirSync, readFileSync } from 'node:fs';
 
 /** `Section: a, b, c` — `*` marks a placeholder item. */
 type Shape = { top: string[]; sections: [string, string[]][]; bottom: string[] };
@@ -119,6 +121,35 @@ const adminPaths = buildNav('raise', true).nav.length;
 check(adminPaths > 0, 'admin builds a nav');
 check(!JSON.stringify(buildNav('explore', false)).includes('pipeline'), 'explore sees no Raise-only route');
 check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Scout routes');
+
+// The edge gate protects PRIVATE_PREFIXES; the real session check is
+// <ProtectedRoute>. If a layout mounts ProtectedRoute but sits outside every
+// listed prefix, the middleware stops gating it — the page renders, then
+// ProtectedRoute bounces the user. Loud enough to notice, cheap enough to catch
+// here instead. A comment cannot enforce this correspondence; this can.
+{
+	const all = readdirSync('app', { recursive: true, encoding: 'utf8' }).map((f) => String(f).replace(/\\/g, '/'));
+	const layouts = all
+		.filter((f) => f.endsWith('layout.tsx'))
+		.filter((f) => readFileSync(`app/${f}`, 'utf8').includes('ProtectedRoute'));
+
+	// A layout's own path is NOT its URL prefix: `(onboarding)/layout.tsx` sits
+	// at a route-group root and contributes no segment, so it would read as `/`.
+	// Derive from the pages it actually wraps instead.
+	const urlOf = (f: string) =>
+		'/' + f.replace(/\/(page|layout)\.tsx$/, '').split('/').filter((s) => s && !s.startsWith('(')).join('/');
+
+	check(layouts.length > 0, `${layouts.length} ProtectedRoute layout(s) found`);
+	for (const lay of layouts) {
+		const dir = lay.replace(/layout\.tsx$/, '');
+		const pages = all.filter((f) => f.startsWith(dir) && f.endsWith('page.tsx'));
+		const uncovered = pages
+			.map(urlOf)
+			.filter((url) => !PRIVATE_PREFIXES.some((p) => url === p || url.startsWith(`${p}/`)));
+		check(uncovered.length === 0,
+			`edge-gated: ${pages.length} page(s) under ${dir}${uncovered.length ? ` — MISSING ${uncovered.join(', ')}` : ''}`);
+	}
+}
 
 console.log(failures === 0 ? '\nPASS' : `\nFAIL — ${failures} check(s)`);
 // `exitCode` rather than `exit()`: on Windows, exiting while stdout still has

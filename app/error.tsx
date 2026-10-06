@@ -23,9 +23,11 @@ export default function GlobalError({
 	reset: () => void;
 }) {
 	useEffect(() => {
-		// Forward to Sentry / your monitoring of choice once wired
-		// (sentry.client.config.ts exists but nothing calls captureException yet).
-		// eslint-disable-next-line no-console
+		// There is no error reporter in this client — Sentry was removed, and the
+		// placeholder it left behind was never imported, so it never ran. This
+		// console line is the only record a browser crash leaves. If a reporter
+		// is ever adopted, this and `app/app/error.tsx` and `global-error.tsx`
+		// are the three places it has to be called from.
 		console.error('[GlobalError]', error);
 	}, [error]);
 

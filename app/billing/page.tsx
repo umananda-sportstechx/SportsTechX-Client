@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
+import { track, Events } from '@/lib/analytics';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { Brand } from '@/components/ui/brand';
@@ -87,6 +88,7 @@ export default function BillingPage() {
 	};
 	const startPlan = async (target: string) => {
 		setBusy(target);
+		track(Events.billingCheckoutStarted, { plan: target });
 		try {
 			const res = await apiRequest('POST', '/api/billing/checkout', { plan: target });
 			const body = (await res.json()) as { url?: string };

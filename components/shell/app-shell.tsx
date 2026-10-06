@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
@@ -16,6 +17,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { TIER_LABEL } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
 import { hrefOf } from '@/lib/routes';
+import { trackPage } from '@/lib/analytics';
 import '@/components/raise/raise.css';
 import '@/components/explore/explore.css';
 import '@/components/scout/scout.css';
@@ -48,6 +50,12 @@ const COLOR: Record<Tier, string | undefined> = {
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname() ?? '';
 	const { data: profile } = useUserProfile();
+
+	// One page-view call for the whole signed-in product. Every /app route
+	// renders inside this shell, so this is the single place that covers them
+	// without 39 per-page calls to keep in sync. No-ops until
+	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
+	useEffect(() => { trackPage(pathname); }, [pathname]);
 	const { tier, nav, bottomNav, homePath, accountPath } = useNav();
 
 	return (

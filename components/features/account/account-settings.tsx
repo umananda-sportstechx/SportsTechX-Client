@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { track, Events } from '@/lib/analytics';
 import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
 
 /**
@@ -46,7 +47,7 @@ export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extr
 	const logout = async () => {
 		if (signingOut) return;
 		setSigningOut(true);
-		try { await getSupabaseBrowser().auth.signOut(); router.push('/login'); }
+		try { track(Events.signedOut); await getSupabaseBrowser().auth.signOut(); router.push('/login'); }
 		catch { setSigningOut(false); }
 	};
 
