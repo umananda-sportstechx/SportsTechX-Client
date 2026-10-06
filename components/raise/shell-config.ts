@@ -25,7 +25,7 @@ export const RAISE_NAV: ShellNavEntry[] = [
 	{ title: 'Discover', items: [
 		{ name: 'Companies', icon: Building2, path: '/raise/discover/companies' },
 		{ name: 'Recommended', icon: Sparkles, path: '/raise/discover/recommended' },
-		{ name: 'Signals', icon: Radar, path: '/raise/discover/signals', placeholder: true },
+		{ name: 'Signals', icon: Radar, path: '/raise/discover/signals' },
 	] },
 	{ title: 'Intelligence', items: [
 		{ name: 'Analytics', icon: ChartPie, path: '/raise/intelligence/analytics' },

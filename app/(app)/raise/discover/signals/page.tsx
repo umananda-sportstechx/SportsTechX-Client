@@ -4,7 +4,7 @@ import { Screen } from '@/components/atlas';
 import { RaiseSectionHeader } from '@/components/raise/raise-section-header';
 import { Signals } from '@/components/features/signals/signals';
 
-/** Discover → Signals: company activity worth watching (Backend Not Connected, sample data). */
+/** Discover → Signals: company activity worth watching, from GET /api/signals. */
 export default function Page() {
 	return (
 		<Screen>

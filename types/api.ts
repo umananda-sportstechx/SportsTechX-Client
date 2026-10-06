@@ -422,3 +422,38 @@ export interface ReportListItem {
 	cover_url: string | null;
 	description: string | null;
 }
+
+/** The six `company_signal_type` values, lowercase as the DB enum stores them.
+ *  The UI labels them Title Case, which is pure capitalisation — no map. */
+export type SignalType = 'funding' | 'fundraising' | 'partnership' | 'growth' | 'leadership' | 'product';
+
+/**
+ * A company event in the Signals feed.
+ *
+ * Mirrors `SignalRow` in `server/src/modules/scout/scout.repository.ts`.
+ * Served by `GET /api/signals` (un-gated, used by Raise and Scout) and by
+ * `GET /api/scout/signals` (same rows, Scout-tier only) — the two share one
+ * repository method, so one type covers both.
+ *
+ * Only `funding` and `fundraising` have rows today; the other four types are
+ * defined in the enum but have no source yet and legitimately return nothing.
+ */
+export interface Signal {
+	id: string;
+	signal_type: SignalType;
+	source: string;
+	headline: string;
+	body: string | null;
+	occurred_at: string;
+	company_id: string;
+	company_name: string | null;
+	company_slug: string | null;
+	company_website: string | null;
+	company_custom_logo_url: string | null;
+	sector: string | null;
+	hq_city: string | null;
+	hq_country: string | null;
+	/** Latest round the company raised — the card's "stage". Named for the
+	 *  column it comes from, matching `Company`. */
+	last_round_type: string | null;
+}

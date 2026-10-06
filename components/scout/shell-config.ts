@@ -20,7 +20,7 @@ export const SCOUT_NAV: ShellNavEntry[] = [
 	{ title: 'Discover', items: [
 		{ name: 'Companies', icon: Building2, path: '/scout/discover/companies' },
 		{ name: 'Recommended', icon: Sparkles, path: '/scout/discover/recommended', placeholder: true },
-		{ name: 'Signals', icon: Radar, path: '/scout/discover/signals', placeholder: true },
+		{ name: 'Signals', icon: Radar, path: '/scout/discover/signals' },
 	] },
 	{ title: 'Intelligence', items: [
 		{ name: 'Market', icon: ChartPie, path: '/scout/intelligence/market' },

@@ -8,7 +8,7 @@ import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchl
 import { qk } from '@/lib/query-keys';
 import type { Company, Deal } from '@/types/api';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
-import { fmtUsd } from '@/components/features/market/format';
+import { ago, fmtUsd, place } from '@/components/features/market/format';
 import './company-profile.css';
 
 /**
@@ -28,16 +28,6 @@ interface SectorRef { id: string; name: string; slug: string; parent_id?: string
 const BUSINESS_MODELS: Record<string, string> = { b2b: 'B2B', b2c: 'B2C', b2b2c: 'B2B2C', d2c: 'D2C', b2g: 'B2G', other: 'Other' };
 const asList = <T,>(d: unknown): T[] => (Array.isArray(d) ? d : ((d as { data?: T[] } | null)?.data ?? [])) as T[];
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
-function ago(d?: string | null): string {
-	if (!d) return '';
-	const days = Math.round((Date.now() - new Date(d).getTime()) / 864e5);
-	if (days < 1) return 'today';
-	if (days < 14) return `${days} day${days === 1 ? '' : 's'} ago`;
-	if (days < 60) return `${Math.round(days / 7)} weeks ago`;
-	if (days < 730) return `${Math.round(days / 30)} months ago`;
-	return `${Math.round(days / 365)} years ago`;
-}
-const place = (city?: string | null, country?: string | null) => [city, country].filter(Boolean).join(', ');
 
 export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, railTop }: {
 	idOrSlug: string;

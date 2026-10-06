@@ -155,6 +155,14 @@ export const qk = {
   // Founder → investor warm-intro requests.
   introRequests: () => ['/api/intro-requests'] as const,
 
+  // ── Signals (company events; shared by Raise and Scout) ────────────────
+  // `/api/signals` is the un-gated feed. Scout's own `/api/scout/signals`
+  // returns the same rows behind the scout tier; both products use this key so
+  // they share one cache entry.
+  signals: {
+    list: (params: Record<string, unknown> = {}) => ['/api/signals', params] as const,
+  },
+
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {
     articles: () => ['/api/newsletter/articles'] as const,

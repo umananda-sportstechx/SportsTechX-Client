@@ -1,22 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowUpRight, Bookmark, BookmarkCheck, Globe } from 'lucide-react';
-import { Action, Logo, Seg, cx } from '@/components/atlas';
-import { usePlaceholderState } from '@/hooks/use-placeholder-state';
-import { SAMPLE_SIGNALS, SIGNAL_COMPANIES, SIGNAL_TYPES, type SignalType } from './sample-signals';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { ArrowUpRight, Globe } from 'lucide-react';
+import { Action, Empty, Loading, Logo, Seg } from '@/components/atlas';
+import { qk } from '@/lib/query-keys';
+import { ago, place } from '@/components/features/market/format';
+import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
+import type { Signal, SignalType } from '@/types/api';
 import './signals.css';
 
 /**
  * Discover → Signals (Claude Design "Signals"): company activity worth watching —
  * funding, fundraising, growth, partnerships, leadership and product news.
- * Shared by Raise and Scout. Backend Not Connected (marked on the nav/tab).
+ *
+ * Shared by Raise and Scout, both against the un-gated `GET /api/signals`.
+ * Scout's own `/api/scout/signals` returns the same rows behind the scout tier;
+ * this component uses the shared route so one cache entry serves both products.
+ *
+ * Only `funding` and `fundraising` carry data today — the other four types are
+ * in the enum but have no source yet, so they show the empty state. That is
+ * correct, not a gap.
  */
+const TYPES: SignalType[] = ['funding', 'fundraising', 'growth', 'partnership', 'leadership', 'product'];
+/** The DB enum is lowercase and the design labels are Title Case. That is the
+ *  whole mapping — capitalisation, not a lookup table. */
+const label = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+/** Company sites are stored bare as often as not. */
+const href = (site: string) => (/^https?:\/\//i.test(site) ? site : `https://${site}`);
+
 export function Signals({ companiesHref }: { companiesHref: string }) {
 	const [type, setType] = useState<'All' | SignalType>('All');
-	const [watched, setWatched] = usePlaceholderState<string[]>('watched', ['zenniz', 'playermaker', 'fanwave']);
-	const rows = SAMPLE_SIGNALS.filter((s) => type === 'All' || s.type === type);
+	// Filtered server-side, not with rows.filter — otherwise `limit` would cap
+	// the feed before the filter ran and a quiet type could look empty.
+	const params = useMemo(() => (type === 'All' ? { limit: 50 } : { type, limit: 50 }), [type]);
+	const res = useSWR<{ data: Signal[] }>(qk.signals.list(params), { keepPreviousData: true });
+	const rows = res.data?.data ?? [];
+
 	return (
 		<>
 			<div className="atlas-sig-head">
@@ -24,32 +45,37 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 				<p className="atlas-sig-muted">Companies showing activity worth watching.</p>
 			</div>
 			<div className="atlas-sig-filter">
-				<Seg ariaLabel="Signal type" value={type} onChange={setType} options={[{ key: 'All', label: 'All' }, ...SIGNAL_TYPES.map((t) => ({ key: t, label: t }))]} />
+				<Seg ariaLabel="Signal type" value={type} onChange={setType} options={[{ key: 'All', label: 'All' }, ...TYPES.map((t) => ({ key: t, label: label(t) }))]} />
 			</div>
-			<div className="atlas-sig-list">
-				{rows.map((s) => {
-					const c = SIGNAL_COMPANIES[s.id];
-					if (!c) return null;
-					const on = watched.includes(c.id);
-					return (
-						<article key={`${s.id}-${s.type}`} className="atlas-card atlas-sig">
-							<Logo co={{ name: c.name, website: c.site, custom_logo_url: null }} size={40} radius={8} />
-							<div className="atlas-sig__main">
-								<div className="atlas-sig__top"><span className="atlas-sig__name">{c.name}</span><span className="atlas-sig__type">{s.type}</span><span className="atlas-sig-muted">· {s.when}</span></div>
-								<p className="atlas-sig__text">{s.text}</p>
-								<div className="atlas-sig-muted">{c.sector} · {c.stage} · {c.hq}</div>
-							</div>
-							<div className="atlas-sig__actions">
-								<button type="button" className={cx('atlas-sig__watch', on && 'on')} aria-pressed={on} onClick={() => setWatched((w) => (w.includes(c.id) ? w.filter((x) => x !== c.id) : [...w, c.id]))}>
-									{on ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}{on ? 'Watching' : 'Watch'}
-								</button>
-								<Action icon={<Globe />} href={`https://${c.site}`} external>Website</Action>
-								<Link className="atlas-action" href={`${companiesHref}?q=${encodeURIComponent(c.name)}`}><span className="atlas-action__icon"><ArrowUpRight /></span>View company</Link>
-							</div>
-						</article>
-					);
-				})}
-			</div>
+			{res.isLoading && rows.length === 0 ? <Loading />
+				: rows.length === 0 ? <Empty>No {type === 'All' ? '' : `${label(type).toLowerCase()} `}signals yet.</Empty>
+					: (
+						<div className="atlas-sig-list">
+							{rows.map((s) => {
+								const name = s.company_name ?? 'Unknown company';
+								const meta = [s.sector, s.last_round_type, place(s.hq_city, s.hq_country)].filter(Boolean).join(' · ');
+								return (
+									<article key={s.id} className="atlas-card atlas-sig">
+										<Logo co={{ name, website: s.company_website, custom_logo_url: s.company_custom_logo_url }} size={40} radius={8} />
+										<div className="atlas-sig__main">
+											<div className="atlas-sig__top">
+												<span className="atlas-sig__name">{name}</span>
+												<span className="atlas-sig__type">{label(s.signal_type)}</span>
+												<span className="atlas-sig-muted">· {ago(s.occurred_at)}</span>
+											</div>
+											<p className="atlas-sig__text">{s.headline}</p>
+											{meta && <div className="atlas-sig-muted">{meta}</div>}
+										</div>
+										<div className="atlas-sig__actions">
+											<SaveToWatchlist companyId={s.company_id} companyName={name} />
+											{s.company_website && <Action icon={<Globe />} href={href(s.company_website)} external>Website</Action>}
+											<Link className="atlas-action" href={`${companiesHref}/${s.company_slug ?? s.company_id}`}><span className="atlas-action__icon"><ArrowUpRight /></span>View company</Link>
+										</div>
+									</article>
+								);
+							})}
+						</div>
+					)}
 		</>
 	);
 }
