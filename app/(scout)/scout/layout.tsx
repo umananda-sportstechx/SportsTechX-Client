@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ProtectedRoute } from '@/components/auth/protected-route';
-import { ScoutShell } from '@/components/scout/scout-shell';
+import { AppShell } from '@/components/shell/app-shell';
 
 export const metadata: Metadata = { title: 'Scout' };
 
@@ -10,15 +10,15 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Atlas Scout investor workspace. Lives in its own `(scout)` route group, so it
- * doesn't inherit the (app) AppShell; it uses the shared Atlas design system
- * (same theme, components and fonts as Raise) via ScoutShell.
+ * It renders the same AppShell as every other product — the shell derives its
+ * product name, colour and overlays from the viewer's tier.
  *
  * Auth: proxy.ts gates /scout by cookie; ProtectedRoute adds the real session check.
  */
 export default function ScoutLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<ProtectedRoute>
-			<ScoutShell>{children}</ScoutShell>
+			<AppShell>{children}</AppShell>
 		</ProtectedRoute>
 	);
 }
