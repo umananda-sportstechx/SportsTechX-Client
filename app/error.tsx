@@ -39,7 +39,7 @@ export default function GlobalError({
         <div className="flex gap-3 justify-center">
           <Button onClick={reset}>Try again</Button>
           <Button variant="outline" asChild>
-            <Link href="/dashboard">Go to dashboard</Link>
+            <Link href="/app">Go to your workspace</Link>
           </Button>
         </div>
       </div>
