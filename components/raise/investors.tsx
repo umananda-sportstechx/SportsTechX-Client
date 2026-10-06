@@ -179,10 +179,11 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 		return p;
 	}, [page, sort, dq, category, roundType, sectors, sector, subSector, subSubSector, sport, country, launched, deals, verified, active, adv.hasAccess, city, continent, region, techTag]);
 
-	// Same gate as the companies list: `sectors` and `adv` both resolve after a
-	// round trip, and a `?sector=`/`?sub=` deep link only enters `params` once
-	// they have. Firing before that is two requests for one page.
-	const filtersReady = sectors.ready && !adv.isLoading;
+	// Same gate as the companies list, and for the same reason — see the
+	// comment there. Only wait on an async input when it can change the key.
+	const needsSectors = !!(sector || subSector || subSubSector);
+	const needsAdv = !!(subSector || subSubSector || city || continent || region || techTag);
+	const filtersReady = (!needsSectors || sectors.ready) && (!needsAdv || !adv.isLoading);
 	const all = useSWR<{ data: Investor[]; total: number; totalPages: number }>(
 		filtersReady ? qk.investors.list(params) : null,
 		{ keepPreviousData: true },

@@ -35,9 +35,12 @@ export interface SectorTierData {
 export function useSectorTierData(): SectorTierData {
 	// Sibling hooks tolerate both shapes; /api/sectors is a bare array today, but
 	// guard anyway so an envelope switch can't crash useSectorTiers(list).
-	const { data } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
-	// `undefined` only while in flight; an empty list still counts as loaded.
-	const ready = data !== undefined;
+	const { data, error } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	// Settled, not successful. An empty list counts, and so does a failure —
+	// callers gate a request on this, so treating an error as "still loading"
+	// would leave them spinning forever instead of querying without the sector
+	// filter, which is the right degraded behaviour.
+	const ready = data !== undefined || error !== undefined;
 	const list = useMemo<SectorRef[]>(() => (Array.isArray(data) ? data : (data?.data ?? [])), [data]);
 	const tiers = useSectorTiers(list);
 	return useMemo(() => {

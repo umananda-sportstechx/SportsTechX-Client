@@ -85,14 +85,19 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 		return p;
 	}, [page, sort, dq, model, sectors, sector, subSector, subSubSector, sport, country, funding, founded, verified, raising, unicorn, adv.hasAccess, city, continent, region, techTag]);
 
-	// Two inputs to `params` resolve asynchronously: the sector hierarchy (which
-	// is what turns a `?sector=` deep link into a `sector_slug`) and the
-	// entitlement check (which is what lets the advanced `?sub=`/`?subsub=`
-	// params into the query at all). Firing before they settle means a first
-	// request with the filter missing and a second once it appears — so hold
-	// the key until both have answered. `keepPreviousData` is on, so a paging
-	// or filter change still shows the old rows rather than flashing empty.
-	const filtersReady = sectors.ready && !adv.isLoading;
+	// Two inputs to `params` resolve asynchronously, and each can add a key to
+	// the query once it lands: the sector hierarchy (which turns a `?sector=`
+	// into a `sector_slug`) and the entitlement check (which lets the advanced
+	// `?sub=`/`?subsub=`/location params in at all). Firing before they settle
+	// means one request without the filter and a second with it.
+	//
+	// Only wait on each when it can actually change the key. With no such
+	// filter selected the params are value-identical either way — SWR hashes
+	// array keys structurally — so the common arrival is not delayed at all,
+	// and a hung reference fetch can never strand the list behind a spinner.
+	const needsSectors = !!(sector || subSector || subSubSector);
+	const needsAdv = !!(subSector || subSubSector || city || continent || region || techTag);
+	const filtersReady = (!needsSectors || sectors.ready) && (!needsAdv || !adv.isLoading);
 	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(
 		filtersReady ? qk.companies.list(params) : null,
 		{ keepPreviousData: true },
