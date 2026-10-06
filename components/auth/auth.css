@@ -1,0 +1,121 @@
+/*
+ * Pre-login screens — the split frame shared by /login and /signup, plus the
+ * notice banners and the value panel.
+ *
+ * Structure is from the Scout v2 signup mockup: a 50/50 grid, a tinted panel on
+ * the rail colour with the noise texture, and a 400px form column centred in the
+ * right half. The panel drops away below 1024px rather than pushing the form
+ * down a phone screen.
+ *
+ * Replaces `app/(auth)/atlas-auth.css`, an 18-token light+dark set whose values
+ * were those of the *superseded* Raise prototype (cream #F4F2EC on ink #1F1E1C).
+ * Everything here reads `--a-*`, so the auth screens and the app finally agree.
+ */
+
+.atlas .auth-split {
+	min-height: 100dvh;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	background: var(--a-page);
+}
+
+@media (min-width: 1024px) {
+	.atlas .auth-split--panelled { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+/* ── Left panel ──────────────────────────────────────────────────────────── */
+
+.atlas .auth-panel {
+	display: none;
+	padding: 40px 56px 56px;
+	background-color: var(--a-rail);
+	background-image: var(--a-noise);
+	border-right: 1px solid var(--a-card-border);
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 40px;
+}
+
+@media (min-width: 1024px) {
+	.atlas .auth-split--panelled .auth-panel { display: flex; }
+}
+
+/* The testimonial panel centres its card instead of spanning the column. */
+.atlas .auth-panel--center { align-items: center; justify-content: center; gap: 8px; flex-direction: row; }
+
+.atlas .auth-panel__head { font-family: var(--a-font); font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; color: var(--a-ink); max-width: 470px; margin: 0; }
+
+/* Numbered value rows, hairline-separated — the mockup's 01/02/03 block. */
+.atlas .auth-points { display: flex; flex-direction: column; }
+.atlas .auth-points__row { display: flex; gap: 18px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--a-border); }
+.atlas .auth-points__row:last-child { border-bottom: 1px solid var(--a-border); }
+.atlas .auth-points__n { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--a-faint); flex-shrink: 0; }
+.atlas .auth-points__t { font-family: var(--a-body); font-size: 14px; line-height: 1.5; color: var(--a-ink-2); }
+
+/* ── Right column ────────────────────────────────────────────────────────── */
+
+.atlas .auth-form-col { display: grid; place-items: center; padding: 56px 24px; }
+@media (min-width: 1024px) { .atlas .auth-form-col { padding: 80px 56px; } }
+
+.atlas .auth-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 22px; }
+
+.atlas .auth-brand { display: flex; align-items: baseline; gap: 9px; color: var(--a-ink); }
+.atlas .auth-brand__by { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint); }
+
+.atlas .auth-form__title { margin: 0; font-family: var(--a-font); font-size: 28px; font-weight: 700; line-height: 1.15; color: var(--a-ink); }
+.atlas .auth-form__sub { margin: 6px 0 0; font-family: var(--a-body); font-size: 14px; line-height: 1.5; color: var(--a-muted); }
+.atlas .auth-form__legal { margin: 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-faint); }
+.atlas .auth-form__alt { margin: 0; font-family: var(--a-body); font-size: 13px; color: var(--a-muted); }
+.atlas .auth-form__alt a { color: var(--a-navy); text-decoration: none; }
+.atlas .auth-form__alt a:hover { text-decoration: underline; }
+
+/* Field stack. Labels are the Atlas mono label; inputs are `.atlas-input`. */
+.atlas .auth-fields { display: flex; flex-direction: column; gap: 16px; }
+.atlas .auth-field__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.atlas .auth-link-btn { background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--a-body); font-size: 12px; color: var(--a-navy); }
+.atlas .auth-link-btn:hover { text-decoration: underline; }
+.atlas .auth-link-btn:disabled { opacity: 0.6; cursor: default; text-decoration: none; }
+
+/* `OR` divider between the social buttons and the email form. */
+.atlas .auth-or { display: flex; align-items: center; gap: 12px; }
+.atlas .auth-or::before, .atlas .auth-or::after { content: ''; height: 1px; flex: 1; background: var(--a-border); }
+.atlas .auth-or span { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--a-faint); }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+/*
+ * The mockup's auth buttons are taller than the app's 29px pill (15px padding,
+ * so ~42px) and full width. The submit keeps Atlas's mono-caps treatment, which
+ * the design also uses. The social buttons do NOT: the mockup sets them in Inter
+ * 14px sentence case, so they override the base font — "Continue with Google",
+ * not "CONTINUE WITH GOOGLE".
+ */
+.atlas .auth-btn { width: 100%; height: 42px; }
+.atlas .auth-social {
+	width: 100%; height: 44px; gap: 10px;
+	font-family: var(--a-body); font-size: 14px; font-weight: 500;
+	letter-spacing: 0; text-transform: none;
+}
+.atlas .auth-social svg { width: 16px; height: 16px; }
+
+/* ── Notices ─────────────────────────────────────────────────────────────── */
+
+.atlas .auth-notice { padding: 11px 14px; border-radius: var(--a-radius-sm); font-family: var(--a-body); font-size: 13px; line-height: 1.5; }
+.atlas .auth-notice--error { background: var(--a-danger-bg); color: var(--a-danger); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-danger) 28%, transparent); }
+.atlas .auth-notice--ok { background: var(--a-ok-bg); color: var(--a-ok); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-ok) 28%, transparent); }
+.atlas .auth-notice__action { margin-top: 10px; }
+
+/* ── Centred single-card screens (forgot / reset) ────────────────────────── */
+
+.atlas .auth-centred { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--a-page); }
+.atlas .auth-centred__card { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 18px; padding: 34px 32px 30px; }
+
+/* ── Theme toggle (pre-login, so the app's in-shell toggle isn't reachable) ─ */
+
+.atlas .auth-theme {
+	position: fixed; right: 16px; top: 16px; z-index: 5;
+	width: 34px; height: 34px; display: grid; place-items: center;
+	border: 0; cursor: pointer; border-radius: var(--a-radius-pill);
+	background: var(--a-field); color: var(--a-muted);
+	box-shadow: inset 0 0 0 1px var(--a-border-strong);
+}
+.atlas .auth-theme:hover { color: var(--a-ink); }

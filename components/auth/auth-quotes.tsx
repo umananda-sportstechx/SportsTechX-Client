@@ -78,15 +78,12 @@ export function AuthQuotes() {
   if (!q) return null;
 
   return (
-    <aside
-      aria-label="What members say"
-      className="hidden w-[46%] max-w-[560px] shrink-0 items-center justify-center gap-2 lg:flex"
-    >
+    <aside aria-label="What members say" className="auth-panel auth-panel--center">
       <Arrow side="left" onClick={() => step(-1)} disabled={quotes.length < 2} />
 
       <div
         className="w-full max-w-[380px] rounded-xl border px-6 py-6"
-        style={{ background: 'var(--atlas-card)', borderColor: 'var(--atlas-border)' }}
+        style={{ background: 'var(--a-surface)', borderColor: 'var(--a-border)' }}
       >
         <div className="flex items-center gap-3">
           {q.img && (
@@ -95,16 +92,16 @@ export function AuthQuotes() {
             <img src={q.img} alt="" className="size-10 shrink-0 rounded-full object-cover" />
           )}
           <span className="min-w-0">
-            <span className="block text-[14px] font-semibold text-[var(--atlas-ink)]">{q.name}</span>
+            <span className="block text-[14px] font-semibold text-[var(--a-ink)]">{q.name}</span>
             {q.role && (
-              <span className="block truncate text-[12px] text-[var(--atlas-muted)]">{q.role}</span>
+              <span className="block truncate text-[12px] text-[var(--a-muted)]">{q.role}</span>
             )}
           </span>
         </div>
 
         <blockquote
           key={i}
-          className="mt-5 text-[14px] leading-[1.6] text-[var(--atlas-muted)]"
+          className="mt-5 text-[14px] leading-[1.6] text-[var(--a-muted)]"
         >
           {q.quote}
         </blockquote>
@@ -131,8 +128,8 @@ function Arrow({
       onClick={onClick}
       disabled={disabled}
       aria-label={side === 'left' ? 'Previous testimonial' : 'Next testimonial'}
-      className="grid size-8 shrink-0 place-items-center rounded-full border text-[var(--atlas-muted)] transition-colors hover:text-[var(--atlas-ink)] disabled:opacity-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atlas-navy)]"
-      style={{ background: 'var(--atlas-field)', borderColor: 'var(--atlas-border)' }}
+      className="grid size-8 shrink-0 place-items-center rounded-full border text-[var(--a-muted)] transition-colors hover:text-[var(--a-ink)] disabled:opacity-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--a-navy)]"
+      style={{ background: 'var(--a-field)', borderColor: 'var(--a-border)' }}
     >
       <Icon size={16} strokeWidth={1.75} />
     </button>
