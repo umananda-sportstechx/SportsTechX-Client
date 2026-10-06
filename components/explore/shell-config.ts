@@ -10,6 +10,3 @@ export const EXPLORE_COLOR = 'var(--a-pink)';
 /** Public landing section describing Raise and Scout (reachable logged out). */
 export const LANDING_RAISE = '/#how-to-join';
 export const LANDING_SCOUT = '/#how-to-join';
-
-/** Profile URL for a company inside Explore. */
-export const exploreCompanyHref = (idOrSlug: string) => `/explore/market/companies/${encodeURIComponent(idOrSlug)}`;

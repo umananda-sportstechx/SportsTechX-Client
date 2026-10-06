@@ -80,11 +80,11 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'companies', icon: Building2, name: 'Companies',
-		path: { explore: '/explore/market/companies', raise: '/raise/discover/companies', scout: '/scout/discover/companies' },
+		path: '/app/discover/companies',
 	},
 	{
 		id: 'signals', icon: Radar, name: 'Signals',
-		path: { raise: '/raise/discover/signals', scout: '/scout/discover/signals' },
+		path: '/app/discover/signals',
 	},
 	{
 		// One URL, two different domain objects: recommended investors for a
@@ -106,15 +106,15 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
-		path: { raise: '/raise/intelligence/recently-funded', scout: '/scout/intelligence/recently-funded' },
+		path: '/app/intelligence/recently-funded',
 	},
 	{
 		id: 'watchlists', icon: List, name: 'All watchlists',
-		path: { raise: '/raise/watchlists', scout: '/scout/watchlists' },
+		path: '/app/watchlists',
 	},
 	{
 		id: 'framework', icon: LayoutGrid, name: 'Framework',
-		path: { explore: '/explore/intelligence/framework', raise: '/raise/resources/framework', scout: '/scout/resources/framework' },
+		path: '/app/resources/framework',
 	},
 	{
 		id: 'reports', icon: Files, name: 'Reports',
@@ -223,6 +223,23 @@ export const SECTION_SUBS: Record<Tier, Record<string, string>> = {
 		Resources: 'Understand how sports tech is structured and read SportsTechX research.',
 	},
 };
+
+/**
+ * A route's canonical path.
+ *
+ * Throws while that route still carries per-tier paths, which is the guard an
+ * incremental migration wants: during the flip half the manifest is still a
+ * map, and a component reaching for a path that has not moved yet should fail
+ * loudly rather than render a dead link.
+ */
+export function hrefOf(id: string): string {
+	const p = ROUTE_BY_ID.get(id)?.path;
+	if (typeof p !== 'string') throw new Error(`route '${id}' still has per-tier paths`);
+	return p;
+}
+
+/** Profile URL for a company. Replaces the per-product `*CompanyHref` helpers. */
+export const companyHref = (idOrSlug: string) => `${hrefOf('companies')}/${encodeURIComponent(idOrSlug)}`;
 
 /** The route a product's logo and account badge point at. */
 export const pathOf = (id: string, tier: Tier): string =>

@@ -5,6 +5,3 @@
 
 /** Scout's product colour (logo tag), from the Claude Design. */
 export const SCOUT_COLOR = '#0FB86A';
-
-/** Profile URL for a company inside Scout. */
-export const scoutCompanyHref = (idOrSlug: string) => `/scout/discover/companies/${encodeURIComponent(idOrSlug)}`;

@@ -6,7 +6,7 @@ import { Empty, Loading, Logo, cx } from '@/components/atlas';
 import { useWatchlistCompanies } from '@/components/features/watchlists/use-company-watchlists';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { BOARD_STAGES, type BoardStage } from './sample-data';
-import { scoutCompanyHref } from './shell-config';
+import { companyHref } from '@/lib/routes';
 
 /**
  * Watchlist board view (Claude Design "Board"): the watchlist's real companies
@@ -42,7 +42,7 @@ export function WatchlistBoard({ id }: { id: string }) {
 									<article key={c.id} className="scout-board__card" draggable onDragStart={() => setDragging(c.id)} onDragEnd={() => { setDragging(null); setOver(null); }}>
 										<div className="scout-board__id">
 											<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={26} radius={5} />
-											<Link href={scoutCompanyHref(c.slug ?? c.id)} className="scout-board__name">{c.name}</Link>
+											<Link href={companyHref(c.slug ?? c.id)} className="scout-board__name">{c.name}</Link>
 										</div>
 										<div className="scout-board__meta">{[c.primary_sector, c.hq_country].filter(Boolean).join(' · ')}</div>
 										<select className="scout-board__select" aria-label={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(e) => move(c.id, e.target.value as BoardStage)}>
