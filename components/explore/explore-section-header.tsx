@@ -1,10 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { NavSectionHeader } from '@/components/atlas';
-import { EXPLORE_HOME, EXPLORE_NAV, EXPLORE_SECTION_SUBS } from './shell-config';
+import { SectionHeader } from '@/components/atlas/patterns/section-header';
 
-/** Explore's section header: the shared NavSectionHeader on the Explore nav. */
+/** Explore's section header. Now a thin alias: the header derives its nav
+ *  from the route manifest, so all three products share one implementation.
+ *  Kept as a named export only so the ~50 page files can be updated with the
+ *  route move rather than in a separate pass. */
 export function ExploreSectionHeader({ actions }: { actions?: ReactNode }) {
-	return <NavSectionHeader nav={EXPLORE_NAV} homePath={EXPLORE_HOME} subs={EXPLORE_SECTION_SUBS} actions={actions} />;
+	return <SectionHeader actions={actions} />;
 }

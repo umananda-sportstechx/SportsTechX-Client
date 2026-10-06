@@ -1,11 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { NavSectionHeader } from '@/components/atlas';
-import { RAISE_HOME, RAISE_SECTION_SUBS } from './shell-config';
-import { useRaiseNav } from './use-raise-nav';
+import { SectionHeader } from '@/components/atlas/patterns/section-header';
 
-/** Raise's section header: the shared NavSectionHeader on the Raise nav. */
+/** Raise's section header. Now a thin alias: the header derives its nav
+ *  from the route manifest, so all three products share one implementation.
+ *  Kept as a named export only so the ~50 page files can be updated with the
+ *  route move rather than in a separate pass. */
 export function RaiseSectionHeader({ actions }: { actions?: ReactNode }) {
-	return <NavSectionHeader nav={useRaiseNav()} homePath={RAISE_HOME} subs={RAISE_SECTION_SUBS} actions={actions} />;
+	return <SectionHeader actions={actions} />;
 }

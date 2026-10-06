@@ -1,11 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { NavSectionHeader } from '@/components/atlas';
-import { SCOUT_HOME, SCOUT_SECTION_SUBS } from './shell-config';
-import { useScoutNav } from './use-scout-nav';
+import { SectionHeader } from '@/components/atlas/patterns/section-header';
 
-/** Scout's section header: the shared NavSectionHeader on the Scout nav. */
+/** Scout's section header. Now a thin alias: the header derives its nav
+ *  from the route manifest, so all three products share one implementation.
+ *  Kept as a named export only so the ~50 page files can be updated with the
+ *  route move rather than in a separate pass. */
 export function ScoutSectionHeader({ actions }: { actions?: ReactNode }) {
-	return <NavSectionHeader nav={useScoutNav()} homePath={SCOUT_HOME} subs={SCOUT_SECTION_SUBS} actions={actions} />;
+	return <SectionHeader actions={actions} />;
 }
