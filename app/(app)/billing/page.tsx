@@ -135,7 +135,7 @@ export default function BillingPage() {
 						)}
 					</div>
 					{hasActiveSub && (
-						<Button variant="outline" size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="spin" size={13} /> : 'Manage billing'}</Button>
+						<Button variant="outline" size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="animate-spin" size={13} /> : 'Manage billing'}</Button>
 					)}
 				</div>
 			</Card>
@@ -145,7 +145,7 @@ export default function BillingPage() {
 				{hasActiveSub ? (
 					<>
 						<p style={{ ...BODY, margin: '0 0 16px' }}>Switch to a different plan or cancel in the billing portal — changes are prorated by Stripe.</p>
-						<Button size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="spin" size={13} /> : 'Open billing portal'}</Button>
+						<Button size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="animate-spin" size={13} /> : 'Open billing portal'}</Button>
 					</>
 				) : (
 					<>
@@ -157,7 +157,7 @@ export default function BillingPage() {
 									<div style={PRICE}>{PLAN[k].price}</div>
 									<div style={{ marginTop: 'auto' }}>
 										<Button size="sm" variant={k === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void startPlan(k)}>
-											{busy === k ? <Loader2 className="spin" size={13} /> : `Get ${label} — ${PLAN[k].price}`}
+											{busy === k ? <Loader2 className="animate-spin" size={13} /> : `Get ${label} — ${PLAN[k].price}`}
 										</Button>
 									</div>
 								</Card>
@@ -177,7 +177,7 @@ export default function BillingPage() {
 					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
 						{packList.map((pk) => (
 							<Button key={pk.id} size="sm" variant="outline" disabled={busy !== null} onClick={() => void buyPack(pk.id)}>
-								{busy === pk.id ? <Loader2 className="spin" size={13} /> : `${pk.credit_amount.toLocaleString()} credits — ${fmtMoney(pk.price_amount, pk.currency_code)}`}
+								{busy === pk.id ? <Loader2 className="animate-spin" size={13} /> : `${pk.credit_amount.toLocaleString()} credits — ${fmtMoney(pk.price_amount, pk.currency_code)}`}
 							</Button>
 						))}
 					</div>
@@ -202,7 +202,7 @@ export default function BillingPage() {
 								{ledgerHasMore && (
 									<div style={{ padding: '14px 23px', borderTop: '1px solid var(--a-border)', textAlign: 'center' }}>
 										<Button variant="outline" size="sm" disabled={ledger.isValidating} onClick={() => void ledger.setSize(ledger.size + 1)}>
-											{ledger.isValidating ? <Loader2 className="spin" size={13} /> : 'Load more'}
+											{ledger.isValidating ? <Loader2 className="animate-spin" size={13} /> : 'Load more'}
 										</Button>
 									</div>
 								)}

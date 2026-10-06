@@ -280,8 +280,8 @@ export default function RaiseSetupPage() {
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
 				<Button variant="ghost" disabled={step === 0 || saving} onClick={() => setStep((x) => x - 1)}><ArrowLeft size={13} /> Back</Button>
 				{step < STEPS.length - 1
-					? <Button disabled={saving} onClick={() => void next()}>{saving ? <Loader2 className="spin" size={13} /> : <>Continue <ArrowRight size={13} /></>}</Button>
-					: <Button disabled={saving} onClick={() => void finish()}>{saving ? <Loader2 className="spin" size={13} /> : <>Build my raise plan <Check size={13} /></>}</Button>}
+					? <Button disabled={saving} onClick={() => void next()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Continue <ArrowRight size={13} /></>}</Button>
+					: <Button disabled={saving} onClick={() => void finish()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Build my raise plan <Check size={13} /></>}</Button>}
 			</div>
 		</Screen>
 	);

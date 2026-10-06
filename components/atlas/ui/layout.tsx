@@ -13,7 +13,7 @@ export function Screen({ children, width = 1180 }: { children: ReactNode; width?
 }
 
 export function Loading() {
-	return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}><Loader2 className="spin" size={22} /></div>;
+	return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}><Loader2 className="animate-spin" size={22} /></div>;
 }
 
 export function Empty({ children }: { children: ReactNode }) {

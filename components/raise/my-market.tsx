@@ -66,7 +66,7 @@ export function MyMarket() {
 		<>
 			<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
 				<Button variant="outline" size="sm" disabled={recomputing} onClick={() => void recompute()}>
-					{recomputing ? <Loader2 className="spin" size={13} /> : <RefreshCw size={13} />} Recompute
+					{recomputing ? <Loader2 className="animate-spin" size={13} /> : <RefreshCw size={13} />} Recompute
 				</Button>
 			</div>
 

@@ -128,7 +128,7 @@ function AddButton({ investorId, onAdded }: { investorId: string; onAdded: () =>
 		catch (e) { toast.error((e as Error).message); }
 		finally { setBusy(false); }
 	};
-	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="spin" size={14} /> : 'Add to watchlist'}</Button>;
+	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="animate-spin" size={14} /> : 'Add to watchlist'}</Button>;
 }
 
 function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => void }) {
@@ -156,7 +156,7 @@ function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => 
 				<Field label="Notes"><Input value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
 			</div>
 			<div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-				<Button size="sm" disabled={busy} onClick={() => void save({ stage: f.stage, contact_name: f.contact_name || null, potential_amount: f.potential_amount || null, next_step: f.next_step || null, next_step_due: f.next_step_due || null, notes: f.notes || null })}>{busy ? <Loader2 className="spin" size={13} /> : 'Save changes'}</Button>
+				<Button size="sm" disabled={busy} onClick={() => void save({ stage: f.stage, contact_name: f.contact_name || null, potential_amount: f.potential_amount || null, next_step: f.next_step || null, next_step_due: f.next_step_due || null, notes: f.notes || null })}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Save changes'}</Button>
 				<Button size="sm" variant="danger" disabled={busy} onClick={() => void save({ is_archived: true })}><Archive size={13} /> Archive investor</Button>
 			</div>
 

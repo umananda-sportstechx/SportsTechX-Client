@@ -44,7 +44,7 @@ export default function RaiseStrategyPage() {
 							<>
 								<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Your strategy session is available</div>
 								<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 18 }}>Use your quarterly session to pressure-test the raise and plan what to do next.</div>
-								<Button onClick={() => void book()} disabled={busy}>{busy ? <Loader2 className="spin" size={13} /> : 'Book your call'}</Button>
+								<Button onClick={() => void book()} disabled={busy}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Book your call'}</Button>
 							</>
 						) : (
 							<>

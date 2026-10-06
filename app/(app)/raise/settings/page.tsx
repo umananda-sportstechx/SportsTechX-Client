@@ -148,7 +148,7 @@ export default function RaiseSettingsPage() {
 				</Section>
 
 				<div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-					<Button disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="spin" size={13} /> : 'Save changes'}</Button>
+					<Button disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="animate-spin" size={13} /> : 'Save changes'}</Button>
 				</div>
 
 				<Section title="Raise controls">

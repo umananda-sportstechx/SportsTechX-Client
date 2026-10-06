@@ -40,7 +40,7 @@ export default function RaiseHomePage() {
 	const goChat = (text: string) => { const t = text.trim(); if (t) router.push(`/raise/chat?q=${encodeURIComponent(t)}`); };
 
 	if (isLoading || !data) {
-		return <div className="raise-home"><div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}><Loader2 className="spin" size={22} /></div></div>;
+		return <div className="raise-home"><div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}><Loader2 className="animate-spin" size={22} /></div></div>;
 	}
 
 	const greetName = profile?.display_name?.split(' ')[0] ?? profile?.full_name?.split(' ')[0] ?? 'there';

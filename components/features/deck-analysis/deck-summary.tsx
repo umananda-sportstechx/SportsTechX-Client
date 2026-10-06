@@ -97,7 +97,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 	const onPick = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void analyze(f); e.target.value = ''; };
 	const trigger = () => fileRef.current?.click();
 
-	const head = header(latest ? <Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Upload new deck'}</Button> : undefined);
+	const head = header(latest ? <Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={13} /> : 'Upload new deck'}</Button> : undefined);
 	const fileInput = <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />;
 
 	if (!list) return <Screen><Loading /></Screen>;
@@ -125,7 +125,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 					))}
 				</div>
 				<hr className="atlas-divider" style={{ margin: '48px 0 30px' }} />
-				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={14} /> : <>{copy.emptyCta} <ArrowUpRight /></>}</Button>
+				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={14} /> : <>{copy.emptyCta} <ArrowUpRight /></>}</Button>
 			</Card>
 		</Screen>
 	);
@@ -176,7 +176,7 @@ export function DeckSummary({ basePath, header, copy = FOUNDER_DECK_COPY }: {
 				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
 					<Button onClick={() => router.push(`${basePath}/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
-					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="spin" size={13} /> : 'Analyse revised deck'}</Button>
+					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={13} /> : 'Analyse revised deck'}</Button>
 				</div>
 			</Card>
 

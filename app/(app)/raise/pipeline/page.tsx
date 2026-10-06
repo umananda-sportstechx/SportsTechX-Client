@@ -169,7 +169,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 				<Button disabled={busy} onClick={() => void save({
 					stage: f.stage, contact_name: f.contact_name || null, potential_amount: f.potential_amount || null,
 					next_step: f.next_step || null, next_step_due: f.next_step_due || null, notes: f.notes || null,
-				})}>{busy ? <Loader2 className="spin" size={13} /> : 'Save'}</Button>
+				})}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Save'}</Button>
 				<Button variant="ghost" disabled={busy} onClick={() => void save({ is_archived: true })}><Archive size={13} /> Archive</Button>
 			</div>
 
@@ -243,7 +243,7 @@ function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved
 			<div style={{ marginBottom: 8 }}><Eyebrow>Or add a custom investor</Eyebrow></div>
 			<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 12 }}>For an investor not yet in the Atlas database.</div>
 			<Field label="Investor name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-			<div style={{ marginTop: 14 }}><Button variant="outline" disabled={busy || !name.trim()} onClick={() => void addCustom()}>{busy ? <Loader2 className="spin" size={13} /> : 'Add custom investor'}</Button></div>
+			<div style={{ marginTop: 14 }}><Button variant="outline" disabled={busy || !name.trim()} onClick={() => void addCustom()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Add custom investor'}</Button></div>
 		</Drawer>
 	);
 }

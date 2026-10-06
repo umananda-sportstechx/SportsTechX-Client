@@ -20,7 +20,7 @@ export function StagedLoader({ title, stages, note }: { title: string; stages: s
 
 	return (
 		<Card focus style={{ marginTop: 24, padding: '36px 32px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-			<Loader2 className="spin" size={24} strokeWidth={1.25} color="var(--a-ink)" />
+			<Loader2 className="animate-spin" size={24} strokeWidth={1.25} color="var(--a-ink)" />
 			<div style={{ margin: '18px 0 0', fontSize: 18, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)' }}>{title}</div>
 			{note && <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--a-muted)', maxWidth: 520, lineHeight: 1.55 }}>{note}</p>}
 

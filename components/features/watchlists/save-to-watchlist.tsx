@@ -72,7 +72,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 							const on = ids.includes(l.id);
 							return (
 								<button key={l.id} type="button" className={cx('atlas-menu__item', on && 'on')} aria-pressed={on} disabled={busy !== null} onClick={() => void toggle(l.id, l.name)}>
-									<span className="atlas-wl-check" aria-hidden="true">{busy === l.id ? <Loader2 className="spin" size={10} /> : on ? <Check size={10} /> : null}</span>
+									<span className="atlas-wl-check" aria-hidden="true">{busy === l.id ? <Loader2 className="animate-spin" size={10} /> : on ? <Check size={10} /> : null}</span>
 									<span className="atlas-switcher__name">{l.name}</span>
 									{l.company_count != null && <span className="atlas-switcher__meta">{l.company_count}</span>}
 								</button>
@@ -83,7 +83,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 						{creating ? (
 							<form className="atlas-wl-new" onSubmit={(e) => { e.preventDefault(); void create(); }}>
 								<input className="atlas-menu__search" placeholder="Watchlist name" value={newName} maxLength={120} onChange={(e) => setNewName(e.target.value)} autoFocus aria-label="New watchlist name" />
-								<button type="submit" className="atlas-wl-create" disabled={!newName.trim() || busy !== null}>{busy === 'new' ? <Loader2 className="spin" size={11} /> : 'Create'}</button>
+								<button type="submit" className="atlas-wl-create" disabled={!newName.trim() || busy !== null}>{busy === 'new' ? <Loader2 className="animate-spin" size={11} /> : 'Create'}</button>
 							</form>
 						) : (
 							<button type="button" className="atlas-menu__item" onClick={() => setCreating(true)}>

@@ -270,7 +270,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 			<div className="atlas-entity-card__actions">
 				{added
 					? <Action icon={<Check />} disabled>In watchlist</Action>
-					: <Action icon={busy ? <Loader2 className="spin" /> : <Plus />} disabled={busy} onClick={() => void doAdd()}>Add to watchlist</Action>}
+					: <Action icon={busy ? <Loader2 className="animate-spin" /> : <Plus />} disabled={busy} onClick={() => void doAdd()}>Add to watchlist</Action>}
 				<Action icon={<ArrowUpRight />} href={`/raise/investors/${inv.id}`}>View profile</Action>
 				{!added && onDismiss && <Action icon={<X />} onClick={onDismiss}>Not relevant</Action>}
 			</div>

@@ -21,7 +21,8 @@ export function CreditExhaustionHost() {
 	const [open, setOpen] = useState(false);
 	const [detail, setDetail] = useState<CreditExhaustedDetail>({});
 	const isExport = detail.creditType === 'integration';
-	const { balance } = useCreditBalance();
+	// Only once the dialog is open: this host is mounted on every page.
+	const { balance } = useCreditBalance(open);
 
 	useEffect(() => {
 		const onEvent = (e: Event) => {

@@ -73,7 +73,7 @@ export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extr
 				<Card>
 					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
 					<SplitRow label="Password" sub="Managed through email reset">
-						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="spin" size={13} /> : 'Change password'}</Button>
+						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Change password'}</Button>
 					</SplitRow>
 					<hr className="atlas-divider" style={{ margin: '14px 0' }} />
 					<SplitRow label={<>Two-factor authentication<PlaceholderTag /></>} sub="Not enabled">

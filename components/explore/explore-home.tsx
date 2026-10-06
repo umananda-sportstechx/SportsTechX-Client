@@ -32,6 +32,10 @@ export function ExploreHome() {
 	const latestNews = [...(news.data ?? [])]
 		.sort((a, b) => Date.parse(b.pubDate) - Date.parse(a.pubDate))[0];
 	// Shares the Reports library's SWR key, so visiting both costs one request.
+	// Deliberately not `limit: 1`: the list default sorts by `-created_at` and
+	// the `-report_year` sort puts year-less rows FIRST, so a single row is the
+	// wrong report either way (measured: it returns a 2021 edition). The whole
+	// set is 33 rows / 23KB, so sorting client-side is the cheaper correct option.
 	const reports = useSWR<Page<ReportListItem>>(qk.reports.list({ limit: 100 }));
 	const latestReport = [...(reports.data?.data ?? [])]
 		.sort((a, b) => (b.report_year ?? 0) - (a.report_year ?? 0) || (b.report_month ?? 0) - (a.report_month ?? 0))[0];
