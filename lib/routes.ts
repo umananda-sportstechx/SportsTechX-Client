@@ -98,11 +98,11 @@ export const ROUTES: RouteDef[] = [
 		// Three names for one screen.
 		id: 'analytics', icon: ChartPie,
 		name: { explore: 'Analysis', raise: 'Analytics', scout: 'Market' },
-		path: { explore: '/explore/market/analysis', raise: '/raise/intelligence/analytics', scout: '/scout/intelligence/market' },
+		path: '/app/intelligence/analytics',
 	},
 	{
 		id: 'roundup', icon: CalendarDays, name: 'Monthly Roundup',
-		path: { explore: '/explore/market/roundup', raise: '/raise/intelligence/roundup', scout: '/scout/intelligence/roundup' },
+		path: '/app/intelligence/roundup',
 	},
 	{
 		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
@@ -118,15 +118,15 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'reports', icon: Files, name: 'Reports',
-		path: { explore: '/explore/intelligence/reports', raise: '/raise/resources/reports', scout: '/scout/resources/reports' },
+		path: '/app/resources/reports',
 	},
 	{
 		id: 'newsletter', icon: Newspaper, name: 'Newsletter',
-		path: { explore: '/explore/intelligence/newsletter', raise: '/raise/resources/newsletter', scout: '/scout/resources/newsletter' },
+		path: '/app/resources/newsletter',
 	},
 	{
 		id: 'events', icon: CalendarRange, name: 'Events',
-		path: { explore: '/explore/market/events', raise: '/raise/events', scout: '/scout/resources/events' },
+		path: '/app/resources/events',
 	},
 	{
 		// Reached from the account badge, which AtlasShell renders separately.
