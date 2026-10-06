@@ -42,7 +42,7 @@ export const RAISE_NAV: ShellNavEntry[] = [
 	{ title: 'Resources', items: [
 		{ name: 'Fundraising Guide', icon: BookOpen, path: '/raise/resources', placeholder: true },
 		{ name: 'Framework', icon: LayoutGrid, path: '/raise/resources/framework' },
-		{ name: 'Reports', icon: Files, path: '/raise/resources/reports', placeholder: true },
+		{ name: 'Reports', icon: Files, path: '/raise/resources/reports' },
 		{ name: 'Events', icon: CalendarRange, path: '/raise/events' },
 		{ name: 'Newsletter', icon: Newspaper, path: '/raise/resources/newsletter' },
 	] },

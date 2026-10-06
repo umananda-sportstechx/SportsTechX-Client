@@ -39,7 +39,7 @@ export const SCOUT_NAV: ShellNavEntry[] = [
 	] },
 	{ title: 'Resources', items: [
 		{ name: 'Framework', icon: LayoutGrid, path: '/scout/resources/framework' },
-		{ name: 'Reports', icon: Files, path: '/scout/resources/reports', placeholder: true },
+		{ name: 'Reports', icon: Files, path: '/scout/resources/reports' },
 		{ name: 'Events', icon: CalendarRange, path: '/scout/resources/events' },
 		{ name: 'Newsletter', icon: Newspaper, path: '/scout/resources/newsletter' },
 	] },

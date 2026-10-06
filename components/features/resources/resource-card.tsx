@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { PlaceholderTag } from '@/components/atlas';
-import type { SampleResource } from './sample-resources';
+import type { SampleResource } from './resource-contract';
 import './resources.css';
 
 export const fmtLongDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '');

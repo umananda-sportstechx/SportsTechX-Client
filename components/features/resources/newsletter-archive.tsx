@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { NewsletterArticle } from '@/types/api';
 import { ResourceLibrary } from './resource-library';
-import type { SampleResource } from './sample-resources';
+import type { SampleResource } from './resource-contract';
 
 /**
  * Newsletter — latest edition + archive. Live against the Beehiiv feed via

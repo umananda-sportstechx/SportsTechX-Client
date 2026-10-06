@@ -8,15 +8,14 @@ import { AgentComposer, FeedCard, H1, PlaceholderTag, SectionHead } from '@/comp
 import useSWR from 'swr';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
-import type { NewsletterArticle } from '@/types/api';
-import { SAMPLE_REPORTS } from '@/components/features/resources/sample-resources';
+import type { NewsletterArticle, Page, ReportListItem } from '@/types/api';
 import { useInterests, marketInterests } from './interests';
 
 /**
  * Explore Home (Claude Design "Home"): greeting, interests count, a search bar
  * (searches the live company database) and "What needs your attention". The
- * roundup and newsletter cards are live; the report card (sample) and "For you"
- * (interests) are Backend Not Connected.
+ * roundup, newsletter and report cards are live; "For you" (interests) is
+ * Backend Not Connected.
  */
 const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 const COMPANIES = '/explore/market/companies';
@@ -32,7 +31,10 @@ export function ExploreHome() {
 	const news = useSWR<NewsletterArticle[]>(qk.newsletter.articles());
 	const latestNews = [...(news.data ?? [])]
 		.sort((a, b) => Date.parse(b.pubDate) - Date.parse(a.pubDate))[0];
-	const latestReport = SAMPLE_REPORTS[0];
+	// Shares the Reports library's SWR key, so visiting both costs one request.
+	const reports = useSWR<Page<ReportListItem>>(qk.reports.list({ limit: 100 }));
+	const latestReport = [...(reports.data?.data ?? [])]
+		.sort((a, b) => (b.report_year ?? 0) - (a.report_year ?? 0) || (b.report_month ?? 0) - (a.report_month ?? 0))[0];
 	const picked = marketInterests(interests);
 	const first = (profile?.display_name ?? profile?.full_name ?? '').split(' ')[0] || 'there';
 	const hour = new Date().getHours();
@@ -73,7 +75,9 @@ export function ExploreHome() {
 					{latestNews && (
 						<FeedCard tag="Newsletter" icon={Newspaper} title={latestNews.title} body={`${fmt(latestNews.pubDate)} · ${latestNews.description}`} href="/explore/intelligence/newsletter" actionLabel="Read" />
 					)}
-					<FeedCard tag="Report" icon={Files} title={<>{latestReport.title}<PlaceholderTag /></>} body={`Published ${fmt(latestReport.date)} · ${latestReport.desc}`} href="/explore/intelligence/reports" actionLabel="Open" />
+					{latestReport && (
+						<FeedCard tag="Report" icon={Files} title={latestReport.title} body={`${latestReport.report_year ?? ''} · ${latestReport.description ?? ''}`.trim()} href="/explore/intelligence/reports" actionLabel="Open" />
+					)}
 					<FeedCard tag="Monthly roundup" icon={CalendarDays} title={`${lastMonth} market roundup`} body="The month’s most relevant funding rounds, acquisitions and industry developments in one read." href="/explore/market/roundup" />
 					{picked.length === 0 ? (
 						<FeedCard tag="For you" icon={UserRound} title="Your market view is broad" body="Select sectors, sports or countries to make these recommendations sharper." href="/explore/interests" actionLabel="Choose" />

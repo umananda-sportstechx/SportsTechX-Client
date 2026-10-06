@@ -390,3 +390,35 @@ export interface PipelineUpdate {
 	notes?: string | null;
 	is_archived?: boolean;
 }
+
+/**
+ * A report as `GET /api/reports` sends it — `Page<ReportListItem>`.
+ *
+ * Mirrors `ReportRow` in `server/src/db/types.ts` plus the two columns
+ * `reports.repository.ts` LATERAL-joins from the canonical (en, explore)
+ * `report_versions` row. Both of those are null for a sections-based report
+ * that has no version row, which is why they are nullable here and the real
+ * columns are not.
+ *
+ * There is no published-at column: `report_month` / `report_year` is the
+ * editorial date the UI means by "Published …", with `created_at` as fallback.
+ */
+export interface ReportListItem {
+	id: string;
+	slug: string | null;
+	title: string;
+	short_title: string | null;
+	report_month: number | null;
+	report_year: number | null;
+	has_pro_version: boolean;
+	show_on_dashboard: boolean;
+	has_sections: boolean;
+	is_published: boolean;
+	created_at: string;
+	updated_at: string;
+	/** Topic facet labels. Never null (NOT NULL DEFAULT '{}'), but empty until
+	 *  someone tags the report in admin. */
+	tags: string[];
+	cover_url: string | null;
+	description: string | null;
+}

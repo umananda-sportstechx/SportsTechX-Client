@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { CardGrid, Empty, FilterBar, Loading, PlaceholderTag, type FilterDef } from '@/components/atlas';
 import { FeaturedResource, ResourceCard, fmtLongDate } from './resource-card';
-import type { SampleResource } from './sample-resources';
+import type { SampleResource } from './resource-contract';
 
 /**
  * Featured item + filterable library, shared by Reports and Newsletter in every
