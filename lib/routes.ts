@@ -42,7 +42,7 @@ import {
 	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users, FileSearch,
 	MessageSquare, Rocket, Wrench,
 } from 'lucide-react';
-import { access, type Tier } from './access.ts';
+import { access, type Tier, type TierReq } from './access.ts';
 
 /** One value, or a different value per tier. */
 export type PerTier<T> = T | Partial<Record<Tier, T>>;
@@ -61,8 +61,15 @@ export interface RouteDef {
 	id: string;
 	/** Today: one URL per tier. After consolidation: a single string. */
 	path: PerTier<string>;
-	/** Which product owns it. Undefined = the free Explore base, open to all. */
-	tier?: Tier;
+	/**
+	 * Which product owns it, as one tier or a list of them.
+	 *
+	 * Mind the asymmetry: **omitted means "everyone"** (the free Explore base),
+	 * while `'explore'` means **"Explore only"** — a screen that makes no sense
+	 * for a paid profile, so it 404s for Raise and Scout rather than upselling.
+	 * `interests` is the only route that wants that.
+	 */
+	tier?: TierReq;
 	name: PerTier<string>;
 	icon: LucideIcon;
 	/** Built to the design, no backend yet — shows a "Not connected" pill. */
@@ -264,8 +271,8 @@ export function routeForPath(pathname: string, tier: Tier): RouteDef | undefined
 	return best;
 }
 
-/** The tier that owns a URL. Undefined means the free base. */
-export const tierForPath = (pathname: string, tier: Tier): Tier | undefined =>
+/** The tier(s) that own a URL. Undefined means the free base. */
+export const tierForPath = (pathname: string, tier: Tier): TierReq | undefined =>
 	routeForPath(pathname, tier)?.tier;
 
 /** Can this viewer open this URL? */

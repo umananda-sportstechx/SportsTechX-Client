@@ -88,8 +88,9 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 	const paths = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as ShellNavItem])), ...bottomNav].map((i) => i.path);
 	check(new Set(paths).size === paths.length, `${paths.length} unique paths`);
 
-	// Nothing from the other paid product may appear.
-	const leaked = ROUTES.filter((r) => r.tier && r.tier !== tier && paths.includes(forTier(r.path, tier) ?? '\0'));
+	// Nothing from the other paid product may appear. Asked through `access` so
+	// a route shared by both paid tiers isn't counted as a leak into either.
+	const leaked = ROUTES.filter((r) => access(r.tier, tier, false) !== 'allow' && paths.includes(forTier(r.path, tier) ?? '\0'));
 	check(leaked.length === 0, `no cross-tier leakage${leaked.length ? ': ' + leaked.map((r) => r.id).join(', ') : ''}`);
 }
 
@@ -109,4 +110,7 @@ check(!JSON.stringify(buildNav('explore', false)).includes('pipeline'), 'explore
 check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Scout routes');
 
 console.log(failures === 0 ? '\nPASS' : `\nFAIL — ${failures} check(s)`);
-process.exit(failures === 0 ? 0 : 1);
+// `exitCode` rather than `exit()`: on Windows, exiting while stdout still has
+// buffered writes trips a libuv assertion, so the check crashes *after*
+// printing PASS. Setting the code lets Node flush and exit on its own.
+process.exitCode = failures === 0 ? 0 : 1;

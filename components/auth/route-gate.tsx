@@ -4,7 +4,7 @@ import { notFound, usePathname } from 'next/navigation';
 import { Screen } from '@/components/atlas';
 import { TierGate } from '@/components/features/tier-gate/tier-gate';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
-import { access } from '@/lib/access';
+import { access, upgradeTarget } from '@/lib/access';
 import { routeForPath } from '@/lib/routes';
 
 /**
@@ -31,12 +31,18 @@ export function RouteGate({ children }: { children: React.ReactNode }) {
 	switch (access(route?.tier, tier, profile.user_role === 'admin')) {
 		case 'allow':
 			return <>{children}</>;
-		case 'upsell':
+		case 'upsell': {
+			// `upgradeTarget` rather than reading `route.tier` directly: a screen
+			// both products include carries a list, and the gate describes one
+			// product. It can only be null if `access` disagreed with itself.
+			const sell = upgradeTarget(route?.tier, tier);
+			if (!sell || sell === 'explore') return <>{children}</>;
 			return (
 				<Screen>
-					<TierGate tier={route!.tier as 'raise' | 'scout'} feature={typeof route!.name === 'string' ? route!.name : undefined} />
+					<TierGate tier={sell} feature={typeof route!.name === 'string' ? route!.name : undefined} />
 				</Screen>
 			);
+		}
 		case 'hidden':
 			// The other paid product. Not a sale we can make, and not a page they
 			// should know exists.
