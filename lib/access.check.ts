@@ -7,6 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { access, upgradeTarget, type Access, type Tier, type TierReq } from './access.ts';
+import { safeRedirect } from './safe-redirect.ts';
 
 // Every combination, written out rather than generated — the point is to be
 // able to read the policy off the table.
@@ -60,6 +61,27 @@ assert.equal(upgradeTarget(undefined, 'explore'), null, 'base tier is free');
 assert.equal(upgradeTarget(['raise', 'scout'], 'explore'), 'raise', 'shared screen pitches the first');
 assert.equal(upgradeTarget(['raise', 'scout'], 'scout'), null, 'already owned via the list');
 console.log('  ok    upgradeTarget names a tier only when there is a sale');
+
+
+// ── Post-auth redirect safety ────────────────────────────────────────────────
+//
+// Here rather than in its own file so `npm run check` covers it without a third
+// entry. `?redirectTo=` is attacker-controllable and followed immediately after
+// sign-in; the check it replaced was `startsWith('/')`, which accepts
+// `//evil.example` — a protocol-relative URL that navigates off-origin.
+{
+	const BS = String.fromCharCode(92);
+	const reject: (string | null | undefined)[] = [
+		'//evil.example', '///evil.example', '//evil.example/path',
+		'/' + BS + 'evil.example', BS + BS + 'evil.example',
+		'https://evil.example', 'javascript:alert(1)', 'app', '', null, undefined,
+	];
+	// `/evil.example` is a legitimate same-origin path, not an attack.
+	const accept = ['/app', '/app/discover/companies', '/billing?x=1', '/app#frag', '/evil.example'];
+	for (const r of reject) assert.equal(safeRedirect(r), '/app', `redirect should be rejected: ${JSON.stringify(r)}`);
+	for (const a of accept) assert.equal(safeRedirect(a), a, `redirect should be accepted: ${a}`);
+	console.log(`  ok    safeRedirect rejects ${reject.length} off-origin forms, accepts ${accept.length} paths`);
+}
 
 console.log(failures === 0 ? '\nPASS' : `\nFAIL — ${failures} case(s)`);
 // `exitCode` rather than `exit()`: on Windows, exiting while stdout still has

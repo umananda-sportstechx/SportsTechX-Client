@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { track, Events } from '@/lib/analytics';
+import { safeRedirect } from '@/lib/safe-redirect';
 import { logoutState } from '@/lib/logout-state';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/atlas';
@@ -28,7 +29,9 @@ import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle } from '@/c
 export default function LoginPage() {
 	const router = useRouter();
 	const params = useSearchParams();
-	const redirectTo = params.get('redirectTo') ?? '/app';
+	// Validated: this is pushed straight after sign-in, and `//host` would send
+	// a just-authenticated user off-origin.
+	const redirectTo = safeRedirect(params.get('redirectTo'));
 	const reason = params.get('reason');
 	const notice = params.get('message');
 

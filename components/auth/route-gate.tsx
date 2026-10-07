@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound, usePathname } from 'next/navigation';
-import { Screen } from '@/components/atlas';
+import { Empty, Screen } from '@/components/atlas';
 import { TierGate } from '@/components/features/tier-gate/tier-gate';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { access, upgradeTarget } from '@/lib/access';
@@ -20,13 +20,36 @@ import { routeForPath } from '@/lib/routes';
  */
 export function RouteGate({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
-	const { data: profile, isLoading } = useUserProfile();
+	const { data: profile, isLoading, error } = useUserProfile();
 	const tier = getUserType(profile);
 	const route = routeForPath(pathname ?? '', tier);
 
 	// Render nothing until the tier is known. Guessing here would flash the
 	// upsell at a paying user, which is worse than a beat of blank.
-	if (isLoading || !profile) return null;
+	if (isLoading) return null;
+
+	// A *failed* profile fetch is not the same as a slow one. `errorRetryCount`
+	// is 1, so after one retry this settles at isLoading=false with no data —
+	// and the original `isLoading || !profile` collapsed both cases into
+	// `return null`, leaving every /app page permanently blank with no error and
+	// no way out. Say what happened instead; the shell around this still works,
+	// so the user can navigate away.
+	if (error || !profile) {
+		return (
+			<Screen>
+				<Empty>
+					Couldn&apos;t load your account.{' '}
+					<button
+						type="button"
+						onClick={() => window.location.reload()}
+						style={{ background: 'none', border: 0, padding: 0, color: 'var(--a-navy)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}
+					>
+						Try again
+					</button>
+				</Empty>
+			</Screen>
+		);
+	}
 
 	switch (access(route?.tier, tier, profile.user_role === 'admin')) {
 		case 'allow':

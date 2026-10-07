@@ -12,7 +12,7 @@ import { hrefOf } from '@/lib/routes';
  * Connected (marked on the nav/tabs): sample deals; deals shared via "Share a
  * deal" stay in this browser.
  */
-export const dealHref = (id: string) => `/scout/deal-flow/${id}`;
+export const dealHref = (id: string) => `${hrefOf('deal-flow')}/${id}`;
 const NO_DEALS: SampleDeal[] = [];
 
 /** Sample deals plus any shared from this browser. */

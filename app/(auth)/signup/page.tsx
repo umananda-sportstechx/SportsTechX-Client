@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { safeRedirect } from '@/lib/safe-redirect';
 import { Button } from '@/components/atlas';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, AuthValuePanel } from '@/components/auth/auth-shell';
@@ -30,7 +31,7 @@ const VALUE_POINTS = [
 export default function SignupPage() {
 	const router = useRouter();
 	const params = useSearchParams();
-	const redirectTo = params.get('redirectTo') ?? '/app';
+	const redirectTo = safeRedirect(params.get('redirectTo'));
 
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');

@@ -140,6 +140,32 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		'/' + f.replace(/\/(page|layout)\.tsx$/, '').split('/').filter((s) => s && !s.startsWith('(')).join('/');
 
 	check(layouts.length > 0, `${layouts.length} ProtectedRoute layout(s) found`);
+
+	// No retired tier path may appear as a URL anywhere in source. This exists
+	// because the manual sweep for it matched only '…' and "…" and missed three
+	// live template literals (`/raise/investors/${id}`, `/scout/deal-flow/${id}`,
+	// `/scout/discover/companies?q=`), each of which shipped as a dead link.
+	// Covering all three quote styles is the whole point.
+	{
+		const src = [
+			...readdirSync('app', { recursive: true, encoding: 'utf8' }).map((f) => `app/${String(f)}`),
+			...readdirSync('components', { recursive: true, encoding: 'utf8' }).map((f) => `components/${String(f)}`),
+			...readdirSync('lib', { recursive: true, encoding: 'utf8' }).map((f) => `lib/${String(f)}`),
+		].filter((f) => /\.tsx?$/.test(f));
+		const stray: string[] = [];
+		for (const f of src) {
+			for (const line of readFileSync(f.replace(/\\/g, '/'), 'utf8').split('\n')) {
+				// Skip comments — the retired paths are legitimately named in docs.
+				if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
+				// A quote or backtick, then /raise|/scout|/explore, then a path
+				// separator or the closing quote. `/api/raise/...` is a real endpoint.
+				if (/['"`]\/(raise|scout|explore)(\/|['"`])/.test(line) && !/\/api\//.test(line)) {
+					stray.push(`${f}: ${line.trim().slice(0, 70)}`);
+				}
+			}
+		}
+		check(stray.length === 0, `no retired tier paths in source${stray.length ? `\n      ${stray.join('\n      ')}` : ` (${src.length} files scanned)`}`);
+	}
 	for (const lay of layouts) {
 		const dir = lay.replace(/layout\.tsx$/, '');
 		const pages = all.filter((f) => f.startsWith(dir) && f.endsWith('page.tsx'));

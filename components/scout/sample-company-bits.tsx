@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { ArrowUpRight, Bookmark, BookmarkCheck, Globe } from 'lucide-react';
 import { Action, Logo, cx } from '@/components/atlas';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
+import { hrefOf } from '@/lib/routes';
 import { CHECKS, type SampleCompany } from './sample-data';
 
 /** Pieces shared by Scout's sample-company cards (Recommended, Signals). */
 
-export const sampleCompanyHref = (c: { name: string }) => `/scout/discover/companies?q=${encodeURIComponent(c.name)}`;
+export const sampleCompanyHref = (c: { name: string }) => `${hrefOf('companies')}?q=${encodeURIComponent(c.name)}`;
 
 export function SampleLogo({ c, size = 44 }: { c: Pick<SampleCompany, 'name' | 'site'>; size?: number }) {
 	return <Logo co={{ name: c.name, website: c.site, custom_logo_url: null }} size={size} radius={8} />;
