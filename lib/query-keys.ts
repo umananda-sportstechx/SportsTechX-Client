@@ -163,6 +163,20 @@ export const qk = {
     list: (params: Record<string, unknown> = {}) => ['/api/signals', params] as const,
   },
 
+  // ── Scout (the investor workspace) ───────────────────────────────
+  // Everything below `/api/scout` except `home` answers 403 SCOUT_NOT_SET_UP
+  // until the thesis wizard has been completed once.
+  scout: {
+    profile: () => ['/api/scout'] as const,
+    home: () => ['/api/scout/home'] as const,
+    thesis: () => ['/api/scout/thesis'] as const,
+    recommended: (params: Record<string, unknown> = {}) => ['/api/scout/recommended', params] as const,
+    companies: (params: Record<string, unknown> = {}) => ['/api/scout/companies', params] as const,
+    signals: (params: Record<string, unknown> = {}) => ['/api/scout/signals', params] as const,
+    dealflow: (params: Record<string, unknown> = {}) => ['/api/scout/dealflow', params] as const,
+    deal: (id: string) => [`/api/scout/dealflow/${id}`] as const,
+  },
+
   // ── Explore (the free base tier's own surfaces) ─────────────────────────
   explore: {
     interests: () => ['/api/explore/interests'] as const,

@@ -72,12 +72,22 @@ export interface Thesis {
 	chequeMin: string; chequeMax: string; stages: string[]; invStyle: 'Lead' | 'Follow' | 'Either';
 	regions: string[]; sectors: string[]; traction: string; include: string[]; exclude: string[];
 }
+/**
+ * An empty thesis, not a sample one.
+ *
+ * This used to be a fully populated fictional fund ("Northline Ventures",
+ * €100–250m, Seed/Series A, Europe…). That was harmless while the thesis lived
+ * in localStorage, but now that it is the fallback behind a real API it would
+ * show an investor someone else's thesis the moment a read failed — and a
+ * blank form is the honest answer to "we don't know yet". `role` and
+ * `invStyle` keep neutral defaults because the form needs one selected.
+ */
 export const DEFAULT_THESIS: Thesis = {
 	name: '', email: '', role: 'Partner', linkedin: '',
-	fundName: 'Northline Ventures', investorType: 'Venture capital', website: 'northline.vc', location: 'London, United Kingdom', aum: '€100–250m',
-	chequeMin: '€250k', chequeMax: '€2m', stages: ['Seed', 'Series A'], invStyle: 'Either',
-	regions: ['Europe', 'USA & Canada', 'DACH'], sectors: ['Activity & Performance', 'Fan Engagement'],
-	traction: '€500k+ ARR', include: ['B2B', 'Software', 'Women’s sports', 'Football', 'Tennis'], exclude: ['Betting & prediction', 'Web3 & crypto'],
+	fundName: '', investorType: '', website: '', location: '', aum: '',
+	chequeMin: '', chequeMax: '', stages: [], invStyle: 'Either',
+	regions: [], sectors: [],
+	traction: '', include: [], exclude: [],
 };
 
 export const THESIS_OPTIONS = {

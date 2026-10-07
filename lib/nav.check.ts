@@ -57,7 +57,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Deal Flow', ['All*', 'Featured*', 'Verified Raises*', 'From the Circle*', 'Deck Screener']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings*', 'Subscription'],
+		bottom: ['Thesis Settings', 'Subscription'],
 	},
 };
 

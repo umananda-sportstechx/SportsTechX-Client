@@ -8,7 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { ProfileFields, FundFields, StageFields, GeographyFields, SectorFields, AttributeFields } from './thesis-form';
 import { Steps } from './share-deal';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
-import { useThesis } from './use-thesis';
+import { useThesis, completeScoutSetup } from './use-thesis';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
 import { hrefOf } from '@/lib/routes';
@@ -70,11 +70,26 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 	);
 
 	const s = STEPS[step];
-	const next = () => {
+	const [busy, setBusy] = useState(false);
+	const next = async () => {
 		const e = required(t, step);
 		if (e) { setErr(e); return; }
-		if (step === 4) { save(t); setOnboarded(true); setVerify(true); } else setStep(step + 1);
-		top();
+		if (step < 4) { setStep(step + 1); top(); return; }
+		// The last step is the only one that writes. `setup_completed` is what
+		// stamps `setup_completed_at`, and that is the flag every other
+		// /api/scout/* route checks — they answer 403 SCOUT_NOT_SET_UP without
+		// it. Advancing the screen before the save lands would leave the user
+		// looking at a finished wizard on a still-gated Scout.
+		setBusy(true);
+		try {
+			await save(t);
+			await completeScoutSetup();
+			setOnboarded(true);
+			setVerify(true);
+			top();
+		} catch {
+			setErr('Could not save your thesis. Check your connection and try again.');
+		} finally { setBusy(false); }
 	};
 	return (
 		<Frame>
@@ -92,7 +107,7 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 			{err && <p className="scout-error" role="alert">{err}</p>}
 			<div className="scout-intro__actions">
 				{step === 0 ? <Link href={hrefOf('home')} className="atlas-btn atlas-btn--outline">Skip to app</Link> : <Button variant="outline" onClick={() => { setStep(step - 1); top(); }}>← Back</Button>}
-				<Button onClick={next}>{step === 4 ? 'Submit for verification' : 'Continue'}</Button>
+				<Button disabled={busy} onClick={() => void next()}>{busy ? 'Saving…' : step === 4 ? 'Submit for verification' : 'Continue'}</Button>
 			</div>
 		</Frame>
 	);

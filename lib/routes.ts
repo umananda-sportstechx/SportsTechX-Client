@@ -176,7 +176,7 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout', placeholder: true },
 	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout', placeholder: true },
 	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout', placeholder: true },
-	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout', placeholder: true },
+	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout' },
 ];
 
 export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));
