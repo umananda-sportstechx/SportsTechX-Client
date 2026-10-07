@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound, usePathname } from 'next/navigation';
-import { Empty, Screen } from '@/components/atlas';
+import { Empty, Screen, SectionHeader } from '@/components/atlas';
 import { TierGate } from '@/components/features/tier-gate/tier-gate';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { access, upgradeTarget } from '@/lib/access';
@@ -62,6 +62,13 @@ export function RouteGate({ children }: { children: React.ReactNode }) {
 			if (!sell || sell === 'explore') return <>{children}</>;
 			return (
 				<Screen>
+					{/* A gated screen that the viewer's sidebar still lists keeps its
+					    section chrome, so the upsell reads as part of the section
+					    rather than a dead end — Explore's Investors is the Market
+					    header plus the Market tabs above the pitch, per the design.
+					    `SectionHeader` renders nothing when the path is in no
+					    section, which covers every other gated route for free. */}
+					<SectionHeader />
 					<TierGate tier={sell} feature={typeof route!.name === 'string' ? route!.name : undefined} />
 				</Screen>
 			);

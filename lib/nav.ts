@@ -53,9 +53,12 @@ export function buildNav(tier: Tier, isAdmin: boolean, lists: NavWatchlist[] = [
 	for (const group of NAV_LAYOUT[tier]) {
 		const items = group.items
 			.map((id) => ROUTE_BY_ID.get(id))
-			// Locked routes are hidden outright, not shown with a lock badge: an
-			// item appears once the user is entitled to it.
-			.filter((r): r is RouteDef => !!r && access(r.tier, tier, isAdmin) === 'allow')
+			// The layout says what a product *shows*; access says whether this
+			// viewer can open it. Only `hidden` — the other paid product's
+			// screens — is dropped. An `upsell` item stays listed and the page
+			// behind it renders the TierGate, which is how the design wants
+			// Explore's "Investors" to behave.
+			.filter((r): r is RouteDef => !!r && access(r.tier, tier, isAdmin) !== 'hidden')
 			.map((r) => toItem(r, tier))
 			.filter((i): i is ShellNavItem => i !== null);
 		if (items.length === 0) continue;

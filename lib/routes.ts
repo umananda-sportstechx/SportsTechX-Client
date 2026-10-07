@@ -90,8 +90,12 @@ export const ROUTES: RouteDef[] = [
 		path: '/app/discover/companies',
 	},
 	{
+		// Not an Explore screen: the design lists neither this nor Recently
+		// Funded for Explore, and leaving them ungated rendered them with no
+		// heading and no tab strip, because NavSectionHeader can only find a
+		// section the viewer's sidebar actually has.
 		id: 'signals', icon: Radar, name: 'Signals',
-		path: '/app/discover/signals',
+		path: '/app/discover/signals', tier: ['raise', 'scout'],
 	},
 	{
 		// One URL, two different domain objects: recommended investors for a
@@ -113,7 +117,7 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
-		path: '/app/intelligence/recently-funded',
+		path: '/app/intelligence/recently-funded', tier: ['raise', 'scout'],
 	},
 	{
 		id: 'watchlists', icon: List, name: 'All watchlists',
@@ -189,10 +193,17 @@ export interface NavGroup {
  */
 export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 	explore: [
-		{ title: null, items: ['home'] },
+		// Interests sits with Home, per the Figma Side Nav (31:15195). The HTML
+		// mockup puts it in the bottom group with Account; Figma is the newer
+		// file and the one named as the UI source, so it wins.
+		{ title: null, items: ['home', 'interests'] },
 		{ title: 'Intelligence', items: ['framework', 'reports', 'newsletter'] },
-		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events'] },
-		{ title: null, bottom: true, items: ['interests'] },
+		// Investors is a Raise feature listed in Explore's sidebar on purpose —
+		// the design surfaces it unlocked-looking and lets the page do the
+		// selling (ATLAS Base.dc.html `navMarket`, which has a lock flag
+		// available and deliberately does not pass it). `buildNav` keeps
+		// upsellable items; only `hidden` ones are dropped.
+		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
 	],
 	raise: [
 		{ title: null, items: ['home'] },

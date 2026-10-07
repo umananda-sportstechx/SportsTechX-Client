@@ -25,14 +25,17 @@ type Shape = { top: string[]; sections: [string, string[]][]; bottom: string[] }
 
 const EXPECTED: Record<Tier, Shape> = {
 	explore: {
-		top: ['Home'],
+		// Matches the Figma Side Nav (31:15195) and ATLAS Base.dc.html.
+		// "Investors" is a Raise feature and is listed here on purpose: the
+		// design shows it like any other item and lets the page sell. It is the
+		// one nav entry in any product that resolves to `upsell` rather than
+		// `allow`, which is why `buildNav` filters on `!== 'hidden'`.
+		top: ['Home', 'Interests*'],
 		sections: [
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
-			// "Investors" was here. It is a Raise feature, and locked routes are
-			// hidden until the user upgrades — the one deliberate change.
-			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events']],
+			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],
 		],
-		bottom: ['Interests*'],
+		bottom: [],
 	},
 	raise: {
 		top: ['Home'],
@@ -90,9 +93,11 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 	const paths = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as ShellNavItem])), ...bottomNav].map((i) => i.path);
 	check(new Set(paths).size === paths.length, `${paths.length} unique paths`);
 
-	// Nothing from the other paid product may appear. Asked through `access` so
-	// a route shared by both paid tiers isn't counted as a leak into either.
-	const leaked = ROUTES.filter((r) => access(r.tier, tier, false) !== 'allow' && paths.includes(forTier(r.path, tier) ?? '\0'));
+	// Nothing from the other paid product may appear. `hidden`, not `!== allow`:
+	// an `upsell` item is listed on purpose (Explore's Investors), and asking
+	// through `access` means a route shared by both paid tiers is not counted as
+	// a leak into either.
+	const leaked = ROUTES.filter((r) => access(r.tier, tier, false) === 'hidden' && paths.includes(forTier(r.path, tier) ?? '\0'));
 	check(leaked.length === 0, `no cross-tier leakage${leaked.length ? ': ' + leaked.map((r) => r.id).join(', ') : ''}`);
 }
 
