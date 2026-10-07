@@ -139,7 +139,21 @@ async function handleResponse(res: Response, context?: string): Promise<void> {
 
   const text = await res.text().catch(() => res.statusText);
 
-  if ((res.status === 401 || res.status === 403) && !logoutState.isLoggingOut()) {
+  // **401 only.** 401 is authentication — the session is gone, so sending the
+  // user to log in is the right answer. 403 is authorization: they are exactly
+  // who they claim to be, they just cannot do this one thing. Logging them out
+  // for it is never right, and here it was catastrophic.
+  //
+  // 403 used to be in this condition and it took production down for every
+  // Scout without a `scout_profiles` row: `/api/scout/thesis` answers
+  // 403 SCOUT_NOT_SET_UP, which bounced them to /login, which saw a perfectly
+  // valid session and sent them back to /app, which re-fetched the thesis —
+  // a reload every ~2s that no amount of retrying could escape.
+  //
+  // Every 403 this API returns carries a domain code (SCOUT_NOT_SET_UP,
+  // TIER_LOCKED, NO_RAISE, NOT_ELIGIBLE, UPGRADE_REQUIRED, …) and not one of
+  // them means "your session expired". Do not put 403 back.
+  if (res.status === 401 && !logoutState.isLoggingOut()) {
     if (logoutState.hasValidSession() && !noRedirectHere()) {
       setTimeout(() => {
         window.location.href = '/login?reason=session_expired';
@@ -152,8 +166,8 @@ async function handleResponse(res: Response, context?: string): Promise<void> {
   // their own toast — the modal carries the message.
   //
   // Matched on status *and* code. `api-key.guard.ts` throws the same
-  // TIER_REQUIRED code at 403, which is a different situation (and 403 already
-  // bounces to /login above); only a 402 is a plan refusal.
+  // TIER_REQUIRED code at 403, which is a different situation; only a 402 is a
+  // plan refusal. (403 no longer bounces to /login — see the note above.)
   if (res.status === 402) {
     const err = parseApiError(text);
 
@@ -360,7 +374,9 @@ export { useSWR };
  * the global `onError` stays quiet for them. Keep this short and justified —
  * every entry is a failure someone has decided not to hear about.
  */
-const EXPECTED_CODES = new Set(['NO_RAISE']);
+/** Domain refusals a screen handles itself — never worth a toast.
+ *  Both are "you have not set this up yet", not failures. */
+const EXPECTED_CODES = new Set(['NO_RAISE', 'SCOUT_NOT_SET_UP']);
 
 export const swrConfig: SWRConfiguration = {
   fetcher,
