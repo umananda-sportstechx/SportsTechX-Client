@@ -118,6 +118,22 @@ function parseApiError(text: string): Exclude<ApiErrorBody['error'], string | un
   }
 }
 
+/**
+ * Parse a JSON response that might legitimately have no body.
+ *
+ * `res.json()` throws "Unexpected end of JSON input" on an empty body, and a
+ * 200-with-no-body is a normal NestJS outcome: a handler that returns `null`
+ * (e.g. `GET /api/billing/subscription` → `getActiveSubscription() ?? null`)
+ * serialises to zero bytes, as does any 204. Callers already treat these as
+ * "nothing yet" — the billing page reads `sub.data?.subscription_status` — so
+ * the absence of a body is data, not a parse failure.
+ */
+async function readJson<T>(res: Response): Promise<T | null> {
+	const text = await res.text();
+	if (!text) return null;
+	return JSON.parse(text) as T;
+}
+
 async function handleResponse(res: Response, context?: string): Promise<void> {
   if (res.ok) return;
 
@@ -321,7 +337,7 @@ export async function fetcher<T = unknown>(key: Key): Promise<T | null> {
         });
         if (retryRes.status !== 401) {
           await handleResponse(retryRes, `swr ${url} retry`);
-          return (await retryRes.json()) as T;
+          return await readJson<T>(retryRes);
         }
       }
     }
@@ -331,7 +347,7 @@ export async function fetcher<T = unknown>(key: Key): Promise<T | null> {
   }
 
   await handleResponse(res, `swr ${url}`);
-  return (await res.json()) as T;
+  return await readJson<T>(res);
 }
 
 // Re-exported for any internal use; consumers should import from 'swr'.
