@@ -34,6 +34,8 @@ export interface Page<T> {
 	offset: number;
 	totalPages: number;
 	nextCursor: string | null;
+	/** Present when the API capped the window for a free/anonymous caller. */
+	cap?: number;
 }
 
 /**

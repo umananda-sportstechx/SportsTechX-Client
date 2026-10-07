@@ -6,6 +6,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, CardGrid, lockedFiltersNote } from '@/components/atlas';
+import { ResultCapNote } from '../market/result-cap-note';
 import { COUNTRY_OPTIONS, MONTHS } from '@/lib/catalog-options';
 import { useSportOptions, useLocationFacetOptions } from '@/hooks/use-catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
@@ -68,7 +69,7 @@ export function ProgramsList() {
 		}
 		return p;
 	}, [page, dq, category, sport, country, entriesOpen, adv.hasAccess, city, continent, region]);
-	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
+	const res = useSWR<{ data: Eco[]; total: number; totalPages: number; cap?: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
 	const anyFilter = !!(dq || category || sport || country || city || continent || region || entriesOpen);
 
@@ -147,7 +148,7 @@ export function EventsList() {
 		}
 		return p;
 	}, [page, dq, mode, sport, month, country, upcoming, adv.hasAccess, city, continent, region]);
-	const res = useSWR<{ data: Eco[]; total: number; totalPages: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
+	const res = useSWR<{ data: Eco[]; total: number; totalPages: number; cap?: number }>(qk.ecosystem.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
 	const anyFilter = !!(dq || mode || sport || month || country || city || continent || region);
 
@@ -180,6 +181,7 @@ export function EventsList() {
 			{res.isLoading && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No events match your filters.</Empty>
 					: <CardGrid>{rows.map((e) => <EcoCard key={e.id} e={e} isEvent />)}</CardGrid>}
+			<ResultCapNote cap={res.data?.cap} total={res.data?.total ?? 0} noun="events" />
 			<Pager page={page} totalPages={res.data?.totalPages ?? 1} onPage={setPage} />
 		</>
 	);

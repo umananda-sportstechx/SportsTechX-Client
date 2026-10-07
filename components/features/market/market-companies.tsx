@@ -12,6 +12,7 @@ import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, l
 import { COUNTRY_OPTIONS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
 import { fmtUsd } from './format';
+import { ResultCapNote } from './result-cap-note';
 import dynamic from 'next/dynamic';
 // ~650 lines (plus the watchlist picker and drawer primitive it pulls in) for a
 // panel that only opens on a row click, and only in the drawer variant.
@@ -98,7 +99,7 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	const needsSectors = !!(sector || subSector || subSubSector);
 	const needsAdv = !!(subSector || subSubSector || city || continent || region || techTag);
 	const filtersReady = (!needsSectors || sectors.ready) && (!needsAdv || !adv.isLoading);
-	const all = useSWR<{ data: Company[]; total: number; totalPages: number }>(
+	const all = useSWR<{ data: Company[]; total: number; totalPages: number; cap?: number }>(
 		filtersReady ? qk.companies.list(params) : null,
 		{ keepPreviousData: true },
 	);
@@ -165,7 +166,8 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 						</div>
 					)}
 
-			<Pager page={page} totalPages={all.data?.totalPages ?? 1} onPage={setPage} />
+			<ResultCapNote cap={all.data?.cap} total={total} noun="companies" />
+	<Pager page={page} totalPages={all.data?.totalPages ?? 1} onPage={setPage} />
 
 			{!companyHref && <CompanyDrawer idOrSlug={openId} onClose={() => setOpenId(null)} />}
 		</>
