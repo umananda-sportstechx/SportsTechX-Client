@@ -103,7 +103,6 @@ export const ROUTES: RouteDef[] = [
 		// page — a user only ever holds one paid tier.
 		id: 'recommended', icon: Sparkles, name: 'Recommended',
 		path: '/app/recommended', tier: ['raise', 'scout'],
-		placeholder: { scout: true },
 	},
 	{
 		// Three names for one screen.
@@ -156,6 +155,9 @@ export const ROUTES: RouteDef[] = [
 		id: 'deck', icon: FileCheck,
 		name: { raise: 'Pitch Deck', scout: 'Deck Screener' },
 		path: '/app/deck', tier: ['raise', 'scout'],
+		// Scout v4 and the product brief both mark Deck Screener coming soon;
+		// Raise's Pitch Deck is live, so this cannot be a bare `true`.
+		placeholder: { scout: true },
 	},
 	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore' },
 

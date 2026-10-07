@@ -51,10 +51,10 @@ const EXPECTED: Record<Tier, Shape> = {
 	scout: {
 		top: ['Home'],
 		sections: [
-			['Discover', ['Companies', 'Recommended*', 'Signals']],
+			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
 			['Watchlists', ['All watchlists']],
-			['Deal Flow', ['All*', 'Featured*', 'Verified Raises*', 'From the Circle*', 'Deck Screener']],
+			['Deal Flow', ['All*', 'Featured*', 'Verified Raises*', 'From the Circle*', 'Deck Screener*']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
 		bottom: ['Thesis Settings', 'Subscription'],
