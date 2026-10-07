@@ -50,10 +50,18 @@ export interface ThesisState {
 export function useThesisState(): ThesisState {
 	const { data: profile } = useUserProfile();
 	const scout = useSWR<ScoutProfile | null>(qk.scout.profile());
-	// 403 until setup completes, which is expected rather than an error — the
-	// wizard is what clears it. `shouldRetryOnError` is already off for 404 and
-	// typed errors; one failed read here must not block the form from rendering.
-	const thesis = useSWR<ServerThesis>(qk.scout.thesis(), { shouldRetryOnError: false });
+	// Hold the thesis request until we know a scout workspace exists.
+	//
+	// `/api/scout/thesis` answers 403 SCOUT_NOT_SET_UP when there is no
+	// `scout_profiles` row, and firing it regardless is what took production
+	// down: the fetcher treated 403 as a dead session and bounced to /login,
+	// which bounced straight back. That redirect is fixed, but the request was
+	// always pointless — `GET /api/scout` already tells us whether to ask.
+	//
+	// `scout.data === null` is a real answer ("no workspace yet"), so gate on
+	// the request having settled, not merely on the data being truthy.
+	const hasWorkspace = !scout.isLoading && !!scout.data;
+	const thesis = useSWR<ServerThesis>(hasWorkspace ? qk.scout.thesis() : null, { shouldRetryOnError: false });
 
 	const sectors = useSWR<TaxonomyRef[] | { data: TaxonomyRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
 	const rounds = useSWR<TaxonomyRef[] | { data: TaxonomyRef[] }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
