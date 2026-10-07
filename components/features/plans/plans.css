@@ -1,0 +1,47 @@
+/* Plans comparison. Atlas tokens only — co-located and side-effect imported by
+   plans.tsx, which is the house convention for a feature stylesheet. */
+
+.atlas .plans-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+	gap: 16px;
+	margin-bottom: 28px;
+}
+
+.atlas .plans-card { display: flex; flex-direction: column; gap: 6px; }
+.atlas .plans-card__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.atlas .plans-card__price { font-family: var(--a-font); font-size: 34px; font-weight: 500; line-height: 1.05; color: var(--a-ink); }
+.atlas .plans-card__interval { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-faint); }
+.atlas .plans-card__blurb { font-size: 13px; line-height: 1.55; color: var(--a-muted); margin: 10px 0 0; }
+/* Pins every CTA to the same baseline however long the blurb runs. */
+.atlas .plans-card__cta { margin-top: auto; padding-top: 16px; }
+.atlas .plans-muted { font-size: 12px; color: var(--a-faint); }
+
+.atlas .plans-table-card { padding: 0; }
+.atlas .plans-table-head {
+	display: flex; align-items: baseline; justify-content: space-between;
+	gap: 12px; flex-wrap: wrap; padding: 18px 22px 14px;
+	border-bottom: 1px solid var(--a-border);
+}
+/* The table has four columns and the narrowest is a long feature name, so on a
+   phone it scrolls rather than wrapping into unreadable stacks. */
+.atlas .plans-table-scroll { overflow-x: auto; }
+.atlas .plans-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.atlas .plans-table th,
+.atlas .plans-table td { padding: 11px 14px; text-align: center; border-bottom: 1px solid var(--a-border); }
+.atlas .plans-table thead th {
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em;
+	text-transform: uppercase; color: var(--a-faint); white-space: nowrap;
+}
+.atlas .plans-table th[scope='row'],
+.atlas .plans-table thead th:first-child { text-align: left; font-weight: 500; color: var(--a-ink); min-width: 220px; }
+.atlas .plans-table thead th:first-child { color: var(--a-faint); }
+.atlas .plans-table tbody tr:last-child th,
+.atlas .plans-table tbody tr:last-child td { border-bottom: 0; }
+.atlas .plans-table .is-current { background: var(--a-field); }
+.atlas .plans-yes { color: var(--a-navy); vertical-align: middle; }
+.atlas .plans-no { color: var(--a-faint); vertical-align: middle; }
+
+.atlas .plans-card__points { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; }
+.atlas .plans-card__points li { position: relative; padding-left: 16px; font-size: 12px; line-height: 1.5; color: var(--a-muted); }
+.atlas .plans-card__points li::before { content: '✓'; position: absolute; left: 0; color: var(--a-navy); }

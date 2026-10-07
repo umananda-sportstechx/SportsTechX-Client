@@ -9,7 +9,6 @@ import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
-import { track, Events } from '@/lib/analytics';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { Brand } from '@/components/ui/brand';
@@ -33,8 +32,6 @@ const PLAN: Record<string, { label: string; price: string }> = {
 	growth: { label: 'Growth (retired)', price: '—' },
 	pro: { label: 'Pro (retired)', price: '—' },
 };
-/** Plans a user can actually move onto. */
-const PLANS: [string, string][] = [['raise', 'Raise'], ['scout', 'Scout']];
 
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
 interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
@@ -83,19 +80,6 @@ export default function BillingPage() {
 			throw new Error('no url');
 		} catch {
 			toast.error("Couldn't open the billing portal. If you don't have an active plan yet, start one first.");
-			setBusy(null);
-		}
-	};
-	const startPlan = async (target: string) => {
-		setBusy(target);
-		track(Events.billingCheckoutStarted, { plan: target });
-		try {
-			const res = await apiRequest('POST', '/api/billing/checkout', { plan: target });
-			const body = (await res.json()) as { url?: string };
-			if (body.url) { window.location.assign(body.url); return; }
-			throw new Error('no url');
-		} catch {
-			toast.error("Couldn't start checkout. Please try again.");
 			setBusy(null);
 		}
 	};
@@ -152,20 +136,11 @@ export default function BillingPage() {
 					</>
 				) : (
 					<>
-						<p style={{ ...BODY, margin: '0 0 18px' }}>Choose a plan to get started.</p>
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-							{PLANS.filter(([k]) => k !== plan).map(([k, label]) => (
-								<Card key={k} glow={k === 'raise' ? 'blue' : undefined} focus={k === 'raise'} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: k === 'raise' ? undefined : 'var(--a-field)' }}>
-									<div className="atlas-eyebrow">{label}</div>
-									<div style={PRICE}>{PLAN[k].price}</div>
-									<div style={{ marginTop: 'auto' }}>
-										<Button size="sm" variant={k === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void startPlan(k)}>
-											{busy === k ? <Loader2 className="animate-spin" size={13} /> : `Get ${label} — ${PLAN[k].price}`}
-										</Button>
-									</div>
-								</Card>
-							))}
-						</div>
+						<p style={{ ...BODY, margin: '0 0 18px' }}>Compare what each plan includes and pick one.</p>
+					{/* One plan picker, not two. These cards duplicated the tier list with
+						    hardcoded prices, so a price change in the admin left them lying.
+						    The plans page reads `subscription_plans` and the live matrix. */}
+					<Button size="sm" onClick={() => router.push(hrefOf('plans'))}>See plans</Button>
 					</>
 				)}
 			</Card>

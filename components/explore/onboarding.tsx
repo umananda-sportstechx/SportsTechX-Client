@@ -12,7 +12,7 @@ import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { InterestFields, NO_INTERESTS, useInterests, type Interests } from './interests';
-import { EXPLORE_COLOR, LANDING_RAISE, LANDING_SCOUT } from './shell-config';
+import { EXPLORE_COLOR, PLANS_HREF } from './shell-config';
 import { hrefOf } from '@/lib/routes';
 
 /**
@@ -26,12 +26,12 @@ const RELEVANCE = ['I am raising capital for a company', 'I am looking for inves
 const STEPS = ['About you', 'Your background', 'Your goals', 'Your interests', 'Product relevance'];
 const PRODUCTS = {
 	raise: {
-		name: 'Atlas Raise', href: LANDING_RAISE, cta: 'Explore Atlas Raise', note: 'No commitment — see what is included first.',
+		name: 'Atlas Raise', href: PLANS_HREF, cta: 'Explore Atlas Raise', note: 'No commitment — see what is included first.',
 		desc: 'A workspace for founders raising capital: sharpen the pitch, identify investors active in your category and manage the raise end to end.',
 		points: ['Investor database with sector, stage and geography filters', 'Pitch review against what investors in sports tech look for', 'Raise tracker for conversations, materials and follow-ups'],
 	},
 	scout: {
-		name: 'Atlas Scout', href: LANDING_SCOUT, cta: 'Request Atlas Scout', note: 'Access is granted after a short conversation.',
+		name: 'Atlas Scout', href: PLANS_HREF, cta: 'Request Atlas Scout', note: 'Access is granted after a short conversation.',
 		desc: 'A workspace for investors and corporate teams: discover, research and evaluate companies across the sports-tech market.',
 		points: ['Company screening across sectors, sports and geographies', 'Deal flow tracking with saved searches and alerts', 'Deeper company profiles with funding and traction signals'],
 	},
@@ -114,7 +114,7 @@ function Flow({ initial }: { initial: { name: string; company: string; role: str
 			</div>
 			<Button onClick={() => router.push(hrefOf('home'))}>Enter Atlas</Button>
 			{answers.relevance !== RELEVANCE[0] && (
-				<p className="explore-muted explore-onb__raise">You may also find Atlas Raise useful — a dedicated workspace for improving your pitch, finding investors and managing your raise. <Link href={LANDING_RAISE}>Explore Atlas Raise</Link></p>
+				<p className="explore-muted explore-onb__raise">You may also find Atlas Raise useful — a dedicated workspace for improving your pitch, finding investors and managing your raise. <Link href={PLANS_HREF}>Explore Atlas Raise</Link></p>
 			)}
 		</Frame>
 	);

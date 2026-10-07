@@ -146,6 +146,9 @@ export const ROUTES: RouteDef[] = [
 		path: '/app/account',
 	},
 	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
+	// Reachable from the sidebar upgrade cards, the tier gate and billing, but
+	// never listed in a sidebar — it is a destination, not a section.
+	{ id: 'plans', icon: Layers, name: 'Plans', path: '/app/plans' },
 	{
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
