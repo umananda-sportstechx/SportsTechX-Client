@@ -50,6 +50,10 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 	const [step, setStep] = useState(0);
 	const [err, setErr] = useState('');
 	const [verify, setVerify] = useState(false);
+	// Above the `if (verify)` early return below: a hook after it is a
+	// conditional hook, and React throws "rendered fewer hooks than expected"
+	// the moment the wizard finishes and that branch renders.
+	const [busy, setBusy] = useState(false);
 	const patch = (p: Partial<Thesis>) => { setT({ ...t, ...p }); setErr(''); };
 	const top = () => window.scrollTo(0, 0);
 
@@ -70,7 +74,6 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 	);
 
 	const s = STEPS[step];
-	const [busy, setBusy] = useState(false);
 	const next = async () => {
 		const e = required(t, step);
 		if (e) { setErr(e); return; }
