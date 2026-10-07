@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Check, Loader2, Minus } from 'lucide-react';
 import { Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { qk } from '@/lib/query-keys';
 import { track, Events } from '@/lib/analytics';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
@@ -57,11 +58,16 @@ const money = (cents: number, ccy: string) =>
 		.format((cents ?? 0) / 100);
 
 export function Plans() {
-	const { data: profile } = useUserProfile();
+	const { data: profile, mutate: refreshProfile } = useUserProfile();
 	const current = getUserType(profile);
 	const { features, isLoading: featuresLoading } = useFeatureAccessContext();
 	const plans = useSWR<{ data: PlanRow[] }>(qk.billing.plans());
 	const [busy, setBusy] = useState<string | null>(null);
+	const confirm = useConfirm();
+	// `subscription_cancel_at` is already on this payload; no new endpoint needed
+	// to know whether they have something to cancel.
+	const sub = useSWR<{ stripe_subscription_id?: string } | null>(qk.billing.subscription());
+	const hasPaidPlan = current !== 'explore' && !!sub.data?.stripe_subscription_id;
 
 	const byTier = new Map((plans.data?.data ?? []).map((p) => [p.tier, p]));
 
@@ -81,6 +87,44 @@ export function Plans() {
 			toast.error("Couldn't start checkout. Please try again.");
 			setBusy(null);
 		}
+	};
+
+	/**
+	 * Downgrade to Explore. Immediate, because these are yearly plans and
+	 * waiting out the term is not a downgrade.
+	 *
+	 * The refund figure in the dialog is quoted by the server (`?preview=1`)
+	 * rather than recomputed here — one formula, and the number they agree to
+	 * is the number that gets queued.
+	 */
+	const downgrade = async () => {
+		setBusy('explore');
+		try {
+			const res = await apiRequest('POST', '/api/billing/cancel?preview=1');
+			const { refund } = (await res.json()) as { refund: { amount_cents: number; currency: string; days_remaining: number } | null };
+			const back = refund && refund.amount_cents > 0 ? money(refund.amount_cents, refund.currency) : null;
+			const ok = await confirm({
+			title: 'Switch to Atlas Explore?',
+			description: back
+				? `Your plan ends straight away and you keep Explore for free. We'll refund ${back} for the ${refund!.days_remaining} days you haven't used — it goes back to your card and can take a few days to appear.`
+				: 'Your plan ends straight away and you keep Explore for free. There is nothing left to refund on the current term.',
+			confirmLabel: 'Switch to Explore',
+			destructive: true,
+			});
+			if (!ok) { setBusy(null); return; }
+			const done = await apiRequest('POST', '/api/billing/cancel');
+			if (!done.ok) throw new Error(String(done.status));
+			const body = (await done.json()) as { refund: { amount_cents: number; currency: string } | null };
+			toast.success(body.refund
+			? `Plan cancelled. A ${money(body.refund.amount_cents, body.refund.currency)} refund is being processed.`
+			: 'Plan cancelled. You are on Atlas Explore.');
+			// The server syncs the tier before returning, so the profile is already
+			// correct — revalidate it or the page keeps claiming they are on the old
+			// plan until SWR's 5-minute dedupe window expires.
+			await Promise.all([refreshProfile(), sub.mutate(), plans.mutate()]);
+		} catch {
+			toast.error("Couldn't cancel your plan. Please try again or contact support.");
+		} finally { setBusy(null); }
 	};
 
 	if (plans.isLoading) return <Loading />;
@@ -125,8 +169,13 @@ export function Plans() {
 								{isCurrent
 									? <Button variant="outline" size="sm" disabled>Your plan</Button>
 									: tier === 'explore'
-										// Downgrading is a billing-portal action, not a checkout.
-										? <span className="plans-muted">Included with every plan</span>
+												? (hasPaidPlan
+									? (
+										<Button size="sm" variant="outline" disabled={busy !== null} onClick={() => void downgrade()}>
+											{busy === 'explore' ? <Loader2 className="animate-spin" size={13} /> : 'Switch to Explore'}
+										</Button>
+									)
+									: <span className="plans-muted">Included with every plan</span>)
 										: (
 											<Button size="sm" variant={tier === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void checkout(tier)}>
 												{busy === tier ? <Loader2 className="animate-spin" size={13} /> : `Get ${copy?.name ?? tier}`}
