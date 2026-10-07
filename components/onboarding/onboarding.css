@@ -1,0 +1,32 @@
+/*
+ * Onboarding — the persona picker and its frame, on Atlas tokens.
+ *
+ * Was on the app's legacy Tailwind semantic utilities (`border-border`,
+ * `bg-card`, `bg-muted`, `text-muted-foreground`, `font-display`), which is the
+ * bridge palette the rest of the product has moved off.
+ */
+
+.atlas .onb-screen { min-height: 100dvh; display: grid; place-items: center; padding: 48px 24px; background: var(--a-page); }
+.atlas .onb-screen__inner { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 26px; }
+.atlas .onb-head { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+.atlas .onb-head__title { margin: 0; font-family: var(--a-font); font-size: 26px; font-weight: 700; line-height: 1.2; color: var(--a-ink); }
+.atlas .onb-head__sub { margin: 0; font-family: var(--a-body); font-size: 13px; line-height: 1.55; color: var(--a-muted); max-width: 420px; }
+
+.atlas .onb-personas { display: flex; flex-direction: column; gap: 10px; }
+.atlas .onb-persona {
+	display: flex; align-items: center; gap: 16px; width: 100%;
+	padding: 16px; text-align: left; cursor: pointer;
+	background: var(--a-surface); border: 1px solid var(--a-card-border);
+	border-radius: var(--a-radius); transition: background 0.15s, border-color 0.15s;
+}
+.atlas .onb-persona:hover { background: var(--a-inset); border-color: var(--a-border-strong); }
+.atlas .onb-persona__icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--a-radius-sm); background: var(--a-navy-soft); color: var(--a-navy); }
+.atlas .onb-persona__body { min-width: 0; flex: 1; }
+.atlas .onb-persona__label { display: block; font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); }
+.atlas .onb-persona__desc { display: block; margin-top: 3px; font-family: var(--a-body); font-size: 13px; line-height: 1.45; color: var(--a-muted); }
+.atlas .onb-persona__go { flex-shrink: 0; color: var(--a-faint); transition: transform 0.15s; }
+.atlas .onb-persona:hover .onb-persona__go { transform: translateX(2px); color: var(--a-ink); }
+
+.atlas .onb-skip { display: inline-flex; align-items: center; gap: 7px; justify-self: center; background: none; border: 0; cursor: pointer; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint); }
+.atlas .onb-skip:hover { color: var(--a-ink); }
+.atlas .onb-skip:disabled { opacity: 0.5; cursor: default; }

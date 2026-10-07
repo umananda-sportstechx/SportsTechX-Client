@@ -1,0 +1,22 @@
+/*
+ * Tier gate — the upsell shown in place of a page the user's plan doesn't
+ * include. Lifted from `.explore-upsell` in components/explore/explore.css,
+ * which was the same screen built for one feature; these rules replace it.
+ *
+ * Already on Atlas tokens, so nothing here is a retokening judgement call.
+ * `.atlas ` prefix per house convention — feature styles win specificity
+ * inside the shell.
+ */
+
+.atlas .tier-gate { display: grid; gap: 18px; }
+
+.atlas .tier-gate__main { padding: 28px 30px; display: flex; flex-direction: column; gap: 14px; }
+.atlas .tier-gate__lock { display: inline-flex; align-items: center; gap: 7px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .tier-gate__title { margin: 0; font-family: var(--a-font); font-size: 26px; font-weight: 700; line-height: 1.2; color: var(--a-ink); }
+.atlas .tier-gate__body { margin: 0; max-width: 680px; font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-muted); }
+.atlas .tier-gate__cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+
+.atlas .tier-gate__about { padding: 24px 26px; display: flex; flex-direction: column; gap: 10px; }
+.atlas .tier-gate__points { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-top: 10px; }
+.atlas .tier-gate__point { margin-bottom: 4px; font-family: var(--a-font); font-size: 14px; font-weight: 700; color: var(--a-ink); }
+.atlas .tier-gate__muted { margin: 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-muted); }

@@ -1,0 +1,115 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { track, Events } from '@/lib/analytics';
+import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
+
+/**
+ * Account (Raise mock-up 17, Scout "Account"): profile, security and
+ * notification preferences. Profile name/email come from the user profile;
+ * password reset routes through Supabase. Notification toggles are local-only
+ * in v1 — each product passes its own list.
+ */
+export interface NotificationPref { key: string; label: string; on: boolean }
+
+export const RAISE_NOTIFICATIONS: NotificationPref[] = [
+	{ key: 'weekly', label: 'Weekly raise recap', on: true },
+	{ key: 'overdue', label: 'Overdue follow-up reminders', on: true },
+	{ key: 'product', label: 'Product updates', on: false },
+];
+
+export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extra }: { notifications?: NotificationPref[]; sub?: string; /** Product-specific cards before Log out (e.g. Explore's product access). */ extra?: React.ReactNode }) {
+	const router = useRouter();
+	const { data: profile } = useUserProfile();
+	const [busy, setBusy] = useState(false);
+	const [signingOut, setSigningOut] = useState(false);
+	const [prefs, setPrefs] = useState<Record<string, boolean>>(() => Object.fromEntries(notifications.map((n) => [n.key, n.on])));
+
+	const name = profile?.display_name ?? profile?.full_name ?? '';
+	const initial = (name || profile?.email || '?').charAt(0).toUpperCase();
+
+	const changePassword = async () => {
+		if (!profile?.email) { toast.error('No email on file'); return; }
+		setBusy(true);
+		try {
+			const { error } = await getSupabaseBrowser().auth.resetPasswordForEmail(profile.email, { redirectTo: `${window.location.origin}/reset-password` });
+			if (error) throw error;
+			toast.success('Password reset email sent');
+		} catch (e) { toast.error((e as Error).message ?? 'Could not send email'); }
+		finally { setBusy(false); }
+	};
+
+	const logout = async () => {
+		if (signingOut) return;
+		setSigningOut(true);
+		try { track(Events.signedOut); await getSupabaseBrowser().auth.signOut(); router.push('/login'); }
+		catch { setSigningOut(false); }
+	};
+
+	return (
+		<Screen>
+			<PageHead title="Account" sub={sub} />
+
+			<div style={{ display: 'grid', gap: 18 }}>
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Profile</div>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+						<div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 'var(--a-radius-sm)', background: 'var(--a-primary)', display: 'grid', placeItems: 'center', fontSize: 16, fontFamily: 'var(--a-mono)', color: 'var(--a-primary-ink)' }}>{initial}</div>
+						<div style={{ minWidth: 0 }}>
+							<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{name || '—'}</div>
+							<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)', marginTop: 4 }}>{profile?.account_type === 'founder' ? 'Founder' : profile?.account_type === 'investor' ? 'Investor' : profile?.account_type ?? ''}{profile?.company_name ? `, ${profile.company_name}` : ''}</div>
+						</div>
+					</div>
+					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+						<ReadOnly label="Full name" value={name || '—'} />
+						<ReadOnly label="Email" value={profile?.email ?? '—'} />
+					</div>
+				</Card>
+
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
+					<SplitRow label="Password" sub="Managed through email reset">
+						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Change password'}</Button>
+					</SplitRow>
+					<hr className="atlas-divider" style={{ margin: '14px 0' }} />
+					<SplitRow label={<>Two-factor authentication<PlaceholderTag /></>} sub="Not enabled">
+						<Button variant="outline" size="sm" disabled title="Backend Not Connected (Placeholders)">Enable</Button>
+					</SplitRow>
+				</Card>
+
+				<Card>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 6 }}>Notifications<PlaceholderTag /></div>
+					{notifications.map((n) => <Toggle key={n.key} label={n.label} on={!!prefs[n.key]} set={(v) => setPrefs((p) => ({ ...p, [n.key]: v }))} />)}
+					<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 12 }}>Notification preferences are saved locally for now.</div>
+				</Card>
+
+				{extra}
+
+				<button onClick={() => void logout()} disabled={signingOut} style={{ background: 'none', border: 'none', color: 'var(--a-danger)', fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: '4px 0', justifySelf: 'start' }}>
+					{signingOut ? 'Logging out…' : 'Log out'}
+				</button>
+			</div>
+		</Screen>
+	);
+}
+
+function SplitRow({ label, sub, children }: { label: React.ReactNode; sub?: string; children: React.ReactNode }) {
+	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+		<div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--a-ink)' }}>{label}</div>{sub && <div style={{ fontSize: 12, color: 'var(--a-muted)', marginTop: 2 }}>{sub}</div>}</div>
+		{children}
+	</div>;
+}
+function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
+	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderTop: '1px solid var(--a-border)' }}>
+		<span style={{ fontSize: 13, color: 'var(--a-ink-2)' }}>{label}</span>
+		<button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => set(!on)}
+			style={{ width: 39, height: 22, flexShrink: 0, borderRadius: 'var(--a-radius-pill)', border: '0.5px solid var(--a-border)', padding: 0, cursor: 'pointer', background: on ? 'var(--a-primary)' : 'var(--a-track)', position: 'relative', transition: 'background 0.15s' }}>
+			<span style={{ position: 'absolute', top: 2.5, left: on ? 19.5 : 2.5, width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--a-primary-ink)' : 'var(--a-field)', boxShadow: '0 1px 2px rgba(0,0,0,0.18)', transition: 'left 0.15s, background 0.15s' }} />
+		</button>
+	</div>;
+}

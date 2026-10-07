@@ -14,6 +14,7 @@ import { PersonaProvider } from '@/contexts/persona-context';
 import { ClaimModalHost } from '@/components/claim/claim-modal-host';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { CreditExhaustionHost } from '@/components/credits/credit-exhaustion-modal';
+import { TierRequiredHost } from '@/components/features/tier-gate/tier-required-host';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { identify, initAnalytics, reset } from '@/lib/analytics';
 import { useEffect } from 'react';
@@ -66,6 +67,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     {children}
                     <ClaimModalHost />
                     <CreditExhaustionHost />
+                    <TierRequiredHost />
                     <Toaster richColors position="top-right" />
                   </ConfirmProvider>
                 </PersonaProvider>

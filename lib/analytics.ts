@@ -10,10 +10,16 @@ let userId: string | null = null;
  * NEXT_PUBLIC_MIXPANEL_TOKEN env var is present; no-op otherwise so dev
  * environments without analytics keys don't error out.
  *
- * Event coverage mirrors the 35+ events from the legacy STX-WebApp client —
- * page views, search/filter usage, AI chat actions, report opens, billing
- * events. Component callers should reach for `useTrack()` rather than
- * importing mixpanel directly so the shape stays consistent.
+ * Call `track(Events.x, …)` directly. An earlier version of this comment
+ * claimed coverage of "35+ events" and told callers to use a `useTrack()` hook
+ * — there were no events wired at all and no such hook has ever existed, so
+ * anyone checking whether analytics worked stopped reading here and concluded
+ * it did.
+ *
+ * Currently wired, enough to see the activation funnel: page views (one call in
+ * the /app layout), sign in, sign out, company opened, checkout started.
+ * `Events` lists the rest as named, agreed slots — adding one is a `track`
+ * call, not a decision.
  */
 export function initAnalytics(): void {
 	if (initialized) return;

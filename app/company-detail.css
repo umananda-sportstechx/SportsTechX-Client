@@ -295,14 +295,23 @@
   .co-verify-actions { width: 100%; }
 }
 
+/*
+ * `.co-empty` — the drawer's empty tab state.
+ *
+ * These are the declarations that have actually been rendering. `app/lists.css`
+ * defined the same bare selector and was imported after this sheet in
+ * globals.css, so it won on source order. When this sheet moved out of globals
+ * (it now loads with the lazily-imported drawer) that order inverted, which
+ * would have silently restyled the empty state to 36px uppercase mono. Merged
+ * here instead, so one sheet owns it and load order stops mattering.
+ *
+ * The 36px uppercase-mono variant this replaces belonged to the company *page*,
+ * which no longer exists.
+ */
 .co-empty {
-  padding: 36px 18px;
-  text-align: center;
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--fg-muted);
-  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 13px; color: var(--fg-muted);
+  padding: 24px; text-align: center;
   border: 1px dashed var(--border);
-  background: var(--bg-2);
 }
 
 /* ─── DRAWER (quick-peek side panel) ─── */

@@ -1,0 +1,133 @@
+/*
+ * Atlas charts — styles for components/atlas/charts (bar+line, donut, bar list,
+ * drill-down) and their tooltip/legend. Chart colours are tokens (tokens.css).
+ * The chart components still reference a few legacy variable names inline
+ * (--fg, --accent, --grid-line, --font-mono…); the bridge below maps them to
+ * Atlas tokens on the chart wrappers.
+ */
+
+/* Legacy → Atlas variable bridge, scoped to the chart wrappers only. Custom
+   props inherit, so the SVG/children pick these up. */
+.atlas .cbl-wrap,
+.atlas .pie-wrap,
+.atlas .an-legend,
+.atlas .atlas-drilldown,
+.atlas .pd-bars {
+	--fg: var(--a-ink);
+	--fg-2: var(--a-ink);
+	--fg-muted: color-mix(in srgb, var(--a-ink) 75%, transparent);
+	--accent: var(--a-navy);
+	--grid-line: var(--a-border);
+	--border: var(--a-border);
+	--border-strong: var(--a-border-strong);
+	--bg: var(--a-surface);
+	--bg-2: var(--a-inset);
+	--bg-3: var(--a-inset);
+	--font-mono: var(--a-mono);
+	--font-display: var(--a-font);
+}
+
+/* ── Chart card anatomy: header strip / body / footer (Figma "Graph Card") ── */
+.atlas .atlas-chart-card { padding: 0; overflow: hidden; }
+.atlas .atlas-chart-card__head { padding: 22px 23px 18px; border-bottom: 1px solid var(--a-border); }
+.atlas .atlas-chart-card__body { padding: 22px 23px 18px; }
+.atlas .atlas-chart-card__head .atlas-section-note { margin-bottom: 0; }
+
+/* ── Combo bar+line ── */
+.atlas .cbl-wrap { width: 100%; padding: 4px 0 0; position: relative; }
+.atlas .cbl-legend {
+	display: flex; justify-content: flex-start; gap: 24px;
+	margin: 14px -23px 0; padding: 14px 23px 0; border-top: 1px solid var(--a-border);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0;
+	text-transform: uppercase; color: color-mix(in srgb, var(--a-ink) 75%, transparent);
+}
+.atlas .cbl-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.atlas .cbl-legend-sw { width: 7px; height: 7px; border-radius: 1px; flex-shrink: 0; }
+
+/* ── Tooltip (Figma "Detail Popup": black, mono, hairline rule) ── */
+.atlas .pie-tip {
+	position: absolute; pointer-events: none; z-index: 5;
+	background: var(--a-chart-tip-bg); color: var(--a-chart-tip-ink);
+	border-radius: 6px; padding: 7px 9px; min-width: 126px;
+	font-family: var(--a-mono); font-size: 10px; white-space: nowrap;
+}
+.atlas .pie-tip-l { font-weight: 400; color: inherit; padding-bottom: 7px; margin: 0 -9px 7px; padding-inline: 9px; border-bottom: 1px solid var(--a-chart-tip-rule); }
+.atlas .pie-tip-v { font-family: var(--a-mono); color: inherit; opacity: 0.8; font-size: 10px; }
+
+/* ── Donut + legend (Figma "Pie chart") ── */
+.atlas .pie-wrap { position: relative; display: flex; justify-content: center; align-items: center; }
+.atlas .pie-center {
+	position: absolute; inset: 0; display: flex; flex-direction: column;
+	align-items: center; justify-content: center; pointer-events: none; text-align: center;
+}
+.atlas .pie-center-v { font-family: var(--a-mono); font-size: 19px; line-height: 1; color: var(--a-ink); }
+.atlas .pie-center-l { font-family: var(--a-mono); font-size: 10px; margin-top: 6px; color: color-mix(in srgb, var(--a-ink) 55%, transparent); }
+.atlas .an-legend { display: flex; flex-direction: column; gap: 0; }
+.atlas .an-legend-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+.atlas .an-legend-sw { width: 7px; height: 7px; flex-shrink: 0; border-radius: 1px; }
+.atlas .an-legend-name { flex: 1; min-width: 0; font-family: var(--a-mono); font-size: 11px; color: color-mix(in srgb, var(--a-ink) 75%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atlas .an-legend-val { font-family: var(--a-mono); font-size: 11px; font-weight: 400; color: var(--a-faint); }
+
+/* ── Single-series bar list (Figma "Line graph 01–05": 6px track, gradient fill) ── */
+.atlas .pd-bars { display: flex; flex-direction: column; gap: 22px; width: 100%; }
+.atlas .pd-bar-row { transition: opacity .15s; }
+.atlas .pd-bar-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+.atlas .pd-bar-name { flex: 1; min-width: 0; font-family: var(--a-body); font-size: 12px; font-weight: 700; color: var(--a-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atlas .pd-bar-pct { font-family: var(--a-mono); font-size: 10px; color: var(--a-faint); }
+.atlas .pd-bar-val { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); min-width: 52px; text-align: right; }
+.atlas .pd-bar-track { height: 6px; border-radius: 3px; background: var(--a-track); overflow: hidden; }
+.atlas .pd-bar-fill {
+	height: 100%; border-radius: 3px; transition: width .35s ease;
+	background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--a-pink)) 78%, #000), var(--c, var(--a-pink)));
+}
+
+/* ── Hierarchical drilldown (Figma "Sector card") ── */
+.atlas .atlas-drilldown { margin: 0 -23px; }
+.atlas .atlas-drilldown .hb-row { border-top: 1px solid var(--a-border); padding: 16px 23px 20px; cursor: default; }
+.atlas .atlas-drilldown .hb-row.has-children { cursor: pointer; }
+.atlas .atlas-drilldown .hb-row:first-child { border-top: 0; padding-top: 4px; }
+.atlas .atlas-drilldown .hb-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.atlas .atlas-drilldown .hb-spacer { width: 0; flex-shrink: 0; }
+.atlas .atlas-drilldown .hb-caret {
+	flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+	width: 14px; height: 14px; color: var(--a-ink);
+}
+.atlas .atlas-drilldown .hb-caret svg { transition: transform .15s; }
+.atlas .atlas-drilldown .hb-row.open > .hb-head .hb-caret svg,
+.atlas .atlas-drilldown .hb-child.open > .hb-head .hb-caret svg { transform: rotate(180deg); }
+/* Top-level caret = black pill (Figma "Inspect Button" 39×24). */
+.atlas .atlas-drilldown .hb-row > .hb-head .hb-caret {
+	width: 39px; height: 24px; border-radius: var(--a-radius-pill);
+	background: var(--a-primary); color: var(--a-primary-ink); border: 0.5px solid var(--a-border);
+}
+.atlas .atlas-drilldown .hb-row:not(.open) > .hb-head .hb-caret { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
+.atlas .atlas-drilldown .hb-label { flex: 1; min-width: 0; font-family: var(--a-body); font-size: 13px; font-weight: 500; color: var(--a-ink); }
+.atlas .atlas-drilldown .hb-row > .hb-head .hb-label { font-family: var(--a-font); font-size: 15px; font-weight: 700; }
+.atlas .atlas-drilldown .hb-pct { font-family: var(--a-body); font-size: 11px; font-weight: 600; color: var(--a-ink); min-width: 56px; text-align: right; }
+.atlas .atlas-drilldown .hb-val { font-family: var(--a-body); font-size: 11px; font-weight: 600; color: var(--a-ink); min-width: 72px; text-align: right; }
+.atlas .atlas-drilldown .hb-row > .hb-head .hb-pct,
+.atlas .atlas-drilldown .hb-row > .hb-head .hb-val { font-size: 13px; }
+.atlas .atlas-drilldown .hb-bar { height: 6px; background: var(--a-track); position: relative; overflow: hidden; border-radius: 3px; }
+.atlas .atlas-drilldown .hb-bar-fill {
+	position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width .35s ease;
+	background: linear-gradient(90deg, color-mix(in srgb, var(--bar-color, var(--a-purple)) 78%, #000), var(--bar-color, var(--a-purple)));
+}
+/* Expanded levels sit on a tint of the row colour, full-bleed (Figma "Subsector Bg"). */
+.atlas .atlas-drilldown .hb-children {
+	margin: 18px -23px -20px; padding: 4px 23px 8px;
+	background: color-mix(in srgb, var(--bar-color, var(--a-purple)) 11%, var(--a-surface));
+	border-top: 1px solid var(--a-border);
+}
+.atlas .atlas-drilldown .hb-child { padding: 12px 0 14px; border-top: 1px solid var(--a-border); }
+.atlas .atlas-drilldown .hb-child:first-child { border-top: 0; }
+.atlas .atlas-drilldown .hb-child.has-children { cursor: pointer; }
+.atlas .atlas-drilldown .hb-child .hb-head { margin-bottom: 9px; }
+.atlas .atlas-drilldown .hb-child .hb-bar,
+.atlas .atlas-drilldown .hb-grandchild .hb-bar { height: 4px; background: color-mix(in srgb, var(--a-ink) 22%, transparent); }
+.atlas .atlas-drilldown .hb-grandchildren {
+	margin: 12px -23px -14px; padding: 4px 23px 6px;
+	background: color-mix(in srgb, var(--bar-color, var(--a-purple)) 20%, var(--a-surface));
+}
+.atlas .atlas-drilldown .hb-grandchild { padding: 10px 0; }
+.atlas .atlas-drilldown .hb-grandchild .hb-label { font-size: 11px; font-weight: 500; }
+.atlas .atlas-drilldown .hb-grandchild .hb-head { margin-bottom: 8px; }

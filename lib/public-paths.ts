@@ -16,6 +16,21 @@
  * A public page has to stay readable whatever is in the cookie jar.
  *
  * Entries match as an exact path or a path prefix (`/w` covers `/w/<token>`).
+ *
+ * Now that the signed-in product is all under `/app`, this could invert into
+ * "gate `/app`, `/onboarding` and `/billing`" — shorter, and a new public page
+ * could no longer be private by accident. It deliberately hasn't: the failure
+ * directions are not symmetric. Forgetting to add a public page here makes that
+ * page ask for a login, which someone notices immediately. Forgetting to list a
+ * private prefix in the inverted version makes it readable without one, which
+ * nobody notices.
+ *
+ * That reasoning stands, but an earlier version of this comment drew the wrong
+ * conclusion from it — it observed that `/docs` and `/confirm` were private only
+ * by being absent here, and treated that as acceptable. For `/confirm` it was a
+ * broken signup: a user awaiting email confirmation has no session, so no auth
+ * cookie, so the middleware bounced them to /login before `verifyOtp` could run.
+ * Being absent from a list is not the same as being deliberately private.
  */
 export const PUBLIC_PATHS = [
   '/', // public marketing landing page (app/page.tsx)
@@ -24,6 +39,10 @@ export const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/auth', // /auth/callback and any other supabase auth flow pages
+  // The email-confirmation landing. It MUST be public: the whole point is that
+  // the visitor has no session yet — they are carrying a token_hash that
+  // `verifyOtp` is about to exchange for one.
+  '/confirm',
   '/privacy-policy',
   '/terms-of-service',
   '/w', // /w/[token] — public read-only shared watchlist pages
@@ -31,4 +50,31 @@ export const PUBLIC_PATHS = [
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * The prefixes the edge gate actually protects.
+ *
+ * This is NOT a second copy of "everything not public" — it exists so the
+ * middleware can tell *private* from *unknown*. Gating on `!isPublicPath` meant
+ * a logged-out request to a nonexistent URL redirected to /login instead of
+ * rendering `app/not-found.tsx`: crawlers got a 307 for every bad link (a
+ * soft-404, and they all converge on /login), and the 404 page was unreachable
+ * to the public. Gating on `isPrivatePath` lets unknown paths fall through to a
+ * real 404 while private trees stay gated.
+ *
+ * The first three are exactly the layouts that mount `<ProtectedRoute>`, which
+ * is the actual session check — `lib/supabase/middleware.ts` only looks for a
+ * cookie, by design. `lib/nav.check.ts` asserts that correspondence so the two
+ * cannot drift.
+ *
+ * `/docs` is listed only to preserve today's behaviour. It is private by
+ * accident rather than intent (it reads as public marketing copy, is disallowed
+ * in robots.ts, and is linked from nowhere) — but whether to publish it is a
+ * marketing decision, so it keeps its current gating until someone makes it.
+ */
+export const PRIVATE_PREFIXES = ['/app', '/onboarding', '/billing', '/docs'] as const;
+
+export function isPrivatePath(pathname: string): boolean {
+  return PRIVATE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }

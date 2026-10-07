@@ -198,7 +198,15 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 			} else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
 				logoutState.setSessionValid(true);
 				logoutState.setLoggingOut(false);
-				setState({ user: session!.user, loading: false, sessionValid: true });
+				// Supabase re-emits SIGNED_IN on every tab focus. Allocating a new
+				// state object there changed the context value identity and
+				// re-rendered the entire app on each focus; returning `prev`
+				// unchanged makes React bail out instead.
+				setState((prev) =>
+					prev.sessionValid && !prev.loading && prev.user?.id === session!.user.id
+						? prev
+						: { user: session!.user, loading: false, sessionValid: true },
+				);
 				if (session!.expires_at) scheduleRefresh(session!.expires_at);
 				startMonitoring();
 				if (event === 'SIGNED_IN') {
