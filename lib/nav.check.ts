@@ -18,7 +18,7 @@ import { isSection } from '../components/atlas/shell/nav.ts';
 import type { ShellNavItem } from '../components/atlas/shell/nav.ts';
 import { access, type Tier } from './access.ts';
 import { PRIVATE_PREFIXES } from './public-paths.ts';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 /** `Section: a, b, c` — `*` marks a placeholder item. */
 type Shape = { top: string[]; sections: [string, string[]][]; bottom: string[] };
@@ -146,30 +146,40 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 
 	check(layouts.length > 0, `${layouts.length} ProtectedRoute layout(s) found`);
 
-	// No retired tier path may appear as a URL anywhere in source. This exists
-	// because the manual sweep for it matched only '…' and "…" and missed three
-	// live template literals (`/raise/investors/${id}`, `/scout/deal-flow/${id}`,
+	// No retired URL may appear anywhere in source. This exists because the
+	// manual sweep for it matched only '…' and "…" and missed three live
+	// template literals (`/raise/investors/${id}`, `/scout/deal-flow/${id}`,
 	// `/scout/discover/companies?q=`), each of which shipped as a dead link.
 	// Covering all three quote styles is the whole point.
+	//
+	// Two generations of retired URL, both caught here: the per-tier trees
+	// `/raise`, `/scout`, `/explore`, and the section groups
+	// `/app/{discover,intelligence,resources}`.
+	//
+	// The server is scanned too, and it is the half that needs this most. The
+	// client has `nav.check.ts`; the server has nothing, and its failures are
+	// silent — `routeKey` ends `?? clean`, so an unmatched path returns itself,
+	// misses STATIC_PAGES and the model quietly loses page awareness with no
+	// error anywhere, while its system prompt carries markdown links the model
+	// emits verbatim. Guarded by existsSync so a client-only checkout passes.
 	{
-		const src = [
-			...readdirSync('app', { recursive: true, encoding: 'utf8' }).map((f) => `app/${String(f)}`),
-			...readdirSync('components', { recursive: true, encoding: 'utf8' }).map((f) => `components/${String(f)}`),
-			...readdirSync('lib', { recursive: true, encoding: 'utf8' }).map((f) => `lib/${String(f)}`),
-		].filter((f) => /\.tsx?$/.test(f));
+		const RETIRED = /['"`](\/(raise|scout|explore)(\/|['"`])|\/app\/(discover|intelligence|resources)\/)/;
+		const roots = ['app', 'components', 'lib', '../server/src'].filter((r) => existsSync(r));
+		const src = roots
+			.flatMap((r) => readdirSync(r, { recursive: true, encoding: 'utf8' }).map((f) => `${r}/${String(f)}`))
+			.filter((f) => /\.tsx?$/.test(f));
 		const stray: string[] = [];
 		for (const f of src) {
 			for (const line of readFileSync(f.replace(/\\/g, '/'), 'utf8').split('\n')) {
 				// Skip comments — the retired paths are legitimately named in docs.
 				if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
-				// A quote or backtick, then /raise|/scout|/explore, then a path
-				// separator or the closing quote. `/api/raise/...` is a real endpoint.
-				if (/['"`]\/(raise|scout|explore)(\/|['"`])/.test(line) && !/\/api\//.test(line)) {
+				// `/api/raise/...` is a real endpoint, not a retired page.
+				if (RETIRED.test(line) && !/\/api\//.test(line)) {
 					stray.push(`${f}: ${line.trim().slice(0, 70)}`);
 				}
 			}
 		}
-		check(stray.length === 0, `no retired tier paths in source${stray.length ? `\n      ${stray.join('\n      ')}` : ` (${src.length} files scanned)`}`);
+		check(stray.length === 0, `no retired URLs in source${stray.length ? `\n      ${stray.join('\n      ')}` : ` (${src.length} files across ${roots.length} roots)`}`);
 	}
 	for (const lay of layouts) {
 		const dir = lay.replace(/layout\.tsx$/, '');
