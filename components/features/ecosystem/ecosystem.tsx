@@ -12,7 +12,7 @@ import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 /**
  * Ecosystem catalogues — Programs and Events lists (shared by Raise and Scout;
- * e.g. /app/programs, /app/resources/events).
+ * e.g. /app/programs, /app/events).
  */
 interface Eco {
 	id: string; name: string; slug: string | null; entity_type: string;

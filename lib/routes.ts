@@ -32,7 +32,7 @@
  * Routes listed in `ROUTES` but in no `NAV_LAYOUT` are real pages that are
  * gated but never listed — detail pages, wizards, the chat. A route's tier is
  * resolved for an arbitrary URL by longest-prefix match, so
- * `/app/discover/investors/abc` inherits the gate from `/app/discover/investors`.
+ * `/app/investors/abc` inherits the gate from `/app/investors`.
  */
 
 import type { LucideIcon } from 'lucide-react';
@@ -87,7 +87,7 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'companies', icon: Building2, name: 'Companies',
-		path: '/app/discover/companies',
+		path: '/app/companies',
 	},
 	{
 		// Not an Explore screen: the design lists neither this nor Recently
@@ -95,29 +95,29 @@ export const ROUTES: RouteDef[] = [
 		// heading and no tab strip, because NavSectionHeader can only find a
 		// section the viewer's sidebar actually has.
 		id: 'signals', icon: Radar, name: 'Signals',
-		path: '/app/discover/signals', tier: ['raise', 'scout'],
+		path: '/app/signals', tier: ['raise', 'scout'],
 	},
 	{
 		// One URL, two different domain objects: recommended investors for a
 		// founder, recommended companies for an investor. Dispatched inside the
 		// page — a user only ever holds one paid tier.
 		id: 'recommended', icon: Sparkles, name: 'Recommended',
-		path: '/app/discover/recommended', tier: ['raise', 'scout'],
+		path: '/app/recommended', tier: ['raise', 'scout'],
 		placeholder: { scout: true },
 	},
 	{
 		// Three names for one screen.
 		id: 'analytics', icon: ChartPie,
 		name: { explore: 'Analysis', raise: 'Analytics', scout: 'Market' },
-		path: '/app/intelligence/analytics',
+		path: '/app/analytics',
 	},
 	{
 		id: 'roundup', icon: CalendarDays, name: 'Monthly Roundup',
-		path: '/app/intelligence/roundup',
+		path: '/app/roundup',
 	},
 	{
 		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
-		path: '/app/intelligence/recently-funded', tier: ['raise', 'scout'],
+		path: '/app/recently-funded', tier: ['raise', 'scout'],
 	},
 	{
 		id: 'watchlists', icon: List, name: 'All watchlists',
@@ -125,19 +125,19 @@ export const ROUTES: RouteDef[] = [
 	},
 	{
 		id: 'framework', icon: LayoutGrid, name: 'Framework',
-		path: '/app/resources/framework',
+		path: '/app/framework',
 	},
 	{
 		id: 'reports', icon: Files, name: 'Reports',
-		path: '/app/resources/reports',
+		path: '/app/reports',
 	},
 	{
 		id: 'newsletter', icon: Newspaper, name: 'Newsletter',
-		path: '/app/resources/newsletter',
+		path: '/app/newsletter',
 	},
 	{
 		id: 'events', icon: CalendarRange, name: 'Events',
-		path: '/app/resources/events',
+		path: '/app/events',
 	},
 	{
 		// Reached from the account badge, which AtlasShell renders separately.
@@ -157,11 +157,11 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore', placeholder: true },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
-	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/app/discover/investors', tier: 'raise' },
+	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/app/investors', tier: 'raise' },
 	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/app/programs', tier: 'raise' },
 	{ id: 'my-market', icon: Target, name: 'My Market', path: '/app/my-market', tier: 'raise' },
 	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/app/pipeline', tier: 'raise' },
-	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/app/resources/guide', tier: 'raise', placeholder: true },
+	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/app/guide', tier: 'raise', placeholder: true },
 	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/app/settings', tier: 'raise' },
 	// Gated, never listed.
 	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/app/setup', tier: 'raise' },
@@ -271,7 +271,7 @@ export const pathOf = (id: string, tier: Tier): string =>
 
 /**
  * The route a URL belongs to, by longest-prefix match — so
- * `/app/discover/investors/abc` resolves through `/app/discover/investors` and detail pages
+ * `/app/investors/abc` resolves through `/app/investors` and detail pages
  * inherit their parent's gate without needing their own entry.
  */
 export function routeForPath(pathname: string, tier: Tier): RouteDef | undefined {

@@ -77,7 +77,7 @@ console.log('  ok    upgradeTarget names a tier only when there is a sale');
 		'https://evil.example', 'javascript:alert(1)', 'app', '', null, undefined,
 	];
 	// `/evil.example` is a legitimate same-origin path, not an attack.
-	const accept = ['/app', '/app/discover/companies', '/billing?x=1', '/app#frag', '/evil.example'];
+	const accept = ['/app', '/app/companies', '/billing?x=1', '/app#frag', '/evil.example'];
 	for (const r of reject) assert.equal(safeRedirect(r), '/app', `redirect should be rejected: ${JSON.stringify(r)}`);
 	for (const a of accept) assert.equal(safeRedirect(a), a, `redirect should be accepted: ${a}`);
 	console.log(`  ok    safeRedirect rejects ${reject.length} off-origin forms, accepts ${accept.length} paths`);
