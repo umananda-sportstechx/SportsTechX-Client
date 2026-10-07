@@ -110,10 +110,20 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
     // caller can offer a retry, rather than blanking or showing a wrong paywall.
     if (matrixError) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false, error: true };
 
-    // Matrix not available yet (cold cache / in-flight): treat as still-loading
-    // rather than "feature absent". Showing a paywall because we simply don't
-    // have the matrix would wrongly lock entitled users (this broke pro /analytics).
-    if (features.length === 0) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true, error: false };
+    // Matrix not requested yet (no valid session, so the SWR key is null):
+    // genuinely unknown, so report loading rather than "feature absent".
+    // Showing a paywall because we simply don't have the matrix would wrongly
+    // lock entitled users (this broke pro /analytics).
+    if (!enabled) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: true, error: false };
+
+    // Enabled, settled (isLoading was checked above) and still empty: the matrix
+    // really is empty — an unseeded `features` table, or everything
+    // `is_active = false`. That is NOT "still loading", and saying so forever is
+    // worse than it sounds: any caller that gates a request on `isLoading` hangs
+    // with no error and no console output. `market-companies.tsx` does exactly
+    // that for a `?sub=` deep link, which turned this latent branch into a
+    // permanent spinner. Report it as an error so callers degrade instead.
+    if (features.length === 0) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false, error: true };
 
     const normalized = slug.replace(/-/g, '_');
     const feature = featureMap.get(normalized) ?? features.find(f => f.slug === normalized || f.slug.replace(/_/g, '-') === slug);
@@ -144,7 +154,7 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
       : PAID_BY_PRICE.find((t) => t !== userType && allows(feature, t)) ?? null;
 
     return { hasAccess, isLocked: !hasAccess, userType, requiredTier, isLoading: false, error: false };
-  }, [isAdmin, profileLoading, isLoading, matrixError, features, featureMap, grantedSlugs, userType]);
+  }, [isAdmin, profileLoading, isLoading, matrixError, enabled, features, featureMap, grantedSlugs, userType]);
 
   // This provider sits above the whole app, so an unstable value here re-renders
   // every consumer on every render of any of its six reactive inputs.

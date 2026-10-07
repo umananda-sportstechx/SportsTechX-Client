@@ -60,15 +60,30 @@ export function founderActionFromTool(tool: string, input: unknown): ChatAction 
 	}
 	if (tool === 'navigate_and_filter') {
 		const p = input as { page?: string };
-		// The agent's page names (server: `chat.tools.ts`) mapped to route ids, so
-		// each URL comes from the manifest. Hardcoding them is how three of these
-		// chips came to point at routes that no longer existed.
+		// The agent's page names mapped to route ids, so each URL comes from the
+		// manifest. Hardcoding them is how three of these chips came to point at
+		// routes that no longer existed.
+		//
+		// The key set must track the `page` enum in the server's
+		// `chat.tools.ts` — that is the source of truth for what the model can
+		// emit. `analytics`, `companies` and `funding` were missing, and the
+		// system prompt explicitly tells the model to use `page:"analytics"` for
+		// chart requests, so every chart ask produced a tool call this mapped to
+		// `null`: the assistant said "open Analytics" and offered no button.
+		//
+		// `ma` and `ecosystem` are in the enum but deliberately absent here —
+		// there is no M&A route and no single Ecosystem route, so they correctly
+		// yield no chip rather than a dead link.
 		const NAV: Record<string, { label: string; routeId: string }> = {
 			home: { label: 'Open Home', routeId: 'home' },
 			pitch: { label: 'Open Pitch deck', routeId: 'deck' },
+			analytics: { label: 'Open Analytics', routeId: 'analytics' },
+			// Legacy alias for analytics; the enum still carries `market`.
 			market: { label: 'Open Analytics', routeId: 'analytics' },
+			companies: { label: 'Browse Companies', routeId: 'companies' },
+			funding: { label: 'Open Recently Funded', routeId: 'recently-funded' },
 			investors: { label: 'View Investors', routeId: 'investors' },
-			pipeline: { label: 'Open Pipeline', routeId: 'pipeline' },
+			pipeline: { label: 'Open Watchlist', routeId: 'pipeline' },
 			programs: { label: 'Open Programs', routeId: 'programs' },
 			events: { label: 'Open Events', routeId: 'events' },
 			resources: { label: 'Open Resources', routeId: 'guide' },

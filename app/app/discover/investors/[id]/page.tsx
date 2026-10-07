@@ -18,8 +18,22 @@ import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo
  * and the founder's raise pipeline.
  */
 
+/**
+ * `GET /api/investors/:id/thesis`.
+ *
+ * Deliberately has no prose field. This used to declare
+ * `thesis: { description?: string | null }` and render an "Investment thesis"
+ * section from it — but `investor_thesis` has no `description` column
+ * (`server/src/db/types.ts` → `InvestorThesisRow` is ids, amounts, timestamps),
+ * so the section could never appear. The prose lives on `investors.description`
+ * and already renders above as "Overview"; pointing this at the same field
+ * would have shown it twice.
+ *
+ * `thesis.amount_min_usd` / `amount_max_usd` DO exist and are still unused —
+ * "Typical cheque size" below is hardcoded to "Not confirmed".
+ */
 interface ThesisBundle {
-	thesis: { description?: string | null } | null;
+	thesis: { amount_min_usd?: string | null; amount_max_usd?: string | null } | null;
 	round_types: Array<{ name: string }>;
 	geo: Array<{ scope_type: string; scope_value: string }>;
 }
@@ -52,7 +66,6 @@ export default function InvestorProfilePage() {
 	if (isLoading || !inv) return <Screen><Loading /></Screen>;
 
 	const stages = bundle?.round_types?.map((r) => r.name).join(', ') || 'Not specified';
-	const thesisText = bundle?.thesis?.description ?? null;
 	const geoText = bundle?.geo?.map((g) => g.scope_value).join(', ') || [inv.hq_country, inv.hq_region].filter(Boolean).join(', ') || '—';
 
 	return (
@@ -88,7 +101,6 @@ export default function InvestorProfilePage() {
 			</div>
 
 			{inv.description && <Section title="Overview">{inv.description}</Section>}
-			{thesisText && <Section title="Investment thesis">{thesisText}</Section>}
 
 			{(() => {
 				const rows = deals?.data ?? [];
@@ -114,7 +126,7 @@ export default function InvestorProfilePage() {
 							</div>
 						</Card>
 					)}
-					{!inv.description && !thesisText && portfolio.length === 0 && recent.length === 0 && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
+					{!inv.description && portfolio.length === 0 && recent.length === 0 && <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No further profile detail recorded for this investor yet.</div></Card>}
 				</>;
 			})()}
 		</Screen>
