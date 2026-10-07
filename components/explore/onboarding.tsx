@@ -143,7 +143,7 @@ function Flow({ initial }: { initial: { name: string; company: string; role: str
 				<InterestFields value={interests} onChange={setInterests} keys={['goals']} />
 			</>}
 			{step === 3 && <>
-				<h1 className="atlas-h1 explore-onb__title">Which parts of the market should Atlas prioritise?<PlaceholderTag /></h1>
+				<h1 className="atlas-h1 explore-onb__title">Which parts of the market should Atlas prioritise?</h1>
 				<p className="explore-onb__lead">These selections shape your homepage. They never limit what you can explore.</p>
 				<InterestFields value={interests} onChange={setInterests} keys={['sectors', 'subs', 'sports', 'geos']} />
 				<div className="explore-actions">

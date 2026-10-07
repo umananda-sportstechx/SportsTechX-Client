@@ -30,7 +30,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		// design shows it like any other item and lets the page sell. It is the
 		// one nav entry in any product that resolves to `upsell` rather than
 		// `allow`, which is why `buildNav` filters on `!== 'hidden'`.
-		top: ['Home', 'Interests*'],
+		top: ['Home', 'Interests'],
 		sections: [
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
 			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],

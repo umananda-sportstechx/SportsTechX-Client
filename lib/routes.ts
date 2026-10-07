@@ -154,7 +154,7 @@ export const ROUTES: RouteDef[] = [
 		name: { raise: 'Pitch Deck', scout: 'Deck Screener' },
 		path: '/app/deck', tier: ['raise', 'scout'],
 	},
-	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore', placeholder: true },
+	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore' },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
 	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/app/investors', tier: 'raise' },
