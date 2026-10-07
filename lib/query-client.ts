@@ -183,8 +183,13 @@ async function handleResponse(res: Response, context?: string): Promise<void> {
   } catch {
     if (text && text.trim() && text.length < 300) message = text;
   }
-  const e = new Error(message) as Error & { status?: number; context?: string };
+  const e = new Error(message) as Error & { status?: number; context?: string; code?: string };
   e.status = res.status;
+  // Carry the server's machine-readable code alongside the human message. The
+  // message is for the user; the code is what callers and the global `onError`
+  // can branch on without string-matching prose.
+  const code = parseApiError(text)?.code;
+  if (code) e.code = code;
   // The callers all pass `${method} ${url}`. Attaching it rather than dropping
   // it is what makes a logged failure identifiable; the message itself stays
   // user-facing and unchanged.
@@ -334,6 +339,13 @@ export { useSWR };
 
 // ─── SWR global config ───────────────────────────────────────────────────────
 
+/**
+ * Server error codes that represent an un-started flow rather than a fault, so
+ * the global `onError` stays quiet for them. Keep this short and justified —
+ * every entry is a failure someone has decided not to hear about.
+ */
+const EXPECTED_CODES = new Set(['NO_RAISE']);
+
 export const swrConfig: SWRConfiguration = {
   fetcher,
   dedupingInterval: 5 * 60_000,
@@ -365,9 +377,18 @@ export const swrConfig: SWRConfiguration = {
    */
   onError: (err: unknown, key: string) => {
     if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return;
-    if (err instanceof Error && (err as Error & { status?: number }).status === 401) return;
-    const ctx = err instanceof Error ? (err as Error & { context?: string }).context : undefined;
-    console.error('[swr]', key, ctx ?? '', err);
+    const e = err instanceof Error ? (err as Error & { status?: number; code?: string; context?: string }) : undefined;
+    if (e?.status === 401) return;
+    // Domain states the server reports as errors but which are normal for a
+    // user who hasn't finished a flow. Verified against the live API:
+    // `GET /api/raise/pipeline` returns 404 `{error:{code:'NO_RAISE'}}` until
+    // raise setup completes, and the Investors page fetches it unconditionally
+    // to mark which investors are already tracked — so a correctly working page
+    // shouted in the console. (`GET /api/raise` is fine: it answers 200 with
+    // `{raise:null,criteria:null}`.) A console that cries wolf is worse than no
+    // console, which is the whole reason this handler exists.
+    if (e?.code && EXPECTED_CODES.has(e.code)) return;
+    console.error('[swr]', key, e?.context ?? '', err);
   },
   keepPreviousData: true,
 };
