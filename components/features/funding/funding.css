@@ -1,0 +1,27 @@
+/* Recently Funded table. Atlas tokens only. */
+.atlas .atlas-funded { margin-top: 26px; padding: 20px 23px 8px; }
+.atlas .atlas-funded__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.atlas .atlas-funded__row {
+	display: grid; grid-template-columns: 28px minmax(180px, 2.2fr) 110px 110px minmax(160px, 2fr) 110px;
+	gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--a-border);
+	font-family: var(--a-body); font-size: 13px; color: var(--a-ink-2);
+}
+.atlas .atlas-funded__row--head {
+	border-top: none; padding-top: 4px;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint);
+}
+.atlas .atlas-funded__n { font-family: var(--a-mono); font-size: 11px; color: var(--a-faint); }
+.atlas .atlas-funded__co { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.atlas .atlas-funded__co > span { display: flex; flex-direction: column; min-width: 0; }
+.atlas .atlas-funded__name { font-family: var(--a-font); font-weight: 700; font-size: 14px; color: var(--a-ink); text-decoration: none; }
+.atlas .atlas-funded__name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.atlas .atlas-funded__sub { font-size: 11px; color: var(--a-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atlas .atlas-funded__inv { color: var(--a-muted); font-size: 12px; line-height: 1.45; }
+.atlas .atlas-funded__amt { text-align: right; font-family: var(--a-mono); font-size: 12px; }
+@media (max-width: 900px) {
+	.atlas .atlas-funded { padding: 14px 16px 4px; }
+	.atlas .atlas-funded__row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+	.atlas .atlas-funded__row--head { display: none; }
+	.atlas .atlas-funded__n, .atlas .atlas-funded__inv { display: none; }
+	.atlas .atlas-funded__row > span:nth-child(3), .atlas .atlas-funded__row > span:nth-child(4) { font-size: 11px; color: var(--a-muted); }
+}

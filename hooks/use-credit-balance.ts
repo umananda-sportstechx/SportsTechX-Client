@@ -25,8 +25,11 @@ export interface CreditBalance {
  * results as two independent pools, which after the merge meant showing the
  * same number twice under two names.
  */
-export function useCreditBalance() {
-	const { data, isLoading, mutate } = useSWR<CreditBalance>(qk.credits.balance(), {
+/** `enabled` exists for always-mounted consumers that are usually hidden —
+ *  the exhaustion modal host sits on every page and was fetching the
+ *  balance on every page load for a dialog nobody had opened. */
+export function useCreditBalance(enabled = true) {
+	const { data, isLoading, mutate } = useSWR<CreditBalance>(enabled ? qk.credits.balance() : null, {
 		dedupingInterval: 30_000,
 	});
 	return { balance: data, isLoading, mutate };

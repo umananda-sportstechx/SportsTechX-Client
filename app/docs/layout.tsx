@@ -9,7 +9,8 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
 						<span className="inline-grid place-items-center w-6 h-6 rounded-md bg-primary text-primary-foreground text-[11px] font-bold">S</span>
 						SportsTechX <span className="text-muted-foreground font-normal">Docs</span>
 					</Link>
-					<Link href="/integrations" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Open app →</Link>
+					{/* Was `/integrations`, which has never been a route. */}
+					<Link href="/app" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Open app →</Link>
 				</div>
 			</header>
 

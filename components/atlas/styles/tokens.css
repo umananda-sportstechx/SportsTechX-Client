@@ -1,0 +1,116 @@
+/*
+ * Atlas design tokens — the ONE place to re-theme the product.
+ * Colours, type, shape and chart colours for light mode (`.atlas`) and dark
+ * mode (`[data-theme="dark"] .atlas`, set by next-themes on <html>).
+ * Every component reads these variables; never hardcode a colour elsewhere.
+ *
+ * Fonts are self-hosted in /public/fonts/atlas (Satoshi = display/UI,
+ * CommitMono = labels/numbers). Inter (body) is loaded by app/layout.tsx.
+ */
+@font-face { font-family: 'Satoshi'; src: url('/fonts/atlas/Satoshi-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('/fonts/atlas/Satoshi-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('/fonts/atlas/Satoshi-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'CommitMono'; src: url('/fonts/atlas/CommitMono-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+
+.atlas {
+  /* surfaces */
+  --a-page: #FFFFFF;
+  --a-rail: #EDEDED;
+  --a-surface: #F9F9F9;     /* cards: #EEE @ 37% on white */
+  --a-surface-2: #F4F4F4;   /* nested / emphasised cards */
+  --a-field: #FFFFFF;       /* inputs, outline pills, logo tiles */
+  --a-inset: #F2F2F2;       /* chips, hover rows */
+  --a-track: #D5D5D5;       /* progress / bar tracks */
+  /* text */
+  --a-ink: #000000;
+  --a-ink-2: rgba(0, 0, 0, 0.85);
+  --a-muted: rgba(0, 0, 0, 0.65);
+  --a-faint: rgba(0, 0, 0, 0.5);
+  --a-deep: #210D3F;        /* tag ink */
+  /* lines */
+  --a-border: rgba(0, 0, 0, 0.1);
+  --a-border-strong: rgba(0, 0, 0, 0.2);
+  --a-card-border: #EAEAEA;
+  /* accents */
+  --a-navy: #1C4C78;
+  --a-navy-soft: #E9EFF7;
+  --a-blue: #348DDE;
+  --a-pink: #F32163;
+  --a-purple: #4C1D95;
+  --a-purple-soft: rgba(76, 29, 149, 0.09);
+  --a-primary: #000000;     /* filled CTA */
+  --a-primary-ink: #FFFFFF;
+  /* card glows (Figma: card BG gradient to accent @ 37%) */
+  --a-glow-blue: linear-gradient(172deg, transparent 45%, rgba(28, 85, 190, 0.2) 100%);
+  --a-glow-pink: linear-gradient(176deg, transparent 55%, rgba(243, 33, 99, 0.16) 100%);
+  --a-glow-green: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(51, 139, 110, 0.6) 100%);
+  --a-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* status */
+  --a-ok: #1F7A4D;      --a-ok-bg: rgba(15, 184, 106, 0.1);
+  --a-warn: #8A5A12;    --a-warn-bg: rgba(214, 121, 58, 0.12);   --a-warn-ring: #D6793A;
+  --a-danger: #BE1A4E;  --a-danger-bg: rgba(243, 33, 99, 0.09);
+  /* shape */
+  --a-radius: 13px;
+  --a-radius-sm: 8px;
+  --a-radius-xs: 4px;
+  --a-radius-tag: 3px;
+  --a-radius-pill: 35px;
+  /* type */
+  --a-font: 'Satoshi', var(--font-inter), system-ui, -apple-system, sans-serif;
+  --a-body: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --a-mono: 'CommitMono', var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+[data-theme="dark"] .atlas {
+  --a-page: #0E0E0F;
+  --a-rail: #151516;
+  --a-surface: #171718;
+  --a-surface-2: #1D1D1F;
+  --a-field: #1F1F21;
+  --a-inset: #232325;
+  --a-track: #3A3A3D;
+  --a-ink: #FFFFFF;
+  --a-ink-2: rgba(255, 255, 255, 0.85);
+  --a-muted: rgba(255, 255, 255, 0.65);
+  --a-faint: rgba(255, 255, 255, 0.45);
+  --a-deep: #D9CCED;
+  --a-border: rgba(255, 255, 255, 0.1);
+  --a-border-strong: rgba(255, 255, 255, 0.2);
+  --a-card-border: #262628;
+  --a-navy: #7FB0DC;
+  --a-navy-soft: rgba(127, 176, 220, 0.12);
+  --a-blue: #5AA6EA;
+  --a-pink: #FF4F86;
+  --a-purple: #A98BE0;
+  --a-purple-soft: rgba(169, 139, 224, 0.14);
+  --a-primary: #FFFFFF;
+  --a-primary-ink: #000000;
+  --a-glow-blue: linear-gradient(172deg, transparent 45%, rgba(60, 120, 230, 0.2) 100%);
+  --a-glow-pink: linear-gradient(176deg, transparent 55%, rgba(255, 79, 134, 0.16) 100%);
+  --a-glow-green: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(51, 139, 110, 0.45) 100%);
+  --a-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --a-ok: #6FD6A3;      --a-ok-bg: rgba(15, 184, 106, 0.16);
+  --a-warn: #E9A86C;    --a-warn-bg: rgba(214, 121, 58, 0.18);  --a-warn-ring: #E9A86C;
+  --a-danger: #FF7AA3;  --a-danger-bg: rgba(243, 33, 99, 0.16);
+}
+
+/* ── Chart colours (Figma "Funding summary") ─────────────────────────────── */
+.atlas {
+	/* Chart-only tokens (Figma "Funding summary"). */
+	--a-chart-bar-top: #73A0C9;
+	--a-chart-bar-bottom: #1C4C78;
+	--a-chart-line: #6E1E37;
+	--a-chart-dot: #F32163;
+	--a-chart-tip-bg: #000000;
+	--a-chart-tip-ink: #FFFFFF;
+	--a-chart-tip-rule: #2F2F2F;
+}
+[data-theme="dark"] .atlas {
+	--a-chart-bar-top: #8DB6DD;
+	--a-chart-bar-bottom: #2E6AA3;
+	--a-chart-line: #E0668F;
+	--a-chart-dot: #FF4F86;
+	--a-chart-tip-bg: #FFFFFF;
+	--a-chart-tip-ink: #000000;
+	--a-chart-tip-rule: #DDDDDD;
+}

@@ -96,7 +96,7 @@ export function PaywallGate() {
 										fontSize: 14, fontWeight: 600, cursor: isCurrent ? 'default' : 'pointer',
 										display: 'grid', placeItems: 'center',
 									}}>
-									{busy === p.key ? <Loader2 className="spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'explore' ? 'Continue on Explore' : `Choose ${p.name}`}
+									{busy === p.key ? <Loader2 className="animate-spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'explore' ? 'Continue on Explore' : `Choose ${p.name}`}
 								</button>
 							</div>
 						);

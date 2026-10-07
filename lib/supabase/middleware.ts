@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { isPublicPath } from '@/lib/public-paths';
+import { isPrivatePath } from '@/lib/public-paths';
 
 /**
  * Auth pages a *signed-in* user shouldn't see — visiting these redirects them
@@ -80,13 +80,13 @@ function authCookieLive(request: NextRequest): boolean | null {
  * catches that case and signs the user out.
  *
  * Behaviour:
- *  - Has cookie + on an auth page (`/login` etc.) → redirect to dashboard
- *  - No cookie + on a private page              → redirect to /login
- *  - Otherwise                                   → pass through
+ *  - Has cookie + on an auth page (`/login` etc.) → redirect to the app
+ *  - No cookie + on a PRIVATE page               → redirect to /login
+ *  - Otherwise (incl. unknown paths)             → pass through, so a bad URL
+ *    reaches app/not-found.tsx and returns a real 404
  */
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = isPublicPath(pathname);
   const isAuthPage = AUTH_PAGES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
@@ -96,14 +96,17 @@ export async function updateSession(request: NextRequest) {
   // live. A present-but-expired cookie must NOT trigger this redirect, or the
   // user gets thrown /signup → /dashboard → /login and loses their form input.
   if (authed && isAuthPage && authCookieLive(request) === true) {
-    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/raise';
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/app';
     const url = request.nextUrl.clone();
     url.pathname = redirectTo;
     url.searchParams.delete('redirectTo');
     return NextResponse.redirect(url);
   }
 
-  if (!authed && !isPublic) {
+  // Gate on "is this private", not "is this not public". The difference is
+  // what happens to a URL that is neither: it falls through to Next's 404
+  // instead of redirecting. See PRIVATE_PREFIXES for why that matters.
+  if (!authed && isPrivatePath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', pathname);
