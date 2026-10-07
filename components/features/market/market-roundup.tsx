@@ -34,12 +34,6 @@ const YEARS: [string, string][] = (() => {
 	return out;
 })();
 
-/** Latest complete month (previous calendar month). */
-function defaultMonth(): { year: number; month: number } {
-	const d = new Date();
-	const m0 = d.getUTCMonth(); // 0-based current
-	return m0 === 0 ? { year: d.getUTCFullYear() - 1, month: 12 } : { year: d.getUTCFullYear(), month: m0 };
-}
 
 /**
  * Market → Monthly Roundup. Editorial header + curated news (from
@@ -47,14 +41,24 @@ function defaultMonth(): { year: number; month: number } {
  * for the selected month.
  */
 export function MarketRoundup() {
-	const init = defaultMonth();
-	const [year, setYear] = useState(init.year);
-	const [month, setMonth] = useState(init.month);
+	// `null` = "whatever the server says is the latest month with data".
+	// Seeding this to the previous calendar month is what made the page look
+	// broken: ingest is behind (deals stop at July 2026), so it opened on a
+	// month of zeros. The server now resolves the default and echoes the
+	// month it chose, so the client never has to guess how current the data is.
+	const [sel, setSel] = useState<{ year: number; month: number } | null>(null);
 
-	const roundup = useSWR<Roundup>(qk.market.roundup({ year, month }));
+	const roundup = useSWR<Roundup>(qk.market.roundup(sel ?? {}));
+	const shown = sel ?? (roundup.data ? { year: roundup.data.year, month: roundup.data.month } : null);
+	const year = shown?.year ?? new Date().getUTCFullYear();
+	const month = shown?.month ?? 1;
+	const setYear = (y: number) => setSel({ year: y, month });
+	const setMonth = (m: number) => setSel({ year, month: m });
+
 	const start = `${year}-${pad(month)}-01`;
 	const end = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
-	const deals = useSWR<{ data: Deal[] }>(qk.deals.list({ from: start, to: end, sort: '-amount_usd', limit: 10 }));
+	// Held until the month is known, or the first request asks for the wrong one.
+	const deals = useSWR<{ data: Deal[] }>(shown ? qk.deals.list({ from: start, to: end, sort: '-amount_usd', limit: 10 }) : null);
 
 	const monthName = MONTHS.find(([v]) => v === String(month))?.[1] ?? '';
 	const s = roundup.data?.stats;
@@ -88,16 +92,21 @@ export function MarketRoundup() {
 		return [...map.entries()];
 	}, [roundup.data]);
 
+	// Counts back from the latest month that has data, not from today — an
+	// archive of empty months is worse than no archive.
 	const archive = useMemo(() => {
+		if (!roundup.data) return [] as { year: number; month: number; label: string }[];
 		const out: { year: number; month: number; label: string }[] = [];
-		let y = init.year, m = init.month;
+		let y = roundup.data.year, m = roundup.data.month;
 		for (let i = 0; i < 12; i++) {
 			out.push({ year: y, month: m, label: `${MONTHS.find(([v]) => v === String(m))?.[1]} ${y}` });
 			m -= 1; if (m < 1) { m = 12; y -= 1; }
 		}
 		return out;
+	// Only the FIRST resolved month seeds the archive; re-deriving it on every
+	// pick would make the list jump under the user as they browse.
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [roundup.data == null]);
 
 	return (
 		<div style={{ display: 'grid', gap: 24 }}>
