@@ -1,0 +1,151 @@
+/*
+ * Atlas skin for the shared legacy CompanyDrawer (components/ui/company-drawer.tsx)
+ * when it is opened inside the Raise workspace. The drawer renders inline (no
+ * portal) as `.co-drawer-overlay > aside.co-drawer`, so it sits inside the Raise
+ * shell's `.atlas` wrapper; every selector here is prefixed `.atlas ` and never
+ * touches the drawer elsewhere in the app. Legacy vars are remapped to Atlas
+ * tokens on the overlay root, then the legacy chrome (square buttons, tabs,
+ * tags, panels) is restyled to the kit look.
+ */
+
+/* ── Token remap (covers the drawer and the nested watchlist picker) ── */
+.atlas .co-drawer-overlay {
+	--fg: var(--a-ink);
+	--fg-2: var(--a-ink-2);
+	--fg-muted: var(--a-muted);
+	--bg: var(--a-page);
+	--bg-2: var(--a-surface);
+	--bg-3: var(--a-inset);
+	--border: var(--a-border);
+	--border-strong: var(--a-border-strong);
+	--accent: var(--a-navy);
+	--accent-fg: var(--a-primary-ink);
+	--pos: var(--a-ok);
+	--neg: var(--a-danger);
+	--font-mono: var(--a-mono);
+	--font-display: var(--a-font);
+	font-family: var(--a-body);
+	color: var(--a-ink);
+	background: rgba(0, 0, 0, 0.32);
+}
+
+/* ── Panel ── */
+.atlas .co-drawer {
+	background: var(--a-page);
+	border-left: 1px solid var(--a-card-border);
+	box-shadow: -12px 0 40px rgba(0, 0, 0, 0.12);
+}
+.atlas .co-drawer-head { padding: 22px 23px 18px; gap: 14px; align-items: center; }
+.atlas .co-drawer-name { font-family: var(--a-font); font-size: 20px; font-weight: 700; letter-spacing: 0; color: var(--a-ink); }
+.atlas .co-drawer-url { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); margin-top: 5px; }
+.atlas .co-drawer .co-logo-img { border-radius: var(--a-radius-sm); background: var(--a-field); border-color: var(--a-card-border); }
+.atlas .co-drawer .co-logo { border-radius: var(--a-radius-sm); }
+
+/* Icon buttons → round outline pills */
+.atlas .co-drawer-overlay .icon-btn {
+	width: 29px; height: 29px; border-radius: var(--a-radius-pill);
+	border: 1px solid var(--a-border); background: var(--a-field); color: var(--a-ink);
+}
+.atlas .co-drawer-overlay .icon-btn:hover { background: var(--a-inset); border-color: var(--a-border-strong); color: var(--a-ink); }
+
+.atlas .co-drawer-raising { padding: 10px 23px; background: var(--a-ok-bg); border-bottom-color: var(--a-border); }
+.atlas .co-drawer-raising-meta { font-family: var(--a-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--a-muted); }
+
+/* ── Tabs → Atlas tab bar ── */
+.atlas .co-drawer-tabs { background: transparent; padding: 0 23px; gap: 28px; border-bottom: 1px solid var(--a-border-strong); }
+.atlas .co-drawer-tab {
+	padding: 14px 0 10px; font-family: var(--a-font); font-size: 14px; font-weight: 500; color: var(--a-faint);
+}
+.atlas .co-drawer-tab:hover { color: var(--a-ink-2); }
+.atlas .co-drawer-tab.on { color: var(--a-ink); font-weight: 700; }
+.atlas .co-drawer-tab.on::after { left: 0; right: 0; height: 3px; background: var(--a-ink); }
+.atlas .co-drawer-tab-count {
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.05em; font-weight: 400;
+	padding: 2px 6px 1px; border-radius: var(--a-radius-tag); background: var(--a-inset); color: var(--a-muted);
+}
+
+/* ── Body ── */
+.atlas .co-drawer-body { padding: 20px 23px; }
+.atlas .co-drawer-desc { font-size: 13px; line-height: 1.55; color: var(--a-muted); }
+.atlas .co-drawer-h4 { font-family: var(--a-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.05em; color: var(--a-muted); margin: 22px 0 10px; }
+.atlas .co-drawer .co-kv { font-size: 13px; padding: 11px 0; border-bottom-color: var(--a-border); }
+.atlas .co-drawer .co-kv-k { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .co-drawer .co-kv-v { color: var(--a-ink); }
+.atlas .co-drawer .co-mini-stat { background: var(--a-surface); border: 1px solid var(--a-card-border); border-radius: var(--a-radius-sm); }
+.atlas .co-drawer .co-mini-stat-l { font-family: var(--a-mono); letter-spacing: 0.05em; color: var(--a-muted); }
+.atlas .co-drawer .co-mini-stat-v { font-family: var(--a-font); font-weight: 500; letter-spacing: 0; }
+.atlas .co-drawer .co-empty {
+	border-radius: var(--a-radius); border: 1px solid var(--a-card-border); background: var(--a-surface);
+	font-family: var(--a-mono); letter-spacing: 0.05em; color: var(--a-muted);
+}
+.atlas .co-drawer .co-round { padding: 14px 0; border-bottom-color: var(--a-border); }
+.atlas .co-drawer .co-round-dot { background: var(--a-ink); }
+.atlas .co-drawer .num { font-family: var(--a-mono); }
+
+/* Investor roster */
+.atlas .co-drawer .co-inv-list { border: 1px solid var(--a-card-border); border-radius: var(--a-radius); background: var(--a-surface); overflow: hidden; }
+.atlas .co-drawer .co-inv-row { padding: 12px 16px; border-bottom-color: var(--a-border); }
+.atlas .co-drawer .co-inv-row:hover { background: linear-gradient(180deg, transparent, var(--a-navy-soft)); }
+.atlas .co-drawer .co-inv-logo { border-radius: var(--a-radius-sm); background: var(--a-field); border: 1px solid var(--a-card-border); color: var(--a-ink-2); font-family: var(--a-mono); font-weight: 400; }
+.atlas .co-drawer .co-inv-name { font-family: var(--a-font); font-weight: 700; }
+.atlas .co-drawer .co-inv-meta { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* Connect / socials */
+.atlas .co-drawer .co-social,
+.atlas .co-drawer .co-social-mail { border-radius: var(--a-radius-pill); background: var(--a-field); border-color: var(--a-border-strong); font-size: 12px; padding: 7px 14px; }
+.atlas .co-drawer .co-social-ico { border-radius: var(--a-radius-pill); background: var(--a-field); border-color: var(--a-border-strong); color: var(--a-ink); }
+.atlas .co-drawer .co-social:hover,
+.atlas .co-drawer .co-social-mail:hover,
+.atlas .co-drawer .co-social-ico:hover { background: var(--a-inset); color: var(--a-ink); }
+
+/* Pro-locked contact block → Atlas card */
+.atlas .co-drawer .co-locked-block { border: 1px solid var(--a-card-border); border-radius: var(--a-radius); background: var(--a-surface); background-image: var(--a-glow-blue); overflow: hidden; }
+.atlas .co-drawer .co-locked-head { padding: 14px 18px; border-bottom-color: var(--a-border); }
+.atlas .co-drawer .co-locked-icon { background: var(--a-field); border-color: var(--a-border); color: var(--a-ink); }
+.atlas .co-drawer .co-locked-title { font-family: var(--a-font); font-size: 15px; color: var(--a-ink); }
+.atlas .co-drawer .co-locked-sub { color: var(--a-muted); }
+.atlas .co-drawer .co-pro-tag {
+	font-family: var(--a-mono); font-size: 9px; font-weight: 400; letter-spacing: 0.05em;
+	padding: 3px 9px 2px; border-radius: var(--a-radius-tag);
+	background: var(--a-navy-soft); color: var(--a-navy); border: 1px solid color-mix(in srgb, var(--a-navy) 18%, transparent);
+}
+
+/* Dashed "open full profile" CTA → outline pill */
+.atlas .co-drawer .co-drawer-cta {
+	height: 29px; padding: 0 15px; border-radius: var(--a-radius-pill);
+	border: 1px solid var(--a-border-strong); background: var(--a-field); color: var(--a-ink);
+	font-family: var(--a-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .co-drawer .co-drawer-cta:hover { background: var(--a-inset); border-style: solid; border-color: var(--a-border-strong); }
+
+/* Legacy tags / raising pill → Atlas badges */
+.atlas .co-drawer .tag {
+	height: auto; padding: 3px 9px 2px; border-radius: var(--a-radius-tag);
+	font-family: var(--a-mono); font-size: 9px; font-weight: 400; letter-spacing: 0.05em;
+	background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-deep); border: 1px solid var(--a-border);
+}
+.atlas .co-drawer .rp { border-radius: var(--a-radius-tag); font-weight: 400; letter-spacing: 0.05em; background: var(--a-ok-bg); color: var(--a-ok); }
+
+/* ── Footer + legacy .btn → kit buttons ── */
+.atlas .co-drawer-foot { background: transparent; padding: 16px 23px; gap: 10px; border-top: 1px solid var(--a-border); }
+.atlas .co-drawer-overlay .btn {
+	height: 29px; padding: 0 15px; gap: 7px; border-radius: var(--a-radius-pill);
+	font-family: var(--a-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase;
+	background: var(--a-primary); color: var(--a-primary-ink); border: 1px solid var(--a-border);
+	text-decoration: none;
+}
+.atlas .co-drawer-overlay .btn:hover:not(:disabled) { filter: none; opacity: 0.85; }
+.atlas .co-drawer-overlay .btn svg { width: 13px; height: 13px; }
+.atlas .co-drawer-overlay .btn.ghost { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
+.atlas .co-drawer-overlay .btn.ghost:hover:not(:disabled) { background: var(--a-inset); opacity: 1; }
+
+/* ── Watchlist picker (rendered inside the drawer) ── */
+.atlas .co-drawer-overlay .wp-overlay { background: rgba(0, 0, 0, 0.32); }
+.atlas .co-drawer-overlay .wp-modal { background: var(--a-page); border: 1px solid var(--a-card-border); border-radius: var(--a-radius); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16); overflow: hidden; }
+.atlas .co-drawer-overlay .wp-title { font-family: var(--a-font); letter-spacing: 0; }
+.atlas .co-drawer-overlay .wp-row { border-radius: var(--a-radius-sm); }
+.atlas .co-drawer-overlay .wp-row:hover { background: var(--a-inset); }
+.atlas .co-drawer-overlay .wp-check { border-radius: var(--a-radius-xs); }
+.atlas .co-drawer-overlay .wp-count { border-radius: var(--a-radius-tag); }
+.atlas .co-drawer-overlay .wp-input { border-radius: var(--a-radius-pill); background: var(--a-field); border-color: var(--a-border-strong); padding: 7px 14px; }
+.atlas .co-drawer-overlay .wp-color { border-radius: var(--a-radius-sm); }

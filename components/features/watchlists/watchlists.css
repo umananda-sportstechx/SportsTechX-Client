@@ -1,0 +1,22 @@
+/* Company watchlists — picker menu extras, overview + detail rows. Atlas tokens only. */
+.atlas .atlas-wl-menu { min-width: 260px; }
+.atlas .atlas-wl-check {
+	display: inline-grid; place-items: center; flex-shrink: 0; width: 14px; height: 14px; border-radius: 3px;
+	border: 1px solid color-mix(in srgb, var(--a-primary-ink) 45%, transparent);
+}
+.atlas .atlas-menu__item.on .atlas-wl-check { background: var(--a-primary-ink); color: var(--a-primary); border-color: var(--a-primary-ink); }
+.atlas .atlas-wl-new { display: flex; gap: 6px; align-items: center; }
+.atlas .atlas-wl-new .atlas-menu__search { margin: 0; }
+.atlas .atlas-wl-create {
+	flex-shrink: 0; height: 26px; padding: 0 12px; border-radius: var(--a-radius-pill); border: none; cursor: pointer;
+	background: var(--a-primary-ink); color: var(--a-primary); font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .atlas-wl-create:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.atlas .atlas-wl-createbar { display: flex; gap: 10px; align-items: center; margin-bottom: 24px; max-width: 620px; }
+.atlas .atlas-wl-title { text-decoration: none; display: inline-block; }
+.atlas .atlas-wl-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.atlas .atlas-wl-actions { display: flex; align-items: center; gap: 18px; flex-shrink: 0; flex-wrap: wrap; }
+.atlas .atlas-wl-rename { display: flex; gap: 8px; align-items: center; max-width: 520px; }
+.atlas .atlas-wl-co__id { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.atlas .atlas-wl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }

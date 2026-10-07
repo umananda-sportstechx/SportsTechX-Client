@@ -16,7 +16,7 @@ import '@/components/landing/landing.css';
 /**
  * Public marketing landing page (Atlas – Landing V2, from Figma). Fixed-theme (its own palette in landing.css, scoped to
  * `.lp`), independent of the app's light/dark toggle. This replaces the old
- * `redirect('/raise')`; `/` is whitelisted in lib/supabase/middleware.ts so it's
+ * a redirect into the Raise workspace; the signed-in product now lives at `/app`, and `/` is whitelisted in lib/supabase/middleware.ts so it's
  * reachable while logged out.
  *
  * Fonts: headings use the design's licensed "Zuume" as soon as its file exists at

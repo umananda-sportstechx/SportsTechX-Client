@@ -1,0 +1,66 @@
+/*
+ * Company profile page (Figma "Company" view). Tokens from Atlas; layout only here.
+ */
+.atlas .atlas-co__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 57px; }
+.atlas .atlas-co__id { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.atlas .atlas-co__name { margin: 0; font-family: var(--a-font); font-size: 40px; font-weight: 700; line-height: 1.1; color: var(--a-ink); }
+.atlas .atlas-co__meta { margin-top: 10px; font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--a-muted); }
+.atlas .atlas-co__actions { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding-top: 30px; }
+
+.atlas .atlas-co__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: 48px; align-items: start; }
+@media (max-width: 1100px) { .atlas .atlas-co__grid { grid-template-columns: 1fr; } }
+.atlas .atlas-co__main, .atlas .atlas-co__rail { display: flex; flex-direction: column; gap: 30px; min-width: 0; }
+
+/* Facts card: two columns of label / value */
+.atlas .atlas-co__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 32px; padding: 30px 38px; }
+@media (max-width: 640px) { .atlas .atlas-co__facts { grid-template-columns: 1fr; padding: 22px; } }
+.atlas .atlas-co__fact-k { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 8px; }
+.atlas .atlas-co__fact-v { font-family: var(--a-font); font-size: 20px; font-weight: 500; line-height: 1.3; color: var(--a-ink); }
+
+.atlas .atlas-co__text { padding: 0 18px; }
+.atlas .atlas-co__text p { margin: 8px 0 0; font-family: var(--a-body); font-size: 14px; line-height: 1.75; color: var(--a-muted); max-width: 820px; }
+.atlas .atlas-co__h { margin: 0; font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); }
+.atlas .atlas-co__h2 { margin: 0; font-family: var(--a-font); font-size: 20px; font-weight: 700; color: var(--a-ink); }
+
+/* Funding history */
+.atlas .atlas-co__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 22px 30px 18px; border-bottom: 1px solid var(--a-border); }
+.atlas .atlas-co__aside { font-family: var(--a-body); font-size: 14px; color: var(--a-muted); }
+.atlas .atlas-co__deal {
+	display: grid; grid-template-columns: 140px 170px 140px minmax(0, 1fr); gap: 12px; align-items: center;
+	padding: 18px 30px; border-top: 1px solid var(--a-border); font-family: var(--a-body); font-size: 15px; color: var(--a-muted);
+}
+.atlas .atlas-co__deal:first-of-type { border-top: none; }
+.atlas .atlas-co__amt { font-weight: 600; color: var(--a-ink); }
+.atlas .atlas-co__investors { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) { .atlas .atlas-co__deal { grid-template-columns: 1fr 1fr; padding: 14px 20px; } .atlas .atlas-co__investors { grid-column: 1 / -1; } }
+.atlas .atlas-co__empty { margin: 0; padding: 18px 30px 22px; font-size: 13px; color: var(--a-faint); }
+
+/* Right rail cards */
+.atlas .atlas-co__side { padding: 26px 23px 24px; }
+.atlas .atlas-co__side .atlas-co__empty { padding: 14px 0 0; }
+.atlas .atlas-co__sub { margin: 6px 0 4px; font-family: var(--a-body); font-size: 14px; color: var(--a-muted); }
+.atlas .atlas-co__signal { padding: 16px 0; border-bottom: 1px solid var(--a-border); }
+.atlas .atlas-co__signal:last-child { border-bottom: none; padding-bottom: 0; }
+.atlas .atlas-co__signal-meta { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 8px; }
+.atlas .atlas-co__signal a, .atlas .atlas-co__signal span { font-family: var(--a-body); font-size: 15px; line-height: 1.5; color: var(--a-ink); text-decoration: none; }
+.atlas .atlas-co__signal a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.atlas .atlas-co__rel {
+	display: flex; align-items: center; justify-content: space-between; gap: 12px;
+	padding: 16px 0; border-bottom: 1px solid var(--a-border); text-decoration: none; color: inherit;
+}
+.atlas .atlas-co__rel > span:first-child { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.atlas .atlas-co__rel-name { font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); }
+.atlas .atlas-co__rel-meta { font-family: var(--a-body); font-size: 14px; color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas .atlas-co__rel-go {
+	display: inline-grid; place-items: center; flex-shrink: 0; width: 42px; height: 30px;
+	border-radius: var(--a-radius-pill); background: var(--a-field); border: 1px solid var(--a-border); color: var(--a-ink);
+	transition: background 0.15s, color 0.15s;
+}
+.atlas .atlas-co__rel:hover .atlas-co__rel-go { background: var(--a-primary); color: var(--a-primary-ink); }
+.atlas .atlas-co__more { margin-top: 22px; }
+
+@media (max-width: 640px) {
+	.atlas .atlas-co__name { font-size: 30px; }
+	.atlas .atlas-co__actions { padding-top: 0; gap: 18px; }
+}

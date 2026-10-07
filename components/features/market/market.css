@@ -1,0 +1,80 @@
+/*
+ * Market feature styles — company list rows, roundup donut cards, news,
+ * archive and summary banner. Charts, tables and KPI strips are design-system
+ * pieces (components/atlas/styles).
+ */
+/* ── Company list rows (Figma "Company List") ── */
+.atlas .mkt-list { display: flex; flex-direction: column; }
+.atlas .mkt-co {
+	display: flex; align-items: center; gap: 13px; padding: 14px 23px;
+	border-bottom: 1px solid var(--a-border); transition: background .15s;
+}
+.atlas .mkt-co:last-child { border-bottom: none; }
+.atlas .mkt-co:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--a-page) 40%, transparent), var(--a-navy-soft)); }
+.atlas .mkt-co .atlas-entity-logo, .atlas .mkt-co > :first-child { flex-shrink: 0; }
+.atlas .mkt-co-body { flex: 1; min-width: 0; padding: 7px 0; }
+.atlas .mkt-co-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.atlas .mkt-co-name--link { text-decoration: none; }
+.atlas .mkt-co-name--link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.atlas .mkt-co-name { font-family: var(--a-font); font-size: 18px; font-weight: 700; line-height: 1; color: var(--a-ink); }
+.atlas .mkt-co-meta {
+	font-family: var(--a-mono); font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase;
+	color: var(--a-muted); display: inline-flex; align-items: center; gap: 6px;
+}
+.atlas .mkt-co-desc {
+	font-family: var(--a-body); font-size: 11px; line-height: 1.4; color: var(--a-muted); margin-bottom: 9px;
+	display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.atlas .mkt-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+.atlas .mkt-tag {
+	background: color-mix(in srgb, var(--a-ink) 3%, transparent); border: 1px solid color-mix(in srgb, var(--a-ink) 9%, transparent);
+	border-radius: var(--a-radius-tag); padding: 3px 10px 2px;
+	font-family: var(--a-mono); font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-deep);
+}
+.atlas .mkt-co-actions { display: flex; align-items: center; gap: 19px; flex-shrink: 0; align-self: flex-end; padding-bottom: 12px; }
+@media (max-width: 640px) { .atlas .mkt-co-actions { width: 100%; padding: 0 0 0 85px; } }
+.atlas .mkt-co-open {
+	display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+	color: var(--a-ink); white-space: nowrap; background: none; border: none; cursor: pointer; padding: 0;
+}
+.atlas .mkt-co-open::before {
+	content: '↗'; display: inline-grid; place-items: center; width: 33px; height: 24px;
+	border-radius: var(--a-radius-pill); background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-body); font-size: 12px; letter-spacing: 0; transition: background .15s, color .15s;
+}
+.atlas .mkt-co-open:hover::before { background: var(--a-field); color: var(--a-ink); box-shadow: inset 0 0 0 1px var(--a-border-strong); }
+
+/* ── Roundup donut cards (Figma "Funding by sector") ── */
+.atlas .mkt-donuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.atlas .mkt-donut-card { padding: 0; overflow: hidden; }
+.atlas .mkt-donut-card .atlas-chart-card__head { padding: 22px 18px 16px; }
+.atlas .mkt-donut-card .atlas-section-title { font-size: 16px; }
+.atlas .mkt-donut-chart { display: flex; justify-content: center; padding: 14px 0 16px; border-bottom: 1px solid var(--a-border); }
+.atlas .mkt-donut-legend { padding: 16px 18px 18px; }
+.atlas .mkt-donut-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+/* ── Roundup news (Figma "Funding" / "Market Developments") ── */
+.atlas .mkt-news-sec { margin-bottom: 44px; padding: 0 18px; }
+.atlas .mkt-news-sec-h { font-family: var(--a-font); font-size: 21px; font-weight: 700; color: var(--a-ink); padding-bottom: 14px; border-bottom: 1px solid var(--a-border); margin-bottom: 4px; }
+.atlas .mkt-news-item { padding: 20px 0; border-bottom: 1px solid var(--a-border); display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+.atlas .mkt-news-item:last-child { border-bottom: none; }
+.atlas .mkt-news-main { flex: 1; min-width: 260px; }
+.atlas .mkt-news-head { font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); line-height: 1.4; margin-bottom: 8px; }
+.atlas .mkt-news-body { font-family: var(--a-body); font-size: 12px; line-height: 1.6; color: color-mix(in srgb, var(--a-ink) 55%, transparent); max-width: 680px; }
+.atlas .mkt-news-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; }
+
+/* ── Archive grid ── */
+.atlas .mkt-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 26px; }
+.atlas .mkt-archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--a-border); font-family: var(--a-body); font-size: 13px; }
+.atlas .mkt-archive-row button { background: none; border: none; color: var(--a-ink); cursor: pointer; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; padding: 0; }
+.atlas .mkt-archive-row button:hover { text-decoration: underline; }
+
+/* ── Summary banner ── */
+.atlas .mkt-summary { background-color: var(--a-surface); background-image: var(--a-glow-blue); border: 1px solid var(--a-card-border); border-radius: var(--a-radius); padding: 21px 23px; }
+.atlas .mkt-summary-t { font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); margin-bottom: 8px; }
+.atlas .mkt-summary-b { font-family: var(--a-body); font-size: 13px; line-height: 1.65; color: var(--a-muted); max-width: 860px; }
+
+@media (max-width: 640px) {
+	.atlas .mkt-co { flex-wrap: wrap; }
+}

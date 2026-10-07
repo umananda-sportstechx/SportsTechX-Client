@@ -1,156 +1,85 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { useTheme } from 'next-themes';
-import { Loader2 } from 'lucide-react';
-import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
-import { SidebarRail } from './sidebar-rail';
-import { Topbar } from './topbar';
-import { TickerStrip } from './ticker-strip';
-import { AiPanel } from './ai-panel';
+import dynamic from 'next/dynamic';
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { AtlasShell } from '@/components/atlas';
+import { RouteGate } from '@/components/auth/route-gate';
 import { PaywallGate } from '@/components/paywall/paywall-gate';
-import { CommandPalette } from './command-palette';
-import { RaiseShell } from './raise-shell';
+// Raise-only, so a static import here shipped the co-pilot to Explore and
+// Scout users who can never open it.
+const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
+import { UpgradeCards } from '@/components/explore/upgrade-cards';
+import { EXPLORE_COLOR } from '@/components/explore/shell-config';
+import { SCOUT_COLOR } from '@/components/scout/shell-config';
+import { useNav } from '@/hooks/use-nav';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { TIER_LABEL } from '@/hooks/use-user-profile';
+import type { Tier } from '@/lib/access';
+import { hrefOf } from '@/lib/routes';
+import { trackPage } from '@/lib/analytics';
+import '@/components/raise/raise.css';
+import '@/components/explore/explore.css';
+import '@/components/scout/scout.css';
 
 /**
- * Top-level shell that wraps every authenticated page with the SportsTechX
- * design system layout: rail (left) + main column (with ticker, topbar, and
- * scrollable content) + AI panel (optional, right-side drawer).
+ * The one app frame, for every product.
  *
- * Ported from ui_design/app/app.jsx. The CSS grid rules in
- * `app/design-system.css` (.app-shell, .app-shell.ai-open, .app-shell.rail-expanded)
- * drive the column-template based on which classes are present.
+ * Replaces `RaiseShell` / `ExploreShell` / `ScoutShell`, which after the nav
+ * was derived from the route manifest differed only in these four values —
+ * all of which follow from the viewer's tier, not from which route tree they
+ * happened to be in.
  *
- * State held here:
- *  - railExpanded:   collapsed (64px) vs expanded (220px) sidebar
- *  - aiOpen:         AI panel right drawer visibility
- *  - cmdOpen:        Cmd+K command palette overlay
- *  - showTicker:     ticker strip on/off (defaults on)
+ * `product` stays per-tier rather than becoming a constant: `AtlasShell` seeds
+ * `stx:<product>-rail-collapsed` and `stx:<product>-nav-closed` from it, so
+ * flattening it would silently reset everyone's sidebar preferences.
  *
- * Theme is delegated to next-themes which writes `class="dark"` to <html>;
- * design-system.css covers both `[data-theme="dark"]` (the prototype's
- * convention) and `.dark` (next-themes default) so both work.
+ * It no longer sniffs paths. The two branches it had — billing/coming-soon and
+ * onboarding, both wanting the Atlas palette with no chrome — are route
+ * *layouts* now (`app/billing/layout.tsx`, `app/(onboarding)/layout.tsx`),
+ * which is where "this page has different chrome" belongs. `/coming-soon` is
+ * gone entirely.
  */
+const COLOR: Record<Tier, string | undefined> = {
+	explore: EXPLORE_COLOR,
+	// Raise has no colour of its own — AtlasShell's default is the Raise blue.
+	raise: undefined,
+	scout: SCOUT_COLOR,
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-	// `railExpanded` is the sticky click state (toggle by logo / chevron).
-	// `railHovered` is the ephemeral pointer state — expanding the rail while
-	// the cursor is over it, collapsing back when the cursor leaves. The two
-	// are OR'd so a click-locked open stays open after the cursor leaves,
-	// while a hover-only open snaps back when the cursor moves away.
-	const [railExpanded, setRailExpanded] = useState(false);
-	const [railHovered, setRailHovered] = useState(false);
-	const railVisuallyExpanded = railExpanded || railHovered;
-	const [aiOpen, setAiOpen] = useState(false);
-	const [cmdOpen, setCmdOpen] = useState(false);
-	const [showTicker, setShowTicker] = useState(true);
-
-	const { resolvedTheme, setTheme } = useTheme();
-	// Treat any non-light theme as dark for the topbar icon — keeps UX
-	// stable while next-themes hydrates.
-	const themeMode: 'dark' | 'light' = resolvedTheme === 'light' ? 'light' : 'dark';
-
-	// The founder raise workspace uses its own clean shell (sidebar + content,
-	// no topbar/ticker/AI), on the Atlas palette. Cmd+K and the paywall stay.
-	const pathname = usePathname();
-	const isRaiseWorkspace = pathname === '/raise' || pathname.startsWith('/raise/');
-
-	// The Raise workspace is gated to the `raise` plan (admins bypass). Everyone
-	// else (free / general / scout) is sent to the shared coming-soon page.
-	const router = useRouter();
+	const pathname = usePathname() ?? '';
 	const { data: profile } = useUserProfile();
-	const isAdmin = profile?.user_role === 'admin';
-	const raiseAllowed = isAdmin || getUserType(profile) === 'raise';
-	useEffect(() => {
-		if (isRaiseWorkspace && profile && !raiseAllowed) router.replace('/coming-soon');
-	}, [isRaiseWorkspace, profile, raiseAllowed, router]);
 
-	// Cmd+K shortcut for the command palette.
-	useEffect(() => {
-		const handler = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-				e.preventDefault();
-				setCmdOpen((open) => !open);
-			}
-		};
-		window.addEventListener('keydown', handler);
-		return () => window.removeEventListener('keydown', handler);
-	}, []);
-
-	// Cross-component event: command palette dispatches stx:open-ai when the
-	// user picks the "Ask AI" row, opening the panel from anywhere.
-	useEffect(() => {
-		const handler = () => setAiOpen(true);
-		window.addEventListener('stx:open-ai', handler);
-		return () => window.removeEventListener('stx:open-ai', handler);
-	}, []);
-
-	const shellClasses = [
-		'app-shell',
-		railVisuallyExpanded ? 'rail-expanded' : '',
-		aiOpen ? 'ai-open' : '',
-	].filter(Boolean).join(' ');
-
-	// Plan-agnostic surfaces (coming-soon placeholder + billing/subscriptions) —
-	// rendered on the Atlas palette with no legacy chrome, reachable by any plan.
-	if (pathname === '/coming-soon' || pathname.startsWith('/billing')) {
-		return <div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}<PaywallGate /></div>;
-	}
-
-	if (isRaiseWorkspace) {
-		// Gate to the raise plan: show a loader while the profile loads or while a
-		// non-raise user is being redirected to /coming-soon.
-		if (!profile || !raiseAllowed) {
-			return <div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: 'var(--a-page)' }}><Loader2 className="spin" size={22} /></div>;
-		}
-		// Founder-only shell — no legacy CommandPalette (its nav points at removed routes).
-		return (
-			<>
-				<RaiseShell>{children}</RaiseShell>
-				<PaywallGate />
-			</>
-		);
-	}
+	// One page-view call for the whole signed-in product. Every /app route
+	// renders inside this shell, so this is the single place that covers them
+	// without 39 per-page calls to keep in sync. No-ops until
+	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
+	useEffect(() => { trackPage(pathname); }, [pathname]);
+	const { tier, nav, bottomNav, homePath, accountPath } = useNav();
 
 	return (
-		<div className={shellClasses}>
-			<SidebarRail
-				expanded={railVisuallyExpanded}
-				onToggleExpand={() => setRailExpanded((v) => !v)}
-				onHoverChange={setRailHovered}
-			/>
-
-			<main className="main-col">
-				{showTicker && <TickerStrip />}
-				<Topbar
-					onCmdOpen={() => setCmdOpen(true)}
-					aiOpen={aiOpen}
-					onToggleAi={() => setAiOpen((v) => !v)}
-					theme={themeMode}
-					onToggleTheme={() => setTheme(themeMode === 'dark' ? 'light' : 'dark')}
-				/>
-				<div className="content-scroll">{children}</div>
-			</main>
-
-			<AiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
-			<CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-			<PaywallGate />
-
-			{/* Ticker toggle (hidden by default — wired up in tweaks panel later). */}
-			<TickerToggleEffect onChange={setShowTicker} />
-		</div>
+		<>
+			<AtlasShell
+				product={TIER_LABEL[tier]}
+				productColor={COLOR[tier]}
+				homePath={homePath}
+				nav={nav}
+				bottomNav={bottomNav}
+				accountPath={accountPath}
+				accountName={profile?.full_name ?? profile?.display_name}
+				// Explore's sidebar carries the Raise / Scout upgrade cards.
+				railExtra={tier === 'explore' ? <UpgradeCards /> : undefined}
+				// Raise's co-pilot FAB. The full chat page is itself the co-pilot,
+				// so don't stack a drawer on top of it there.
+				overlay={tier === 'raise' && !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
+			>
+				<RouteGate>{children}</RouteGate>
+			</AtlasShell>
+			{/* Keeps today's behaviour: the one-time plan chooser is shown to the
+			    paid tiers, not to Explore. It self-suppresses once
+			    `paywall_shown_at` is stamped. */}
+			{tier !== 'explore' && <PaywallGate />}
+		</>
 	);
-}
-
-/** Listens for tweaks-panel events that turn the ticker on/off. */
-function TickerToggleEffect({ onChange }: { onChange: (v: boolean) => void }) {
-	useEffect(() => {
-		const handler = (e: Event) => {
-			const detail = (e as CustomEvent<{ value: boolean }>).detail;
-			if (typeof detail?.value === 'boolean') onChange(detail.value);
-		};
-		window.addEventListener('stx:tweak-ticker', handler);
-		return () => window.removeEventListener('stx:tweak-ticker', handler);
-	}, [onChange]);
-	return null;
 }

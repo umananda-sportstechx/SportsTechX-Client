@@ -5,7 +5,9 @@ import { getSupabaseBrowser } from './supabase/client';
 import { sessionRefreshLock } from './session-refresh-lock';
 import { logoutState } from './logout-state';
 import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
+import { openTierRequired, TierRequiredError } from './tier-events';
 import { isPublicPath } from './public-paths';
+import type { Tier } from './access';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
 //
@@ -87,7 +89,52 @@ function noRedirectHere(): boolean {
   return AUTH_PATHS.has(pathname) || isPublicPath(pathname);
 }
 
-async function handleResponse(res: Response, _context?: string): Promise<void> {
+/** This app's error envelope, as the server's exceptions filter emits it. */
+interface ApiErrorBody {
+  message?: unknown;
+  error?: {
+    code?: string;
+    message?: string;
+    /** TIER_REQUIRED only — top level, not under `details`. */
+    requiredTiers?: Tier[];
+    currentTier?: Tier;
+    details?: {
+      required?: number;
+      available?: number;
+      credit_type?: 'ai' | 'integration';
+      issues?: Array<{ path?: unknown[]; message?: string }>;
+    };
+  } | string;
+}
+
+/** This app's structured `{error:{code,...}}` envelope, or null if the body is
+ *  not JSON or carries only a bare string error (NestJS's default shape). */
+function parseApiError(text: string): Exclude<ApiErrorBody['error'], string | undefined> | null {
+  try {
+    const { error } = JSON.parse(text) as ApiErrorBody;
+    return error && typeof error === 'object' ? error : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse a JSON response that might legitimately have no body.
+ *
+ * `res.json()` throws "Unexpected end of JSON input" on an empty body, and a
+ * 200-with-no-body is a normal NestJS outcome: a handler that returns `null`
+ * (e.g. `GET /api/billing/subscription` → `getActiveSubscription() ?? null`)
+ * serialises to zero bytes, as does any 204. Callers already treat these as
+ * "nothing yet" — the billing page reads `sub.data?.subscription_status` — so
+ * the absence of a body is data, not a parse failure.
+ */
+async function readJson<T>(res: Response): Promise<T | null> {
+	const text = await res.text();
+	if (!text) return null;
+	return JSON.parse(text) as T;
+}
+
+async function handleResponse(res: Response, context?: string): Promise<void> {
   if (res.ok) return;
 
   const text = await res.text().catch(() => res.statusText);
@@ -100,23 +147,35 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
     }
   }
 
-  // Out of credits — pop the global "get more credits" modal and throw a typed
-  // error so callers can skip their own toast (the modal carries the message).
+  // A 402 is one of two refusals: out of credits, or the plan doesn't include
+  // this. Both pop a global modal and throw a typed error so callers can skip
+  // their own toast — the modal carries the message.
+  //
+  // Matched on status *and* code. `api-key.guard.ts` throws the same
+  // TIER_REQUIRED code at 403, which is a different situation (and 403 already
+  // bounces to /login above); only a 402 is a plan refusal.
   if (res.status === 402) {
-    let detail: { required?: number; available?: number; creditType?: 'ai' | 'integration' } = {};
-    let message = "You're out of credits.";
-    try {
-      const body = JSON.parse(text) as { error?: { code?: string; message?: string; details?: { required?: number; available?: number; credit_type?: 'ai' | 'integration' } } };
-      if (body.error?.details) detail = { required: body.error.details.required, available: body.error.details.available, creditType: body.error.details.credit_type };
-      if (body.error?.message) message = body.error.message;
-      if (body.error?.code === 'INSUFFICIENT_CREDITS') {
-        openCreditExhausted(detail);
-        throw new InsufficientCreditsError(message, detail);
-      }
-    } catch (e) {
-      if (e instanceof InsufficientCreditsError) throw e;
-      // not JSON / not a credits error — fall through to the generic throw
+    const err = parseApiError(text);
+
+    if (err?.code === 'INSUFFICIENT_CREDITS') {
+      const detail = {
+        required: err.details?.required,
+        available: err.details?.available,
+        creditType: err.details?.credit_type,
+      };
+      openCreditExhausted(detail);
+      throw new InsufficientCreditsError(err.message ?? "You're out of credits.", detail);
     }
+
+    if (err?.code === 'TIER_REQUIRED') {
+      // Note the shape: TierGuard puts `requiredTiers`/`currentTier` at the top
+      // level of `error`, NOT under `details` like the credits path. Reading
+      // `details` here would silently find nothing.
+      const detail = { requiredTiers: err.requiredTiers, currentTier: err.currentTier, message: err.message };
+      openTierRequired(detail);
+      throw new TierRequiredError(err.message ?? 'Your plan does not include this.', detail);
+    }
+    // Any other 402 falls through to the generic message below.
   }
 
   // Surface the server's human message (NestJS `{message}` / this app's
@@ -140,8 +199,17 @@ async function handleResponse(res: Response, _context?: string): Promise<void> {
   } catch {
     if (text && text.trim() && text.length < 300) message = text;
   }
-  const e = new Error(message) as Error & { status?: number };
+  const e = new Error(message) as Error & { status?: number; context?: string; code?: string };
   e.status = res.status;
+  // Carry the server's machine-readable code alongside the human message. The
+  // message is for the user; the code is what callers and the global `onError`
+  // can branch on without string-matching prose.
+  const code = parseApiError(text)?.code;
+  if (code) e.code = code;
+  // The callers all pass `${method} ${url}`. Attaching it rather than dropping
+  // it is what makes a logged failure identifiable; the message itself stays
+  // user-facing and unchanged.
+  if (context) e.context = context;
   throw e;
 }
 
@@ -269,7 +337,7 @@ export async function fetcher<T = unknown>(key: Key): Promise<T | null> {
         });
         if (retryRes.status !== 401) {
           await handleResponse(retryRes, `swr ${url} retry`);
-          return (await retryRes.json()) as T;
+          return await readJson<T>(retryRes);
         }
       }
     }
@@ -279,13 +347,20 @@ export async function fetcher<T = unknown>(key: Key): Promise<T | null> {
   }
 
   await handleResponse(res, `swr ${url}`);
-  return (await res.json()) as T;
+  return await readJson<T>(res);
 }
 
 // Re-exported for any internal use; consumers should import from 'swr'.
 export { useSWR };
 
 // ─── SWR global config ───────────────────────────────────────────────────────
+
+/**
+ * Server error codes that represent an un-started flow rather than a fault, so
+ * the global `onError` stays quiet for them. Keep this short and justified —
+ * every entry is a failure someone has decided not to hear about.
+ */
+const EXPECTED_CODES = new Set(['NO_RAISE']);
 
 export const swrConfig: SWRConfiguration = {
   fetcher,
@@ -296,8 +371,40 @@ export const swrConfig: SWRConfiguration = {
   revalidateOnReconnect: true,
   errorRetryCount: 2,
   shouldRetryOnError: (err: unknown) => {
-    if (err instanceof Error && (err as Error & { status?: number }).status === 404) return false;
+    if (!(err instanceof Error)) return true;
+    // A 404 won't become a 200, and neither refusal a 402 carries — out of
+    // credits, wrong plan — changes on retry. Retrying them just fires the
+    // global modal's event three times for one user action.
+    if ((err as Error & { status?: number }).status === 404) return false;
+    if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return false;
     return true;
+  },
+  /**
+   * Last stop for a failed request.
+   *
+   * There was no `onError` at all, which meant any API failure a component
+   * didn't explicitly render was absorbed in silence — and with no error
+   * reporter in this client, the whole API failure rate was unobservable.
+   * This at least puts it in the console with its key, so a failure is visible
+   * to anyone with devtools open and to a session replay later.
+   *
+   * Deliberately quiet for the two cases that already have UI: both open a
+   * modal of their own, and a 401 is the signed-out path, not a fault.
+   */
+  onError: (err: unknown, key: string) => {
+    if (err instanceof InsufficientCreditsError || err instanceof TierRequiredError) return;
+    const e = err instanceof Error ? (err as Error & { status?: number; code?: string; context?: string }) : undefined;
+    if (e?.status === 401) return;
+    // Domain states the server reports as errors but which are normal for a
+    // user who hasn't finished a flow. Verified against the live API:
+    // `GET /api/raise/pipeline` returns 404 `{error:{code:'NO_RAISE'}}` until
+    // raise setup completes, and the Investors page fetches it unconditionally
+    // to mark which investors are already tracked — so a correctly working page
+    // shouted in the console. (`GET /api/raise` is fine: it answers 200 with
+    // `{raise:null,criteria:null}`.) A console that cries wolf is worse than no
+    // console, which is the whole reason this handler exists.
+    if (e?.code && EXPECTED_CODES.has(e.code)) return;
+    console.error('[swr]', key, e?.context ?? '', err);
   },
   keepPreviousData: true,
 };

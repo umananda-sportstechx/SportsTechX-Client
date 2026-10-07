@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
-import { Page } from '@/components/ui/atoms';
+import { Button, Card } from '@/components/atlas';
+import { AuthBrand } from '@/components/auth/auth-shell';
 
 /**
  * Email confirmation landing — UNAUTHENTICATED route.
@@ -14,11 +14,12 @@ import { Page } from '@/components/ui/atoms';
  * magiclink|email_change`. We call `supabase.auth.verifyOtp` to swap the
  * token for a session, then redirect to the dashboard.
  *
- * IMPORTANT: this page intentionally lives OUTSIDE the `(app)` route group
- * because `(app)/layout.tsx` wraps everything in `<ProtectedRoute>`, which
- * would boot the user back to `/login` before `verifyOtp` has had a chance
- * to mint the session. The flow needs to be: anonymous user → verifyOtp →
- * session → redirect to a protected page (which is now allowed).
+ * IMPORTANT: this route must stay OUT of `/app` *and* listed in `PUBLIC_PATHS`
+ * (lib/public-paths.ts). The visitor arrives with no session by definition, so
+ * anything that demands one — the `ProtectedRoute` wrapper, or the edge
+ * middleware's cookie check — bounces them to /login before `verifyOtp` can mint
+ * the session. The flow has to be: anonymous → verifyOtp → session → redirect.
+ * Being absent from PUBLIC_PATHS is exactly how this broke once already.
  *
  * Compared to the old `/auth/v1/verify?token=…` link Supabase generates by
  * default, `token_hash` is NOT consumed by email link-previews (Gmail /
@@ -35,7 +36,7 @@ export default function ConfirmPage() {
 	const tokenHash = params.get('token_hash');
 	const type = (params.get('type') ?? 'signup') as
 		| 'signup' | 'invite' | 'recovery' | 'magiclink' | 'email_change';
-	const next = params.get('next') ?? '/raise';
+	const next = params.get('next') ?? '/app';
 
 	useEffect(() => {
 		if (!tokenHash) {
@@ -59,40 +60,28 @@ export default function ConfirmPage() {
 	}, [tokenHash, type, next, router]);
 
 	return (
-		<Page>
-			<div style={{
-				display: 'flex', flexDirection: 'column', alignItems: 'center',
-				justifyContent: 'center', minHeight: '60vh', textAlign: 'center', gap: 16,
-			}}>
+		<div className="auth-centred">
+			<Card glow="blue" className="auth-centred__card" style={{ alignItems: 'center', textAlign: 'center' }}>
+				<AuthBrand />
 				{status === 'verifying' && (
-					<>
-						<div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>Confirming your email…</div>
-					</>
+					<p className="auth-form__sub" style={{ margin: 0 }}>Confirming your email…</p>
 				)}
 				{status === 'ok' && (
 					<>
-						<CheckCircle2 size={48} color="var(--accent)" />
-						<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, margin: 0 }}>
-							You're in.
-						</h1>
-						<p style={{ color: 'var(--fg-2)', margin: 0 }}>
-							Email confirmed — redirecting…
-						</p>
+						<span className="confirm-medallion confirm-medallion--ok"><CheckCircle2 size={24} /></span>
+						<h1 className="auth-form__title">You&apos;re in.</h1>
+						<p className="auth-form__sub" style={{ margin: 0 }}>Email confirmed — redirecting…</p>
 					</>
 				)}
 				{status === 'error' && (
 					<>
-						<AlertCircle size={48} color="#dc2626" />
-						<h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, margin: 0 }}>
-							Couldn't confirm
-						</h1>
-						<p style={{ color: 'var(--fg-2)', margin: 0, maxWidth: 480 }}>
-							{message}
-						</p>
-						<Link href="/login"><button className="btn">Back to sign in</button></Link>
+						<span className="confirm-medallion confirm-medallion--bad"><AlertCircle size={24} /></span>
+						<h1 className="auth-form__title">Couldn&apos;t confirm</h1>
+						<p className="auth-form__sub" style={{ margin: 0 }}>{message}</p>
+						<Button href="/login" variant="outline">Back to sign in</Button>
 					</>
 				)}
-			</div>
-		</Page>
+			</Card>
+		</div>
 	);
 }

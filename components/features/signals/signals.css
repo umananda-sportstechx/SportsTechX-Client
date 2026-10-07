@@ -1,0 +1,27 @@
+/* Signals feed. Atlas tokens only. */
+.atlas .atlas-sig-head { margin-bottom: 18px; }
+.atlas .atlas-sig-muted { margin: 6px 0 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-muted); }
+.atlas .atlas-sig-filter { margin-bottom: 18px; overflow-x: auto; }
+.atlas .atlas-sig-list { display: grid; gap: 12px; }
+.atlas .atlas-sig { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; }
+.atlas .atlas-sig__main { flex: 1; min-width: 0; }
+.atlas .atlas-sig__top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.atlas .atlas-sig__top .atlas-sig-muted { margin: 0; }
+.atlas .atlas-sig__name { font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); }
+.atlas .atlas-sig__type {
+	display: inline-flex; align-items: center; height: 19px; padding: 0 9px; border-radius: var(--a-radius-tag);
+	background: var(--a-purple-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-purple) 28%, transparent);
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-deep);
+}
+.atlas .atlas-sig__text { margin: 6px 0 0; font-family: var(--a-body); font-size: 13px; line-height: 1.5; color: var(--a-ink-2); }
+.atlas .atlas-sig__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+.atlas .atlas-sig__watch {
+	display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: none; border-radius: var(--a-radius-pill); cursor: pointer;
+	background: transparent; box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .atlas-sig__watch.on { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
+@media (max-width: 760px) {
+	.atlas .atlas-sig { flex-wrap: wrap; }
+	.atlas .atlas-sig__actions { flex-direction: row; flex-wrap: wrap; align-items: center; width: 100%; }
+}

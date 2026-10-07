@@ -1,23 +1,26 @@
 @import "tailwindcss";
-/* Component-level CSS for the SportsTechX design system (rail, topbar,
- * ticker, ai-panel, command-palette, cards, tags, tables, etc.) Loaded
- * here so component classes are available across the entire app. */
+/*
+ * Legacy component CSS.
+ *
+ * Everything imported here downloads on EVERY route, including the public
+ * marketing page at `/` — which is why what remains is only what genuinely has
+ * no single owner. Two sheets that did have one moved out: `claim-modal.css` is
+ * imported by `components/claim/claim-modal.tsx` and `company-detail.css` by
+ * `components/ui/company-drawer.tsx`, both of which are loaded with
+ * `next/dynamic`, so their styles now arrive with the overlay instead of ahead
+ * of it. That is the house convention (see any `components/features/**`
+ * stylesheet) and it took ~49 KB off first load.
+ *
+ * Prefer importing a sheet from its component over adding it here.
+ */
+/* Shared legacy primitives: `.btn`, `.page-pad`, and the classes behind
+ * components/ui/atoms.tsx. Still has no single owner — several surviving legacy
+ * components share it. */
 @import "./design-system.css";
-/* Faceted left-rail filter system (shared across all list pages). Ported
- * verbatim from ui_design_2/app/filter-rail.css. */
-@import "./filter-rail.css";
-/* Company detail page (hero, tabs, right rail, timeline, verify footer). */
-@import "./company-detail.css";
-/* My Lists — Liked / Watchlists / Saved Searches. */
-@import "./lists.css";
-
-@import "./claim-modal.css";
-
-@import "./get-verified.css";
-/* Analytics — sub-tab nav + ranking helpers. */
+/* Analytics chart internals (`.cbl-*`, `.pie-*`, `.hb-*`) consumed by the Atlas
+ * chart components, which partially restyle them under `.atlas` — see the shim
+ * at components/atlas/styles/charts.css. */
 @import "./analytics.css";
-/* Persona Copilot workspace (founder / investor home + sub-screens). */
-@import "./copilot.css";
 
 /* ============================================================================
  * SportsTechX design system — ported from ui_design/app/styles.css
@@ -270,7 +273,3 @@ body {
   --space-6: 36px;
 }
 
-/* Brand logo theme swap (next-themes sets data-theme on <html>) */
-.brand-white { display: none; }
-[data-theme="dark"] .brand-white { display: block; }
-[data-theme="dark"] .brand-black { display: none; }

@@ -11,6 +11,12 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { VerifiedBadge, Flag } from '@/components/ui/atoms';
+// Both sheets, because this modal renders `VerifiedBadge` from the legacy
+// atoms, whose `.vb` class lives in company-detail.css. Without it the badge is
+// unstyled unless the user happened to open the company drawer first. Both
+// imports are still lazy — this component is loaded with next/dynamic.
+import '@/app/claim-modal.css';
+import '@/app/company-detail.css';
 import type { ClaimRole, ClaimTarget } from '@/lib/claim-events';
 import {
   CM_ROLES, CM_ROLE_LIST, blankClaimForm,

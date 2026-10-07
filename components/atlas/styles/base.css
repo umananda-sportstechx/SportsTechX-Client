@@ -1,0 +1,30 @@
+/*
+ * Atlas base — root defaults, page layout helpers and typography.
+ * Components live in components.css; colours/fonts come from tokens.css.
+ */
+.atlas {
+  color: var(--a-ink);
+  font-family: var(--a-body);
+}
+
+/* ── Responsive layout helpers ─────────────────────────────────────────────*/
+.atlas-screen { padding: 57px 56px 48px; margin-inline: auto; }
+@media (max-width: 1100px) { .atlas-screen { padding: 40px 32px; } }
+@media (max-width: 640px) { .atlas-screen { padding: 24px 16px; } }
+
+/* Home main + aside: two columns on desktop, stacked on narrow screens. */
+.atlas-home-cols { display: grid; grid-template-columns: minmax(0, 1.63fr) minmax(280px, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .atlas-home-cols { grid-template-columns: 1fr; gap: 20px; } }
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.atlas-h1 { font-family: var(--a-font); font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: 0; margin: 0; color: var(--a-ink); }
+.atlas-h2 { font-family: var(--a-font); font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: 0; margin: 0; color: var(--a-ink); }
+.atlas-sub { font-family: var(--a-body); font-size: 14px; line-height: 1.4; color: var(--a-muted); margin: 18px 0 0; }
+.atlas-eyebrow {
+  font-family: var(--a-mono);
+  font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--a-muted);
+}
+/* Page header: title + sub + hairline divider (Figma "Header"). */
+.atlas-pagehead { padding-bottom: 22px; margin-bottom: 27px; border-bottom: 1px solid var(--a-border); }
+@media (max-width: 640px) { .atlas-h1 { font-size: 26px; } }
