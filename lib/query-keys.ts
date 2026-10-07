@@ -163,6 +163,12 @@ export const qk = {
     list: (params: Record<string, unknown> = {}) => ['/api/signals', params] as const,
   },
 
+  // ── Explore (the free base tier's own surfaces) ─────────────────────────
+  explore: {
+    interests: () => ['/api/explore/interests'] as const,
+    home: () => ['/api/explore/home'] as const,
+  },
+
   // ── Newsletter (Beehiiv RSS proxy) ──────────────────────────────────────
   newsletter: {
     articles: () => ['/api/newsletter/articles'] as const,

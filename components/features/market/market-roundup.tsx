@@ -92,21 +92,19 @@ export function MarketRoundup() {
 		return [...map.entries()];
 	}, [roundup.data]);
 
-	// Counts back from the latest month that has data, not from today — an
-	// archive of empty months is worse than no archive.
+	// Counts back from the month on screen, which starts at the latest month
+	// that has data — not from today. An archive of empty months is worse
+	// than no archive.
 	const archive = useMemo(() => {
-		if (!roundup.data) return [] as { year: number; month: number; label: string }[];
+		if (!shown) return [] as { year: number; month: number; label: string }[];
 		const out: { year: number; month: number; label: string }[] = [];
-		let y = roundup.data.year, m = roundup.data.month;
+		let y = shown.year, m = shown.month;
 		for (let i = 0; i < 12; i++) {
 			out.push({ year: y, month: m, label: `${MONTHS.find(([v]) => v === String(m))?.[1]} ${y}` });
 			m -= 1; if (m < 1) { m = 12; y -= 1; }
 		}
 		return out;
-	// Only the FIRST resolved month seeds the archive; re-deriving it on every
-	// pick would make the list jump under the user as they browse.
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [roundup.data == null]);
+	}, [shown?.year, shown?.month]);
 
 	return (
 		<div style={{ display: 'grid', gap: 24 }}>

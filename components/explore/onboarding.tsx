@@ -51,7 +51,7 @@ function Flow({ initial }: { initial: { name: string; company: string; role: str
 	const [about, setAbout] = useState(initial);
 	const [saving, setSaving] = useState(false);
 	const [answers, setAnswers] = usePlaceholderState<Answers>('explore-onboarding', { background: '', relevance: '' });
-	const [savedInterests, saveInterests] = useInterests();
+	const { value: savedInterests, save: saveInterests } = useInterests();
 	const [interests, setInterests] = useState<Interests>(savedInterests);
 	const [err, setErr] = useState('');
 	const go = (s: Screen) => { setScreen(s); setErr(''); window.scrollTo(0, 0); };
@@ -147,7 +147,7 @@ function Flow({ initial }: { initial: { name: string; company: string; role: str
 				<p className="explore-onb__lead">These selections shape your homepage. They never limit what you can explore.</p>
 				<InterestFields value={interests} onChange={setInterests} keys={['sectors', 'subs', 'sports', 'geos']} />
 				<div className="explore-actions">
-					<Button variant="outline" onClick={() => { const whole = { ...NO_INTERESTS, goals: interests.goals }; setInterests(whole); saveInterests(whole); go(4); }}>I want to explore the entire market</Button>
+					<Button variant="outline" onClick={() => { const whole = { ...NO_INTERESTS, goals: interests.goals }; setInterests(whole); void saveInterests(whole); go(4); }}>I want to explore the entire market</Button>
 					<span className="explore-muted">Skip the detailed selections</span>
 				</div>
 			</>}

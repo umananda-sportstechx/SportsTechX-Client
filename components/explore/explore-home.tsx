@@ -9,7 +9,7 @@ import useSWR from 'swr';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import type { NewsletterArticle, Page, ReportListItem } from '@/types/api';
-import { useInterests, marketInterests } from './interests';
+import { useInterests } from './interests';
 import { hrefOf } from '@/lib/routes';
 
 /**
@@ -24,7 +24,7 @@ const COMPANIES = hrefOf('companies');
 export function ExploreHome() {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
-	const [interests] = useInterests();
+	const { picked } = useInterests();
 	const [q, setQ] = useState('');
 	// Shares its SWR key with the Newsletter page, so visiting both costs one
 	// request. Editions arrive newest-first from the feed, but sort rather than
@@ -40,7 +40,6 @@ export function ExploreHome() {
 	const reports = useSWR<Page<ReportListItem>>(qk.reports.list({ limit: 100 }));
 	const latestReport = [...(reports.data?.data ?? [])]
 		.sort((a, b) => (b.report_year ?? 0) - (a.report_year ?? 0) || (b.report_month ?? 0) - (a.report_month ?? 0))[0];
-	const picked = marketInterests(interests);
 	const first = (profile?.display_name ?? profile?.full_name ?? '').split(' ')[0] || 'there';
 	const hour = new Date().getHours();
 	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -89,9 +88,9 @@ export function ExploreHome() {
 					) : (
 						<FeedCard
 							tag="For you" icon={UserRound}
-							title={<>Companies in {interests.sectors[0] ?? interests.subs[0] ?? interests.sports[0] ?? interests.geos[0]}<PlaceholderTag /></>}
+							title={<>Companies in {picked[0]}<PlaceholderTag /></>}
 							body={`Because you follow ${picked.slice(0, 3).join(', ')}${picked.length > 3 ? ` and ${picked.length - 3} more` : ''}.`}
-							href={`${COMPANIES}?q=${encodeURIComponent(interests.subs[0] ?? interests.sports[0] ?? '')}`}
+							href={`${COMPANIES}?q=${encodeURIComponent(picked[0] ?? '')}`}
 							actionLabel="Explore"
 						/>
 					)}
