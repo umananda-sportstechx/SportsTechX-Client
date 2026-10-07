@@ -58,7 +58,7 @@ const money = (cents: number, ccy: string) =>
 		.format((cents ?? 0) / 100);
 
 export function Plans() {
-	const { data: profile } = useUserProfile();
+	const { data: profile, mutate: refreshProfile } = useUserProfile();
 	const current = getUserType(profile);
 	const { features, isLoading: featuresLoading } = useFeatureAccessContext();
 	const plans = useSWR<{ data: PlanRow[] }>(qk.billing.plans());
@@ -118,9 +118,10 @@ export function Plans() {
 			toast.success(body.refund
 			? `Plan cancelled. A ${money(body.refund.amount_cents, body.refund.currency)} refund is being processed.`
 			: 'Plan cancelled. You are on Atlas Explore.');
-			// The tier comes from the principal cache (60s TTL), so a reload is the
-			// honest way to show the new state rather than guessing locally.
-			await Promise.all([sub.mutate(), plans.mutate()]);
+			// The server syncs the tier before returning, so the profile is already
+			// correct — revalidate it or the page keeps claiming they are on the old
+			// plan until SWR's 5-minute dedupe window expires.
+			await Promise.all([refreshProfile(), sub.mutate(), plans.mutate()]);
 		} catch {
 			toast.error("Couldn't cancel your plan. Please try again or contact support.");
 		} finally { setBusy(null); }
