@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/query-client';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
+import { DealflowOptIn } from '@/components/raise/dealflow-opt-in';
 
 /**
  * Atlas Raise — Company & Raise settings (mock-up 16 / Notion "Company & Raise
@@ -150,6 +151,11 @@ export default function RaiseSettingsPage() {
 				<div style={{ display: 'flex', justifyContent: 'flex-end' }}>
 					<Button disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="animate-spin" size={13} /> : 'Save changes'}</Button>
 				</div>
+
+				{/* Raise Home's attention card links here for this. */}
+				<Section title="Investor Circle">
+					<DealflowOptIn />
+				</Section>
 
 				<Section title="Raise controls">
 					<div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)', marginBottom: 4 }}>

@@ -376,7 +376,9 @@ export { useSWR };
  */
 /** Domain refusals a screen handles itself — never worth a toast.
  *  Both are "you have not set this up yet", not failures. */
-const EXPECTED_CODES = new Set(['NO_RAISE', 'SCOUT_NOT_SET_UP']);
+// AI_UNAVAILABLE is an upstream outage, not a bug in this app — it carries its
+// own user-facing message, so don't also log it and toast it.
+const EXPECTED_CODES = new Set(['NO_RAISE', 'SCOUT_NOT_SET_UP', 'AI_UNAVAILABLE']);
 
 export const swrConfig: SWRConfiguration = {
   fetcher,

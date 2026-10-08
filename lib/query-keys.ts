@@ -29,6 +29,7 @@ export const qk = {
     pipeline: (params: Record<string, unknown> = {}) => ['/api/raise/pipeline', params] as const,
     pipelineActivity: (id: string) => [`/api/raise/pipeline/${id}/activity`] as const,
     market: () => ['/api/raise/market'] as const,
+    dealflow: () => ['/api/raise/dealflow/opt-in'] as const,
   },
   features: () => ['/api/features'] as const,
 
@@ -175,6 +176,8 @@ export const qk = {
     signals: (params: Record<string, unknown> = {}) => ['/api/scout/signals', params] as const,
     dealflow: (params: Record<string, unknown> = {}) => ['/api/scout/dealflow', params] as const,
     deal: (id: string) => [`/api/scout/dealflow/${id}`] as const,
+    canSubmit: () => ['/api/scout/dealflow/can-submit'] as const,
+    dealflowMine: () => ['/api/scout/dealflow/mine'] as const,
   },
 
   // ── Explore (the free base tier's own surfaces) ─────────────────────────

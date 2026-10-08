@@ -8,6 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { track, Events } from '@/lib/analytics';
 import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
+import { VerifyButton } from '@/components/features/verify/verify-cta';
 
 /**
  * Account (Raise mock-up 17, Scout "Account"): profile, security and
@@ -88,6 +89,18 @@ export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extr
 					<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 12 }}>Notification preferences are saved locally for now.</div>
 				</Card>
 
+				{/* Verification lives on every tier's Account page, not just the paid
+					    ones — the whole point is that a free user can correct their own
+					    company's record. */}
+				<Card className="explore-card">
+					<div className="atlas-eyebrow">Verification</div>
+					<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
+						<p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)', margin: 0, maxWidth: 420 }}>
+							Claim your company or fund to keep its details accurate on Atlas.
+						</p>
+						<VerifyButton />
+					</div>
+				</Card>
 				{extra}
 
 				<button onClick={() => void logout()} disabled={signingOut} style={{ background: 'none', border: 'none', color: 'var(--a-danger)', fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: '4px 0', justifySelf: 'start' }}>

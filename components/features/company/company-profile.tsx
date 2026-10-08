@@ -9,6 +9,8 @@ import { qk } from '@/lib/query-keys';
 import type { Company, Deal } from '@/types/api';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
 import { ago, fmtUsd, place } from '@/components/features/market/format';
+import { VerifyButton } from '@/components/features/verify/verify-cta';
+import { SuggestCorrection } from '@/components/features/verify/suggest-correction';
 import './company-profile.css';
 
 /**
@@ -99,6 +101,17 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 				</div>
 				<div className="atlas-co__actions">
 					<SaveToWatchlist companyId={c.id} companyName={c.name} />
+					{/* The highest-intent moment: they are looking at data about
+						    themselves that may be wrong. Pre-filling the target skips
+						    the search step the modal would otherwise open with. */}
+					<VerifyButton
+						role="founder"
+						entityId={c.id}
+						target={{ role: 'founder', id: c.id, name: c.name, website: c.website ?? undefined }}
+						label="Is this your company?"
+					/>
+					{/* Renders only once their claim on this company is verified. */}
+					<SuggestCorrection companyId={c.id} companyName={c.name} />
 					{website && <Action icon={<Globe />} href={website} external>Website</Action>}
 					<Action icon={<ArrowUpLeft />} href={backHref}>Return to results</Action>
 				</div>
