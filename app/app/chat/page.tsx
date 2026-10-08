@@ -1,22 +1,30 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import useSWR, { mutate } from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useChat, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
-import { FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, founderPageContext, founderActionFromTool, FounderMessages } from '@/components/raise/chat/founder-chat';
-import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
+import {
+	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, SCOUT_GREETING, SCOUT_INSUFFICIENT_CREDITS,
+	founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath, FounderMessages,
+} from '@/components/raise/chat/founder-chat';
+import { RaiseSearch, RAISE_SUGGESTIONS, SCOUT_SUGGESTIONS } from '@/components/raise/raise-search';
+import { useNav } from '@/hooks/use-nav';
 import { Button } from '@/components/atlas';
 import '@/components/raise/chat/raise-chatpage.css';
 
 /**
- * Atlas Raise — full chat page (Claude/ChatGPT layout): transcript above, composer
+ * Atlas — full chat page (Claude/ChatGPT layout): transcript above, composer
  * pinned at the bottom, a right rail of past conversations. Reached from the home
- * search (which passes ?q=…). Reuses the same useChat + founder policy as the FAB
- * drawer; the drawer is hidden on this route (see raise-shell.tsx).
+ * search of either paid product (which passes ?q=…). Reuses the same useChat +
+ * policy as the FAB drawer; the drawer is hidden on this route (see app-shell).
+ *
+ * Serves Raise and Scout both. Only the copy and the route policy differ, and
+ * both follow the viewer's tier — the route itself is `tier: ['raise','scout']`
+ * and `/api/chat` is gated to the same pair server-side.
  */
 
 const CHAT = hrefOf('chat');
@@ -26,11 +34,20 @@ export default function RaiseChatPage() {
 	const searchParams = useSearchParams();
 	const initRef = useRef(false);
 
+	const { tier } = useNav();
+	const isScout = tier === 'scout';
+
+	// Memoized: `useChat` keeps this in its callback deps.
+	const actionFromTool = useCallback(
+		(tool: string, input: unknown) => founderActionFromTool(tool, input, tier),
+		[tier],
+	);
+
 	const chat = useChat({
-		greeting: FOUNDER_GREETING,
-		actionFromTool: founderActionFromTool,
+		greeting: isScout ? SCOUT_GREETING : FOUNDER_GREETING,
+		actionFromTool,
 		pageContext: () => founderPageContext(CHAT),
-		insufficientCreditsMd: FOUNDER_INSUFFICIENT_CREDITS,
+		insufficientCreditsMd: isScout ? SCOUT_INSUFFICIENT_CREDITS : FOUNDER_INSUFFICIENT_CREDITS,
 	});
 	const {
 		messages, input, setInput, streaming, stage, conversationId,
@@ -68,10 +85,14 @@ export default function RaiseChatPage() {
 			<div className="raise-chatpage-main">
 				<div className="raise-chatpage-transcript" ref={bodyRef}>
 					<div className="raise-chatpage-thread">
-						<FounderMessages messages={messages} streaming={streaming} stage={stage} onAction={(href) => router.push(href)} />
+						<FounderMessages
+							messages={messages} streaming={streaming} stage={stage}
+							onAction={(href) => router.push(href)}
+							rewritePath={isScout ? scoutRewritePath : founderRewritePath}
+						/>
 						{!hasThread && (
 							<div className="raise-chatpage-suggest">
-								{RAISE_SUGGESTIONS.map((s) => (
+								{(isScout ? SCOUT_SUGGESTIONS : RAISE_SUGGESTIONS).map((s) => (
 									<button key={s} type="button" className="atlas-composer-chip" onClick={() => void send(s)}>{s}</button>
 								))}
 							</div>
@@ -87,7 +108,7 @@ export default function RaiseChatPage() {
 						autoFocus
 						streaming={streaming}
 						onStop={abort}
-						placeholder="Ask about investors, your market, your raise…"
+						placeholder={isScout ? 'Ask about companies, deals, your thesis…' : 'Ask about investors, your market, your raise…'}
 					/>
 				</div>
 			</div>

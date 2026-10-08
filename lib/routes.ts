@@ -174,7 +174,7 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/app/settings', tier: 'raise' },
 	// Gated, never listed.
 	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/app/setup', tier: 'raise' },
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: 'raise' },
+	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: ['raise', 'scout'] },
 	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/app/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────

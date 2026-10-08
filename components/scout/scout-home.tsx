@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { BadgeCheck, Bookmark, CalendarDays, Layers, ShieldCheck, Sparkles, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { AgentComposer, Badge, Button, Card, FeedCard, H1, Loading, PlaceholderTag, SectionHead } from '@/components/atlas';
+import { AgentComposer, Badge, Button, Card, FeedCard, H1, Loading, SectionHead } from '@/components/atlas';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { openClaim } from '@/lib/claim-events';
 import { qk } from '@/lib/query-keys';
@@ -59,6 +60,14 @@ export function ScoutHome() {
 	const [thesis] = useThesis();
 	const { data, isLoading } = useSWR<ScoutHomeData>(qk.scout.home());
 	const [q, setQ] = useState('');
+	const router = useRouter();
+	// Same hand-off as the founder's home (raise-home.tsx): the composer seeds the
+	// full chat page via ?q=. Scout now reaches the same agent, gated to the paid
+	// tiers server-side, so this is no longer a placeholder.
+	const goChat = (text: string) => {
+		const t = text.trim();
+		if (t) router.push(`${hrefOf('chat')}?q=${encodeURIComponent(t)}`);
+	};
 
 	const first = (profile?.display_name ?? profile?.full_name ?? '').split(' ')[0] || 'there';
 	const hour = new Date().getHours();
@@ -87,11 +96,11 @@ export function ScoutHome() {
 					<AgentComposer
 						value={q}
 						onChange={setQ}
-						onSubmit={() => { /* Scout has no agent endpoint yet; the badge says so. */ }}
+						onSubmit={() => goChat(q)}
 						placeholder="Ask Atlas about companies, deals, your thesis…"
 						// Server-supplied, and written against the real thesis.
 						suggestions={data?.prompts ?? []}
-						badge={<PlaceholderTag />}
+						onSuggestion={goChat}
 					/>
 				</div>
 			</section>

@@ -6,12 +6,23 @@ import {
 	type ChatAction, type ChatMessage, type PageContext, type RewritePath,
 } from '@/components/chat/chat-core';
 import { pathOf } from '@/lib/routes';
+import { navigable } from '@/lib/nav';
+import type { Tier } from '@/lib/access';
 import './raise-chat.css';
 
 /**
- * Shared founder-chat policy + transcript renderer, used by BOTH the FAB drawer
+ * Shared chat policy + transcript renderer, used by BOTH the FAB drawer
  * (raise-chat.tsx) and the full chat page (app/app/chat) so route mapping,
  * greeting and the message render stay in one place.
+ *
+ * Serves **both paid products**. AI is a Raise and Scout feature (the server
+ * gates `/api/chat` to `PAID_TIERS`), and nothing in the transcript or the
+ * `useChat` hook is tier-specific — after the URL flatten there are no per-tier
+ * paths left, so one component covers both. What *is* per-product is the policy
+ * in this file: the greeting, which pages the agent may offer, and how markdown
+ * entity links are remapped. Those take the viewer's tier.
+ *
+ * The `raise-` prefix on the exports and CSS classes is historical, not a scope.
  */
 
 export const FOUNDER_GREETING =
@@ -19,6 +30,11 @@ export const FOUNDER_GREETING =
 
 export const FOUNDER_INSUFFICIENT_CREDITS =
 	"_You're out of AI credits._ [Top up or upgrade](/billing) to keep chatting.";
+
+export const SCOUT_GREETING =
+	"I'm your deal-flow co-pilot. Ask me to screen companies against your thesis, dig into a funding round or an investor, or find your way around the workspace — e.g. “find companies matching my thesis” or “who funded sports betting in Europe this year?”";
+
+export const SCOUT_INSUFFICIENT_CREDITS = FOUNDER_INSUFFICIENT_CREDITS;
 
 /** Detail routes whose `[id]` segment names an entity the model can be told about. */
 const ENTITY_ROUTES: [routeId: string, entityType: 'investor' | 'deck_analysis'][] = [
@@ -47,12 +63,14 @@ export function founderPageContext(path: string | null): PageContext | undefined
 	return filters ? { path, filters } : { path };
 }
 
-/** Turn a client-side nav tool call into a chip. Founders can navigate to
- *  investor profiles + the workspace pages; other intents are dropped. */
-export function founderActionFromTool(tool: string, input: unknown): ChatAction | null {
+/** Turn a client-side nav tool call into a chip, for whichever paid product the
+ *  viewer is in; intents they cannot act on are dropped. */
+export function founderActionFromTool(tool: string, input: unknown, tier: Tier): ChatAction | null {
 	if (tool === 'open_entity') {
 		const p = input as { entity_type?: string; id_or_slug?: string };
-		if (p?.entity_type === 'investor' && p?.id_or_slug) {
+		// Investor profiles live in the raise workspace only — a Scout has no
+		// Investors page, so this chip would be a dead link for them.
+		if (p?.entity_type === 'investor' && p?.id_or_slug && navigable('investors', tier)) {
 			const name = p.id_or_slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 			return { kind: 'open_entity', label: `Open ${name}`, href: `${pathOf('investors', 'raise')}/${encodeURIComponent(p.id_or_slug)}` };
 		}
@@ -87,9 +105,17 @@ export function founderActionFromTool(tool: string, input: unknown): ChatAction 
 			programs: { label: 'Open Programs', routeId: 'programs' },
 			events: { label: 'Open Events', routeId: 'events' },
 			resources: { label: 'Open Resources', routeId: 'guide' },
+			// Scout destinations. Deal Flow and the Deck Screener are absent on
+			// purpose — every Deal Flow route is `placeholder: true`, so `navigable`
+			// would drop them anyway and the system prompt does not offer them.
+			recommended: { label: 'Open Recommended', routeId: 'recommended' },
+			signals: { label: 'Open Signals', routeId: 'signals' },
+			watchlists: { label: 'Open Watchlists', routeId: 'watchlists' },
+			thesis: { label: 'Open Thesis Settings', routeId: 'thesis' },
 		};
 		const m = p?.page ? NAV[p.page] : undefined;
-		return m ? { kind: 'navigate', label: m.label, href: pathOf(m.routeId, 'raise') } : null;
+		if (!m || !navigable(m.routeId, tier)) return null;
+		return { kind: 'navigate', label: m.label, href: pathOf(m.routeId, tier) };
 	}
 	return null;
 }
@@ -103,18 +129,31 @@ export const founderRewritePath: RewritePath = (href) => {
 };
 
 /**
+ * The same remap for the scout shell, and it is the mirror image: an investor's
+ * primary object is the company, so company links resolve into the workspace —
+ * while Investors is a Raise page a Scout cannot open, so those flatten to text.
+ */
+export const scoutRewritePath: RewritePath = (href) => {
+	if (href.startsWith('/companies/')) return pathOf('companies', 'scout') + href.slice('/companies'.length);
+	if (href.startsWith('/investors/')) return null;
+	return href;
+};
+
+/**
  * The chat transcript — message bubbles, action chips, sources, and the thinking
  * indicator. The scroll container + ref is owned by the caller (drawer or page).
  * `onAction` navigates a chip (the drawer also closes itself there).
  */
-export function FounderMessages({ messages, streaming, stage, onAction }: {
+export function FounderMessages({ messages, streaming, stage, onAction, rewritePath = founderRewritePath }: {
 	messages: ChatMessage[]; streaming: boolean; stage: string; onAction: (href: string) => void;
+	/** Per-product markdown link remap; defaults to the founder one. */
+	rewritePath?: RewritePath;
 }) {
 	return (
 		<>
 			{messages.map((m, i) => (
 				<div key={i} className={`raise-chat-msg ${m.role}`}>
-					<MarkdownMessage text={m.content} sources={m.sources ?? []} rewritePath={founderRewritePath} />
+					<MarkdownMessage text={m.content} sources={m.sources ?? []} rewritePath={rewritePath} />
 					{m.role === 'assistant' && (m.actions?.length ?? 0) > 0 && (
 						<div className="raise-chat-chips">
 							{m.actions!.map((a, ai) => (
