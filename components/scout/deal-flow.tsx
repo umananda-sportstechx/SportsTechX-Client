@@ -62,24 +62,29 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	const verified = deals.filter((d) => d.source === 'verified_raise');
 	const circle = deals.filter((d) => d.source === 'circle');
 
-	// The Circle tab keeps its section even when empty, because the "Share a
-	// deal" action lives in its heading.
-	if (deals.length === 0 && tab !== 'circle') {
-		return (
-			<Empty>
-				{tab === 'featured'
-					? 'No featured deal at the moment. Check the Verified Raises and Circle tabs.'
-					: 'No live opportunities yet. We list a raise here once SportsTechX has checked it.'}
-			</Empty>
-		);
-	}
-
 	const showFeatured = tab === 'all' || tab === 'featured';
 	const showVerified = tab === 'all' || tab === 'verified';
 	const showCircle = tab === 'all' || tab === 'circle';
 
+	// Nothing live is not the same as nothing to show: a member may have a draft
+	// or a returned submission, which is the whole point of `MySubmissions`. So
+	// this is a branch inside the tree rather than an early return — an early
+	// return here hid a member's own pending deal on the default tab, which is
+	// precisely when they would come looking for it.
+	const nothingLive = deals.length === 0;
+
 	return (
 		<div className="scout-df">
+			{showCircle && <MySubmissions />}
+
+			{nothingLive && (tab === 'all' || tab === 'featured') && (
+				<Empty>
+					{tab === 'featured'
+						? 'No featured deal at the moment. Check the Verified Raises and Circle tabs.'
+						: 'No live opportunities yet. We list a raise here once SportsTechX has checked it.'}
+				</Empty>
+			)}
+
 			{showFeatured && featured && <FeaturedDeal d={featured} />}
 
 			{showVerified && (tab === 'verified' || verified.length > 0) && (
@@ -93,8 +98,6 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 						: <div className="scout-df__grid">{verified.map((d) => <VerifiedCard key={d.id} d={d} />)}</div>}
 				</section>
 			)}
-
-			{showCircle && <MySubmissions />}
 
 			{showCircle && (
 				<section className="scout-df__section">

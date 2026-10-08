@@ -92,6 +92,9 @@ export function ShareDeal() {
 	const [err, setErr] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [done, setDone] = useState(false);
+	// Set once a draft exists server-side, so a retry updates it instead of
+	// creating another.
+	const [draftId, setDraftId] = useState<string | null>(null);
 
 	const patch = (p: Partial<Draft>) => { setD((prev) => ({ ...prev, ...p })); setErr(''); };
 	const txt = (k: keyof Draft) => ({
@@ -153,7 +156,12 @@ export function ShareDeal() {
 		try {
 			// Create the draft, then submit it. Only the submit step flips it to
 			// `pending` for review — a draft on its own is invisible to everyone.
-			const created = await apiRequest('POST', '/api/scout/dealflow', {
+			//
+			// Two calls means a failure can land between them, so the created id is
+			// remembered: a retry PATCHes the draft it already made and submits that,
+			// rather than creating a second row every time someone presses the button
+			// again. Both routes take the identical payload, so this is the same body.
+			const payload = {
 				company_name: d.company.trim(),
 				company_website: d.website.trim() || null,
 				company_hq: d.hq.trim() || null,
@@ -180,9 +188,13 @@ export function ShareDeal() {
 				one_pager_path: d.onePagerPath || null,
 				materials_access: ACCESS[d.access] ?? 'on_request',
 				founder_consent: d.consent,
-			});
-			if (!created.ok) throw new Error(String(created.status));
-			const { id } = (await created.json()) as { id: string };
+			};
+			const res = draftId
+				? await apiRequest('PATCH', `/api/scout/dealflow/${draftId}`, payload)
+				: await apiRequest('POST', '/api/scout/dealflow', payload);
+			if (!res.ok) throw new Error(String(res.status));
+			const { id } = (await res.json()) as { id: string };
+			setDraftId(id);
 
 			const sent = await apiRequest('POST', `/api/scout/dealflow/${id}/submit`);
 			if (!sent.ok) throw new Error(String(sent.status));
@@ -205,7 +217,7 @@ export function ShareDeal() {
 			<p className="scout-body">SportsTechX will review eligibility, usually within two working days. We&rsquo;ll email you once it&rsquo;s live in From the Circle, or if we need anything else.</p>
 			<div className="scout-intro__actions">
 				<Button href={hrefOf('deal-flow-circle')} variant="outline">Back to From the Circle</Button>
-				<Button onClick={() => { setD(BLANK); setStep(0); setDone(false); }}>Share another deal</Button>
+				<Button onClick={() => { setD(BLANK); setStep(0); setDone(false); setDraftId(null); }}>Share another deal</Button>
 			</div>
 		</Card>
 	);
