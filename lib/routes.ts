@@ -178,10 +178,10 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/app/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
-	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout' },
+	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout' },
+	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout' },
+	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout' },
 	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout' },
 ];
 
