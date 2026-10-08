@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { ArrowUpLeft, Check, ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowUpLeft, Check, Loader2, Paperclip, ShieldCheck, X } from 'lucide-react';
 import { Action, Button, Card, Empty, Field, Input, Loading, Select, Textarea, cx } from '@/components/atlas';
 import { ChipSet } from './thesis-fields';
+import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
@@ -38,6 +40,8 @@ interface Draft {
 	target: string; committed: string; valuation: string; close: string;
 	leadStatus: string; lead: string;
 	notes: string; relation: string; myCommit: string; access: string; consent: boolean;
+	/** `bucket/key`, set once the file is in storage. Not a URL — the column rejects those. */
+	deckPath: string; onePagerPath: string;
 }
 const BLANK: Draft = {
 	company: '', website: '', hq: '', sectorId: '', desc: '',
@@ -46,6 +50,7 @@ const BLANK: Draft = {
 	target: '', committed: '', valuation: '', close: '',
 	leadStatus: 'Lead confirmed', lead: '',
 	notes: '', relation: 'Investing in this round', myCommit: '', access: 'Only after intro request', consent: false,
+	deckPath: '', onePagerPath: '',
 };
 
 const STEPS = [
@@ -171,6 +176,8 @@ export function ShareDeal() {
 				member_relationship: RELATION[d.relation] ?? null,
 				member_commitment: num(d.myCommit),
 				member_perspective: d.notes.trim() || null,
+				deck_path: d.deckPath || null,
+				one_pager_path: d.onePagerPath || null,
 				materials_access: ACCESS[d.access] ?? 'on_request',
 				founder_consent: d.consent,
 			});
@@ -264,10 +271,21 @@ export function ShareDeal() {
 						<div className="scout-form-grid">
 							<Field label={`Your commitment (${sym}) · Optional`}><Input type="number" min="0" {...txt('myCommit')} placeholder="100000" /></Field>
 						</div>
+						<div className="scout-form-grid">
+							<DocField
+								label="Pitch deck · Optional" path={d.deckPath}
+								onPath={(p) => patch({ deckPath: p })}
+							/>
+							<DocField
+								label="One-pager · Optional" path={d.onePagerPath}
+								onPath={(p) => patch({ onePagerPath: p })}
+							/>
+						</div>
 						<Block label="Who can access the company's materials?"><ChipSet options={['Circle members', 'Only after intro request']} value={d.access} onToggle={(o) => patch({ access: o })} /></Block>
 						<p className="scout-muted" style={{ fontSize: 12 }}>
-							Materials are uploaded by the SportsTechX team after review, so there is nothing to
-							attach here yet.
+							Members never get the file itself — they get a short-lived link, and only once
+							they&rsquo;re allowed it. An anonymous listing always requires an introduction
+							first, whatever you choose above, because a deck names the company on every page.
 						</p>
 						<button type="button" className={cx('scout-consent', d.consent && 'on')} aria-pressed={d.consent} onClick={() => patch({ consent: !d.consent })}>
 							<span className="scout-pick__box" aria-hidden="true">{d.consent && <Check size={11} />}</span>
@@ -280,7 +298,7 @@ export function ShareDeal() {
 						{([
 							['Company', 0, [['Company', d.company], ['Website', d.website], ['Headquarters', d.hq], ['Sector', sectorOptions.find(([v]) => v === d.sectorId)?.[1] ?? ''], ['Description', d.desc], ['Founder contact', [d.founderName, d.founderEmail, d.founderPhone].filter(Boolean).join(' · ')]]],
 							['Round', 1, [['Round', d.round], ['Instrument', d.instrument], ['Target', d.target && `${sym}${d.target}`], ['Committed', d.committed && `${sym}${d.committed}`], ['Valuation', d.valuation], ['Close', d.close], ['Lead', d.leadStatus === 'Lead confirmed' ? d.lead || d.leadStatus : d.leadStatus]]],
-							['Your involvement', 2, [['Note', d.notes], ['Relationship', d.relation], ['Your commitment', d.myCommit && `${sym}${d.myCommit}`], ['Materials', d.access]]],
+							['Your involvement', 2, [['Note', d.notes], ['Relationship', d.relation], ['Your commitment', d.myCommit && `${sym}${d.myCommit}`], ['Materials', d.access], ['Attached', [d.deckPath && 'pitch deck', d.onePagerPath && 'one-pager'].filter(Boolean).join(', ')]]],
 						] as [string, number, [string, string][]][]).map(([name, i, rows]) => (
 							<div key={name} className="scout-review__group">
 								<div className="scout-review__head"><span className="atlas-eyebrow">{name}</span><button type="button" className="scout-link" onClick={() => setStep(i)}>Edit</button></div>
@@ -317,4 +335,80 @@ export function Steps({ names, step, onPick }: { names: string[]; step: number; 
 
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
 	return <div className="scout-field"><div className="scout-field__label">{label}</div>{children}</div>;
+}
+
+const BUCKET = 'user-uploads';
+const MAX_BYTES = 25 * 1024 * 1024;
+const ALLOWED_EXT = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
+
+/**
+ * One document, uploaded straight to storage.
+ *
+ * Same route the pitch-deck analyser already uses
+ * (`features/deck-analysis/deck-summary.tsx`): the browser uploads with the
+ * user's own session under their own uid prefix, then the API is given the
+ * `bucket/key` string. No server endpoint is involved, which is why
+ * `deck_path` explicitly **rejects anything that looks like a URL** — storing a
+ * link would bypass the signed-URL scheme the whole release gate depends on.
+ *
+ * The file is uploaded before the deal row exists. That is fine: the path does
+ * not reference the deal, and an abandoned wizard leaves an orphan object
+ * rather than a half-made listing.
+ */
+function DocField({ label, path, onPath }: {
+	label: string;
+	path: string;
+	onPath: (p: string) => void;
+}) {
+	const [busy, setBusy] = useState(false);
+	const ref = useRef<HTMLInputElement | null>(null);
+
+	const pick = async (file: File) => {
+		const ext = (file.name.split('.').pop() ?? '').toLowerCase();
+		if (!ALLOWED_EXT.includes(ext)) { toast.error('Upload a PDF, PPT/PPTX or DOC/DOCX.'); return; }
+		if (file.size > MAX_BYTES) { toast.error('File too large (max 25 MB).'); return; }
+		setBusy(true);
+		try {
+			const supabase = getSupabaseBrowser();
+			const { data: auth } = await supabase.auth.getUser();
+			const uid = auth.user?.id;
+			if (!uid) throw new Error('Not signed in');
+			const key = `${uid}/deals/${crypto.randomUUID()}.${ext}`;
+			const { error } = await supabase.storage.from(BUCKET).upload(key, file, {
+				upsert: false, contentType: file.type || 'application/octet-stream',
+			});
+			if (error) throw error;
+			// `bucket/key` — the server splits on the first slash to sign it.
+			onPath(`${BUCKET}/${key}`);
+			toast.success('Uploaded');
+		} catch (e) {
+			toast.error((e as Error).message ?? 'Upload failed');
+		} finally { setBusy(false); }
+	};
+
+	return (
+		<Field label={label}>
+			{path ? (
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+					<Paperclip size={13} aria-hidden="true" />
+					<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+						{path.split('/').pop()}
+					</span>
+					<button type="button" className="scout-link" onClick={() => onPath('')} aria-label={`Remove ${label}`}>
+						<X size={12} /> Remove
+					</button>
+				</div>
+			) : (
+				<>
+					<input
+						ref={ref} type="file" hidden accept=".pdf,.ppt,.pptx,.doc,.docx"
+						onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ''; }}
+					/>
+					<Button variant="outline" disabled={busy} onClick={() => ref.current?.click()}>
+						{busy ? <><Loader2 className="animate-spin" size={13} /> Uploading…</> : 'Choose a file'}
+					</Button>
+				</>
+			)}
+		</Field>
+	);
 }

@@ -6,8 +6,8 @@ import { Empty, Loading, Progress } from '@/components/atlas';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
-	closeLabel, committedPct, companyLabel, money, submitterLabel,
-	type DealRow, type DealTab,
+	MY_STATUS, closeLabel, committedPct, companyLabel, money, submitterLabel,
+	type DealRow, type DealTab, type MyDealRow,
 } from './deal-types';
 
 /**
@@ -94,6 +94,8 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 				</section>
 			)}
 
+			{showCircle && <MySubmissions />}
+
 			{showCircle && (
 				<section className="scout-df__section">
 					<div className="scout-df__head">
@@ -107,6 +109,63 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 				</section>
 			)}
 		</div>
+	);
+}
+
+/**
+ * Your own submissions, above the Circle grid.
+ *
+ * The public list only ever shows `live` deals, so without this a submitter had
+ * nowhere to see a draft, learn that their deal was still pending, or — the one
+ * that actually matters — read **why** changes were requested. `review_notes`
+ * is returned by `/mine` and by nothing else.
+ *
+ * Renders nothing at all when you have no submissions, which is the common
+ * case: only a verified investor (or a granted account) can submit.
+ * `SCOUT_NOT_SET_UP` is swallowed for the same reason — the surrounding page
+ * already says it.
+ */
+function MySubmissions() {
+	const { data } = useSWR<{ data: MyDealRow[] }>(qk.scout.dealflowMine());
+	const mine = data?.data ?? [];
+	if (mine.length === 0) return null;
+
+	return (
+		<section className="scout-df__section">
+			<div className="scout-df__head">
+				<h2 className="scout-df__title">Your submissions</h2>
+				<span className="scout-df__aside">Only visible to you</span>
+			</div>
+			<div className="scout-df__grid">
+				{mine.map((m) => {
+					const target = money(m.target_amount, m.currency_code);
+					return (
+						<article key={m.id} className="scout-df-card scout-df-card--circle">
+							<div className="scout-df-card__name">
+								{m.company_name ?? 'Untitled draft'}
+							</div>
+							<div className="scout-df-card__round">
+								{m.round_type ?? 'Round'}{target ? ` · ${target} target` : ''}
+							</div>
+							<div className="scout-df-card__by">{MY_STATUS[m.status] ?? m.status}</div>
+							{/* The whole reason this section exists: a returned deal shows as
+							    `pending` to its submitter unless the note is surfaced. */}
+							{m.review_notes && (
+								<p className="scout-df-card__desc">
+									<strong>From the review team:</strong> {m.review_notes}
+								</p>
+							)}
+							{!m.founder_consent && m.status === 'draft' && (
+								<span className="scout-df-pending">Needs founder consent before it can be submitted</span>
+							)}
+							{m.status === 'live' && (
+								<Link href={dealHref(m.id)} className="scout-df-card__link">View listing →</Link>
+							)}
+						</article>
+					);
+				})}
+			</div>
+		</section>
 	);
 }
 

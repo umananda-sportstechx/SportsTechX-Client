@@ -88,9 +88,15 @@ export const leadLabel = (v: string | null) => (v ? LEAD_LABEL[v] ?? v : null);
 export const instrumentLabel = (v: string | null) => (v ? INSTRUMENT_LABEL[v] ?? v : null);
 export const relationshipLabel = (v: string | null) => (v ? RELATIONSHIP_LABEL[v] ?? v : null);
 
-/** Money, from the `::text` numeric the API sends. */
-export function money(amount: string | null, ccy: string | null): string | null {
-	if (!amount) return null;
+/**
+ * Money, from the numeric the API sends.
+ *
+ * Accepts `number` as well as `string`: the Scout list casts every amount to
+ * `::text`, while `/scout/dealflow/mine` selects the raw column, so the same
+ * figure can arrive either way depending on which endpoint you read.
+ */
+export function money(amount: string | number | null, ccy: string | null): string | null {
+	if (amount === null || amount === undefined || amount === '') return null;
 	const n = Number(amount);
 	if (!Number.isFinite(n)) return null;
 	return new Intl.NumberFormat(undefined, {
@@ -143,3 +149,38 @@ export const submitterLabel = (d: DealRow) =>
  */
 export const canOpenDocs = (d: DealRow): boolean =>
 	d.disclosed || (d.materials_access === 'immediate' && !d.company_anonymous);
+
+/**
+ * A submitter's own deal, from `GET /scout/dealflow/mine`.
+ *
+ * A different shape from `DealRow` and not interchangeable with it: `/mine` is
+ * `SELECT *` on the raw table, so there is no `sector` name, no `has_deck`, no
+ * per-viewer `disclosed`, and **no redaction at all** — it is the caller's own
+ * data. It also returns every status, which is the point: this is where a
+ * submitter sees a draft or finds out changes were requested.
+ */
+export interface MyDealRow {
+	id: string;
+	source: string;
+	status: string;
+	company_name: string | null;
+	round_type: string | null;
+	currency_code: string | null;
+	target_amount: string | number | null;
+	/** Why it came back. The only place a submitter can read it. */
+	review_notes: string | null;
+	submitted_at: string | null;
+	created_at: string;
+	company_anonymous: boolean;
+	founder_consent: boolean;
+}
+
+/** What a submitter should understand their own deal's status to mean. */
+export const MY_STATUS: Record<string, string> = {
+	draft: 'Draft — not submitted',
+	pending: 'Submitted, awaiting review',
+	reviewing: 'Being reviewed',
+	changes_requested: 'Changes requested',
+	live: 'Live in From the Circle',
+	closed: 'Closed',
+};
