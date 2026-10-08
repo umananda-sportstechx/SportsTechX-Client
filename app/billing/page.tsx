@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
@@ -37,7 +36,7 @@ const PLAN: Record<string, { label: string; price: string }> = {
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
 interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
 interface SubRow { stripe_subscription_id: string; subscription_status: string; is_active: boolean; is_trial: boolean; plan_name: string | null; user_type: string; subscription_current_period_end: string | null; subscription_cancel_at: string | null; updated_at: string }
-interface Pack { id: string; name: string; credit_type: string; credit_amount: number; price_amount: number; currency_code: string }
+interface Pack { id: string; name: string; credit_amount: number; price_amount: number; currency_code: string }
 interface LedgerRow { id: string; transaction_type: string; amount: number; description: string | null; display_name: string | null; occurred_at: string }
 
 const fmtMoney = (cents: number, ccy: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase() }).format((cents ?? 0) / 100);
@@ -100,12 +99,7 @@ export default function BillingPage() {
 
 	const rows = invoices.data ?? [];
 	const pastSubs = (allSubs.data ?? []).filter((s) => !s.is_active);
-	// Don't offer credits this plan cannot spend. AI is a Raise and Scout feature,
-	// so an `ai` pack is a dead end on Explore — the server refuses that checkout
-	// with AI_NOT_ON_PLAN, and this just avoids showing a button that cannot work.
-	// `integration` credits (exports, crm_sync) are not tier-gated, so they stay.
-	const canBuyAi = profile?.user_role === 'admin' || plan === 'raise' || plan === 'scout';
-	const packList = (packs.data?.data ?? []).filter((pk) => canBuyAi || pk.credit_type !== 'ai');
+	const packList = packs.data?.data ?? [];
 	const ledgerRows = ledger.data?.flatMap((p) => p.data) ?? [];
 	const ledgerHasMore = !!ledger.data?.[ledger.data.length - 1]?.nextCursor;
 
@@ -157,11 +151,7 @@ export default function BillingPage() {
 					{bal && <div style={{ fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)' }}>{bal.total_available.toLocaleString()} available{bal.monthly_grant ? ` · ${bal.monthly_balance.toLocaleString()}/${bal.monthly_grant.toLocaleString()} monthly` : ''}{bal.topup_balance ? ` · ${bal.topup_balance.toLocaleString()} top-up` : ''}</div>}
 				</div>
 				<p style={{ ...BODY, margin: '8px 0 16px' }}>Credits power the AI co-pilot. Monthly credits renew each month; top-ups never expire.</p>
-				{!canBuyAi ? (
-					<div style={{ fontSize: 12, color: 'var(--a-faint)' }}>
-						The AI co-pilot is part of Raise and Scout. <Link href={hrefOf('plans')} style={{ color: 'var(--a-accent)' }}>Compare plans</Link> to unlock it.
-					</div>
-				) : packList.length === 0 ? <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No credit packs available right now.</div> : (
+				{packList.length === 0 ? <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No credit packs available right now.</div> : (
 					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
 						{packList.map((pk) => (
 							<Button key={pk.id} size="sm" variant="outline" disabled={busy !== null} onClick={() => void buyPack(pk.id)}>
