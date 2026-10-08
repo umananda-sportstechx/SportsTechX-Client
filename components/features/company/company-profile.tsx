@@ -106,7 +106,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 						    the search step the modal would otherwise open with. */}
 					<VerifyButton
 						role="founder"
-						entityName={c.name}
+						entityId={c.id}
 						target={{ role: 'founder', id: c.id, name: c.name, website: c.website ?? undefined }}
 						label="Is this your company?"
 					/>

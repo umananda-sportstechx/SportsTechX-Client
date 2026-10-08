@@ -26,17 +26,28 @@ import { qk } from '@/lib/query-keys';
 interface ClaimRow {
 	id: string;
 	is_verified: boolean | null;
-	target_name_snapshot: string | null;
+	target_company_id: string | null;
+	target_investor_id: string | null;
+	target_ecosystem_entity_id: string | null;
 }
 
 export type VerifyState = 'none' | 'pending' | 'verified';
 
-/** The viewer's claim status, optionally for one entity. */
-export function useVerifyState(entityName?: string): { state: VerifyState; isLoading: boolean } {
+/**
+ * The viewer's claim status, optionally scoped to one entity.
+ *
+ * Matched on the entity **id**, not the name snapshot. Names are not unique
+ * in this directory and the snapshot is whatever was typed at claim time, so
+ * name matching both misses real claims and — worse — can report "Verified"
+ * on a company the viewer does not own.
+ */
+export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean } {
 	const { data, isLoading } = useSWR<ClaimRow[] | { data: ClaimRow[] }>(qk.claims.mine());
 	const rows = Array.isArray(data) ? data : (data?.data ?? []);
-	const relevant = entityName
-		? rows.filter((r) => (r.target_name_snapshot ?? '').toLowerCase() === entityName.toLowerCase())
+	const relevant = entityId
+		? rows.filter((r) => r.target_company_id === entityId
+			|| r.target_investor_id === entityId
+			|| r.target_ecosystem_entity_id === entityId)
 		: rows;
 	if (relevant.some((r) => r.is_verified)) return { state: 'verified', isLoading };
 	if (relevant.length > 0) return { state: 'pending', isLoading };
@@ -47,14 +58,14 @@ export function useVerifyState(entityName?: string): { state: VerifyState; isLoa
  * The button. `target` pre-fills the claim so the user skips the search step —
  * worth passing wherever the entity is already known.
  */
-export function VerifyButton({ role = null, target = null, entityName, label }: {
+export function VerifyButton({ role = null, target = null, entityId, label }: {
 	role?: ClaimRole | null;
 	target?: ClaimTarget | null;
-	/** Scopes the pending/verified state to one entity. */
-	entityName?: string;
+	/** Scopes the pending/verified state to one entity, by id. */
+	entityId?: string;
 	label?: string;
 }) {
-	const { state } = useVerifyState(entityName);
+	const { state } = useVerifyState(entityId);
 
 	// Already settled — inviting a duplicate submission helps nobody, and the
 	// admin queue is where duplicates cost real time.

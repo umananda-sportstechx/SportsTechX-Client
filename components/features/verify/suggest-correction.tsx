@@ -37,7 +37,7 @@ export function SuggestCorrection({ companyId, companyName }: {
 	companyId: string;
 	companyName: string;
 }) {
-	const { state } = useVerifyState(companyName);
+	const { state } = useVerifyState(companyId);
 	const [open, setOpen] = useState(false);
 	const [field, setField] = useState('website');
 	const [current, setCurrent] = useState('');
