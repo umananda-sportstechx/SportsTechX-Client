@@ -7,7 +7,7 @@
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
     "lint": "eslint",
-    "check": "node lib/access.check.ts && node lib/nav.check.ts && node components/scout/thesis-codec.check.ts"
+    "check": "node lib/access.check.ts && node lib/nav.check.ts && node components/scout/thesis-codec.check.ts && node components/scout/deal-types.check.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

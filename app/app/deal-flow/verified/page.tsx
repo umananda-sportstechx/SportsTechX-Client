@@ -8,7 +8,7 @@ export default function Page() {
 	return (
 		<Screen>
 			<SectionHeader />
-			<DealFlow kind="verified" />
+			<DealFlow tab="verified" />
 		</Screen>
 	);
 }

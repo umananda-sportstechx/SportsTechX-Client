@@ -70,9 +70,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				accountName={profile?.full_name ?? profile?.display_name}
 				// Explore's sidebar carries the Raise / Scout upgrade cards.
 				railExtra={tier === 'explore' ? <UpgradeCards /> : undefined}
-				// Raise's co-pilot FAB. The full chat page is itself the co-pilot,
-				// so don't stack a drawer on top of it there.
-				overlay={tier === 'raise' && !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
+				// The co-pilot FAB, on both paid products — AI is a Raise and Scout
+				// feature, never an Explore one (the server gates /api/chat the same
+				// way). The full chat page is itself the co-pilot, so don't stack a
+				// drawer on top of it there.
+				overlay={tier !== 'explore' && !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>

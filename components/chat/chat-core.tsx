@@ -104,6 +104,20 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 	const [stage, setStage] = useState('');
 	const [showHistory, setShowHistory] = useState(false);
 	const [conversations, setConversations] = useState<ConversationListItem[] | null>(null);
+
+	// The greeting is per-product, and the viewer's tier arrives one render late:
+	// `getUserType(undefined)` is 'explore' until the profile SWR resolves, so a
+	// Scout mounting before that would be stuck with the founder greeting for the
+	// whole session — `useState` captures it once and never looks again.
+	//
+	// Only an untouched transcript is refreshed: a loaded conversation or a
+	// seeded question must survive.
+	useEffect(() => {
+		if (conversationId) return;
+		setMessages((prev) => (prev.length === 1 && prev[0]?.role === 'assistant' && prev[0].content !== greeting
+			? [{ role: 'assistant', content: greeting }]
+			: prev));
+	}, [greeting, conversationId]);
 	const [historyLoading, setHistoryLoading] = useState(false);
 	const bodyRef = useRef<HTMLDivElement>(null);
 	// Track the in-flight fetch so we can abort it on close/unmount/new-convo.
