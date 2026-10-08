@@ -176,6 +176,7 @@ export const qk = {
     signals: (params: Record<string, unknown> = {}) => ['/api/scout/signals', params] as const,
     dealflow: (params: Record<string, unknown> = {}) => ['/api/scout/dealflow', params] as const,
     deal: (id: string) => [`/api/scout/dealflow/${id}`] as const,
+    canSubmit: () => ['/api/scout/dealflow/can-submit'] as const,
   },
 
   // ── Explore (the free base tier's own surfaces) ─────────────────────────
