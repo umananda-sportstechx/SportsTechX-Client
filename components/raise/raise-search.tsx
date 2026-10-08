@@ -7,3 +7,12 @@ export const RAISE_SUGGESTIONS = [
 	'Review my pitch deck',
 	'Size my market',
 ];
+
+/** The investor equivalent, for the Scout view of the same chat page. Kept in
+ *  step with `ScoutHomeService.PROMPTS`, which seeds the Scout home composer. */
+export const SCOUT_SUGGESTIONS = [
+	'Find companies matching my thesis',
+	'Show recent sports tech deals',
+	"What's new in fan engagement?",
+	'Find European Series A companies',
+];

@@ -14,6 +14,27 @@ import { NAV_LAYOUT, ROUTE_BY_ID, forTier, pathOf, type RouteDef } from './route
 /** A user watchlist, spliced into the Watchlists section at runtime. */
 export interface NavWatchlist { id: string; name: string }
 
+/**
+ * Can this viewer actually be *sent* to `routeId`?
+ *
+ * Deliberately stricter than the sidebar. `buildNav` keeps `upsell` items,
+ * because showing a locked page is how the product sells itself — but an agent
+ * chip or a programmatic push is an action, so it must only offer routes that
+ * really open. Two ways one goes dead, and the chat agent can know neither:
+ * the route belongs to the other product (Investors, Programs, Pipeline and the
+ * Fundraising Guide are `tier: 'raise'`), or it is still coming soon (every Deal
+ * Flow route, and Scout's view of the Deck Screener, are `placeholder`).
+ *
+ * `isAdmin` is not taken: an admin bypasses `access()` entirely, and a chip is a
+ * suggestion for *this* workspace, not proof of what they may open directly.
+ */
+export function navigable(routeId: string, tier: Tier): boolean {
+	const r = ROUTE_BY_ID.get(routeId);
+	if (!r || !forTier(r.path, tier) || forTier(r.placeholder, tier)) return false;
+	return access(r.tier, tier, false) === 'allow';
+}
+
+
 function toItem(r: RouteDef, tier: Tier): ShellNavItem | null {
 	const path = forTier(r.path, tier);
 	const name = forTier(r.name, tier);

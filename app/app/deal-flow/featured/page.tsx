@@ -8,7 +8,7 @@ export default function Page() {
 	return (
 		<Screen>
 			<SectionHeader />
-			<DealFlow kind="featured" />
+			<DealFlow tab="featured" />
 		</Screen>
 	);
 }

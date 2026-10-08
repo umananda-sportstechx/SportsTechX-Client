@@ -1,31 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Send, X, Download, Plus, History, Sparkles } from 'lucide-react';
 import { useChat, AI_MD_CSS } from '@/components/chat/chat-core';
 import {
-	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS,
-	founderPageContext, founderActionFromTool, FounderMessages,
+	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, SCOUT_GREETING, SCOUT_INSUFFICIENT_CREDITS,
+	founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath, FounderMessages,
 } from './founder-chat';
+import { useNav } from '@/hooks/use-nav';
 import './raise-chat.css';
 
 /**
- * Atlas founder chat — the streaming agent as a right-side drawer opened by a
- * bottom-right FAB on every `/raise` page except the full chat page. Route policy
- * + transcript render are shared with the chat page via founder-chat.tsx.
+ * Atlas chat — the streaming agent as a right-side drawer opened by a
+ * bottom-right FAB on every page except the full chat page. Route policy +
+ * transcript render are shared with the chat page via founder-chat.tsx.
+ *
+ * Mounted for **both paid products** (see app-shell): the component is identical,
+ * only the copy and the route policy differ, and both follow the viewer's tier.
  */
 
 export function RaiseChat() {
 	const [open, setOpen] = useState(false);
 	const pathname = usePathname();
 	const router = useRouter();
+	const { tier } = useNav();
+	const isScout = tier === 'scout';
+
+	// Memoized: `useChat` keeps this in its callback deps, so a fresh closure on
+	// every render would rebuild them for nothing.
+	const actionFromTool = useCallback(
+		(tool: string, input: unknown) => founderActionFromTool(tool, input, tier),
+		[tier],
+	);
 
 	const chat = useChat({
-		greeting: FOUNDER_GREETING,
-		actionFromTool: founderActionFromTool,
+		greeting: isScout ? SCOUT_GREETING : FOUNDER_GREETING,
+		actionFromTool,
 		pageContext: () => founderPageContext(pathname),
-		insufficientCreditsMd: FOUNDER_INSUFFICIENT_CREDITS,
+		insufficientCreditsMd: isScout ? SCOUT_INSUFFICIENT_CREDITS : FOUNDER_INSUFFICIENT_CREDITS,
 	});
 
 	const {
@@ -41,7 +54,7 @@ export function RaiseChat() {
 			<style>{AI_MD_CSS}</style>
 
 			{!open && (
-				<button className="raise-chat-fab" onClick={() => setOpen(true)} aria-label="Open fundraising co-pilot">
+				<button className="raise-chat-fab" onClick={() => setOpen(true)} aria-label={isScout ? 'Open deal-flow co-pilot' : 'Open fundraising co-pilot'}>
 					<Sparkles size={18} strokeWidth={1.25} />
 				</button>
 			)}
@@ -96,13 +109,17 @@ export function RaiseChat() {
 				)}
 
 				<div className="raise-chat-body" ref={bodyRef}>
-					<FounderMessages messages={messages} streaming={streaming} stage={stage} onAction={(href) => { router.push(href); close(); }} />
+					<FounderMessages
+						messages={messages} streaming={streaming} stage={stage}
+						onAction={(href) => { router.push(href); close(); }}
+						rewritePath={isScout ? scoutRewritePath : founderRewritePath}
+					/>
 				</div>
 
 				<div className="raise-chat-input-row">
 					<textarea
 						className="raise-chat-input"
-						placeholder="Ask about investors, your market, your raise…"
+						placeholder={isScout ? 'Ask about companies, deals, your thesis…' : 'Ask about investors, your market, your raise…'}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}

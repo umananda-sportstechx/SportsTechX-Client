@@ -59,6 +59,10 @@ const place = (c: Recommendation) => [c.city, c.country].filter(Boolean).join(',
 
 export function Recommended() {
 	const { data, isLoading, error } = useSWR<{ data: Recommendation[] }>(qk.scout.recommended({ limit: 24 }));
+	// Recommending against a thesis that does not exist is meaningless, so this
+	// is the one Discover surface that stays gated — but "set yours up" is the
+	// answer, not an error. Browsing and Signals work without one.
+	const needsThesis = (error as { code?: string } | undefined)?.code === 'SCOUT_NOT_SET_UP';
 	const [dismissed, setDismissed] = usePlaceholderState<string[]>('dismissed-recs', []);
 
 	const all = data?.data ?? [];
@@ -84,7 +88,13 @@ export function Recommended() {
 			)}
 
 			{isLoading ? <Loading />
-				: error ? <Empty>Couldn&apos;t load your recommendations. Check your thesis is set, then try again.</Empty>
+				: needsThesis ? (
+					<Empty>
+						Set up your investment thesis and Atlas will match companies to it.{' '}
+						<Link href={hrefOf('thesis')} className="scout-link">Set up thesis</Link>
+					</Empty>
+				)
+				: error ? <Empty>Couldn&apos;t load your recommendations. Please try again.</Empty>
 				: all.length === 0 ? (
 					<Empty>
 						No companies match your thesis yet. <Link href={hrefOf('thesis')} className="scout-link">Widen it</Link> — a narrow

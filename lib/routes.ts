@@ -40,7 +40,7 @@ import {
 	House, LayoutGrid, Files, Newspaper, ChartPie, CalendarDays, Building2, CalendarRange,
 	Presentation, SlidersHorizontal, FileCheck, Ticket, Sparkles, Radar, Target, TrendingUp,
 	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users,
-	MessageSquare, Rocket, Wrench,
+	MessageSquare, Rocket, Wrench, ShieldCheck,
 } from 'lucide-react';
 import { access, type Tier, type TierReq } from './access.ts';
 
@@ -145,6 +145,10 @@ export const ROUTES: RouteDef[] = [
 		path: '/app/account',
 	},
 	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
+	// Deliberately untiered. Claiming your company or fund is how the
+	// directory stays accurate, so a free user must be able to do it — the
+	// API never gated it and the UI used to have no door at all.
+	{ id: 'verify', icon: ShieldCheck, name: 'Get verified', path: '/app/verify' },
 	// Reachable from the sidebar upgrade cards, the tier gate and billing, but
 	// never listed in a sidebar — it is a destination, not a section.
 	{ id: 'plans', icon: Layers, name: 'Plans', path: '/app/plans' },
@@ -170,14 +174,14 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/app/settings', tier: 'raise' },
 	// Gated, never listed.
 	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/app/setup', tier: 'raise' },
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: 'raise' },
+	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: ['raise', 'scout'] },
 	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/app/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
-	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout', placeholder: true },
-	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout', placeholder: true },
+	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout' },
+	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout' },
+	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout' },
+	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout' },
 	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout' },
 ];
 
@@ -209,6 +213,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// available and deliberately does not pass it). `buildNav` keeps
 		// upsellable items; only `hidden` ones are dropped.
 		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
+		{ title: null, bottom: true, items: ['verify'] },
 	],
 	raise: [
 		{ title: null, items: ['home'] },
@@ -217,7 +222,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
 		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['raise-settings', 'billing'] },
+		{ title: null, bottom: true, items: ['raise-settings', 'verify', 'billing'] },
 	],
 	scout: [
 		{ title: null, items: ['home'] },
@@ -226,7 +231,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Watchlists', items: ['watchlists'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['thesis', 'billing'] },
+		{ title: null, bottom: true, items: ['thesis', 'verify', 'billing'] },
 	],
 };
 
