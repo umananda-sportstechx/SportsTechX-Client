@@ -10,8 +10,8 @@
  * (EXPLORE_NAV / RAISE_NAV / SCOUT_NAV) before they were deleted, so this is a
  * record of the signed-off sidebar, not of the implementation.
  */
-import { buildNav } from './nav.ts';
-import { ROUTES, forTier } from './routes.ts';
+import { buildNav, navigable } from './nav.ts';
+import { ROUTES, ROUTE_BY_ID, forTier } from './routes.ts';
 // The real guard, not a local copy: a hand-rolled `e is {title, items}`
 // predicate is not a subtype of ShellNavEntry, so `.filter()` never narrows.
 import { isSection } from '../components/atlas/shell/nav.ts';
@@ -190,6 +190,29 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		check(uncovered.length === 0,
 			`edge-gated: ${pages.length} page(s) under ${dir}${uncovered.length ? ` — MISSING ${uncovered.join(', ')}` : ''}`);
 	}
+}
+
+// ── navigable(): what an agent chip may offer ───────────────────────────────
+// Stricter than the sidebar on purpose. This is the case that actually broke:
+// every chip used to be built with `pathOf(id, 'raise')`, so a Scout could be
+// handed an "Open Programs" button for a page only a founder can open.
+{
+	check(navigable('companies', 'scout') && navigable('companies', 'raise'),
+		'navigable: a shared page is offered to both products');
+	check(!navigable('programs', 'scout') && navigable('programs', 'raise'),
+		'navigable: a Raise-only page is never offered to a Scout');
+	check(!navigable('pipeline', 'scout') && !navigable('guide', 'scout') && !navigable('investors', 'scout'),
+		'navigable: the other Raise-only chips are dropped too');
+	check(navigable('thesis', 'scout') && !navigable('thesis', 'raise'),
+		'navigable: a Scout-only page is never offered to a founder');
+	// `upsell` is good enough for the sidebar and not for an action.
+	check(access(ROUTE_BY_ID.get('recently-funded')!.tier, 'explore', false) === 'upsell'
+		&& !navigable('recently-funded', 'explore'),
+		'navigable: an upsell route is listed in nav but not offered as a chip');
+	// Coming-soon routes resolve, so only the placeholder flag catches them.
+	check(!navigable('deal-flow', 'scout') && !navigable('deck', 'scout') && navigable('deck', 'raise'),
+		'navigable: a coming-soon page is dropped, per tier');
+	check(!navigable('no-such-route', 'scout'), 'navigable: an unknown route id is dropped');
 }
 
 console.log(failures === 0 ? '\nPASS' : `\nFAIL — ${failures} check(s)`);
