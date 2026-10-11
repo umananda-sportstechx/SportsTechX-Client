@@ -7,6 +7,7 @@ import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, Us
 import type { LucideIcon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
+import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 import { H1, Badge, SectionHead, FeedCard } from '@/components/atlas';
 import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
 import { hrefOf } from '@/lib/routes';
@@ -76,7 +77,12 @@ export function RaiseHome() {
 									icon={t.icon}
 									title={a.title}
 									body={a.why}
-									href={a.cta_href}
+									// Setup cards open the wizard in place; everything else keeps
+									// its server-built link. Keyed on the card's stable `id`, not
+									// on `cta_href` — the hrefs are the thing being retired.
+									{...(SETUP_CARD_WIZARD[a.id]
+										? { onAction: SETUP_CARD_WIZARD[a.id] === 'raise' ? openRaiseSetup : openScoutThesis }
+										: { href: a.cta_href })}
 									actionLabel={a.cta_label}
 									extra={a.count != null ? <Badge tone="danger">{a.count} overdue</Badge> : undefined}
 								/>

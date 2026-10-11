@@ -5,18 +5,17 @@ import { mutate } from 'swr';
 import { toast } from 'sonner';
 import {
   Check, X, Search, Plus, ArrowRight, Sparkles, Building2, Wallet, Zap,
-  User, Briefcase, DollarSign, Shield, Database, FileText, UploadCloud, Loader2,
+  User, Briefcase, DollarSign, Shield, Database, FileText, UploadCloud, Loader2, BadgeCheck,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { VerifiedBadge, Flag } from '@/components/ui/atoms';
-// Both sheets, because this modal renders `VerifiedBadge` from the legacy
-// atoms, whose `.vb` class lives in company-detail.css. Without it the badge is
-// unstyled unless the user happened to open the company drawer first. Both
-// imports are still lazy — this component is loaded with next/dynamic.
+import { Flag } from '@/components/atlas';
+// One sheet now. This used to also pull in `company-detail.css`, purely because
+// it rendered `VerifiedBadge` from the legacy atoms and that badge's `.vb`
+// class lives over there — so the modal dragged a second, unrelated stylesheet
+// along with it. A lucide icon on an Atlas token does the same job.
 import '@/app/claim-modal.css';
-import '@/app/company-detail.css';
 import type { ClaimRole, ClaimTarget } from '@/lib/claim-events';
 import {
   CM_ROLES, CM_ROLE_LIST, blankClaimForm,
@@ -185,7 +184,13 @@ export function ClaimModal({
     : (STEPS[curIdx]?.next ?? 'Continue');
 
   return (
-    <div className="cm-overlay" onClick={onClose}>
+    // `atlas` is not decoration — it is what makes the stylesheet work. Every
+    // `--a-*` token is scoped to that class (AtlasShell applies it once, around
+    // the app), and this modal is mounted from `app/providers.tsx` as a sibling
+    // of the page tree, so it renders OUTSIDE that scope. Without this the
+    // whole modal paints with unresolved variables. `patterns/modal.tsx` does
+    // the same thing for the same reason.
+    <div className="cm-overlay atlas" onClick={onClose}>
       <div className={`cm-modal ${isDone ? 'cm-narrow' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Claim & verify">
         {/* LEFT RAIL */}
         {!isDone && (
@@ -284,7 +289,7 @@ export function ClaimModal({
                       <button key={it.id} className="cm-result" onClick={() => pickItem({ id: it.id, name: it.name, website: it.website, hq: it.hq, cc: it.cc, verified: it.verified })}>
                         <EntityLogo item={it} />
                         <span className="cm-result-text">
-                          <span className="cm-result-name">{it.name} {it.verified && <VerifiedBadge size={12} />}</span>
+                          <span className="cm-result-name">{it.name} {it.verified && <BadgeCheck size={12} aria-label="Verified" style={{ color: 'var(--a-navy)', verticalAlign: 'middle', flexShrink: 0 }} />}</span>
                           <span className="cm-result-meta">{it.cc && <Flag cc={it.cc} size={12} />} {it.hq ?? ''}{it.kind ? ` · ${it.kind}` : ''}</span>
                         </span>
                         {it.verified ? <span className="cm-result-claimed">Claimed</span> : <span className="cm-result-arrow"><ArrowRight size={14} /></span>}

@@ -12,6 +12,7 @@ import { FeatureAccessProvider } from '@/contexts/feature-access-context';
 import { MobileNavProvider } from '@/contexts/mobile-nav-context';
 import { PersonaProvider } from '@/contexts/persona-context';
 import { ClaimModalHost } from '@/components/claim/claim-modal-host';
+import { SetupModalHost } from '@/components/setup/setup-modal-host';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { CreditExhaustionHost } from '@/components/credits/credit-exhaustion-modal';
 import { TierRequiredHost } from '@/components/features/tier-gate/tier-required-host';
@@ -66,6 +67,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <AppInit />
                     {children}
                     <ClaimModalHost />
+                    <SetupModalHost />
                     <CreditExhaustionHost />
                     <TierRequiredHost />
                     <Toaster richColors position="top-right" />

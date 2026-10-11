@@ -35,7 +35,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
 			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],
 		],
-		bottom: ['Get verified'],
+		bottom: [],
 	},
 	raise: {
 		top: ['Home'],
@@ -46,7 +46,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Watchlists', ['Main watchlist', 'All watchlists']],
 			['Resources', ['Fundraising Guide*', 'Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Get verified', 'Subscription'],
+		bottom: ['Thesis Settings', 'Subscription'],
 	},
 	scout: {
 		top: ['Home'],
@@ -57,7 +57,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener*']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Get verified', 'Subscription'],
+		bottom: ['Thesis Settings', 'Subscription'],
 	},
 };
 
@@ -200,7 +200,12 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		// escaped the first sweep were a markdown link `(/app/pipeline)` in the
 		// chat prompt and an interpolation `${base}/app/deal-flow/…` in an email.
 		// `@/app/foo.css` import specifiers are excluded by the `@` lookbehind.
-		const RETIRED = /['"`]\/(raise|scout|explore)(\/|['"`])|(?<![\w@])\/app(\/|['"`])/;
+		//
+		// `/setup` and `/onboarding/scout` joined the list when both setup
+		// wizards became modals: there is no route behind either string any
+		// more, so anything still emitting one — a server `cta_href`, an email,
+		// an LLM prompt — is a dead link nobody would notice.
+		const RETIRED = /['"`]\/(raise|scout|explore|setup)(\/|['"`])|['"`]\/onboarding\/scout['"`]|(?<![\w@])\/app(\/|['"`])/;
 		const roots = ['app', 'components', 'lib', '../server/src'].filter((r) => existsSync(r));
 		// This file defines the retired patterns, so it necessarily contains them.
 		const SELF = 'nav.check.ts';

@@ -91,7 +91,7 @@ export const PRIVATE_PREFIXES = [
   '/deck', '/events', '/framework', '/guide', '/home', '/interests',
   '/investors', '/my-market', '/newsletter', '/pipeline', '/plans', '/programs',
   '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
-  '/setup', '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
+  '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
   // Not in ROUTES: the onboarding tree and the integration docs.
   '/onboarding', '/docs',
 ] as const;

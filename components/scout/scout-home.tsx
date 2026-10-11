@@ -10,6 +10,7 @@ import { AgentComposer, Badge, Button, Card, FeedCard, H1, Loading, SectionHead 
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { openClaim } from '@/lib/claim-events';
 import { qk } from '@/lib/query-keys';
+import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 import { hrefOf } from '@/lib/routes';
 import { listText, thesisTags, useThesis } from './use-thesis';
 
@@ -118,7 +119,12 @@ export function ScoutHome() {
 							icon={CARD_ICON[c.id] ?? Sparkles}
 							title={c.title}
 							body={c.why}
-							href={c.cta_href}
+							// Setup cards open the wizard in place; everything else keeps
+							// its server-built link. Keyed on the card's stable `id`, not
+							// on `cta_href` — the hrefs are the thing being retired.
+							{...(SETUP_CARD_WIZARD[c.id]
+								? { onAction: SETUP_CARD_WIZARD[c.id] === 'raise' ? openRaiseSetup : openScoutThesis }
+								: { href: c.cta_href })}
 							actionLabel={c.cta_label}
 						/>
 					))}

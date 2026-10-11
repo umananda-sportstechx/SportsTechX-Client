@@ -155,7 +155,12 @@ export function toProfileDto(t: Thesis) {
 	return {
 		full_name: t.name || null,
 		role_title: t.role || null,
-		linkedin_url: t.linkedin?.trim() ? t.linkedin.trim() : null,
+		// Same treatment as `fund_website`, and for the same reason: the schema
+		// demands a URL while the field's own placeholder asks for
+		// "linkedin.com/in/…". Sending that raw fails `.url()` validation and
+		// rejects the whole save. It only ever surfaced on the wizard's final
+		// step; now that each step saves, it would have blocked step 1.
+		linkedin_url: t.linkedin?.trim() ? absolute(t.linkedin.trim()) : null,
 		fund_name: t.fundName || null,
 		investor_type: INVESTOR_TYPE[t.investorType] ?? null,
 		// The schema demands a URL; the form collects "northline.vc".
