@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowRight, ArrowLeft, Check, Loader2, Search } from 'lucide-react';
@@ -12,7 +11,6 @@ import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
-import { hrefOf } from '@/lib/routes';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
@@ -46,8 +44,17 @@ const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
 		: kind === 'bool' ? v !== true && v !== false
 			: v === undefined || v === null || v === '';
 
-export default function RaiseSetupPage() {
-	const router = useRouter();
+/**
+ * The Raise setup wizard. A modal, opened with `openRaiseSetup()` from anywhere.
+ *
+ * This was the page at `/setup`. Prompting a founder to finish setup used to
+ * mean navigating them off whatever they were reading; now the prompt is
+ * answered in place and that URL is retired.
+ *
+ * `onClose` is also "done" — finishing drops you back where you were rather
+ * than pushing you at the dashboard.
+ */
+export function RaiseSetup({ onClose }: { onClose: () => void }) {
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
 	const [step, setStep] = useState(0);
 	const [saving, setSaving] = useState(false);
@@ -210,7 +217,7 @@ export default function RaiseSetupPage() {
 	};
 
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (done) return <Screen width={620}><TransitionScreen onEnter={() => router.push(hrefOf('home'))} onVerify={verify} /></Screen>;
+	if (done) return <Screen width={620}><TransitionScreen onEnter={onClose} onVerify={verify} /></Screen>;
 
 	return (
 		<Screen width={720}>

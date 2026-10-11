@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { AtlasLogo, Button, Card, H1, Loading, Screen } from '@/components/atlas';
@@ -12,7 +10,6 @@ import { useThesisState, type ThesisState } from './use-thesis';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
-import { hrefOf } from '@/lib/routes';
 // `scout.css` is imported by AppShell, which this route deliberately does NOT
 // render — the onboarding group has no shell chrome. Without this import every
 // `scout-*` rule is missing here, which is not a styling nit: `ChipSet` falls
@@ -60,7 +57,7 @@ function firstIncomplete(t: Thesis): number {
 	return STEPS.length - 1;
 }
 
-export function Onboarding() {
+export function Onboarding({ onClose }: { onClose: () => void }) {
 	const { isLoading: profileLoading } = useUserProfile();
 	const { thesis: saved, save, isLoading } = useThesisState();
 	// Wait for the THESIS, not just the profile.
@@ -71,11 +68,10 @@ export function Onboarding() {
 	// DEFAULT_THESIS, `useState` kept that seed, and a returning Scout who
 	// reopened the wizard could save an empty thesis over a real one.
 	if (profileLoading || isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
-	return <OnboardingForm initial={saved} save={save} />;
+	return <OnboardingForm initial={saved} save={save} onClose={onClose} />;
 }
 
-function OnboardingForm({ initial, save }: { initial: Thesis; save: ThesisState['save'] }) {
-	const router = useRouter();
+function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: ThesisState['save']; onClose: () => void }) {
 	const [t, setT] = useState<Thesis>(initial);
 	// Resume where they left off. Every step saves as it is left, so a thesis
 	// that already satisfies steps 1–3 should not make anyone retype them —
@@ -90,7 +86,7 @@ function OnboardingForm({ initial, save }: { initial: Thesis; save: ThesisState[
 	const patch = (p: Partial<Thesis>) => { setT({ ...t, ...p }); setErr(''); };
 	const top = () => window.scrollTo(0, 0);
 
-	if (done) return <Frame width={620}><Screen width={620}><DoneScreen name={t.name} onEnter={() => router.push(hrefOf('home'))} /></Screen></Frame>;
+	if (done) return <Frame width={620}><Screen width={620}><DoneScreen name={t.name} onEnter={onClose} /></Screen></Frame>;
 
 	const s = STEPS[step];
 	const last = step === STEPS.length - 1;
@@ -158,9 +154,9 @@ function OnboardingForm({ initial, save }: { initial: Thesis; save: ThesisState[
 				    to exist on step 0 only, where "Back" then replaced it and a user
 				    part-way through had no exit but the browser button. */}
 				<p style={{ textAlign: 'center', marginTop: 16 }}>
-					<Link href={hrefOf('home')} className="scout-link">
+					<button type="button" className="scout-link" onClick={onClose}>
 						{step === 0 ? 'Skip for now — I’ll do this later' : 'Skip for now — I’ll finish this later'}
-					</Link>
+					</button>
 				</p>
 			</Screen>
 		</Frame>
@@ -244,20 +240,18 @@ function DoneScreen({ name, onEnter }: { name: string; onEnter: () => void }) {
 }
 
 /**
- * Page frame. Establishes the Atlas page surface itself, because this route
- * renders outside AppShell and nothing above it paints a background.
+ * The wizard's own header. The surrounding surface — background, height, the
+ * close button — belongs to `SetupModal` now; this used to paint a full page
+ * because the wizard was one.
  */
 function Frame({ children, width = 720 }: { children: React.ReactNode; width?: number }) {
 	return (
-		<div style={{ minHeight: '100dvh', background: 'var(--a-page)', color: 'var(--a-ink)' }}>
-			{/* `atlas-screen` for the side padding, which is responsive (56 → 32 → 16),
-			    so the logo stays flush with the card below it at every width. Only the
-			    vertical padding is overridden. */}
+		<>
 			<header className="atlas-screen" style={{ maxWidth: width, paddingTop: 26, paddingBottom: 0, display: 'flex', alignItems: 'center' }}>
-				<AtlasLogo height={28} product="Scout" productColor={SCOUT_COLOR} />
+				<AtlasLogo height={26} product="Scout" productColor={SCOUT_COLOR} />
 			</header>
 			{children}
-		</div>
+		</>
 	);
 }
 
