@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { ChevronRight, LogOut, Search, Settings, CreditCard, Loader2 } from 'lucide-react';
 import { cx, useDismiss, Logo } from '@/components/atlas';
-import { flattenNav, isSection, pickActive } from '@/components/atlas/shell/nav';
+import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
 import { ThemeToggle } from '@/components/atlas/shell/theme-toggle';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
@@ -68,42 +68,17 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 	);
 }
 
-/**
- * The trail, **excluding the page you are on**.
- *
- * Deliberate: ~28 of the 38 authenticated pages render `SectionHeader`, whose
- * H1 *is* the section title. A full trail would put "Intelligence / Analytics"
- * directly above an `<h1>Intelligence</h1>` and its active "Analytics" tab.
- * Stopping before the current page also sidesteps the fact that no detail page
- * publishes its title anywhere the navbar could read — `/companies/acme` ends at
- * "Companies" and never needs to know the company's name.
- */
+/** Memoised wrapper over the pure `crumbsFor` — see breadcrumbs.ts. */
 function useBreadcrumbs(
 	nav: ReturnType<typeof useNav>['nav'],
 	homePath: string,
 	pathname: string,
 	searchParams: ReturnType<typeof useSearchParams>,
-): { label: string; href?: string }[] {
-	return useMemo(() => {
-		if (pathname === homePath) return [];
-		const items = flattenNav(nav);
-		const activePath = pickActive(items, homePath, pathname, searchParams);
-		const out: { label: string; href?: string }[] = [];
-
-		// Sections are grouping labels, not pages — no href.
-		const section = nav.filter(isSection).find((s) => s.items.some((i) => i.path === activePath));
-		if (section) out.push({ label: section.title });
-
-		// The active item is an ancestor only when the URL sits *below* it, e.g.
-		// /companies/acme under /companies. On /companies itself it is the current
-		// page, so it is omitted.
-		const active = items.find((i) => i.path === activePath);
-		if (active) {
-			const base = active.path.split('?')[0];
-			if (pathname.startsWith(`${base}/`)) out.push({ label: active.name, href: active.path });
-		}
-		return out;
-	}, [nav, homePath, pathname, searchParams]);
+): Crumb[] {
+	return useMemo(
+		() => crumbsFor(nav, homePath, pathname, searchParams),
+		[nav, homePath, pathname, searchParams],
+	);
 }
 
 /** Buckets whose results this tier can actually open — see the comment in NavSearch. */
@@ -178,7 +153,7 @@ function NavSearch({ tier }: { tier: Tier }) {
 			</button>
 
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-navsearch__menu" role="dialog" aria-label="Search Atlas">
+				<div className="atlas-menu atlas-navsearch__menu" role="dialog" aria-label="Search Atlas">
 					<div className="atlas-navsearch__field">
 						<Search size={11} aria-hidden="true" />
 						<input

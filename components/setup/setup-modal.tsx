@@ -1,9 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import './setup-modal.css';
+
+/**
+ * Scroll the wizard back to the top of its box.
+ *
+ * Both wizards used `window.scrollTo(0, 0)` between steps, which is a no-op
+ * here — the modal scrolls its own region, not the document — so step 2 opened
+ * scrolled to the bottom of step 1. Outside a modal this is a no-op by design,
+ * so the wizards can call it unconditionally.
+ */
+const ScrollResetContext = createContext<() => void>(() => {});
+export const useSetupScrollReset = (): (() => void) => useContext(ScrollResetContext);
 
 /**
  * The shell both setup wizards render inside.
@@ -22,41 +33,45 @@ import './setup-modal.css';
  *    `patterns/modal.tsx` does the same thing for the same reason.
  * 2. **The scroll region is inside the box**, not the page. The box is capped
  *    below the viewport height, so a long step scrolls within the modal.
- * 3. **Escape defers to a nested dialog.** Step 4 of the thesis wizard opens a
- *    picker that installs its own `window` keydown listener; without the guard
- *    below, one Escape would close the picker AND the wizard under it.
+ * 3. **Escape defers to whatever is above us** — see the handler.
  */
-export function SetupModal({ open, onClose, label, children, scrollKey }: {
+export function SetupModal({ open, onClose, label, children }: {
 	open: boolean;
 	onClose: () => void;
 	/** Accessible name for the dialog. */
 	label: string;
 	children: ReactNode;
-	/** Changing this scrolls the box back to the top — pass the step index. */
-	scrollKey?: string | number;
 }) {
 	const boxRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const closeRef = useRef(onClose);
 	useEffect(() => { closeRef.current = onClose; });
 
+	const resetScroll = useCallback(() => {
+		if (scrollRef.current) scrollRef.current.scrollTop = 0;
+	}, []);
+
 	useEffect(() => {
 		if (!open) return;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key !== 'Escape') return;
-			// A nested dialog owns Escape first — it is on top and closing the
-			// wizard out from under it would be the wrong thing by any reading.
+			// Anything stacked ON TOP of the wizard owns Escape first; closing the
+			// wizard out from under it would be wrong by any reading. Two cases,
+			// and they need different tests because they live in different places:
+			//
+			//  - a dialog rendered INSIDE a step (the thesis picker at step 4) is a
+			//    descendant, so `querySelector` finds it;
+			//  - the claim modal is NOT. It is mounted from `app/providers.tsx` as
+			//    a sibling of this host, and the Raise wizard's final screen opens
+			//    it ("Verify your company"). Both handlers sit on `window`, so
+			//    without this second test one Escape closed both.
 			if (boxRef.current?.querySelector('[role="dialog"]')) return;
+			if (document.querySelector('.cm-overlay')) return;
 			closeRef.current();
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, [open]);
-
-	// `window.scrollTo(0, 0)` is what the wizards used between steps. Inside a
-	// modal that is a no-op, and step 2 would open scrolled to the bottom of
-	// step 1.
-	useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [scrollKey]);
 
 	if (!open) return null;
 	return (
@@ -72,7 +87,9 @@ export function SetupModal({ open, onClose, label, children, scrollKey }: {
 				<button type="button" className="setup-modal__x" aria-label="Close" onClick={() => closeRef.current()}>
 					<X size={16} strokeWidth={1.75} />
 				</button>
-				<div ref={scrollRef} className="setup-modal__scroll">{children}</div>
+				<div ref={scrollRef} className="setup-modal__scroll">
+					<ScrollResetContext.Provider value={resetScroll}>{children}</ScrollResetContext.Provider>
+				</div>
 			</div>
 		</div>
 	);

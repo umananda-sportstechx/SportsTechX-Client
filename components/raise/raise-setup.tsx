@@ -10,6 +10,7 @@ import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
+import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
@@ -55,6 +56,7 @@ const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
  * than pushing you at the dashboard.
  */
 export function RaiseSetup({ onClose }: { onClose: () => void }) {
+	const resetScroll = useSetupScrollReset();
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
 	const [step, setStep] = useState(0);
 	const [saving, setSaving] = useState(false);
@@ -181,14 +183,14 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 		setSaving(true);
 		try { await saveStep(step); void mutate(); }
 		catch { /* a failed save must not trap them on the step */ }
-		finally { setSaving(false); setStep((x) => Math.max(x - 1, 0)); }
+		finally { setSaving(false); setStep((x) => Math.max(x - 1, 0)); resetScroll(); }
 	};
 
 	const next = async () => {
 		const miss = validate(step);
 		if (miss.length) { toast.error(`Please complete: ${miss.map((r) => r.label).join(', ')}`); return; }
 		setSaving(true);
-		try { await saveStep(step); void mutate(); setErrors(new Set()); setStep((x) => Math.min(x + 1, STEPS.length - 1)); }
+		try { await saveStep(step); void mutate(); setErrors(new Set()); setStep((x) => Math.min(x + 1, STEPS.length - 1)); resetScroll(); }
 		catch (e) { toast.error((e as Error).message ?? 'Could not save'); }
 		finally { setSaving(false); }
 	};

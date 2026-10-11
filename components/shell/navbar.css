@@ -46,7 +46,7 @@
 	transition: color 0.15s, border-color 0.15s;
 }
 .atlas .atlas-navsearch__btn:hover { color: var(--a-ink); border-color: var(--a-ink); }
-.atlas .atlas-navsearch__menu { z-index: 50; left: 0; right: auto; min-width: min(92vw, 380px); }
+.atlas .atlas-navsearch__menu { z-index: 50; left: 0; min-width: min(92vw, 380px); }
 .atlas .atlas-navsearch__field {
 	display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
 	padding: 0 10px; height: 30px; border-radius: var(--a-radius-pill);
@@ -73,8 +73,14 @@
 	border-top: 1px solid color-mix(in srgb, var(--a-primary-ink) 18%, transparent);
 }
 /* Log out is destructive and is the one item people hunt for — it reads as its
-   own thing rather than a fourth link. */
-.atlas .atlas-account-menu__out { color: var(--a-danger); }
+   own thing rather than a fourth link.
+   `--a-danger` RAW is unreadable here. This menu paints on `--a-primary`, which
+   inverts: in light mode that is black, and #BE1A4E on black is 3.5:1; in dark
+   mode it is white, and #FF7AA3 on white is 2.5:1. Both fail AA. Mixing the
+   danger hue toward the menu's own ink keeps it unmistakably red while landing
+   near 7:1 in both themes. */
+.atlas .atlas-account-menu__out { color: color-mix(in srgb, var(--a-danger) 55%, var(--a-primary-ink)); }
+.atlas .atlas-account-menu__out:hover { background: color-mix(in srgb, var(--a-danger) 28%, transparent); }
 .atlas .atlas-account-menu__out:disabled { opacity: 0.6; cursor: default; }
 
 /* ── Responsive ────────────────────────────────────────────────────────────*/

@@ -8,6 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { ProfileFields, FundFields, StageFields, GeographyFields, SectorFields, AttributeFields } from './thesis-form';
 import { useThesisState, type ThesisState } from './use-thesis';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
+import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
 // `scout.css` is imported by AppShell, which this route deliberately does NOT
@@ -84,7 +85,8 @@ function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: The
 	// wizard finishes and that branch renders.
 	const [busy, setBusy] = useState(false);
 	const patch = (p: Partial<Thesis>) => { setT({ ...t, ...p }); setErr(''); };
-	const top = () => window.scrollTo(0, 0);
+	// Scrolls the modal's own region; a no-op anywhere else.
+	const top = useSetupScrollReset();
 
 	if (done) return <Frame width={620}><Screen width={620}><DoneScreen name={t.name} onEnter={onClose} /></Screen></Frame>;
 
