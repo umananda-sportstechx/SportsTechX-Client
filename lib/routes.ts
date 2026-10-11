@@ -83,11 +83,11 @@ export const ROUTES: RouteDef[] = [
 	// ── Shared: the free Explore base, open to every signed-in user ──────────
 	{
 		id: 'home', icon: House, name: 'Home',
-		path: '/app',
+		path: '/home',
 	},
 	{
 		id: 'companies', icon: Building2, name: 'Companies',
-		path: '/app/companies',
+		path: '/companies',
 	},
 	{
 		// Not an Explore screen: the design lists neither this nor Recently
@@ -95,94 +95,94 @@ export const ROUTES: RouteDef[] = [
 		// heading and no tab strip, because NavSectionHeader can only find a
 		// section the viewer's sidebar actually has.
 		id: 'signals', icon: Radar, name: 'Signals',
-		path: '/app/signals', tier: ['raise', 'scout'],
+		path: '/signals', tier: ['raise', 'scout'],
 	},
 	{
 		// One URL, two different domain objects: recommended investors for a
 		// founder, recommended companies for an investor. Dispatched inside the
 		// page — a user only ever holds one paid tier.
 		id: 'recommended', icon: Sparkles, name: 'Recommended',
-		path: '/app/recommended', tier: ['raise', 'scout'],
+		path: '/recommended', tier: ['raise', 'scout'],
 	},
 	{
 		// Three names for one screen.
 		id: 'analytics', icon: ChartPie,
 		name: { explore: 'Analysis', raise: 'Analytics', scout: 'Market' },
-		path: '/app/analytics',
+		path: '/analytics',
 	},
 	{
 		id: 'roundup', icon: CalendarDays, name: 'Monthly Roundup',
-		path: '/app/roundup',
+		path: '/roundup',
 	},
 	{
 		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
-		path: '/app/recently-funded', tier: ['raise', 'scout'],
+		path: '/recently-funded', tier: ['raise', 'scout'],
 	},
 	{
 		id: 'watchlists', icon: List, name: 'All watchlists',
-		path: '/app/watchlists',
+		path: '/watchlists',
 	},
 	{
 		id: 'framework', icon: LayoutGrid, name: 'Framework',
-		path: '/app/framework',
+		path: '/framework',
 	},
 	{
 		id: 'reports', icon: Files, name: 'Reports',
-		path: '/app/reports',
+		path: '/reports',
 	},
 	{
 		id: 'newsletter', icon: Newspaper, name: 'Newsletter',
-		path: '/app/newsletter',
+		path: '/newsletter',
 	},
 	{
 		id: 'events', icon: CalendarRange, name: 'Events',
-		path: '/app/events',
+		path: '/events',
 	},
 	{
 		// Reached from the account badge, which AtlasShell renders separately.
 		// Listed so the gate and `pickActive` know about it.
 		id: 'account', icon: Settings, name: 'Account',
-		path: '/app/account',
+		path: '/account',
 	},
 	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
 	// Deliberately untiered. Claiming your company or fund is how the
 	// directory stays accurate, so a free user must be able to do it — the
 	// API never gated it and the UI used to have no door at all.
-	{ id: 'verify', icon: ShieldCheck, name: 'Get verified', path: '/app/verify' },
+	{ id: 'verify', icon: ShieldCheck, name: 'Get verified', path: '/verify' },
 	// Reachable from the sidebar upgrade cards, the tier gate and billing, but
 	// never listed in a sidebar — it is a destination, not a section.
-	{ id: 'plans', icon: Layers, name: 'Plans', path: '/app/plans' },
+	{ id: 'plans', icon: Layers, name: 'Plans', path: '/plans' },
 	{
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
 		// copy and a different name in each sidebar.
 		id: 'deck', icon: FileCheck,
 		name: { raise: 'Pitch Deck', scout: 'Deck Screener' },
-		path: '/app/deck', tier: ['raise', 'scout'],
+		path: '/deck', tier: ['raise', 'scout'],
 		// Scout v4 and the product brief both mark Deck Screener coming soon;
 		// Raise's Pitch Deck is live, so this cannot be a bare `true`.
 		placeholder: { scout: true },
 	},
-	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/app/interests', tier: 'explore' },
+	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/interests', tier: 'explore' },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
-	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/app/investors', tier: 'raise' },
-	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/app/programs', tier: 'raise' },
-	{ id: 'my-market', icon: Target, name: 'My Market', path: '/app/my-market', tier: 'raise' },
-	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/app/pipeline', tier: 'raise' },
-	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/app/guide', tier: 'raise', placeholder: true },
-	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/app/settings', tier: 'raise' },
+	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/investors', tier: 'raise' },
+	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/programs', tier: 'raise' },
+	{ id: 'my-market', icon: Target, name: 'My Market', path: '/my-market', tier: 'raise' },
+	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
+	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/guide', tier: 'raise', placeholder: true },
+	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/settings', tier: 'raise' },
 	// Gated, never listed.
-	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/app/setup', tier: 'raise' },
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/app/chat', tier: ['raise', 'scout'] },
-	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/app/strategy', tier: 'raise' },
+	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/setup', tier: 'raise' },
+	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/chat', tier: ['raise', 'scout'] },
+	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
-	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/app/deal-flow', tier: 'scout' },
-	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/app/deal-flow/featured', tier: 'scout' },
-	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/app/deal-flow/verified', tier: 'scout' },
-	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/app/deal-flow/circle', tier: 'scout' },
-	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/app/thesis', tier: 'scout' },
+	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/deal-flow', tier: 'scout' },
+	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/deal-flow/featured', tier: 'scout' },
+	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/deal-flow/verified', tier: 'scout' },
+	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/deal-flow/circle', tier: 'scout' },
+	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/thesis', tier: 'scout' },
 ];
 
 export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));

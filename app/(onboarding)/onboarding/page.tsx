@@ -27,7 +27,7 @@ export default function OnboardingPage() {
 	const [busy, setBusy] = useState(false);
 	const [claimRole, setClaimRole] = useState<ClaimRole | null>(null);
 
-	const goDashboard = () => router.push('/app');
+	const goDashboard = () => router.push('/home');
 
 	async function choose(persona: AccountType) {
 		setBusy(true);

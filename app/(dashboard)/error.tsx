@@ -43,7 +43,7 @@ export default function AppShellError({
             <RotateCcw className="h-4 w-4 mr-2" />Try again
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/app">Home</Link>
+            <Link href="/home">Home</Link>
           </Button>
         </div>
       </div>

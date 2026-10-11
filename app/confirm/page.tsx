@@ -14,7 +14,7 @@ import { AuthBrand } from '@/components/auth/auth-shell';
  * magiclink|email_change`. We call `supabase.auth.verifyOtp` to swap the
  * token for a session, then redirect to the dashboard.
  *
- * IMPORTANT: this route must stay OUT of `/app` *and* listed in `PUBLIC_PATHS`
+ * IMPORTANT: this route must stay OUT of `/home` *and* listed in `PUBLIC_PATHS`
  * (lib/public-paths.ts). The visitor arrives with no session by definition, so
  * anything that demands one — the `ProtectedRoute` wrapper, or the edge
  * middleware's cookie check — bounces them to /login before `verifyOtp` can mint
@@ -36,7 +36,7 @@ export default function ConfirmPage() {
 	const tokenHash = params.get('token_hash');
 	const type = (params.get('type') ?? 'signup') as
 		| 'signup' | 'invite' | 'recovery' | 'magiclink' | 'email_change';
-	const next = params.get('next') ?? '/app';
+	const next = params.get('next') ?? '/home';
 
 	useEffect(() => {
 		if (!tokenHash) {
