@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { AtlasLogo, Button, Card, H1, Loading, Screen } from '@/components/atlas';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { ProfileFields, FundFields, StageFields, GeographyFields, SectorFields, AttributeFields } from './thesis-form';
-import { useThesis, completeScoutSetup } from './use-thesis';
+import { useThesisState, type ThesisState } from './use-thesis';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
@@ -50,19 +50,37 @@ const required = (t: Thesis, step: number) => [
 	() => '',
 ][step]();
 
-export function Onboarding() {
-	const { isLoading } = useUserProfile();
-	const [saved] = useThesis();
-	// Seed the form once the profile has loaded, so name and email are prefilled.
-	if (isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
-	return <OnboardingForm initial={saved} />;
+/**
+ * The step to open on. With per-step saving, a returning Scout whose first three
+ * steps are already stored should land on the first one still missing something
+ * rather than retyping their fund name. All complete → the Review step.
+ */
+function firstIncomplete(t: Thesis): number {
+	for (let i = 0; i < STEPS.length; i++) if (required(t, i)) return i;
+	return STEPS.length - 1;
 }
 
-function OnboardingForm({ initial }: { initial: Thesis }) {
+export function Onboarding() {
+	const { isLoading: profileLoading } = useUserProfile();
+	const { thesis: saved, save, isLoading } = useThesisState();
+	// Wait for the THESIS, not just the profile.
+	//
+	// This used to gate on `useUserProfile().isLoading` alone while reading the
+	// thesis through `useThesis()`, which throws its own loading state away. The
+	// profile usually resolves first, so the form mounted seeded with
+	// DEFAULT_THESIS, `useState` kept that seed, and a returning Scout who
+	// reopened the wizard could save an empty thesis over a real one.
+	if (profileLoading || isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
+	return <OnboardingForm initial={saved} save={save} />;
+}
+
+function OnboardingForm({ initial, save }: { initial: Thesis; save: ThesisState['save'] }) {
 	const router = useRouter();
-	const [, save] = useThesis();
 	const [t, setT] = useState<Thesis>(initial);
-	const [step, setStep] = useState(0);
+	// Resume where they left off. Every step saves as it is left, so a thesis
+	// that already satisfies steps 1–3 should not make anyone retype them —
+	// mirrors the Raise wizard's resume scan in app/(dashboard)/setup/page.tsx.
+	const [step, setStep] = useState(() => firstIncomplete(initial));
 	const [err, setErr] = useState('');
 	const [done, setDone] = useState(false);
 	// Above the `if (done)` early return below: a hook after it is a conditional
@@ -81,15 +99,20 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 		// Two channels, as the Raise wizard does it: the banner is what you read,
 		// the toast is what you notice when the banner has scrolled out of view.
 		if (e) { setErr(e); toast.error(e); return; }
-		if (!last) { setStep(step + 1); top(); return; }
-		// The last step is the only one that writes. `setup_completed` stamps
-		// `setup_completed_at`, which is what lifts the 403 on /scout/recommended.
-		// Advancing the screen before the save lands would leave the user looking
-		// at a finished wizard on a still-gated Scout.
 		setBusy(true);
 		try {
-			await save(t);
-			await completeScoutSetup();
+			// Every step persists as it is left. This wizard used to write nothing
+			// until the final step, which was survivable while it was a page you
+			// had to deliberately navigate away from — as a modal, one Escape key
+			// would have thrown away five minutes of typing.
+			//
+			// Only the final step stamps. `setup_completed_at` is a one-way
+			// COALESCE server-side, so marking setup finished on step 1 could
+			// never be undone — and it is what lifts the 403 on the rest of Scout.
+			// Advancing the screen before the stamp lands would leave the user
+			// looking at a finished wizard on a still-gated Scout.
+			await save(t, { complete: last });
+			if (!last) { setStep(step + 1); top(); return; }
 			setDone(true);
 			top();
 		} catch {

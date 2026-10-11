@@ -35,6 +35,12 @@ const REQUIRED: { key: string; label: string; kind?: 'array' | 'bool' }[][] = [
 	[{ key: 'pitch_deck_status', label: 'Pitch deck' }, { key: 'financial_model_status', label: 'Financial model' }, { key: 'data_room_status', label: 'Data room' }, { key: 'has_target_list', label: 'Investor target list', kind: 'bool' }],
 	[{ key: 'investor_types', label: 'Investor types', kind: 'array' }, { key: 'geographies', label: 'Geographies', kind: 'array' }, { key: 'cheque_min', label: 'Cheque minimum' }, { key: 'cheque_max', label: 'Cheque maximum' }, { key: 'lead_preference', label: 'Lead/follower preference' }, { key: 'strategic_ok', label: 'Strategic preference', kind: 'bool' }],
 ];
+/** Criteria fields the last step owns. Typed against the DTO so a renamed server
+ *  field fails the build instead of silently dropping out of the save. */
+const CRIT_KEYS: (keyof RaiseCriteria)[] = [
+	'investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference',
+	'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern',
+];
 const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
 	kind === 'array' ? !Array.isArray(v) || v.length === 0
 		: kind === 'bool' ? v !== true && v !== false
@@ -135,11 +141,40 @@ export default function RaiseSetupPage() {
 		return missing;
 	};
 
+	// Investor criteria (the last step) live on a different endpoint and used to
+	// be written only by `finish()`. That made step 5 the one step you could lose
+	// entirely by leaving — which a dismissible modal makes easy. Saving it is
+	// safe because `setup_completed` is NOT sent here; only `finish()` stamps.
+	const saveCriteria = async () => {
+		const payload = Object.fromEntries(
+			CRIT_KEYS.filter((k) => dirtyC.current.has(k) && crit[k] !== '').map((k) => [k, crit[k]]),
+		);
+		if (Object.keys(payload).length === 0) return;
+		await apiRequest('PUT', '/api/raise/criteria', payload);
+	};
+
 	const saveStep = async (i: number) => {
+		if (i === STEPS.length - 1) { await saveCriteria(); return; }
 		const keys = stepFields[i] ?? [];
 		const payload = Object.fromEntries(keys.filter((k) => dirty.current.has(k) && form[k] !== '').map((k) => [k, form[k]]));
 		if (Object.keys(payload).length === 0) return;
 		await apiRequest('PATCH', '/api/raise', payload);
+	};
+
+	/**
+	 * Going back saves the step you are leaving.
+	 *
+	 * Without this, the last step is the only one you can lose outright — there
+	 * is no "Continue" from it, so `next()` never fires and its criteria were
+	 * written only by `finish()`. Validation is deliberately NOT run here: going
+	 * back from a half-filled step is normal, and `saveStep` only sends fields
+	 * the user actually touched.
+	 */
+	const back = async () => {
+		setSaving(true);
+		try { await saveStep(step); void mutate(); }
+		catch { /* a failed save must not trap them on the step */ }
+		finally { setSaving(false); setStep((x) => Math.max(x - 1, 0)); }
 	};
 
 	const next = async () => {
@@ -156,11 +191,7 @@ export default function RaiseSetupPage() {
 		if (miss.length) { toast.error(`Please complete: ${miss.map((r) => r.label).join(', ')}`); return; }
 		setSaving(true);
 		try {
-			const critPayload = Object.fromEntries(
-				(['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern'] as (keyof RaiseCriteria)[])
-					.filter((k) => dirtyC.current.has(k) && crit[k] !== '').map((k) => [k, crit[k]]),
-			);
-			await apiRequest('PUT', '/api/raise/criteria', critPayload);
+			await saveCriteria();
 			await apiRequest('PATCH', '/api/raise', { setup_completed: true });
 			setDone(true);
 		} catch (e) { toast.error((e as Error).message ?? 'Could not build your plan'); }
@@ -279,7 +310,7 @@ export default function RaiseSetupPage() {
 			</Card>
 
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-				<Button variant="ghost" disabled={step === 0 || saving} onClick={() => setStep((x) => x - 1)}><ArrowLeft size={13} /> Back</Button>
+				<Button variant="ghost" disabled={step === 0 || saving} onClick={() => void back()}><ArrowLeft size={13} /> Back</Button>
 				{step < STEPS.length - 1
 					? <Button disabled={saving} onClick={() => void next()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Continue <ArrowRight size={13} /></>}</Button>
 					: <Button disabled={saving} onClick={() => void finish()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Build my raise plan <Check size={13} /></>}</Button>}

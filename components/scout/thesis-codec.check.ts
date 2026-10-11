@@ -8,7 +8,7 @@
  * `scope_type` files a country under continents. None of that throws.
  */
 import assert from 'node:assert/strict';
-import { formatMoney, indexByName, parseMoney, scopeTypeOf, toForm, toThesisDto } from './thesis-codec.ts';
+import { formatMoney, indexByName, parseMoney, scopeTypeOf, toForm, toProfileDto, toThesisDto } from './thesis-codec.ts';
 import { DEFAULT_THESIS, type Thesis } from './sample-data.ts';
 
 // ── Money ────────────────────────────────────────────────────────────────────
@@ -90,6 +90,20 @@ assert.equal(back.invStyle, 'Either');
 assert.equal(back.investorType, 'Venture capital');
 assert.equal(back.chequeMin, '€250k');
 console.log('  ok    API → form restores every label');
+
+// Both URL fields must leave as absolute URLs. The server validates them with
+// Zod `.url()` and rejects the WHOLE save if either is bare — and both fields
+// ask for a bare host in their own placeholder ("linkedin.com/in/…",
+// "northline.vc"). `fund_website` was normalised and `linkedin_url` was not,
+// which rejected the save for anyone who filled in their LinkedIn.
+const urls = toProfileDto({ ...DEFAULT_THESIS, linkedin: 'linkedin.com/in/someone', website: 'northline.vc' });
+assert.equal(urls.linkedin_url, 'https://linkedin.com/in/someone', 'a bare LinkedIn path is made absolute');
+assert.equal(urls.fund_website, 'https://northline.vc', 'a bare host is made absolute');
+const keptUrls = toProfileDto({ ...DEFAULT_THESIS, linkedin: 'https://www.linkedin.com/in/x', website: 'http://n.vc' });
+assert.equal(keptUrls.linkedin_url, 'https://www.linkedin.com/in/x', 'an absolute URL is left alone');
+assert.equal(keptUrls.fund_website, 'http://n.vc', 'http is not rewritten to https');
+assert.equal(toProfileDto({ ...DEFAULT_THESIS, linkedin: '  ' }).linkedin_url, null, 'blank stays null, not "https://"');
+console.log('  ok    both URL fields leave absolute, blanks stay null');
 
 // An empty thesis must not blow up or invent values.
 const empty = toForm(undefined, null, DEFAULT_THESIS);
