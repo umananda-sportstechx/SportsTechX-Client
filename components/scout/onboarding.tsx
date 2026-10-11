@@ -3,28 +3,44 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AtlasLogo, Button, Card, Loading, PlaceholderTag } from '@/components/atlas';
+import { toast } from 'sonner';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { AtlasLogo, Button, Card, H1, Loading, Screen } from '@/components/atlas';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { ProfileFields, FundFields, StageFields, GeographyFields, SectorFields, AttributeFields } from './thesis-form';
-import { Steps } from './share-deal';
-import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { useThesis, completeScoutSetup } from './use-thesis';
+import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
 import { hrefOf } from '@/lib/routes';
+// `scout.css` is imported by AppShell, which this route deliberately does NOT
+// render — the onboarding group has no shell chrome. Without this import every
+// `scout-*` rule is missing here, which is not a styling nit: `ChipSet` falls
+// back to native grey buttons and `PickerDialog` loses `position: fixed`, so
+// the “+ Add” picker renders inline in the page instead of as an overlay.
+import './scout.css';
 
 /**
- * Investor onboarding (Claude Design "Onboarding"): Profile → Fund → Stage &
- * cheque → Investment focus → Review, then the "being verified" screen.
- * Sign-in stays on the existing Supabase login. Backend Not Connected: the
- * thesis is saved in this browser and nothing is submitted for verification.
+ * Investor onboarding: Profile → Fund → Stage & cheque → Investment focus →
+ * Review, then the transition screen.
+ *
+ * Built to the same idiom as the Raise setup wizard
+ * (`app/(dashboard)/setup/page.tsx`): a `Screen` at 720, an `atlas-pagehead`
+ * carrying the step bar, one `Card` holding the step body, and a ghost/primary
+ * nav row below it. The two are the same moment in two different products and
+ * used to look nothing alike.
+ *
+ * The thesis is persisted to the account (`PATCH /api/scout` +
+ * `PUT /api/scout/thesis`, via `useThesis`) and the last step stamps
+ * `setup_completed_at` — which is what `GET /scout/recommended` requires, and
+ * what clears the “complete your thesis” card on Home.
  */
 const STEPS: { name: string; title: string; sub: string }[] = [
 	{ name: 'Profile', title: 'Tell us about you', sub: 'This is how you’ll appear to the SportsTechX team. We use it to verify your profile.' },
 	{ name: 'Fund', title: 'Your fund', sub: 'Helps us verify your profile and match you with raises of the right size.' },
 	{ name: 'Stage & cheque', title: 'Stage and cheque size', sub: 'Where you invest and how much you typically write.' },
 	{ name: 'Investment focus', title: 'Investment focus', sub: 'Where you invest, what you invest in, and what you avoid. Atlas uses this to rank companies, signals and Deal Flow for you.' },
-	{ name: 'Review', title: 'Review your thesis', sub: 'Check everything before submitting for verification. You can change your thesis at any time.' },
+	{ name: 'Review', title: 'Review your thesis', sub: 'Check everything before you finish. You can change your thesis at any time.' },
 ];
 const required = (t: Thesis, step: number) => [
 	() => (t.name.trim() && t.email.includes('@') ? '' : 'Add your full name and a valid work email.'),
@@ -38,97 +54,186 @@ export function Onboarding() {
 	const { isLoading } = useUserProfile();
 	const [saved] = useThesis();
 	// Seed the form once the profile has loaded, so name and email are prefilled.
-	if (isLoading) return <Frame><Loading /></Frame>;
+	if (isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
 	return <OnboardingForm initial={saved} />;
 }
 
 function OnboardingForm({ initial }: { initial: Thesis }) {
 	const router = useRouter();
 	const [, save] = useThesis();
-	const [, setOnboarded] = usePlaceholderState<boolean>('onboarded', false);
 	const [t, setT] = useState<Thesis>(initial);
 	const [step, setStep] = useState(0);
 	const [err, setErr] = useState('');
-	const [verify, setVerify] = useState(false);
-	// Above the `if (verify)` early return below: a hook after it is a
-	// conditional hook, and React throws "rendered fewer hooks than expected"
-	// the moment the wizard finishes and that branch renders.
+	const [done, setDone] = useState(false);
+	// Above the `if (done)` early return below: a hook after it is a conditional
+	// hook, and React throws "rendered fewer hooks than expected" the moment the
+	// wizard finishes and that branch renders.
 	const [busy, setBusy] = useState(false);
 	const patch = (p: Partial<Thesis>) => { setT({ ...t, ...p }); setErr(''); };
 	const top = () => window.scrollTo(0, 0);
 
-	if (verify) return (
-		<Frame>
-			<span className="scout-tag scout-tag--ok">Profile submitted</span>
-			<h1 className="atlas-h1 scout-onb__title">Thanks, {t.name.split(' ')[0] || 'there'}. You’re almost in.</h1>
-			<p className="scout-body">We’ll email {t.email || 'you'} when your profile is verified.</p>
-			<div className="scout-verify">
-				{[
-					['01', 'Verification', 'The SportsTechX team reviews your profile and fund details, usually within 24 hours.'],
-					['02', 'Your Scout is ready now', 'Recommendations, signals, watchlists and market data are already tuned to your thesis.'],
-					['03', 'Full access after approval', 'Deal Flow introductions and the Investor Circle unlock once you’re verified.'],
-				].map(([n, h, b]) => <Card key={n} className="scout-verify__step"><span className="atlas-eyebrow">{n}</span><div className="scout-verify__h">{h}</div><p className="scout-muted">{b}</p></Card>)}
-			</div>
-			<Button onClick={() => router.push(hrefOf('home'))}>Go to Scout</Button>
-		</Frame>
-	);
+	if (done) return <Frame width={620}><Screen width={620}><DoneScreen name={t.name} onEnter={() => router.push(hrefOf('home'))} /></Screen></Frame>;
 
 	const s = STEPS[step];
+	const last = step === STEPS.length - 1;
 	const next = async () => {
 		const e = required(t, step);
-		if (e) { setErr(e); return; }
-		if (step < 4) { setStep(step + 1); top(); return; }
-		// The last step is the only one that writes. `setup_completed` is what
-		// stamps `setup_completed_at`, and that is the flag every other
-		// /api/scout/* route checks — they answer 403 SCOUT_NOT_SET_UP without
-		// it. Advancing the screen before the save lands would leave the user
-		// looking at a finished wizard on a still-gated Scout.
+		// Two channels, as the Raise wizard does it: the banner is what you read,
+		// the toast is what you notice when the banner has scrolled out of view.
+		if (e) { setErr(e); toast.error(e); return; }
+		if (!last) { setStep(step + 1); top(); return; }
+		// The last step is the only one that writes. `setup_completed` stamps
+		// `setup_completed_at`, which is what lifts the 403 on /scout/recommended.
+		// Advancing the screen before the save lands would leave the user looking
+		// at a finished wizard on a still-gated Scout.
 		setBusy(true);
 		try {
 			await save(t);
 			await completeScoutSetup();
-			setOnboarded(true);
-			setVerify(true);
+			setDone(true);
 			top();
 		} catch {
-			setErr('Could not save your thesis. Check your connection and try again.');
+			const m = 'Could not save your thesis. Check your connection and try again.';
+			setErr(m);
+			toast.error(m);
 		} finally { setBusy(false); }
 	};
+
 	return (
 		<Frame>
-			<Steps names={STEPS.map((x) => x.name)} step={step} onPick={(i) => { setStep(i); setErr(''); }} />
-			<div className="atlas-eyebrow">Step {step + 1} of {STEPS.length} · {s.name}</div>
-			<h1 className="atlas-h1 scout-onb__title">{s.title}</h1>
-			<p className="scout-body">{s.sub}</p>
-			<Card className="scout-section">
-				{step === 0 && <ProfileFields t={t} patch={patch} />}
-				{step === 1 && <FundFields t={t} patch={patch} />}
-				{step === 2 && <StageFields t={t} patch={patch} />}
-				{step === 3 && <><GeographyFields t={t} patch={patch} /><SectorFields t={t} patch={patch} /><AttributeFields t={t} patch={patch} /></>}
-				{step === 4 && <Review t={t} onEdit={(i) => { setStep(i); top(); }} />}
-			</Card>
-			{err && <p className="scout-error" role="alert">{err}</p>}
-			<div className="scout-intro__actions">
-				{step === 0 ? <Link href={hrefOf('home')} className="atlas-btn atlas-btn--outline">Skip to app</Link> : <Button variant="outline" onClick={() => { setStep(step - 1); top(); }}>← Back</Button>}
-				<Button disabled={busy} onClick={() => void next()}>{busy ? 'Saving…' : step === 4 ? 'Submit for verification' : 'Continue'}</Button>
-			</div>
-			{/* The thesis is optional, so the way out has to stay visible — it used
-			    to exist on step 0 only, where "Back" then replaced it and a user
-			    part-way through had no exit but the browser button. */}
-			{step > 0 && (
-				<p style={{ textAlign: 'center', marginTop: 12 }}>
-					<Link href={hrefOf('home')} className="scout-link">Skip for now — I&rsquo;ll finish this later</Link>
+			<Screen width={720}>
+				<header className="atlas-pagehead">
+					<div className="atlas-eyebrow" style={{ marginBottom: 14 }}>
+						Set up your thesis · Step {step + 1} of {STEPS.length}
+					</div>
+					<StepBar step={step} onPick={(i) => { setStep(i); setErr(''); top(); }} />
+					<H1>{s.title}</H1>
+					<p style={{ margin: '14px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)', maxWidth: 560 }}>{s.sub}</p>
+				</header>
+
+				<Card style={{ padding: 23 }}>
+					{err && (
+						<div role="alert" style={{ marginBottom: 16, borderRadius: 'var(--a-radius-sm)', border: '1px solid color-mix(in srgb, var(--a-danger) 22%, transparent)', background: 'var(--a-danger-bg)', color: 'var(--a-danger)', padding: '10px 14px', fontSize: 12, lineHeight: 1.55 }}>
+							{err}
+						</div>
+					)}
+					{step === 0 && <ProfileFields t={t} patch={patch} />}
+					{step === 1 && <FundFields t={t} patch={patch} />}
+					{step === 2 && <StageFields t={t} patch={patch} />}
+					{step === 3 && <><GeographyFields t={t} patch={patch} /><SectorFields t={t} patch={patch} /><AttributeFields t={t} patch={patch} /></>}
+					{step === 4 && <Review t={t} onEdit={(i) => { setStep(i); top(); }} />}
+				</Card>
+
+				<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+					<Button variant="ghost" disabled={step === 0 || busy} onClick={() => { setStep(step - 1); setErr(''); top(); }}><ArrowLeft size={13} /> Back</Button>
+					<Button disabled={busy} onClick={() => void next()}>
+						{busy ? <Loader2 className="animate-spin" size={13} /> : last ? <>Finish setup <Check size={13} /></> : <>Continue <ArrowRight size={13} /></>}
+					</Button>
+				</div>
+
+				{/* The thesis is optional, so the way out has to stay visible — it used
+				    to exist on step 0 only, where "Back" then replaced it and a user
+				    part-way through had no exit but the browser button. */}
+				<p style={{ textAlign: 'center', marginTop: 16 }}>
+					<Link href={hrefOf('home')} className="scout-link">
+						{step === 0 ? 'Skip for now — I’ll do this later' : 'Skip for now — I’ll finish this later'}
+					</Link>
 				</p>
-			)}
+			</Screen>
 		</Frame>
 	);
 }
 
-function Frame({ children }: { children: React.ReactNode }) {
+/**
+ * The step bar, same geometry as the Raise wizard's: equal-width 6px bars
+ * filled to and including the current step, with a three-way caption colour.
+ *
+ * Completed steps stay clickable. The Raise wizard's bar is inert, but this one
+ * was clickable before and removing that to match would be a regression.
+ */
+function StepBar({ step, onPick }: { step: number; onPick: (i: number) => void }) {
 	return (
-		<div className="scout-onb">
-			<header className="scout-onb__head"><AtlasLogo height={28} product="Scout" productColor={SCOUT_COLOR} /><PlaceholderTag /></header>
-			<main className="scout-onb__main">{children}</main>
+		<div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))`, gap: 6, marginBottom: 26 }}>
+			{STEPS.map(({ name }, i) => {
+				const bar = <span style={{ display: 'block', height: 6, borderRadius: 3, background: i <= step ? 'var(--a-ink)' : 'var(--a-track)', transition: 'background 0.15s' }} />;
+				const caption = (
+					<span style={{ display: 'block', marginTop: 8, fontFamily: 'var(--a-mono)', fontSize: 9, lineHeight: 1.3, letterSpacing: '0.05em', textTransform: 'uppercase', color: i === step ? 'var(--a-ink)' : i < step ? 'var(--a-muted)' : 'var(--a-faint)', overflowWrap: 'anywhere' }}>{name}</span>
+				);
+				return i < step ? (
+					<button key={name} type="button" onClick={() => onPick(i)} style={{ minWidth: 0, padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}>{bar}{caption}</button>
+				) : (
+					<div key={name} style={{ minWidth: 0 }} aria-current={i === step ? 'step' : undefined}>{bar}{caption}</div>
+				);
+			})}
+		</div>
+	);
+}
+
+/**
+ * Post-setup screen, on the Raise wizard's transition grammar: a checklist
+ * card, then what the product does, then one glow card for the single next
+ * action, then a ghost way out.
+ *
+ * It used to say “Profile submitted — we’ll email you when your profile is
+ * verified”. Nothing submitted anything: the final step saves the thesis and
+ * stamps setup, and the only route that files an investor claim
+ * (`POST /scout/verification`) has never had a client caller. So the promise is
+ * gone and the real thing is offered instead — `VerifyButton` infers the
+ * investor form from the Scout tier, and the claim modal is mounted globally in
+ * `app/providers.tsx`, so it works from here.
+ */
+function DoneScreen({ name, onEnter }: { name: string; onEnter: () => void }) {
+	const first = name.trim().split(' ')[0];
+	return (
+		<div style={{ textAlign: 'center', padding: '32px 0' }}>
+			<H1>{first ? `You’re set up, ${first}.` : 'You’re set up.'}</H1>
+			<Card style={{ margin: '27px 0', textAlign: 'left', padding: 0, overflow: 'hidden' }}>
+				{['Thesis saved to your account', 'Recommendations matched to your thesis', 'Signals scoped to your sectors and regions'].map((x, i) => (
+					<div key={x} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 23px', borderTop: i ? '1px solid var(--a-border)' : 'none', fontSize: 13, color: 'var(--a-ink-2)' }}>
+						<span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: '50%', background: 'var(--a-ok)', color: 'var(--a-page)', display: 'grid', placeItems: 'center' }}><Check size={12} /></span> {x}
+					</div>
+				))}
+			</Card>
+			<div className="atlas-eyebrow" style={{ marginBottom: 14, textAlign: 'left' }}>Here’s how Atlas Scout works</div>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24, textAlign: 'left' }}>
+				{[
+					['Discover', 'Companies matched to your thesis, plus the market data behind them.'],
+					['Track', 'Watchlists and signals that follow the companies you care about.'],
+					['Act', 'Deal Flow introductions when a round fits what you’re looking for.'],
+				].map(([title, desc]) => (
+					<Card key={title}>
+						<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{title}</div>
+						<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55 }}>{desc}</div>
+					</Card>
+				))}
+			</div>
+			<Card glow="blue" style={{ textAlign: 'left', marginBottom: 20 }}>
+				<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Get verified</div>
+				<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 16 }}>
+					Verifying your fund lets the SportsTechX team confirm who you are, which is what opens Deal Flow
+					introductions and the Investor Circle. Optional, and you can do it later from Account.
+				</div>
+				<VerifyButton label="Get verified" />
+			</Card>
+			<Button variant="ghost" onClick={onEnter}>Go to Scout <ArrowRight size={13} /></Button>
+		</div>
+	);
+}
+
+/**
+ * Page frame. Establishes the Atlas page surface itself, because this route
+ * renders outside AppShell and nothing above it paints a background.
+ */
+function Frame({ children, width = 720 }: { children: React.ReactNode; width?: number }) {
+	return (
+		<div style={{ minHeight: '100dvh', background: 'var(--a-page)', color: 'var(--a-ink)' }}>
+			{/* `atlas-screen` for the side padding, which is responsive (56 → 32 → 16),
+			    so the logo stays flush with the card below it at every width. Only the
+			    vertical padding is overridden. */}
+			<header className="atlas-screen" style={{ maxWidth: width, paddingTop: 26, paddingBottom: 0, display: 'flex', alignItems: 'center' }}>
+				<AtlasLogo height={28} product="Scout" productColor={SCOUT_COLOR} />
+			</header>
+			{children}
 		</div>
 	);
 }
@@ -144,7 +249,7 @@ function Review({ t, onEdit }: { t: Thesis; onEdit: (step: number) => void }) {
 	return (
 		<div className="scout-review">
 			{groups.map(([name, i, rows]) => (
-				<div key={name} className="scout-review__group">
+				<div key={name}>
 					<div className="scout-review__head"><span className="atlas-eyebrow">{name}</span><button type="button" className="scout-link" onClick={() => onEdit(i)}>Edit</button></div>
 					{rows.map(([k, x]) => <div key={k} className="scout-review__row"><span>{k}</span><span className={v(x) === '—' ? 'scout-muted' : undefined}>{v(x)}</span></div>)}
 				</div>
