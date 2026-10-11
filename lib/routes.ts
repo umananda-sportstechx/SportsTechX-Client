@@ -174,7 +174,10 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/settings', tier: 'raise' },
 	// Gated, never listed.
 	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/setup', tier: 'raise' },
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/chat', tier: ['raise', 'scout'] },
+	// No tier: every plan gets the assistant, bounded by credits rather than by a
+	// locked door (see chat.controller.ts). Still unlisted in NAV_LAYOUT — it is
+	// reached from the home composer and the FAB.
+	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/chat' },
 	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────

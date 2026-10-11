@@ -73,11 +73,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				// 'explore', so without this a paying user is shown an upgrade pitch
 				// for a beat on every cold load.
 				railExtra={ready && tier === 'explore' ? <UpgradeCards /> : undefined}
-				// The co-pilot FAB, on both paid products — AI is a Raise and Scout
-				// feature, never an Explore one (the server gates /api/chat the same
-				// way). The full chat page is itself the co-pilot, so don't stack a
-				// drawer on top of it there.
-				overlay={tier !== 'explore' && !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
+				// The co-pilot FAB, on every tier. It used to be hidden from Explore
+				// because the API refused them; now credits are the only limit, so a
+				// free user gets the assistant too and is told when they run out. The
+				// full chat page is itself the co-pilot, so don't stack a drawer on
+				// top of it there.
+				overlay={!pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>
