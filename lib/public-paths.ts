@@ -63,17 +63,38 @@ export function isPublicPath(pathname: string): boolean {
  * to the public. Gating on `isPrivatePath` lets unknown paths fall through to a
  * real 404 while private trees stay gated.
  *
- * The first three are exactly the layouts that mount `<ProtectedRoute>`, which
- * is the actual session check — `lib/supabase/middleware.ts` only looks for a
- * cookie, by design. `lib/nav.check.ts` asserts that correspondence so the two
- * cannot drift.
+ * **This list used to be just `/app`.** Flattening the dashboard out of that
+ * prefix means every signed-in route has to be named here individually, which
+ * is the dangerous direction: a route missing from this list is not an error,
+ * it is a private page that renders to anyone. Two things stop that:
  *
- * `/docs` is listed only to preserve today's behaviour. It is private by
- * accident rather than intent (it reads as public marketing copy, is disallowed
- * in robots.ts, and is linked from nowhere) — but whether to publish it is a
- * marketing decision, so it keeps its current gating until someone makes it.
+ *  - `lib/nav.check.ts` asserts this list covers **every path in `ROUTES`** and
+ *    that nothing here is stale, so adding a route without listing it fails the
+ *    build check.
+ *  - It also asserts the list covers every page under a layout that mounts
+ *    `<ProtectedRoute>`, which is the actual session check — the middleware only
+ *    looks for a cookie, by design.
+ *
+ * It is deliberately NOT derived from `ROUTES` at runtime: this module is
+ * imported by `lib/supabase/middleware.ts`, which runs at the edge, and
+ * `routes.ts` pulls in ~30 lucide icons. A build-time assertion buys the same
+ * safety without putting an icon set in the edge bundle.
+ *
+ * `/docs` is private by accident rather than intent (it reads as public
+ * marketing copy, is disallowed in robots.ts, and is linked from nowhere) — but
+ * whether to publish it is a marketing decision, so it keeps its current gating
+ * until someone makes it.
  */
-export const PRIVATE_PREFIXES = ['/app', '/onboarding', '/billing', '/docs'] as const;
+export const PRIVATE_PREFIXES = [
+  // Dashboard routes — mirrors `ROUTES` in lib/routes.ts (nav.check enforces it).
+  '/account', '/analytics', '/billing', '/chat', '/companies', '/deal-flow',
+  '/deck', '/events', '/framework', '/guide', '/home', '/interests',
+  '/investors', '/my-market', '/newsletter', '/pipeline', '/plans', '/programs',
+  '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
+  '/setup', '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
+  // Not in ROUTES: the onboarding tree and the integration docs.
+  '/onboarding', '/docs',
+] as const;
 
 export function isPrivatePath(pathname: string): boolean {
   return PRIVATE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));

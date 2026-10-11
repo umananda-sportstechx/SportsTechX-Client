@@ -36,6 +36,31 @@ export const SCOUT_GREETING =
 
 export const SCOUT_INSUFFICIENT_CREDITS = FOUNDER_INSUFFICIENT_CREDITS;
 
+/**
+ * Explore. No workspace to talk about, so this one is about the market data —
+ * which is exactly what a free account has access to.
+ */
+export const EXPLORE_GREETING =
+	"Ask me about the sports-tech market — companies, funding rounds, investors, events — and I'll pull it from the Atlas data. Try “who is funding fan engagement right now?” or “summarise last month’s rounds”.";
+
+/** Explore has no plan to top up *from*, so the nudge is to the plans page. */
+export const EXPLORE_INSUFFICIENT_CREDITS =
+	"_You've used your free AI credits._ [Get more credits or upgrade](/plans) to keep going.";
+
+/** Per-tier chat copy, so the three surfaces pick the same way. */
+export function chatCopy(tier: Tier): { greeting: string; insufficient: string; placeholder: string; fabLabel: string } {
+	if (tier === 'scout') {
+		return { greeting: SCOUT_GREETING, insufficient: SCOUT_INSUFFICIENT_CREDITS,
+			placeholder: 'Ask about companies, deals, your thesis…', fabLabel: 'Open deal-flow co-pilot' };
+	}
+	if (tier === 'raise') {
+		return { greeting: FOUNDER_GREETING, insufficient: FOUNDER_INSUFFICIENT_CREDITS,
+			placeholder: 'Ask about investors, your market, your raise…', fabLabel: 'Open fundraising co-pilot' };
+	}
+	return { greeting: EXPLORE_GREETING, insufficient: EXPLORE_INSUFFICIENT_CREDITS,
+		placeholder: 'Ask about companies, funding, events…', fabLabel: 'Open the Atlas assistant' };
+}
+
 /** Detail routes whose `[id]` segment names an entity the model can be told about. */
 const ENTITY_ROUTES: [routeId: string, entityType: 'investor' | 'deck_analysis'][] = [
 	['investors', 'investor'],

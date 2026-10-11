@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Send, X, Download, Plus, History, Sparkles } from 'lucide-react';
 import { useChat, AI_MD_CSS } from '@/components/chat/chat-core';
 import {
-	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, SCOUT_GREETING, SCOUT_INSUFFICIENT_CREDITS,
-	founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath, FounderMessages,
+	chatCopy, founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath,
+	FounderMessages,
 } from './founder-chat';
 import { useNav } from '@/hooks/use-nav';
 import './raise-chat.css';
@@ -26,6 +26,7 @@ export function RaiseChat() {
 	const router = useRouter();
 	const { tier } = useNav();
 	const isScout = tier === 'scout';
+	const copy = chatCopy(tier);
 
 	// Memoized: `useChat` keeps this in its callback deps, so a fresh closure on
 	// every render would rebuild them for nothing.
@@ -35,10 +36,10 @@ export function RaiseChat() {
 	);
 
 	const chat = useChat({
-		greeting: isScout ? SCOUT_GREETING : FOUNDER_GREETING,
+		greeting: copy.greeting,
 		actionFromTool,
 		pageContext: () => founderPageContext(pathname),
-		insufficientCreditsMd: isScout ? SCOUT_INSUFFICIENT_CREDITS : FOUNDER_INSUFFICIENT_CREDITS,
+		insufficientCreditsMd: copy.insufficient,
 	});
 
 	const {
@@ -54,7 +55,7 @@ export function RaiseChat() {
 			<style>{AI_MD_CSS}</style>
 
 			{!open && (
-				<button className="raise-chat-fab" onClick={() => setOpen(true)} aria-label={isScout ? 'Open deal-flow co-pilot' : 'Open fundraising co-pilot'}>
+				<button className="raise-chat-fab" onClick={() => setOpen(true)} aria-label={copy.fabLabel}>
 					<Sparkles size={18} strokeWidth={1.25} />
 				</button>
 			)}
@@ -119,7 +120,7 @@ export function RaiseChat() {
 				<div className="raise-chat-input-row">
 					<textarea
 						className="raise-chat-input"
-						placeholder={isScout ? 'Ask about companies, deals, your thesis…' : 'Ask about investors, your market, your raise…'}
+						placeholder={copy.placeholder}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
