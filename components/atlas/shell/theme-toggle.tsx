@@ -4,8 +4,15 @@ import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 
-/** Light/dark switch — compact icon button for the mobile top bar, labelled row for the sidebar. */
-export function ThemeToggle({ compact, collapsed }: { compact?: boolean; collapsed?: boolean }) {
+/**
+ * Light/dark switch — compact icon button for the mobile top bar, a row inside
+ * the navbar's account menu, or a labelled sidebar row.
+ *
+ * Three shapes rather than three components: the `mounted` guard below is the
+ * whole reason this exists (SSR has no theme, so rendering the real icon first
+ * paint is a hydration mismatch), and that is not worth copying per variant.
+ */
+export function ThemeToggle({ compact, menu, collapsed }: { compact?: boolean; menu?: boolean; collapsed?: boolean }) {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	useEffect(() => setMounted(true), []);
@@ -17,6 +24,14 @@ export function ThemeToggle({ compact, collapsed }: { compact?: boolean; collaps
 		return (
 			<button className="atlas-hamburger" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
 				{mounted ? <Icon size={19} strokeWidth={1.25} /> : <Moon size={19} strokeWidth={1.25} />}
+			</button>
+		);
+	}
+	if (menu) {
+		return (
+			<button type="button" className="atlas-menu__item" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
+				{mounted ? <Icon size={13} strokeWidth={1.5} /> : <Moon size={13} strokeWidth={1.5} />}
+				{mounted && isDark ? 'Light mode' : 'Dark mode'}
 			</button>
 		);
 	}

@@ -10,8 +10,13 @@
   color: var(--a-ink);
 }
 
-.atlas-main { min-width: 0; display: flex; flex-direction: column; }
-.atlas-content { min-width: 0; height: 100dvh; overflow-y: auto; }
+.atlas-main { min-width: 0; display: flex; flex-direction: column; height: 100dvh; }
+/* `flex: 1` + `min-height: 0`, never `height: 100dvh`. The fixed height was fine
+   while this was the only row in the column, but the navbar now sits above it —
+   100dvh + the bar overflows the viewport and the document grows a second
+   scrollbar beside this one. `min-height: 0` is the load-bearing half: a flex
+   item defaults to `min-height: auto` and refuses to shrink below its content. */
+.atlas-content { min-width: 0; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
 /* Mobile top bar — hidden on desktop */
 .atlas-topbar { display: none; }
@@ -74,20 +79,6 @@
 .atlas-nav-item.is-soon:hover { background: none; color: var(--a-faint); }
 .atlas-nav-item .atlas-soon { margin-left: auto; }
 
-/* Account row: divider + square initials badge (Figma "Account Link") */
-.atlas-account {
-  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-  margin: 8px 16px 0; padding-top: 18px; border-top: 1px solid var(--a-border);
-  color: color-mix(in srgb, var(--a-ink) 60%, transparent); font-family: var(--a-font); font-size: 14px; font-weight: 500; line-height: 1; letter-spacing: 0;
-  text-decoration: none; transition: color 0.12s;
-}
-.atlas-account:hover, .atlas-account.active { color: var(--a-ink-2); }
-.atlas-account-badge {
-  display: inline-grid; place-items: center; flex-shrink: 0;
-  width: 36px; height: 36px; border-radius: 5px;
-  background: var(--a-primary); color: var(--a-primary-ink);
-  font-family: var(--a-font); font-size: 16px; font-weight: 500; letter-spacing: 0.1em;
-}
 
 .atlas-backdrop { display: none; }
 
@@ -109,7 +100,6 @@
 .is-collapsed .atlas-brand { display: none; }
 .is-collapsed .atlas-nav, .is-collapsed .atlas-nav-bottom { padding-left: 0; padding-right: 0; align-items: center; }
 .is-collapsed .atlas-nav-item { justify-content: center; width: 40px; min-height: 34px; padding: 0; }
-.is-collapsed .atlas-account { justify-content: center; margin: 8px 0 0; }
 .is-collapsed .atlas-nav-section { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--a-border); align-items: center; }
 .is-collapsed .atlas-nav-section__head { display: none; }
 .is-collapsed .atlas-nav-section.is-closed .atlas-nav-section__items { display: flex; }
@@ -140,7 +130,10 @@
   }
   .atlas-hamburger:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
 
-  .atlas-content { height: auto; overflow: visible; }
+  /* Mobile hands scrolling back to the document, so the column must not be
+     pinned to the viewport either — otherwise the page is trapped at 100dvh. */
+  .atlas-main { height: auto; }
+  .atlas-content { flex: none; min-height: 0; overflow: visible; }
 
   /* Rail becomes an off-canvas left drawer */
   .atlas-rail {
@@ -159,7 +152,6 @@
   .is-collapsed .atlas-brand { display: inline-flex; }
   .is-collapsed .atlas-nav, .is-collapsed .atlas-nav-bottom { padding: 10px; align-items: stretch; }
   .is-collapsed .atlas-nav-item { justify-content: flex-start; width: 100%; min-height: 28px; padding: 2px 5px; }
-  .is-collapsed .atlas-account { justify-content: flex-start; margin: 8px 16px 0; }
   .is-collapsed .atlas-nav-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
   .is-collapsed   .is-collapsed .atlas-nav-item.is-soon { display: flex; }
   .is-collapsed .atlas-soon { display: inline-block; }

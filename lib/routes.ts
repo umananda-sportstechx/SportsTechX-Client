@@ -216,7 +216,6 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// available and deliberately does not pass it). `buildNav` keeps
 		// upsellable items; only `hidden` ones are dropped.
 		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
-		{ title: null, bottom: true, items: ['verify'] },
 	],
 	raise: [
 		{ title: null, items: ['home'] },
@@ -225,7 +224,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
 		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['raise-settings', 'verify', 'billing'] },
+		{ title: null, bottom: true, items: ['raise-settings', 'billing'] },
 	],
 	scout: [
 		{ title: null, items: ['home'] },
@@ -234,7 +233,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Watchlists', items: ['watchlists'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['thesis', 'verify', 'billing'] },
+		{ title: null, bottom: true, items: ['thesis', 'billing'] },
 	],
 };
 
