@@ -8,6 +8,7 @@ import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { Brand } from '@/components/ui/brand';
 import { Button, Card } from '@/components/atlas';
 import { hrefOf } from '@/lib/routes';
+import { openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 
 /**
  * Stripe Checkout success landing.
@@ -57,9 +58,14 @@ export default function BillingSuccessPage() {
 	}, [confirmed, mutate]);
 
 	// Straight into the setup each product actually needs — both are skippable.
-	// Scout's thesis wizard lives in the onboarding group; Raise's is the in-app
-	// setup page, which already ends in "Skip for now — enter your workspace".
-	const next = tier === 'scout' ? '/onboarding/scout' : tier === 'raise' ? hrefOf('setup') : hrefOf('home');
+	// Both used to be their own routes (`/onboarding/scout`, `/setup`); they are
+	// modals now, so this lands on the dashboard and raises the right one over
+	// it. The Stripe return URL itself is `/billing/success` and is unaffected.
+	const openSetup = () => {
+		router.push(hrefOf('home'));
+		if (tier === 'scout') openScoutThesis();
+		else if (tier === 'raise') openRaiseSetup();
+	};
 
 	return (
 		<div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--a-page)', color: 'var(--a-ink)' }}>
@@ -83,7 +89,7 @@ export default function BillingSuccessPage() {
 
 				<div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
 					{confirmed ? (
-						<Button onClick={() => router.push(next)}>Continue</Button>
+						<Button onClick={openSetup}>Continue</Button>
 					) : gaveUp ? (
 						// Deliberately NOT stamped, so the plan chooser is still reachable.
 						<Button variant="outline" onClick={() => router.push(hrefOf('home'))}>Go to Atlas</Button>

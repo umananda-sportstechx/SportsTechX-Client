@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useLogout } from '@/hooks/use-logout';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
-import { track, Events } from '@/lib/analytics';
 import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 
@@ -25,10 +24,9 @@ export const RAISE_NOTIFICATIONS: NotificationPref[] = [
 ];
 
 export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extra }: { notifications?: NotificationPref[]; sub?: string; /** Product-specific cards before Log out (e.g. Explore's product access). */ extra?: React.ReactNode }) {
-	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const [busy, setBusy] = useState(false);
-	const [signingOut, setSigningOut] = useState(false);
+	const { logout, signingOut } = useLogout();
 	const [prefs, setPrefs] = useState<Record<string, boolean>>(() => Object.fromEntries(notifications.map((n) => [n.key, n.on])));
 
 	const name = profile?.display_name ?? profile?.full_name ?? '';
@@ -43,13 +41,6 @@ export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extr
 			toast.success('Password reset email sent');
 		} catch (e) { toast.error((e as Error).message ?? 'Could not send email'); }
 		finally { setBusy(false); }
-	};
-
-	const logout = async () => {
-		if (signingOut) return;
-		setSigningOut(true);
-		try { track(Events.signedOut); await getSupabaseBrowser().auth.signOut(); router.push('/login'); }
-		catch { setSigningOut(false); }
 	};
 
 	return (

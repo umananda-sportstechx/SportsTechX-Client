@@ -7,7 +7,7 @@ import { Users } from 'lucide-react';
 import { Badge, Button } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
-import { hrefOf } from '@/lib/routes';
+import { openRaiseSetup } from '@/lib/setup-events';
 
 /**
  * Share your round with the Investor Circle.
@@ -36,6 +36,11 @@ interface OptInState {
 
 const BODY: React.CSSProperties = { fontSize: 13, lineHeight: 1.6, color: 'var(--a-muted)', margin: 0 };
 
+const LINK: React.CSSProperties = {
+	background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+	font: 'inherit', color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 3,
+};
+
 export function DealflowOptIn() {
 	const { data, isLoading, mutate } = useSWR<OptInState>(qk.raise.dealflow());
 	const [busy, setBusy] = useState(false);
@@ -60,7 +65,9 @@ export function DealflowOptIn() {
 		return (
 			<p style={BODY}>
 				Set up your raise first and you can share it with the Investor Circle from here.{' '}
-				<a href={hrefOf('setup')} style={{ color: 'var(--a-accent)' }}>Set up your raise</a>
+				{/* `--a-accent` was the colour here and is defined nowhere, so this
+				    link rendered in the inherited body colour. */}
+				<button type="button" onClick={openRaiseSetup} style={LINK}>Set up your raise</button>
 			</p>
 		);
 	}

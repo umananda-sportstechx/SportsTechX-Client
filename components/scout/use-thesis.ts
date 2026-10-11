@@ -41,7 +41,8 @@ const MODEL_LABELS = new Set(['B2B', 'B2C', 'B2B2C', 'D2C', 'B2G']);
 
 export interface ThesisState {
 	thesis: Thesis;
-	save: (next: Thesis) => Promise<void>;
+	/** `complete` defaults to true — see the docblock on the implementation. */
+	save: (next: Thesis, opts?: { complete?: boolean }) => Promise<void>;
 	isLoading: boolean;
 	/** The wizard has never been completed — the rest of Scout is still gated. */
 	needsSetup: boolean;
@@ -87,14 +88,28 @@ export function useThesisState(): ThesisState {
 		return { ...base, email: profile?.email ?? base.email, include: [...base.include, ...extras] };
 	}, [thesis.data, scout.data, profile, extras]);
 
-	const save = useCallback(async (next: Thesis) => {
+	/**
+	 * Persist the thesis.
+	 *
+	 * `complete` defaults to **true**: saving a thesis from Thesis Settings IS
+	 * completing the setup, and for a while only the wizard stamped it, so a
+	 * Scout who filled this in from Settings lifted the 403s (the row now exists)
+	 * and was then told to "complete your investment thesis" forever, because the
+	 * attention card reads that flag.
+	 *
+	 * The wizard passes `{ complete: false }` for steps 1–4. It has to: once the
+	 * wizard became a dismissible modal, each step saves as you go, and stamping
+	 * on step 1 would mark setup finished for someone who has typed only their
+	 * name. `setup_completed_at` is a one-way COALESCE stamp server-side, so
+	 * writing it early cannot be undone.
+	 */
+	const save = useCallback(async (next: Thesis, opts?: { complete?: boolean }) => {
 		saveExtras(splitLocal(next.include, idx.sports, MODEL_LABELS));
-		// `setup_completed` rides along with the profile patch. Saving a thesis
-		// IS completing the setup — but only the onboarding wizard ever stamped
-		// it, so a Scout who filled this in from Thesis Settings lifted the 403s
-		// (the row now exists) and then kept being told to "complete your
-		// investment thesis" forever, because the attention card reads this flag.
-		const p = await apiRequest('PATCH', '/api/scout', { ...toProfileDto(next), setup_completed: true });
+		const complete = opts?.complete ?? true;
+		// Profile first, always: `PUT /api/scout/thesis` answers 403
+		// SCOUT_NOT_SET_UP until a `scout_profiles` row exists, and this PATCH is
+		// what creates it.
+		const p = await apiRequest('PATCH', '/api/scout', { ...toProfileDto(next), ...(complete ? { setup_completed: true } : {}) });
 		if (!p.ok) throw new Error(`profile save failed (${p.status})`);
 		const r = await apiRequest('PUT', '/api/scout/thesis', toThesisDto(next, idx));
 		if (!r.ok) throw new Error(`thesis save failed (${r.status})`);
@@ -107,13 +122,6 @@ export function useThesisState(): ThesisState {
 		isLoading: scout.isLoading || thesis.isLoading,
 		needsSetup: !scout.data?.setup_completed_at,
 	};
-}
-
-/** Mark the wizard finished. Stamps `setup_completed_at`, which is what lifts
- *  the 403 on the rest of Scout. */
-export async function completeScoutSetup(): Promise<void> {
-	const res = await apiRequest('PATCH', '/api/scout', { setup_completed: true });
-	if (!res.ok) throw new Error(`setup completion failed (${res.status})`);
 }
 
 /** Tuple form, kept so the four existing callers read unchanged. */
