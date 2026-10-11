@@ -112,6 +112,14 @@ function OnboardingForm({ initial }: { initial: Thesis }) {
 				{step === 0 ? <Link href={hrefOf('home')} className="atlas-btn atlas-btn--outline">Skip to app</Link> : <Button variant="outline" onClick={() => { setStep(step - 1); top(); }}>← Back</Button>}
 				<Button disabled={busy} onClick={() => void next()}>{busy ? 'Saving…' : step === 4 ? 'Submit for verification' : 'Continue'}</Button>
 			</div>
+			{/* The thesis is optional, so the way out has to stay visible — it used
+			    to exist on step 0 only, where "Back" then replaced it and a user
+			    part-way through had no exit but the browser button. */}
+			{step > 0 && (
+				<p style={{ textAlign: 'center', marginTop: 12 }}>
+					<Link href={hrefOf('home')} className="scout-link">Skip for now — I&rsquo;ll finish this later</Link>
+				</p>
+			)}
 		</Frame>
 	);
 }

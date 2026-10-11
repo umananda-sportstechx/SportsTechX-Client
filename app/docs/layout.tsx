@@ -10,7 +10,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
 						SportsTechX <span className="text-muted-foreground font-normal">Docs</span>
 					</Link>
 					{/* Was `/integrations`, which has never been a route. */}
-					<Link href="/app" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Open app →</Link>
+					<Link href="/home" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Open app →</Link>
 				</div>
 			</header>
 

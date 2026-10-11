@@ -19,6 +19,8 @@ import type { Tier } from '@/lib/access';
  * step by hand.
  */
 export function useNav(): {
+	/** False until the profile has loaded. Treat the tier as unknown until then. */
+	ready: boolean;
 	tier: Tier;
 	nav: ShellNavEntry[];
 	bottomNav: ShellNavItem[];
@@ -27,6 +29,12 @@ export function useNav(): {
 	subs: Record<string, string>;
 } {
 	const { data: profile } = useUserProfile();
+	// `getUserType(undefined)` is 'explore', so until the profile lands a paying
+	// user would be handed the Explore shell — Explore nav, Explore product
+	// colour and the upgrade cards, flashed at someone who already paid.
+	// `RouteGate` documents exactly this and renders nothing until the tier is
+	// known; `ready` lets callers do the same.
+	const ready = !!profile;
 	const tier = getUserType(profile);
 	const isAdmin = profile?.user_role === 'admin';
 	const { lists } = useCompanyWatchlists();
@@ -34,10 +42,10 @@ export function useNav(): {
 	return useMemo(() => {
 		const { nav, bottomNav } = buildNav(tier, isAdmin, lists, BookmarkPlus);
 		return {
-			tier, nav, bottomNav,
+			ready, tier, nav, bottomNav,
 			homePath: pathOf('home', tier),
 			accountPath: pathOf('account', tier),
 			subs: SECTION_SUBS[tier],
 		};
-	}, [tier, isAdmin, lists]);
+	}, [ready, tier, isAdmin, lists]);
 }

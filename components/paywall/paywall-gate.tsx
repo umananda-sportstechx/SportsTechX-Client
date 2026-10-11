@@ -27,12 +27,14 @@ const PLANS: PlanDef[] = [
 export function PaywallGate() {
 	const { data: profile, mutate } = useUserProfile();
 	const [busy, setBusy] = useState<Plan | 'dismiss' | null>(null);
+	const [err, setErr] = useState('');
 
 	// Show once: until the wall has been stamped. (Undefined while loading → hidden.)
 	if (!profile || profile.paywall_shown_at) return null;
 
 	const choose = async (plan: Plan | null) => {
 		setBusy(plan ?? 'dismiss');
+		setErr('');
 		try {
 			// Free / dismiss: set the tier directly and close the wall (no payment).
 			if (!plan || plan === 'explore') {
@@ -47,8 +49,14 @@ export function PaywallGate() {
 			if (!res.ok) throw new Error('checkout failed');
 			const body = (await res.json()) as { url?: string | null };
 			if (body.url) { window.location.assign(body.url); return; }
-		} catch { /* fall through to reset */ }
-		finally { setBusy(null); }
+			throw new Error('no checkout url');
+		} catch {
+			// This used to fall through silently: the button un-pressed itself and
+			// nothing else happened. That was survivable when the wall was a
+			// curiosity shown to the wrong people; it is the first thing a new
+			// account does now, so a dead button is a dead signup.
+			setErr('We couldn’t start checkout. Please try again, or pick the free plan to carry on.');
+		} finally { setBusy(null); }
 	};
 
 	// getUserType validates rather than casts, so a profile holding a retired
@@ -102,6 +110,10 @@ export function PaywallGate() {
 						);
 					})}
 				</div>
+
+				{err && (
+					<p role="alert" style={{ textAlign: 'center', marginTop: 18, fontSize: 13, color: 'var(--a-danger, #c33)' }}>{err}</p>
+				)}
 
 				<div style={{ textAlign: 'center', marginTop: 28 }}>
 					<button onClick={() => void choose(null)} disabled={busy !== null}

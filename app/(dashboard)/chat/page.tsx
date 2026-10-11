@@ -8,10 +8,10 @@ import { useChat, AI_MD_CSS, type ConversationListItem } from '@/components/chat
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
-	FOUNDER_GREETING, FOUNDER_INSUFFICIENT_CREDITS, SCOUT_GREETING, SCOUT_INSUFFICIENT_CREDITS,
-	founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath, FounderMessages,
+	chatCopy, founderPageContext, founderActionFromTool, founderRewritePath, scoutRewritePath,
+	FounderMessages,
 } from '@/components/raise/chat/founder-chat';
-import { RaiseSearch, RAISE_SUGGESTIONS, SCOUT_SUGGESTIONS } from '@/components/raise/raise-search';
+import { RaiseSearch, RAISE_SUGGESTIONS, SCOUT_SUGGESTIONS, EXPLORE_SUGGESTIONS } from '@/components/raise/raise-search';
 import { useNav } from '@/hooks/use-nav';
 import { Button } from '@/components/atlas';
 import '@/components/raise/chat/raise-chatpage.css';
@@ -36,6 +36,7 @@ export default function RaiseChatPage() {
 
 	const { tier } = useNav();
 	const isScout = tier === 'scout';
+	const copy = chatCopy(tier);
 
 	// Memoized: `useChat` keeps this in its callback deps.
 	const actionFromTool = useCallback(
@@ -44,10 +45,10 @@ export default function RaiseChatPage() {
 	);
 
 	const chat = useChat({
-		greeting: isScout ? SCOUT_GREETING : FOUNDER_GREETING,
+		greeting: copy.greeting,
 		actionFromTool,
 		pageContext: () => founderPageContext(CHAT),
-		insufficientCreditsMd: isScout ? SCOUT_INSUFFICIENT_CREDITS : FOUNDER_INSUFFICIENT_CREDITS,
+		insufficientCreditsMd: copy.insufficient,
 	});
 	const {
 		messages, input, setInput, streaming, stage, conversationId,
@@ -92,7 +93,7 @@ export default function RaiseChatPage() {
 						/>
 						{!hasThread && (
 							<div className="raise-chatpage-suggest">
-								{(isScout ? SCOUT_SUGGESTIONS : RAISE_SUGGESTIONS).map((s) => (
+								{(isScout ? SCOUT_SUGGESTIONS : tier === 'raise' ? RAISE_SUGGESTIONS : EXPLORE_SUGGESTIONS).map((s) => (
 									<button key={s} type="button" className="atlas-composer-chip" onClick={() => void send(s)}>{s}</button>
 								))}
 							</div>
@@ -108,7 +109,7 @@ export default function RaiseChatPage() {
 						autoFocus
 						streaming={streaming}
 						onStop={abort}
-						placeholder={isScout ? 'Ask about companies, deals, your thesis…' : 'Ask about investors, your market, your raise…'}
+						placeholder={copy.placeholder}
 					/>
 				</div>
 			</div>

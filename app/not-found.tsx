@@ -10,7 +10,7 @@ import Link from 'next/link';
  * 404 — the only perimeter page a visitor reaches *by accident*, including
  * logged-out strangers and crawlers.
  *
- * Two CTAs on purpose. This used to offer only "Go to your workspace" → `/app`,
+ * Two CTAs on purpose. This used to offer only "Go to your workspace" → `/home`,
  * which the edge middleware bounces to `/login` for anyone without a session —
  * so a stranger's mistyped URL dead-ended at a login wall. `/` works for
  * everyone and is the public landing page.
@@ -28,7 +28,7 @@ export default function NotFound() {
 				</p>
 				<div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 24 }}>
 					<Link href="/" className="atlas-btn atlas-btn--primary">Go to homepage</Link>
-					<Link href="/app" className="atlas-btn atlas-btn--outline">Your workspace</Link>
+					<Link href="/home" className="atlas-btn atlas-btn--outline">Your workspace</Link>
 				</div>
 			</div>
 		</div>

@@ -45,13 +45,21 @@ export function ExploreHome() {
 	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 	const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
-	const search = (text: string) => { const t = text.trim(); router.push(t ? `${COMPANIES}?q=${encodeURIComponent(t)}` : COMPANIES); };
-	const suggestions: Record<string, string> = {
-		'Fan engagement companies': `${COMPANIES}?q=${encodeURIComponent('fan engagement')}`,
-		'Latest funding rounds': hrefOf('roundup'),
-		'Upcoming events': hrefOf('events'),
-		'How sports tech is structured': hrefOf('framework'),
+	// This box wore the agent composer's clothes — sparkle glyph, send pill,
+	// suggestion chips — and quietly ran a company search. It now does what it
+	// looks like it does: Explore gets the assistant, funded by the welcome
+	// credits every new account receives, and the same hand-off Raise and Scout
+	// home already use.
+	const goChat = (text: string) => {
+		const t = text.trim();
+		if (t) router.push(`${hrefOf('chat')}?q=${encodeURIComponent(t)}`);
 	};
+	const suggestions = [
+		'Who is funding fan engagement right now?',
+		'Summarise last month’s funding rounds',
+		'Which sports tech events are coming up?',
+		'How is the sports tech market structured?',
+	];
 
 	return (
 		<div className="explore-home">
@@ -65,10 +73,10 @@ export function ExploreHome() {
 					<AgentComposer
 						value={q}
 						onChange={setQ}
-						onSubmit={() => search(q)}
-						placeholder="Search companies, reports, events and categories"
-						suggestions={Object.keys(suggestions)}
-						onSuggestion={(s) => router.push(suggestions[s])}
+						onSubmit={() => goChat(q)}
+						placeholder="Ask about companies, funding, events and categories"
+						suggestions={suggestions}
+						onSuggestion={goChat}
 					/>
 				</div>
 			</section>

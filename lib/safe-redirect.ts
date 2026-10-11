@@ -16,6 +16,6 @@
  */
 const SAFE_PATH = /^\/(?![/\\])/;
 
-export function safeRedirect(raw: string | null | undefined, fallback = '/app'): string {
+export function safeRedirect(raw: string | null | undefined, fallback = '/home'): string {
 	return raw && SAFE_PATH.test(raw) ? raw : fallback;
 }

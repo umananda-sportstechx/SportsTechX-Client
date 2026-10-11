@@ -17,7 +17,7 @@ import { ROUTES, ROUTE_BY_ID, forTier } from './routes.ts';
 import { isSection } from '../components/atlas/shell/nav.ts';
 import type { ShellNavItem } from '../components/atlas/shell/nav.ts';
 import { access, type Tier } from './access.ts';
-import { PRIVATE_PREFIXES } from './public-paths.ts';
+import { PRIVATE_PREFIXES, PUBLIC_PATHS } from './public-paths.ts';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 /** `Section: a, b, c` — `*` marks a placeholder item. */
@@ -110,15 +110,48 @@ for (const tier of ['raise', 'scout'] as Tier[]) {
 		`[${tier}] watchlists splice: ${names.join(', ')}`);
 }
 
-// Every nav destination is canonical. `/billing` is the one exception and is
-// meant to be: Stripe builds its return URLs from that path server-side, so it
-// stays put (see app/billing/layout.tsx). Any other non-/app path means a route
-// was missed by the consolidation.
+// Every nav destination is flat — one segment under the root, no `/app`.
+// This replaced the old "all paths start with /app" assertion when the prefix
+// was dropped; it is the same guard pointing the other way.
 for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 	const { nav, bottomNav } = buildNav(tier, false);
 	const all = [...nav.flatMap((e) => (isSection(e) ? e.items : [e as ShellNavItem])), ...bottomNav];
-	const stray = all.filter((i) => !i.path.startsWith('/app') && i.path !== '/billing');
-	check(stray.length === 0, `[${tier}] all paths canonical${stray.length ? ': ' + stray.map((i) => i.path).join(', ') : ''}`);
+	const stray = all.filter((i) => !i.path.startsWith('/') || i.path.startsWith('/app'));
+	check(stray.length === 0, `[${tier}] all paths flat${stray.length ? ': ' + stray.map((i) => i.path).join(', ') : ''}`);
+}
+
+// The edge gate must cover every route in the manifest.
+//
+// `PRIVATE_PREFIXES` used to be the single entry `/app`, which covered the whole
+// dashboard by construction. Now that each route sits at the root it has to be
+// listed individually, and a route missing from that list is not an error — it
+// is a private page that renders to anyone, silently. So assert both directions.
+{
+	const covered = (url: string) => PRIVATE_PREFIXES.some((p) => url === p || url.startsWith(`${p}/`));
+	const uncovered = ROUTES.map((r) => forTier(r.path, 'scout') ?? forTier(r.path, 'raise') ?? forTier(r.path, 'explore'))
+		.filter((p): p is string => !!p)
+		.filter((p) => !covered(p));
+	check(uncovered.length === 0,
+		`every route is edge-gated${uncovered.length ? ` — UNGATED: ${[...new Set(uncovered)].join(', ')}` : ` (${ROUTES.length} routes)`}`);
+
+	// Nothing public may be caught by a private prefix. The private list went
+	// from one entry to thirty-one, and a future route called `/w` or `/confirm`
+	// would quietly put a login wall in front of a page that must stay reachable
+	// without a session — the email-confirmation landing most of all, where the
+	// visitor has no session *by definition*.
+	const gatedPublic = PUBLIC_PATHS.filter((p) => covered(p));
+	check(gatedPublic.length === 0,
+		`no public path is edge-gated${gatedPublic.length ? `: ${gatedPublic.join(', ')}` : ` (${PUBLIC_PATHS.length} public paths)`}`);
+
+	// And nothing stale: a prefix that matches no route and is not one of the two
+	// non-ROUTES trees is a leftover that would gate a URL we no longer serve.
+	const EXTRA = ['/onboarding', '/docs'];
+	const allPaths = ROUTES.flatMap((r) => (['explore', 'raise', 'scout'] as Tier[]).map((t) => forTier(r.path, t)));
+	const stalePrefixes = PRIVATE_PREFIXES
+		.filter((p) => !EXTRA.includes(p))
+		.filter((p) => !allPaths.some((path) => path === p || path?.startsWith(`${p}/`)));
+	check(stalePrefixes.length === 0,
+		`no stale edge prefixes${stalePrefixes.length ? `: ${stalePrefixes.join(', ')}` : ''}`);
 }
 
 // Admin sees every product's items; an explore user sees none of them.
@@ -163,11 +196,17 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 	// error anywhere, while its system prompt carries markdown links the model
 	// emits verbatim. Guarded by existsSync so a client-only checkout passes.
 	{
-		const RETIRED = /['"`](\/(raise|scout|explore)(\/|['"`])|\/app\/(discover|intelligence|resources)\/)/;
+		// `/app` is matched without requiring a quote before it: the two that
+		// escaped the first sweep were a markdown link `(/app/pipeline)` in the
+		// chat prompt and an interpolation `${base}/app/deal-flow/…` in an email.
+		// `@/app/foo.css` import specifiers are excluded by the `@` lookbehind.
+		const RETIRED = /['"`]\/(raise|scout|explore)(\/|['"`])|(?<![\w@])\/app(\/|['"`])/;
 		const roots = ['app', 'components', 'lib', '../server/src'].filter((r) => existsSync(r));
+		// This file defines the retired patterns, so it necessarily contains them.
+		const SELF = 'nav.check.ts';
 		const src = roots
 			.flatMap((r) => readdirSync(r, { recursive: true, encoding: 'utf8' }).map((f) => `${r}/${String(f)}`))
-			.filter((f) => /\.tsx?$/.test(f));
+			.filter((f) => /\.tsx?$/.test(f) && !f.endsWith(SELF));
 		const stray: string[] = [];
 		for (const f of src) {
 			for (const line of readFileSync(f.replace(/\\/g, '/'), 'utf8').split('\n')) {
