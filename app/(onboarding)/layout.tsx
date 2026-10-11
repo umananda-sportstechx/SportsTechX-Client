@@ -7,16 +7,22 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 export const dynamic = 'force-dynamic';
 
 /**
- * `.atlas` scopes the `--a-*` tokens, which the persona picker now uses.
+ * `.atlas` scopes the `--a-*` tokens that every screen in this group uses.
  *
- * `bg-background` stays: the two tier-specific flows in this group
- * (`/onboarding/explore`, `/onboarding/scout`) are still on the legacy palette
- * and would lose their page colour without it. It goes when they are migrated.
+ * Each screen paints its own page surface, because not rendering AppShell means
+ * nothing above them does: the persona picker via `.onb-screen`
+ * (`components/onboarding/onboarding.css`), the Explore flow via `.explore-onb`,
+ * and the Scout thesis wizard inline in `components/scout/onboarding.tsx`.
+ *
+ * This used to carry `bg-background` as well, on the stated grounds that the
+ * tier-specific flows here were "still on the legacy palette". They were not —
+ * `components/scout/scout.css` has been Atlas-tokenised throughout — so the one
+ * genuine legacy class on these routes was that `bg-background` itself.
  */
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<ProtectedRoute>
-			<div className="atlas min-h-screen bg-background">{children}</div>
+			<div className="atlas min-h-screen">{children}</div>
 		</ProtectedRoute>
 	);
 }
