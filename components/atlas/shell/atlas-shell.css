@@ -26,15 +26,21 @@
   background-color: var(--a-rail);
   background-image: var(--a-noise);
   padding: 23px 17px 13px;
-  overflow-y: auto;
+  /* The rail itself never scrolls — only the nav does. `overflow-y: auto` was
+     here, which scrolled the whole column: with enough nav items the brand and
+     the account badge slid away with it. */
+  overflow: hidden;
 }
-.atlas-rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; min-height: 34px; }
+.atlas-rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; min-height: 34px; flex-shrink: 0; }
 .atlas-rail-close { display: none; }
 
 .atlas-brand { display: inline-flex; padding-top: 10px; text-decoration: none; color: var(--a-ink); }
 
-.atlas-nav { display: flex; flex-direction: column; gap: 5px; margin-top: 55px; padding: 10px; flex: 1; }
-.atlas-nav-bottom { display: flex; flex-direction: column; gap: 5px; padding: 10px; }
+/* `min-height: 0` is the load-bearing half. A flex item defaults to
+   `min-height: auto`, which refuses to shrink below its content, so `flex: 1`
+   alone made the nav push the rail taller instead of scrolling inside it. */
+.atlas-nav { display: flex; flex-direction: column; gap: 5px; margin-top: 55px; padding: 10px; flex: 1; min-height: 0; overflow-y: auto; }
+.atlas-nav-bottom { display: flex; flex-direction: column; gap: 5px; padding: 10px; flex-shrink: 0; }
 
 .atlas-nav-item {
   display: flex; align-items: center; gap: 4px; width: 100%;
@@ -70,7 +76,7 @@
 
 /* Account row: divider + square initials badge (Figma "Account Link") */
 .atlas-account {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   margin: 8px 16px 0; padding-top: 18px; border-top: 1px solid var(--a-border);
   color: color-mix(in srgb, var(--a-ink) 60%, transparent); font-family: var(--a-font); font-size: 14px; font-weight: 500; line-height: 1; letter-spacing: 0;
   text-decoration: none; transition: color 0.12s;
@@ -173,4 +179,6 @@
     background: rgba(0, 0, 0, 0.4); z-index: 55;
   }
 }
-.atlas-rail-extra { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding: 18px 10px 4px; }
+/* `margin-top: auto` no longer does anything now the nav grows instead —
+   kept so a short nav still pins the cards to the bottom. */
+.atlas-rail-extra { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding: 18px 10px 4px; flex-shrink: 0; }
