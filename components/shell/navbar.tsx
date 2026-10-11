@@ -213,7 +213,7 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 			<button
 				type="button"
 				className="atlas-avatar"
-				aria-haspopup="menu"
+				aria-haspopup="dialog"
 				aria-expanded={open}
 				aria-label="Account menu"
 				onClick={() => setOpen(!open)}
@@ -225,7 +225,7 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 			</button>
 
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-account-menu" role="menu" aria-label="Account">
+				<div className="atlas-menu atlas-menu--end atlas-account-menu" role="dialog" aria-label="Account">
 					<div className="atlas-menu__head">
 						<span className="atlas-ellipsis">{name || profile?.email || 'Signed in'}</span>
 					</div>
