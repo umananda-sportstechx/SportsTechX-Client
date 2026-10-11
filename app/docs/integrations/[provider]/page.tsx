@@ -42,12 +42,12 @@ export default async function IntegrationDocPage({ params }: { params: Promise<{
 					</div>
 					<p className="text-base text-muted-foreground leading-relaxed mt-1">{doc.tagline}</p>
 					{/* Was `/integrations`, which has never been a route, so this 404ed.
-					    `/app` at least lands somewhere real — but note there is no CRM
+					    `/home` at least lands somewhere real — but note there is no CRM
 					    connect UI in the client at all (the crm* entries in
 					    lib/query-keys.ts have no callers), so this button cannot yet do
 					    what its label promises. */}
 					{doc.category === 'CRM sync' && (
-						<Link href="/app" className="inline-flex items-center gap-1.5 mt-4 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+						<Link href="/home" className="inline-flex items-center gap-1.5 mt-4 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
 							Connect {doc.label} →
 						</Link>
 					)}

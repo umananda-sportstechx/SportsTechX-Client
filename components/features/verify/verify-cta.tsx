@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { ShieldCheck } from 'lucide-react';
 import { Badge, Button } from '@/components/atlas';
 import { openClaim, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
+import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 
 /**
@@ -55,8 +56,26 @@ export function useVerifyState(entityId?: string): { state: VerifyState; isLoadi
 }
 
 /**
+ * Which claim form a tier should get when the caller has not already decided.
+ *
+ * A Raise user is a founder and a Scout user is an investor — asking them to
+ * pick is a question we already know the answer to. Explore is the one tier
+ * where it is a real question, so it falls through to the modal's own
+ * founder/investor chooser.
+ *
+ * Returning null means "let the modal ask", which is exactly its behaviour when
+ * no role is passed.
+ */
+function roleForTier(tier: string): ClaimRole | null {
+	return tier === 'raise' ? 'founder' : tier === 'scout' ? 'investor' : null;
+}
+
+/**
  * The button. `target` pre-fills the claim so the user skips the search step —
  * worth passing wherever the entity is already known.
+ *
+ * `role` is optional: left out, it is inferred from the viewer's tier rather
+ * than every call site repeating the same rule.
  */
 export function VerifyButton({ role = null, target = null, entityId, label }: {
 	role?: ClaimRole | null;
@@ -66,6 +85,10 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 	label?: string;
 }) {
 	const { state } = useVerifyState(entityId);
+	const { data: profile } = useUserProfile();
+	// An explicit role always wins — a company profile page knows it is a
+	// founder claim regardless of who is looking at it.
+	const effectiveRole = role ?? target?.role ?? roleForTier(getUserType(profile));
 
 	// Already settled — inviting a duplicate submission helps nobody, and the
 	// admin queue is where duplicates cost real time.
@@ -73,7 +96,7 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 	if (state === 'pending') return <Badge tone="neutral">Verification pending</Badge>;
 
 	return (
-		<Button size="sm" variant="outline" onClick={() => openClaim(target, role)}>
+		<Button size="sm" variant="outline" onClick={() => openClaim(target, effectiveRole)}>
 			<ShieldCheck size={13} aria-hidden="true" /> {label ?? 'Get verified'}
 		</Button>
 	);

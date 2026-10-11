@@ -89,7 +89,12 @@ export function useThesisState(): ThesisState {
 
 	const save = useCallback(async (next: Thesis) => {
 		saveExtras(splitLocal(next.include, idx.sports, MODEL_LABELS));
-		const p = await apiRequest('PATCH', '/api/scout', toProfileDto(next));
+		// `setup_completed` rides along with the profile patch. Saving a thesis
+		// IS completing the setup — but only the onboarding wizard ever stamped
+		// it, so a Scout who filled this in from Thesis Settings lifted the 403s
+		// (the row now exists) and then kept being told to "complete your
+		// investment thesis" forever, because the attention card reads this flag.
+		const p = await apiRequest('PATCH', '/api/scout', { ...toProfileDto(next), setup_completed: true });
 		if (!p.ok) throw new Error(`profile save failed (${p.status})`);
 		const r = await apiRequest('PUT', '/api/scout/thesis', toThesisDto(next, idx));
 		if (!r.ok) throw new Error(`thesis save failed (${r.status})`);

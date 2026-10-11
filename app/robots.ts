@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from './layout';
+import { PRIVATE_PREFIXES } from '@/lib/public-paths';
 
 /**
  * The private trees (PRIVATE_PREFIXES in lib/public-paths.ts) 307 to /login, so
@@ -19,7 +20,11 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/app/', '/onboarding', '/billing', '/w/', '/auth/', '/docs/', '/api/', '/confirm', '/login', '/reset-password', '/forgot-password'],
+        // Derived from the edge gate so the two cannot drift: `/app/` used to
+        // cover the whole dashboard in one entry, and every route now needs
+        // naming. `PRIVATE_PREFIXES` already is that list, and nav.check asserts
+        // it stays complete.
+        disallow: [...PRIVATE_PREFIXES, '/w/', '/auth/', '/api/', '/confirm', '/login', '/reset-password', '/forgot-password'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
