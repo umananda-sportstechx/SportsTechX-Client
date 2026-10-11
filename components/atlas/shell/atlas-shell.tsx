@@ -8,7 +8,6 @@ import { X, ChevronUp } from 'lucide-react';
 import { MenuIcon } from '../brand/menu-icon';
 import { PLACEHOLDER_LABEL } from '../patterns/placeholder-tag';
 import { AtlasLogo } from '../brand/atlas-logo';
-import { ThemeToggle } from './theme-toggle';
 import { isSection, pickActive, type ShellNavEntry, type ShellNavItem } from './nav';
 import './atlas-shell.css';
 
@@ -35,9 +34,13 @@ export interface AtlasShellProps {
 	homePath: string;
 	nav: ShellNavEntry[];
 	bottomNav: ShellNavItem[];
-	accountPath: string;
-	/** Name used for the account initials badge. */
-	accountName?: string | null;
+	/**
+	 * The bar across the top of the content column (breadcrumbs, search, account).
+	 * A slot rather than something built here: the navbar needs the route manifest
+	 * and the signed-in profile, and this component is deliberately manifest-free —
+	 * it only ever receives `ShellNavEntry[]`.
+	 */
+	topbar?: ReactNode;
 	/** Rendered after the sidebar as a sibling (e.g. a floating assistant button). */
 	overlay?: ReactNode;
 	/** Extra sidebar content above the bottom nav (e.g. Explore's upgrade cards). Hidden when the rail is collapsed. */
@@ -45,7 +48,7 @@ export interface AtlasShellProps {
 	children: ReactNode;
 }
 
-export function AtlasShell({ product, productColor, homePath, nav, bottomNav, accountPath, accountName, overlay, railExtra, children }: AtlasShellProps) {
+export function AtlasShell({ product, productColor, homePath, nav, bottomNav, topbar, overlay, railExtra, children }: AtlasShellProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const railKey = `stx:${product.toLowerCase()}-rail-collapsed`;
@@ -112,21 +115,18 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, ac
 				</div>
 				<nav className="atlas-nav">{nav.map(renderEntry)}</nav>
 				{railExtra && !collapsed && <div className="atlas-rail-extra">{railExtra}</div>}
-				<nav className="atlas-nav-bottom">{bottomNav.map(renderItem)}<ThemeToggle collapsed={collapsed} /></nav>
-				<Link href={accountPath} className={`atlas-account ${isActive(accountPath) ? 'active' : ''}`} title={collapsed ? 'Account' : undefined} onClick={() => setOpen(false)}>
-					<span className="atlas-account-badge" aria-hidden="true">{initialsOf(accountName)}</span>
-					<span className="atlas-nav-label">Account</span>
-				</Link>
+				{/* Account and the theme toggle used to live here. Both moved into the
+				    navbar's account menu — one home for account actions, and it frees
+				    the rail's footer. */}
+				{bottomNav.length > 0 && <nav className="atlas-nav-bottom">{bottomNav.map(renderItem)}</nav>}
 			</aside>
 
 			<div className="atlas-main">
 				<header className="atlas-topbar">
 					<Link href={homePath} aria-label={homeLabel} style={{ color: 'var(--a-ink)' }}><AtlasLogo height={26} product={product} productColor={productColor} /></Link>
-					<div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-						<ThemeToggle compact />
-						<button className="atlas-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><MenuIcon /></button>
-					</div>
+					<button className="atlas-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><MenuIcon /></button>
 				</header>
+				{topbar}
 				<div className="atlas-content">{children}</div>
 			</div>
 
@@ -136,8 +136,8 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, ac
 	);
 }
 
-/** Up to two initials from a name, for the account badge. */
-function initialsOf(name: string | null | undefined): string {
+/** Up to two initials from a name, for the account badge. Used by the navbar's avatar. */
+export function initialsOf(name: string | null | undefined): string {
 	const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
 	if (parts.length === 0) return '·';
 	return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();

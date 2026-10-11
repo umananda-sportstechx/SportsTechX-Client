@@ -40,7 +40,7 @@ import {
 	House, LayoutGrid, Files, Newspaper, ChartPie, CalendarDays, Building2, CalendarRange,
 	Presentation, SlidersHorizontal, FileCheck, Ticket, Sparkles, Radar, Target, TrendingUp,
 	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users,
-	MessageSquare, Rocket, Wrench, ShieldCheck,
+	MessageSquare, Rocket, ShieldCheck,
 } from 'lucide-react';
 import { access, type Tier, type TierReq } from './access.ts';
 
@@ -172,8 +172,6 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
 	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/guide', tier: 'raise', placeholder: true },
 	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/settings', tier: 'raise' },
-	// Gated, never listed.
-	{ id: 'setup', icon: Wrench, name: 'Setup', path: '/setup', tier: 'raise' },
 	// No tier: every plan gets the assistant, bounded by credits rather than by a
 	// locked door (see chat.controller.ts). Still unlisted in NAV_LAYOUT — it is
 	// reached from the home composer and the FAB.
@@ -216,7 +214,6 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// available and deliberately does not pass it). `buildNav` keeps
 		// upsellable items; only `hidden` ones are dropped.
 		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
-		{ title: null, bottom: true, items: ['verify'] },
 	],
 	raise: [
 		{ title: null, items: ['home'] },
@@ -225,7 +222,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
 		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['raise-settings', 'verify', 'billing'] },
+		{ title: null, bottom: true, items: ['raise-settings', 'billing'] },
 	],
 	scout: [
 		{ title: null, items: ['home'] },
@@ -234,7 +231,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Watchlists', items: ['watchlists'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['thesis', 'verify', 'billing'] },
+		{ title: null, bottom: true, items: ['thesis', 'billing'] },
 	],
 };
 

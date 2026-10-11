@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
+import { Navbar } from './navbar';
 // Raise-only, so a static import here shipped the co-pilot to Explore and
 // Scout users who can never open it.
 const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
@@ -12,7 +13,6 @@ import { UpgradeCards } from '@/components/explore/upgrade-cards';
 import { EXPLORE_COLOR } from '@/components/explore/shell-config';
 import { SCOUT_COLOR } from '@/components/scout/shell-config';
 import { useNav } from '@/hooks/use-nav';
-import { useUserProfile } from '@/hooks/use-user-profile';
 import { TIER_LABEL } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
 import { hrefOf } from '@/lib/routes';
@@ -48,14 +48,13 @@ const COLOR: Record<Tier, string | undefined> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname() ?? '';
-	const { data: profile } = useUserProfile();
 
 	// One page-view call for the whole signed-in product. Every /app route
 	// renders inside this shell, so this is the single place that covers them
 	// without 39 per-page calls to keep in sync. No-ops until
 	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
 	useEffect(() => { trackPage(pathname); }, [pathname]);
-	const { ready, tier, nav, bottomNav, homePath, accountPath } = useNav();
+	const { ready, tier, nav, bottomNav, homePath } = useNav();
 
 	return (
 		<>
@@ -65,8 +64,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				homePath={homePath}
 				nav={nav}
 				bottomNav={bottomNav}
-				accountPath={accountPath}
-				accountName={profile?.full_name ?? profile?.display_name}
+				// Breadcrumbs, search, Get Verified and the account menu. Account and
+				// the theme toggle used to sit at the foot of the rail; they live in
+				// the navbar's menu now, so there is one home for account actions.
+				topbar={<Navbar />}
 				// Explore's sidebar carries the Raise / Scout upgrade cards. Held back
 				// until the tier is actually known — `getUserType(undefined)` is
 				// 'explore', so without this a paying user is shown an upgrade pitch

@@ -1,0 +1,97 @@
+/*
+ * The global navbar — breadcrumbs + search on the left, Get Verified and the
+ * account menu on the right. Atlas tokens only, so light/dark come for free.
+ *
+ * Stacking: 40, matching the mobile top bar. It must stay below the mobile
+ * drawer's backdrop (55) and the rail (60), or the open drawer would sit under
+ * the navbar. Its own menus are raised above it explicitly — `.atlas-menu` is
+ * 30 by default, which would otherwise render beneath the bar that opened it.
+ */
+.atlas .atlas-navbar {
+	flex-shrink: 0;
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 52px;
+	padding: 0 56px;
+	background: var(--a-page);
+	border-bottom: 1px solid var(--a-border);
+}
+.atlas .atlas-navbar__left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.atlas .atlas-navbar__right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.atlas .atlas-navbar__anchor { position: relative; display: inline-flex; }
+
+/* ── Breadcrumbs ───────────────────────────────────────────────────────────*/
+.atlas .atlas-crumbs { display: flex; align-items: center; min-width: 0; }
+.atlas .atlas-crumb-wrap { display: inline-flex; align-items: center; min-width: 0; }
+.atlas .atlas-crumb-sep { color: var(--a-faint); margin: 0 2px; flex-shrink: 0; }
+.atlas .atlas-crumb {
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+	color: var(--a-muted); text-decoration: none; white-space: nowrap;
+	overflow: hidden; text-overflow: ellipsis;
+}
+.atlas a.atlas-crumb:hover { color: var(--a-ink); }
+.atlas .atlas-crumb.is-plain { color: var(--a-faint); }
+
+/* ── Search ────────────────────────────────────────────────────────────────*/
+.atlas .atlas-navsearch__btn {
+	display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px;
+	border: 1px solid var(--a-border-strong); border-radius: var(--a-radius-pill);
+	background: var(--a-inset); color: var(--a-muted); cursor: pointer;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+	transition: color 0.15s, border-color 0.15s;
+}
+.atlas .atlas-navsearch__btn:hover { color: var(--a-ink); border-color: var(--a-ink); }
+.atlas .atlas-navsearch__menu { z-index: 50; left: 0; min-width: min(92vw, 380px); }
+.atlas .atlas-navsearch__field {
+	display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+	padding: 0 10px; height: 30px; border-radius: var(--a-radius-pill);
+	background: color-mix(in srgb, var(--a-primary-ink) 12%, transparent);
+	color: color-mix(in srgb, var(--a-primary-ink) 70%, transparent);
+}
+.atlas .atlas-navsearch__field input { flex: 1; min-width: 0; }
+.atlas .atlas-navsearch__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; letter-spacing: 0; font-family: var(--a-body); font-size: 12.5px; }
+.atlas .atlas-navsearch__meta { flex-shrink: 0; font-size: 9px; color: color-mix(in srgb, var(--a-primary-ink) 55%, transparent); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas .atlas-navsearch__menu .atlas-menu__item { text-decoration: none; }
+
+/* ── Avatar + account menu ─────────────────────────────────────────────────*/
+.atlas .atlas-avatar {
+	display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0;
+	padding: 0; border: none; border-radius: 50%; overflow: hidden; cursor: pointer;
+	background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.06em;
+}
+.atlas .atlas-avatar__img { width: 100%; height: 100%; object-fit: cover; }
+.atlas .atlas-account-menu { z-index: 50; min-width: min(92vw, 230px); }
+.atlas .atlas-account-menu .atlas-menu__item { text-decoration: none; }
+.atlas .atlas-account-menu__foot {
+	margin-top: 8px; padding-top: 8px;
+	border-top: 1px solid color-mix(in srgb, var(--a-primary-ink) 18%, transparent);
+}
+/* Log out is destructive and is the one item people hunt for — it reads as its
+   own thing rather than a fourth link.
+   `--a-danger` RAW is unreadable here. This menu paints on `--a-primary`, which
+   inverts: in light mode that is black, and #BE1A4E on black is 3.5:1; in dark
+   mode it is white, and #FF7AA3 on white is 2.5:1. Both fail AA. Mixing the
+   danger hue toward the menu's own ink keeps it unmistakably red while landing
+   near 7:1 in both themes. */
+.atlas .atlas-account-menu__out { color: color-mix(in srgb, var(--a-danger) 55%, var(--a-primary-ink)); }
+.atlas .atlas-account-menu__out:hover { background: color-mix(in srgb, var(--a-danger) 28%, transparent); }
+.atlas .atlas-account-menu__out:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Responsive ────────────────────────────────────────────────────────────*/
+@media (max-width: 1100px) { .atlas .atlas-navbar { padding: 0 32px; } }
+@media (max-width: 720px) {
+	/* Below the mobile top bar, which already holds the logo and hamburger. */
+	.atlas .atlas-navbar { position: static; padding: 0 16px; min-height: 46px; gap: 10px; }
+	/* The trail is the first thing to go: at this width it would eat the row,
+	   and the mobile top bar already names where you are. */
+	.atlas .atlas-crumbs { display: none; }
+	.atlas .atlas-navsearch__label { display: none; }
+	.atlas .atlas-navsearch__btn { padding: 0 9px; }
+	.atlas .atlas-navsearch__menu { left: auto; right: 0; }
+}
