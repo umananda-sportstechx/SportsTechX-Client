@@ -3,7 +3,7 @@
 import { Screen } from '@/components/atlas';
 import { ThesisSettings } from '@/components/scout/thesis-settings';
 
-/** Atlas Scout — Thesis settings (Backend Not Connected). */
+/** Atlas Scout — Thesis settings. */
 export default function ScoutThesisPage() {
 	return <Screen><ThesisSettings /></Screen>;
 }

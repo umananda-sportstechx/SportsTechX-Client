@@ -14,6 +14,11 @@ import { qk } from '@/lib/query-keys';
 import { InterestFields, NO_INTERESTS, useInterests, type Interests } from './interests';
 import { EXPLORE_COLOR, PLANS_HREF } from './shell-config';
 import { hrefOf } from '@/lib/routes';
+// `explore.css` is imported by AppShell, which this route does not render — the
+// onboarding group has no shell chrome. Without it every `explore-*` rule here
+// is missing and the flow renders unstyled. Same fault, same fix as
+// `components/scout/onboarding.tsx`.
+import './explore.css';
 
 /**
  * Explore onboarding (Claude Design): intro → 1 About you → 2 Background →
