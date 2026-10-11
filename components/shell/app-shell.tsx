@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
-import { PaywallGate } from '@/components/paywall/paywall-gate';
 // Raise-only, so a static import here shipped the co-pilot to Explore and
 // Scout users who can never open it.
 const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
@@ -82,13 +81,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>
-			{/* The one-time plan chooser. This used to read `tier !== 'explore'`,
-			    which showed it to everyone EXCEPT the people it exists for: a new
-			    account defaults to `explore`, so a new user never saw it, while a
-			    paying user got a wall whose own plan was greyed out as "Current
-			    plan". It self-suppresses on `paywall_shown_at`, so no tier test is
-			    needed — being unstamped is the whole condition. */}
-			<PaywallGate />
+			{/* The plan chooser is deliberately NOT here any more.
+			    It used to read `tier !== 'explore'`, which showed it to everyone
+			    EXCEPT the people it exists for — a new account defaults to
+			    `explore`, so a new user never saw it while a paying customer got a
+			    wall with their own plan greyed out. Dropping the tier test fixed
+			    that and broke something worse: 2,769 existing accounts have never
+			    been stamped, 126 of them paying for Raise, and every one would have
+			    been met by a full-screen "choose your plan" overlay.
+			    It now lives on `/onboarding`, which is where the flow actually puts
+			    it — right after email confirmation — and which an existing account
+			    never passes through again. */}
 		</>
 	);
 }

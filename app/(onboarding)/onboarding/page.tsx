@@ -9,6 +9,7 @@ import type { ClaimRole } from '@/lib/claim-events';
 import { patchOnboarding } from '@/lib/onboarding';
 import { AuthBrand } from '@/components/auth/auth-shell';
 import { PersonaStep } from '@/components/onboarding/persona-step';
+import { PaywallGate } from '@/components/paywall/paywall-gate';
 
 // Loaded only once a persona branches into the claim flow. A static import here
 // put ~750 lines into this route's bundle for a modal two of the three paths
@@ -17,10 +18,18 @@ import { PersonaStep } from '@/components/onboarding/persona-step';
 const ClaimModal = dynamic(() => import('@/components/claim/claim-modal').then((m) => m.ClaimModal), { ssr: false });
 
 /**
- * Persona picker — the first thing a new account sees.
+ * What a new account sees after confirming its email: the plan chooser, then
+ * the persona picker.
  *
- * Restyled onto Atlas tokens; the flow, the three personas and every
- * `patchOnboarding` call are unchanged.
+ * `PaywallGate` is a fixed overlay that self-suppresses once `paywall_shown_at`
+ * is stamped, so it covers this page until the visitor picks a plan and then
+ * uncovers the persona step underneath. Choosing Explore stamps and stays;
+ * choosing Raise or Scout leaves for Stripe and comes back via
+ * `/billing/success`, which waits for the webhook before stamping anything.
+ *
+ * It sits on this route rather than in the app shell on purpose — as an overlay
+ * over the dashboard it would have ambushed every pre-existing unstamped
+ * account, including people already paying.
  */
 export default function OnboardingPage() {
 	const router = useRouter();
@@ -73,6 +82,9 @@ export default function OnboardingPage() {
 
 	return (
 		<div className="onb-screen">
+			{/* Covers this page until a plan is chosen, then uncovers the persona
+			    step below. Renders nothing once `paywall_shown_at` is stamped. */}
+			<PaywallGate />
 			<div className="onb-screen__inner">
 				<div className="onb-head">
 					<AuthBrand />

@@ -17,7 +17,7 @@ import { ROUTES, ROUTE_BY_ID, forTier } from './routes.ts';
 import { isSection } from '../components/atlas/shell/nav.ts';
 import type { ShellNavItem } from '../components/atlas/shell/nav.ts';
 import { access, type Tier } from './access.ts';
-import { PRIVATE_PREFIXES } from './public-paths.ts';
+import { PRIVATE_PREFIXES, PUBLIC_PATHS } from './public-paths.ts';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 /** `Section: a, b, c` — `*` marks a placeholder item. */
@@ -133,6 +133,15 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 		.filter((p) => !covered(p));
 	check(uncovered.length === 0,
 		`every route is edge-gated${uncovered.length ? ` — UNGATED: ${[...new Set(uncovered)].join(', ')}` : ` (${ROUTES.length} routes)`}`);
+
+	// Nothing public may be caught by a private prefix. The private list went
+	// from one entry to thirty-one, and a future route called `/w` or `/confirm`
+	// would quietly put a login wall in front of a page that must stay reachable
+	// without a session — the email-confirmation landing most of all, where the
+	// visitor has no session *by definition*.
+	const gatedPublic = PUBLIC_PATHS.filter((p) => covered(p));
+	check(gatedPublic.length === 0,
+		`no public path is edge-gated${gatedPublic.length ? `: ${gatedPublic.join(', ')}` : ` (${PUBLIC_PATHS.length} public paths)`}`);
 
 	// And nothing stale: a prefix that matches no route and is not one of the two
 	// non-ROUTES trees is a leftover that would gate a URL we no longer serve.

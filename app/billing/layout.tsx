@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { ProtectedRoute } from '@/components/auth/protected-route';
-import { PaywallGate } from '@/components/paywall/paywall-gate';
 
 export const metadata: Metadata = { title: 'Subscription' };
 
@@ -20,15 +19,21 @@ export const dynamic = 'force-dynamic';
  * focused flow, and it has to work for a user whose plan is the thing in
  * question. Having its own layout is what removed `AppShell`'s path sniff for it.
  *
- * `PaywallGate` is here because the sniff used to render it on these pages: an
- * unstamped user who cancels Stripe lands on /billing/cancel still unstamped, and
- * the one-time chooser is what gives them a way forward. Dropping it would have
- * been a silent change to the payment flow.
+ * The plan chooser used to render here, across all three pages, and that was
+ * too wide. On `/billing` it walled people out of their own subscription page —
+ * including 126 unstamped accounts that are already paying for Raise, who got a
+ * full-screen "choose your plan" with their own plan greyed out. On
+ * `/billing/success` it covered the post-payment screen with the same wall,
+ * Explore marked "Current plan", seconds after someone had paid for Scout.
+ *
+ * It belongs on `/billing/cancel` alone, which is the case the comment was
+ * really describing: an unstamped user who backs out of Stripe lands there with
+ * no plan chosen, and the chooser is their way forward. It lives on that page now.
  */
 export default function BillingLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<ProtectedRoute>
-			<div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}<PaywallGate /></div>
+			<div className="atlas" style={{ minHeight: '100dvh', background: 'var(--a-page)' }}>{children}</div>
 		</ProtectedRoute>
 	);
 }
