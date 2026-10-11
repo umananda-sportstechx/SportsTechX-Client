@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// without 39 per-page calls to keep in sync. No-ops until
 	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
 	useEffect(() => { trackPage(pathname); }, [pathname]);
-	const { tier, nav, bottomNav, homePath, accountPath } = useNav();
+	const { ready, tier, nav, bottomNav, homePath, accountPath } = useNav();
 
 	return (
 		<>
@@ -68,8 +68,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				bottomNav={bottomNav}
 				accountPath={accountPath}
 				accountName={profile?.full_name ?? profile?.display_name}
-				// Explore's sidebar carries the Raise / Scout upgrade cards.
-				railExtra={tier === 'explore' ? <UpgradeCards /> : undefined}
+				// Explore's sidebar carries the Raise / Scout upgrade cards. Held back
+				// until the tier is actually known — `getUserType(undefined)` is
+				// 'explore', so without this a paying user is shown an upgrade pitch
+				// for a beat on every cold load.
+				railExtra={ready && tier === 'explore' ? <UpgradeCards /> : undefined}
 				// The co-pilot FAB, on both paid products — AI is a Raise and Scout
 				// feature, never an Explore one (the server gates /api/chat the same
 				// way). The full chat page is itself the co-pilot, so don't stack a
@@ -78,10 +81,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>
-			{/* Keeps today's behaviour: the one-time plan chooser is shown to the
-			    paid tiers, not to Explore. It self-suppresses once
-			    `paywall_shown_at` is stamped. */}
-			{tier !== 'explore' && <PaywallGate />}
+			{/* The one-time plan chooser. This used to read `tier !== 'explore'`,
+			    which showed it to everyone EXCEPT the people it exists for: a new
+			    account defaults to `explore`, so a new user never saw it, while a
+			    paying user got a wall whose own plan was greyed out as "Current
+			    plan". It self-suppresses on `paywall_shown_at`, so no tier test is
+			    needed — being unstamped is the whole condition. */}
+			<PaywallGate />
 		</>
 	);
 }
