@@ -10,7 +10,7 @@ import { callPostLogin } from '@/lib/post-login';
 import { logoutState } from '@/lib/logout-state';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/atlas';
-import { AuthQuotes } from '@/components/auth/auth-quotes';
+import { AuthBrandPanel } from '@/components/auth/auth-quotes';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
 	return (
 		<>
 			<AuthThemeToggle />
-			<AuthSplit panel={<AuthQuotes />}>
+			<AuthSplit panel={<AuthBrandPanel />}>
 				<div>
 					<h1 className="auth-form__title">Log in to your account</h1>
 					<p className="auth-form__sub">Welcome back. Enter your details to continue.</p>

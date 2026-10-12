@@ -49,23 +49,6 @@ export function AuthBrand() {
 	);
 }
 
-/** Headline + numbered value rows — the mockup's left panel on signup. */
-export function AuthValuePanel({ headline, points }: { headline: string; points: string[] }) {
-	return (
-		<aside className="auth-panel">
-			<h2 className="auth-panel__head">{headline}</h2>
-			<div className="auth-points">
-				{points.map((p, i) => (
-					<div className="auth-points__row" key={p}>
-						<span className="auth-points__n">{String(i + 1).padStart(2, '0')}</span>
-						<span className="auth-points__t">{p}</span>
-					</div>
-				))}
-			</div>
-		</aside>
-	);
-}
-
 /** Error / success banner. Both auth pages had their own inline copy of this. */
 export function AuthNotice({ tone, children, action }: {
 	tone: 'error' | 'ok';
