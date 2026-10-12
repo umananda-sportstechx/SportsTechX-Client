@@ -205,7 +205,7 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		// wizards became modals: there is no route behind either string any
 		// more, so anything still emitting one — a server `cta_href`, an email,
 		// an LLM prompt — is a dead link nobody would notice.
-		const RETIRED = /['"`]\/(raise|scout|explore|setup)(\/|['"`])|['"`]\/onboarding\/scout['"`]|(?<![\w@])\/app(\/|['"`])/;
+		const RETIRED = /['"`]\/(raise|scout|explore|setup)(\/|['"`])|['"`]\/onboarding\/(scout|explore)['"`]|(?<![\w@])\/app(\/|['"`])/;
 		const roots = ['app', 'components', 'lib', '../server/src'].filter((r) => existsSync(r));
 		// This file defines the retired patterns, so it necessarily contains them.
 		const SELF = 'nav.check.ts';
