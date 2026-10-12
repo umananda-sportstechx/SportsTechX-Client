@@ -44,9 +44,13 @@
   max-height: calc(100dvh - 48px);
   background: var(--a-page);
   border-radius: var(--a-radius);
-  /* Hairline as an inset shadow, not a border: a border would sit outside the
-     radius on the rail's edge and show a seam. Matches setup-modal.css. */
-  box-shadow: inset 0 0 0 1px var(--a-card-border), 0 30px 80px rgba(0, 0, 0, 0.45);
+  /* A real border, not the inset shadow setup-modal.css uses. An inset shadow
+     paints on this element's own background layer, so the rail — a full-bleed
+     child with its own background — would paint straight over it and the
+     hairline would vanish down the whole left side. A border sits outside the
+     content box, so children cannot cover it. */
+  border: 1px solid var(--a-card-border);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
   display: grid; grid-template-columns: 280px 1fr;
   grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
@@ -133,7 +137,7 @@
 .cm-progress-fill { height: 100%; background: var(--a-ink); transition: width 0.3s ease; }
 
 .cm-foot { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid var(--a-border); background: var(--a-surface); }
-.cm-foot-meta { font-family: var(--a-mono); font-size: 10px; color: var(--a-faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.cm-foot-meta { font-family: var(--a-mono); font-size: 10px; color: var(--a-muted); letter-spacing: 0.06em; text-transform: uppercase; }
 .cm-foot-spacer { flex: 1; }
 
 /* ── Buttons — .atlas-btn, to the pixel ────────────────────────────────────*/
@@ -193,7 +197,7 @@
 .cm-input-prefix .cm-input { border: 0; background: transparent; padding-left: 4px; }
 .cm-input-prefix .cm-input:focus-visible { box-shadow: none; }
 .cm-readonly { background: var(--a-inset) !important; color: var(--a-muted); cursor: not-allowed; }
-.cm-hint { font-family: var(--a-body); font-size: 11px; color: var(--a-faint); margin-top: 6px; line-height: 1.5; }
+.cm-hint { font-family: var(--a-body); font-size: 11px; color: var(--a-muted); margin-top: 6px; line-height: 1.5; }
 .cm-counter { font-size: 10px; color: var(--a-faint); margin-top: 5px; font-family: var(--a-mono); }
 .cm-counter.over { color: var(--a-danger); }
 
