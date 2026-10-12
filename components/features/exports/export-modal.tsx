@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Download, X } from 'lucide-react';
-import { Badge, Button, Loading } from '@/components/atlas';
+import { Button, Loading } from '@/components/atlas';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -49,16 +49,17 @@ export function ExportModal({ entity, search, filters, onClose }: {
 	const [format, setFormat] = useState<'csv' | 'xlsx'>('csv');
 	const [downloading, setDownloading] = useState(false);
 
-	// Derived, not an effect: `picked` stays null until the user touches a box,
-	// and until then the selection simply IS the default. An effect that seeded
-	// state on load would re-render for no reason and race the fetch.
-	//
-	// The default is every non-related column — related ones are flattened
-	// latest-only summaries that cost extra, so they are opt-in.
-	const defaults = useMemo(
-		() => (cols.data?.columns ?? []).filter((c) => !c.related).map((c) => c.key),
+	// Per-table export: only the entity's own admin-approved columns. The
+	// backend also exposes "related" columns — flattened latest-only summaries
+	// joined from other tables — but we deliberately don't surface those; an
+	// export is just the table the user is looking at, nothing stitched in.
+	const columns = useMemo(
+		() => (cols.data?.columns ?? []).filter((c) => !c.related),
 		[cols.data],
 	);
+	// Derived, not an effect: `picked` stays null until the user touches a box,
+	// and until then the selection simply IS the default (every column).
+	const defaults = useMemo(() => columns.map((c) => c.key), [columns]);
 	const selected = picked ?? defaults;
 	// Priced against the actual selection, so the number tracks the checkboxes —
 	// but debounced, because the count endpoint runs a COUNT(*) over the whole
@@ -119,17 +120,16 @@ export function ExportModal({ entity, search, filters, onClose }: {
 							<div className="export-modal__pickhead">
 								<span className="atlas-eyebrow">Columns</span>
 								<button type="button" className="export-modal__all" onClick={() => setPicked(
-									selected.length === (cols.data?.columns.length ?? 0) ? [] : (cols.data?.columns ?? []).map((c) => c.key),
+									selected.length === columns.length ? [] : columns.map((c) => c.key),
 								)}>
-									{selected.length === (cols.data?.columns.length ?? 0) ? 'Clear all' : 'Select all'}
+									{selected.length === columns.length ? 'Clear all' : 'Select all'}
 								</button>
 							</div>
 							<div className="export-modal__cols">
-								{(cols.data?.columns ?? []).map((c) => (
+								{columns.map((c) => (
 									<label key={c.key} className="export-modal__col">
 										<input type="checkbox" checked={selected.includes(c.key)} onChange={() => toggle(c.key)} />
 										<span>{c.label}</span>
-										{c.related && <Badge tone="neutral">related</Badge>}
 									</label>
 								))}
 							</div>

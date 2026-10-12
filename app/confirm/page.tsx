@@ -27,6 +27,15 @@ import { AuthBrand } from '@/components/auth/auth-shell';
  * single-use OTP before the user clicks). `verifyOtp` is an SDK call from
  * a real browser session, so previews can't accidentally consume it.
  */
+
+/** Per link-type success copy. Recovery is a password reset, not a sign-in. */
+const OK_COPY: Record<'signup' | 'invite' | 'recovery' | 'magiclink' | 'email_change', { title: string; body: string }> = {
+	signup: { title: "You're in.", body: 'Email confirmed — redirecting…' },
+	invite: { title: "You're in.", body: 'Invite accepted — redirecting…' },
+	recovery: { title: 'Email verified', body: 'Choose a new password — taking you there…' },
+	magiclink: { title: "You're in.", body: 'Signed in — redirecting…' },
+	email_change: { title: 'Email updated', body: 'Your new email is confirmed — redirecting…' },
+};
 export default function ConfirmPage() {
 	const params = useSearchParams();
 	const router = useRouter();
@@ -50,8 +59,12 @@ export default function ConfirmPage() {
 				const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
 				if (error) throw error;
 				setStatus('ok');
+				// A recovery link is a password reset, not a sign-in: verifyOtp just
+				// minted the recovery session, so send them to /reset-password to
+				// choose a new password rather than dropping them on /home "all set".
+				const dest = type === 'recovery' ? '/reset-password' : next;
 				// Brief pause so the success state is visible, then redirect.
-				setTimeout(() => router.replace(next), 1200);
+				setTimeout(() => router.replace(dest), 1200);
 			} catch (e) {
 				setStatus('error');
 				setMessage((e as Error).message || 'Verification failed.');
@@ -64,13 +77,13 @@ export default function ConfirmPage() {
 			<Card glow="blue" className="auth-centred__card" style={{ alignItems: 'center', textAlign: 'center' }}>
 				<AuthBrand />
 				{status === 'verifying' && (
-					<p className="auth-form__sub" style={{ margin: 0 }}>Confirming your email…</p>
+					<p className="auth-form__sub" style={{ margin: 0 }}>{type === 'recovery' ? 'Verifying your reset link…' : 'Confirming your email…'}</p>
 				)}
 				{status === 'ok' && (
 					<>
 						<span className="confirm-medallion confirm-medallion--ok"><CheckCircle2 size={24} /></span>
-						<h1 className="auth-form__title">You&apos;re in.</h1>
-						<p className="auth-form__sub" style={{ margin: 0 }}>Email confirmed — redirecting…</p>
+						<h1 className="auth-form__title">{OK_COPY[type].title}</h1>
+						<p className="auth-form__sub" style={{ margin: 0 }}>{OK_COPY[type].body}</p>
 					</>
 				)}
 				{status === 'error' && (
