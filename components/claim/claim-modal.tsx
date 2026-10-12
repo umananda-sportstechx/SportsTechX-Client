@@ -37,7 +37,7 @@ function RoleIcon({ icon, size = 20 }: { icon: RoleConfig['icon']; size?: number
 
 function EntityLogo({ item, size = 34 }: { item: { name?: string } | null; size?: number }) {
   return (
-    <span className="cm-ent-logo" style={{ width: size, height: size, background: 'var(--bg-3)', color: 'var(--fg-2)' }}>
+    <span className="cm-ent-logo" style={{ width: size, height: size, background: 'var(--a-inset)', color: 'var(--a-muted)' }}>
       {initials(item?.name ?? '')}
     </span>
   );
@@ -267,7 +267,7 @@ export function ClaimModal({
                       <span className="cm-role-ico"><RoleIcon icon={r.icon} size={20} /></span>
                       <span className="cm-role-text"><span className="cm-role-h">{r.label}</span><span className="cm-role-p pl-1">{r.chooserDesc}</span></span>
                       {r.free && <span className="cm-role-tag free">Free</span>}
-                      <ArrowRight size={15} style={{ color: 'var(--fg-muted)', flexShrink: 0 }} />
+                      <ArrowRight size={15} style={{ color: 'var(--a-faint)', flexShrink: 0 }} />
                     </button>
                   ))}
                 </div>
@@ -300,7 +300,7 @@ export function ClaimModal({
                 <button className="cm-addnew" onClick={addNew}>
                   <span className="cm-addnew-ico"><Plus size={18} /></span>
                   <span style={{ flex: 1 }}><span className="cm-addnew-h">{q.trim() ? `Add "${q.trim()}"` : `Can't find your ${R.noun}?`}</span><span className="cm-addnew-p">Not listed yet — add it and we&apos;ll verify the details.</span></span>
-                  <ArrowRight size={14} style={{ color: 'var(--fg-muted)' }} />
+                  <ArrowRight size={14} style={{ color: 'var(--a-faint)' }} />
                 </button>
               </div>
             )}
@@ -526,7 +526,7 @@ export function ClaimModal({
                       <label className="cm-label">Pitch deck <span className="cm-opt">(PDF / PPT / PPTX)</span></label>
                       <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0] ?? null; setForm((s) => ({ ...s, deckFile: f, deckName: f?.name ?? null })); }} />
                       {form.deckName ? (
-                        <div className="cm-drop has-file"><FileText size={18} style={{ color: 'var(--verify)' }} /><span className="cm-drop-file">{form.deckName}</span><button className="cm-drop-clear" onClick={() => setForm((s) => ({ ...s, deckFile: null, deckName: null }))} aria-label="Remove file"><X size={14} /></button></div>
+                        <div className="cm-drop has-file"><FileText size={18} style={{ color: 'var(--a-ok)' }} /><span className="cm-drop-file">{form.deckName}</span><button className="cm-drop-clear" onClick={() => setForm((s) => ({ ...s, deckFile: null, deckName: null }))} aria-label="Remove file"><X size={14} /></button></div>
                       ) : (
                         <button className="cm-drop" onClick={() => fileRef.current?.click()}><span className="cm-drop-ico"><UploadCloud size={20} /></span><span className="cm-drop-h">Choose file</span><span className="cm-drop-p">Max 10MB · PDF, PPT, PPTX</span></button>
                       )}
