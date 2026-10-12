@@ -30,6 +30,7 @@ export function ClaimModalHost() {
       target={state.target}
       initialRole={state.role}
       prefill={state.prefill}
+      allowedRoles={state.allowedRoles}
       onClose={() => setState(null)}
     />
   );

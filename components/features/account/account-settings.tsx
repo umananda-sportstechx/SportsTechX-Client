@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { mutate } from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useLogout } from '@/hooks/use-logout';
+import { apiRequest } from '@/lib/query-client';
+import { qk } from '@/lib/query-keys';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
@@ -15,19 +18,65 @@ import { VerifyButton } from '@/components/features/verify/verify-cta';
  * password reset routes through Supabase. Notification toggles are local-only
  * in v1 — each product passes its own list.
  */
-export interface NotificationPref { key: string; label: string; on: boolean }
+/**
+ * The notification preferences that actually exist.
+ *
+ * These are the eight `profiles.notification_*` columns — already in
+ * `updateProfileSchema`, already written by `PATCH /api/me`, already returned
+ * by `GET /api/me`, and genuinely read by `digest-email.processor.ts`.
+ *
+ * What was here before was three per-tier lists of invented keys ("Weekly
+ * raise recap", "Watchlist signals", "Overdue follow-up reminders") held in a
+ * `useState` initialiser. They were fake twice over: nothing persisted them,
+ * and no column or sender existed behind them either. Until now the only way
+ * to change a real preference was to ask the chat agent, which has had a
+ * `update_my_notification_settings` tool all along.
+ */
+type NotificationKey =
+	| 'notification_email' | 'notification_newsletter' | 'notification_updates'
+	| 'notification_marketing' | 'notification_report_releases'
+	| 'notification_funding_alerts' | 'notification_ma_alerts'
+	| 'notification_programs_deadline';
 
-export const RAISE_NOTIFICATIONS: NotificationPref[] = [
-	{ key: 'weekly', label: 'Weekly raise recap', on: true },
-	{ key: 'overdue', label: 'Overdue follow-up reminders', on: true },
-	{ key: 'product', label: 'Product updates', on: false },
+const NOTIFICATIONS: { key: NotificationKey; label: string; sub: string }[] = [
+	{ key: 'notification_email', label: 'Email notifications', sub: 'The master switch — turn this off and we send you nothing.' },
+	{ key: 'notification_newsletter', label: 'Newsletter and digests', sub: 'Saved-search digests and the SportsTechX newsletter.' },
+	{ key: 'notification_report_releases', label: 'New reports', sub: 'When a report or monthly roundup is published.' },
+	{ key: 'notification_funding_alerts', label: 'Funding alerts', sub: 'New rounds involving companies you follow.' },
+	{ key: 'notification_ma_alerts', label: 'M&A alerts', sub: 'Acquisitions and exits across the market.' },
+	{ key: 'notification_programs_deadline', label: 'Programme deadlines', sub: 'Application windows closing for accelerators and programmes.' },
+	{ key: 'notification_updates', label: 'Product updates', sub: 'Changes and new features in Atlas.' },
+	{ key: 'notification_marketing', label: 'Offers', sub: 'Occasional news about plans and pricing.' },
 ];
 
-export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extra }: { notifications?: NotificationPref[]; sub?: string; /** Product-specific cards before Log out (e.g. Explore's product access). */ extra?: React.ReactNode }) {
+export function AccountSettings({ sub, extra }: { sub?: string; /** Product-specific cards before Log out (e.g. Explore's product access). */ extra?: React.ReactNode }) {
 	const { data: profile } = useUserProfile();
 	const [busy, setBusy] = useState(false);
 	const { logout, signingOut } = useLogout();
-	const [prefs, setPrefs] = useState<Record<string, boolean>>(() => Object.fromEntries(notifications.map((n) => [n.key, n.on])));
+	// Overlay, not a snapshot: the old `useState` initialiser read the props
+	// once at mount and then drifted from the server forever.
+	const [pending, setPending] = useState<Partial<Record<NotificationKey, boolean>>>({});
+	const prefOf = (k: NotificationKey) => pending[k] ?? profile?.[k] ?? true;
+
+	// Optimistic, and reverted on failure — a toggle that silently fails is how
+	// this section got its reputation.
+	// Drop the overlay entry either way: on success the revalidated profile is
+	// the truth, on failure the stale server value is.
+	const clearPending = (k: NotificationKey) =>
+		setPending((p) => Object.fromEntries(Object.entries(p).filter(([key]) => key !== k)));
+
+	const setPref = async (k: NotificationKey, v: boolean) => {
+		setPending((p) => ({ ...p, [k]: v }));
+		try {
+			const res = await apiRequest('PATCH', '/api/me', { [k]: v });
+			if (!res.ok) throw new Error(String(res.status));
+			await mutate(qk.profile());
+		} catch {
+			toast.error('Could not save that preference. Try again.');
+		} finally {
+			clearPending(k);
+		}
+	};
 
 	const name = profile?.display_name ?? profile?.full_name ?? '';
 	const initial = (name || profile?.email || '?').charAt(0).toUpperCase();
@@ -75,9 +124,10 @@ export function AccountSettings({ notifications = RAISE_NOTIFICATIONS, sub, extr
 				</Card>
 
 				<Card>
-					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 6 }}>Notifications<PlaceholderTag /></div>
-					{notifications.map((n) => <Toggle key={n.key} label={n.label} on={!!prefs[n.key]} set={(v) => setPrefs((p) => ({ ...p, [n.key]: v }))} />)}
-					<div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: 12 }}>Notification preferences are saved locally for now.</div>
+					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 6 }}>Notifications</div>
+					{NOTIFICATIONS.map((n) => (
+						<Toggle key={n.key} label={n.label} sub={n.sub} on={prefOf(n.key)} set={(v) => void setPref(n.key, v)} />
+					))}
 				</Card>
 
 				{/* Verification lives on every tier's Account page, not just the paid
@@ -108,9 +158,12 @@ function SplitRow({ label, sub, children }: { label: React.ReactNode; sub?: stri
 		{children}
 	</div>;
 }
-function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
+function Toggle({ label, sub, on, set }: { label: string; sub?: string; on: boolean; set: (v: boolean) => void }) {
 	return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderTop: '1px solid var(--a-border)' }}>
-		<span style={{ fontSize: 13, color: 'var(--a-ink-2)' }}>{label}</span>
+		<span style={{ minWidth: 0 }}>
+			<span style={{ display: 'block', fontSize: 13, color: 'var(--a-ink-2)' }}>{label}</span>
+			{sub && <span style={{ display: 'block', fontSize: 11, color: 'var(--a-faint)', marginTop: 2, lineHeight: 1.45 }}>{sub}</span>}
+		</span>
 		<button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => set(!on)}
 			style={{ width: 39, height: 22, flexShrink: 0, borderRadius: 'var(--a-radius-pill)', border: '0.5px solid var(--a-border)', padding: 0, cursor: 'pointer', background: on ? 'var(--a-primary)' : 'var(--a-track)', position: 'relative', transition: 'background 0.15s' }}>
 			<span style={{ position: 'absolute', top: 2.5, left: on ? 19.5 : 2.5, width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--a-primary-ink)' : 'var(--a-field)', boxShadow: '0 1px 2px rgba(0,0,0,0.18)', transition: 'left 0.15s, background 0.15s' }} />
