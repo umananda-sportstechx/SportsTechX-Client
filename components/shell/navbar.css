@@ -95,3 +95,53 @@
 	.atlas .atlas-navsearch__btn { padding: 0 9px; }
 	.atlas .atlas-navsearch__menu { left: auto; right: 0; }
 }
+
+/* ── Notifications ─────────────────────────────────────────────────────────*/
+.atlas .atlas-bell {
+	position: relative; display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0;
+	padding: 0; border: 1px solid var(--a-border-strong); border-radius: 50%;
+	background: var(--a-inset); color: var(--a-muted); cursor: pointer;
+	transition: color 0.15s, border-color 0.15s;
+}
+.atlas .atlas-bell:hover { color: var(--a-ink); border-color: var(--a-ink); }
+/* The count sits on the accent, not a hue: Atlas reserves colour for status,
+   and an unread notification is not a warning. */
+.atlas .atlas-bell__dot {
+	position: absolute; top: -3px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px;
+	display: grid; place-items: center; border-radius: var(--a-radius-pill);
+	background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0;
+	border: 1.5px solid var(--a-page);
+}
+
+.atlas .atlas-notif { z-index: 50; min-width: min(92vw, 330px); }
+.atlas .atlas-notif .atlas-menu__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.atlas .atlas-notif__all {
+	background: none; border: 0; padding: 0; cursor: pointer;
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+	color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent);
+}
+.atlas .atlas-notif__all:hover { color: var(--a-primary-ink); text-decoration: underline; text-underline-offset: 3px; }
+.atlas .atlas-notif__empty {
+	margin: 0; padding: 4px 10px 8px; font-family: var(--a-body); font-size: 12.5px; line-height: 1.5;
+	color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent);
+}
+.atlas .atlas-notif__item {
+	display: flex; flex-direction: column; gap: 2px; width: 100%;
+	padding: 8px 10px; border: 0; border-radius: var(--a-radius-xs);
+	background: none; color: var(--a-primary-ink); text-align: left; cursor: pointer;
+}
+.atlas .atlas-notif__item:hover { background: color-mix(in srgb, var(--a-primary-ink) 10%, transparent); }
+/* Unread is marked with weight and a rail, never colour alone. */
+.atlas .atlas-notif__item.is-unread { box-shadow: inset 2px 0 0 var(--a-primary-ink); }
+.atlas .atlas-notif__item.is-unread .atlas-notif__title { font-weight: 600; }
+.atlas .atlas-notif__title { font-family: var(--a-body); font-size: 12.5px; line-height: 1.35; }
+.atlas .atlas-notif__body {
+	font-family: var(--a-body); font-size: 11.5px; line-height: 1.45;
+	color: color-mix(in srgb, var(--a-primary-ink) 65%, transparent);
+	display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.atlas .atlas-notif__when {
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+	color: color-mix(in srgb, var(--a-primary-ink) 50%, transparent);
+}

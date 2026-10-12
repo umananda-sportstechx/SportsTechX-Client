@@ -68,7 +68,7 @@ export interface DealRow {
 	interest_status: string | null;
 }
 
-const LEAD_LABEL: Record<string, string> = {
+export const LEAD_LABEL: Record<string, string> = {
 	confirmed: 'Lead confirmed', seeking: 'Seeking lead', not_required: 'No lead required',
 };
 const INSTRUMENT_LABEL: Record<string, string> = {
@@ -173,6 +173,10 @@ export interface MyDealRow {
 	created_at: string;
 	company_anonymous: boolean;
 	founder_consent: boolean;
+	// The three fields `PATCH :id/live` lets the owner move after it is listed.
+	committed_amount: string | number | null;
+	lead_status: string | null;
+	target_close_date: string | null;
 }
 
 /** What a submitter should understand their own deal's status to mean. */

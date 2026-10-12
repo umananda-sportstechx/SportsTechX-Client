@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { ChevronRight, LogOut, Search, Settings, CreditCard, Loader2 } from 'lucide-react';
+import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import { cx, useDismiss, Logo } from '@/components/atlas';
 import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
 import { ThemeToggle } from '@/components/atlas/shell/theme-toggle';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
+import { NotificationBell } from './notification-bell';
 import { useNav } from '@/hooks/use-nav';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useLogout } from '@/hooks/use-logout';
@@ -21,7 +22,7 @@ import './navbar.css';
 
 /**
  * The bar across the top of every authenticated page: breadcrumbs and search on
- * the left, Get Verified and the account menu on the right.
+ * the left, Get Verified, notifications and the account menu on the right.
  *
  * Rendered via AtlasShell's `topbar` slot rather than inside AtlasShell, which
  * is deliberately manifest-free — breadcrumbs need `lib/routes` and the account
@@ -62,6 +63,7 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 
 			<div className="atlas-navbar__right">
 				<VerifyButton />
+				<NotificationBell />
 				<AccountMenu tier={tier} accountPath={accountPath} />
 			</div>
 		</header>
@@ -238,6 +240,12 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 								<CreditCard size={13} strokeWidth={1.5} aria-hidden="true" /> Subscription
 							</Link>
 						)}
+						{/* The only door to `/verify` now that the button beside this menu
+						    opens the modal instead. The page is also where a verified
+						    claim's market report is listed. */}
+						<Link href={hrefOf('verify')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+							<ShieldCheck size={13} strokeWidth={1.5} aria-hidden="true" /> Get verified
+						</Link>
 						<ThemeToggle menu />
 					</div>
 					<div className="atlas-account-menu__foot">

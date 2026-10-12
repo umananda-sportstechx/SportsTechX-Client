@@ -92,8 +92,9 @@ export const PRIVATE_PREFIXES = [
   '/investors', '/my-market', '/newsletter', '/pipeline', '/plans', '/programs',
   '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
-  // Not in ROUTES: the onboarding tree and the integration docs.
-  '/onboarding', '/docs',
+  // Not in ROUTES: the onboarding tree, the integration docs, and the
+  // verified-company report (reached from an email, not the sidebar).
+  '/onboarding', '/docs', '/verified-reports',
 ] as const;
 
 export function isPrivatePath(pathname: string): boolean {
