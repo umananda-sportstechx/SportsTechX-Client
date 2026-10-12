@@ -534,7 +534,7 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
   background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 16%, transparent) 100%);
 }
 .atlas-post--card {
-  flex-direction: column; gap: 0; padding: 14px 16px 16px;
+  flex-direction: column; gap: 0; padding: 0; overflow: hidden;
 }
 .atlas-post--card:hover {
   border-color: var(--a-border-strong);
@@ -546,12 +546,19 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
   border: 1px solid var(--a-card-border); border-radius: var(--a-radius-sm);
 }
 .atlas-post__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.atlas-post__cover--tall { width: 186px; aspect-ratio: 3 / 4; align-self: flex-start; }
-.atlas-post__cover--thumb { width: 60px; height: 76px; }
+/* Featured cover: the whole document cover, never cropped. `contain` on the
+   page-coloured frame letterboxes a stray aspect rather than slicing the art. */
+.atlas-post__cover--tall { width: 240px; aspect-ratio: 3 / 4; align-self: flex-start; }
+.atlas-post__cover--tall img { object-fit: contain; }
+/* Library card: a full-width band across the top ~half of the card. The card
+   clips it to the corner radius (overflow:hidden), so no radius of its own. */
+.atlas-post__cover--banner {
+  width: 100%; aspect-ratio: 16 / 10; border: 0; border-radius: 0;
+  border-bottom: 1px solid var(--a-card-border);
+}
 
 .atlas-post__body { display: flex; flex-direction: column; min-width: 0; flex: 1; padding: 12px 0 2px; }
-.atlas-post__head { display: flex; align-items: flex-start; gap: 14px; }
-.atlas-post__headtext { min-width: 0; padding-top: 2px; }
+.atlas-post__cardbody { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 14px 16px 16px; }
 
 .atlas-post__meta {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -614,3 +621,35 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 .atlas-pilltab:hover { box-shadow: inset 0 0 0 1px var(--a-ink); }
 .atlas-pilltab.on { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
 .atlas-pilltab:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink), 0 0 0 3px color-mix(in srgb, var(--a-ink) 14%, transparent); }
+
+/* Screen-reader-only text — visually hidden, still announced. */
+.atlas-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Loading — centred spinner with an optional label, used by pages and the
+   route-level loading.tsx between navigations. */
+.atlas-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; min-height: 55vh; color: var(--a-muted);
+}
+.atlas-loading__label {
+  font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* Empty state — a soft framed icon, optional title, body text, optional action. */
+.atlas-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 10px; padding: 44px 28px;
+  background: var(--a-surface);
+  border: 1px solid var(--a-card-border); border-radius: var(--a-radius);
+}
+.atlas-empty__icon {
+  display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 2px;
+  border-radius: 50%; background: var(--a-field); color: var(--a-muted);
+  box-shadow: inset 0 0 0 1px var(--a-border);
+}
+.atlas-empty__title { font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); }
+.atlas-empty__text { font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-muted); max-width: 420px; }
+.atlas-empty__action { margin-top: 8px; }
