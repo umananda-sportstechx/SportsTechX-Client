@@ -151,7 +151,7 @@ export function Plans() {
 								{plan ? money(plan.price_amount, plan.currency_code) : '—'}
 							</div>
 							<div className="plans-card__interval">
-								{plan && plan.price_amount === 0 ? 'Free forever' : plan?.billing_interval === 'yearly' ? 'per year' : (plan?.billing_interval ?? '')}
+								{plan && plan.price_amount === 0 ? 'Free forever' : plan?.billing_interval === 'yearly' ? 'per year' : plan?.billing_interval === 'semiannual' ? 'per 6 months' : plan?.billing_interval === 'monthly' ? 'per month' : (plan?.billing_interval ?? '')}
 							</div>
 							<p className="plans-card__blurb">
 								{copy?.tagline ?? 'Understand and explore the sports-tech market.'}
