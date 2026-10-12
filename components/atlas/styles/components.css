@@ -380,35 +380,43 @@ span.atlas-fbar__pill-main { cursor: default; }
 .atlas-sectionhead__meta a { color: var(--a-ink); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ── Feed card (Figma Home "Card": 519×138, pink glow, tag · title · body · VIEW pill) ── */
-.atlas-feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 17px; }
+.atlas-feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 860px) { .atlas-feed-grid { grid-template-columns: 1fr; } }
+/* Room to breathe. At 20px padding and a 12px body the cards read as packed,
+   and a long action label ("Complete setup") squeezed the tag beside it. */
 .atlas-feed-card {
-  display: flex; flex-direction: column; min-height: 138px; padding: 20px 21px 22px;
+  display: flex; flex-direction: column; min-height: 156px; padding: 22px 24px 24px;
   background-color: var(--a-surface);
   background-image: linear-gradient(160deg, transparent 50%, color-mix(in srgb, var(--a-pink) 14%, transparent) 100%);
   border: 1px solid var(--a-card-border); border-radius: var(--a-radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.atlas-feed-card__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; }
+.atlas-feed-card:hover { border-color: var(--a-border-strong); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05); }
+.atlas-feed-card__top { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 26px; }
 .atlas-feed-card__tag {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 7px; min-width: 0;
+  font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
   color: color-mix(in srgb, var(--a-ink) 72%, transparent);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .atlas-feed-card__tag svg { color: color-mix(in srgb, var(--a-ink) 55%, transparent); flex-shrink: 0; }
+/* The pill was 22px tall with 0.1em tracking, which crushed the label against
+   its edges. Taller, evenly padded, and it never shrinks — the tag yields. */
 .atlas-feed-card__action {
-  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
-  height: 22px; padding: 0 9px 0 13px; border-radius: var(--a-radius-pill);
-  background: var(--a-primary); color: var(--a-primary-ink); border: 0.5px solid var(--a-border);
-  font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  height: 28px; padding: 0 12px 0 14px; border-radius: var(--a-radius-pill);
+  background: var(--a-primary); color: var(--a-primary-ink); border: 0;
+  font-family: var(--a-mono); font-size: 10.5px; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
   /* Also rendered as a <button> when the card opens a modal instead of
      navigating — a button needs the pointer and inherits none of the above. */
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
 }
-.atlas-feed-card__action:hover { opacity: 0.85; }
-.atlas-feed-card__title { margin: 7px 0 0; font-family: var(--a-font); font-size: 18px; font-weight: 700; line-height: 1.3; color: var(--a-ink); }
-.atlas-feed-card__body { margin: 8px 0 0; font-family: var(--a-body); font-size: 12px; line-height: 19px; color: var(--a-muted); }
-.atlas-feed-card__extra { margin-top: 12px; }
+.atlas-feed-card__action:hover { opacity: 0.88; transform: translateY(-1px); }
+.atlas-feed-card__action svg { flex-shrink: 0; }
+.atlas-feed-card__title { margin: 12px 0 0; font-family: var(--a-font); font-size: 19px; font-weight: 700; line-height: 1.3; color: var(--a-ink); }
+.atlas-feed-card__body { margin: 8px 0 0; font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-muted); max-width: 62ch; }
+.atlas-feed-card__extra { margin-top: 14px; }
 
 /* ── List switcher (watchlists): outline pill → black menu with search + lists + "+ New" ── */
 .atlas-switcher__btn { max-width: 260px; }
@@ -483,13 +491,25 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 .atlas-composer-send:disabled { opacity: 0.35; cursor: not-allowed; }
 .atlas-composer-send:not(:disabled):hover { opacity: 0.85; }
 
-.atlas-composer-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-start; margin-top: 21px; padding: 0 11px; }
-.atlas-composer-suggest-label { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); margin-right: 1px; }
-.atlas-composer-chip {
-	font-family: var(--a-mono); font-size: 11px; line-height: 1; text-transform: uppercase;
-	padding: 8px 10px; border-radius: var(--a-radius-tag); cursor: pointer;
-	border: 1px solid var(--a-border); background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-ink);
-	transition: background 0.12s, border-color 0.12s;
+/* Figma "Suggestions:" row — a label, then flat mono chips. Tightened into a
+   single rhythm: one height for every chip, an arrow that says "this asks",
+   and a hover that commits to ink rather than a faint grey shift. */
+.atlas-composer-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; margin-top: 18px; padding: 0 4px; }
+.atlas-composer-suggest-label {
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: var(--a-faint); margin-right: 6px;
 }
-.atlas-composer-chip:hover { background: var(--a-inset); border-color: var(--a-border-strong); }
+.atlas-composer-chip {
+	display: inline-flex; align-items: center; gap: 7px; height: 30px;
+	font-family: var(--a-mono); font-size: 10.5px; line-height: 1; letter-spacing: 0.05em; text-transform: uppercase;
+	padding: 0 12px; border-radius: var(--a-radius-tag); cursor: pointer;
+	border: 0; box-shadow: inset 0 0 0 1px var(--a-border);
+	background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-ink);
+	white-space: nowrap; max-width: 100%;
+	transition: background 0.12s, box-shadow 0.12s, color 0.12s;
+}
+.atlas-composer-chip svg { flex-shrink: 0; color: var(--a-faint); transition: color 0.12s; }
+.atlas-composer-chip:hover { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
+.atlas-composer-chip:hover svg { color: var(--a-primary-ink); }
+.atlas-composer-chip:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink), 0 0 0 3px color-mix(in srgb, var(--a-ink) 12%, transparent); }
 

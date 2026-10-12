@@ -34,7 +34,8 @@
 .atlas .scout-section__head .scout-muted { margin-top: 6px; }
 
 /* ── Home ────────────────────────────────────────────────────────────────── */
-.atlas .scout-home { padding: 57px 56px 0; max-width: 1180px; margin-inline: auto; }
+/* Same width as <Screen> (PAGE_MAX) — homes are not a narrower special case. */
+.atlas .scout-home { padding: 57px 56px 0; max-width: 1440px; margin-inline: auto; }
 .atlas .scout-home__sub { margin: 18px 0 0; font-family: var(--a-body); font-size: 14px; color: var(--a-muted); }
 .atlas .scout-home__thesis { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 22px; }
 .atlas .scout-home__composer { margin-top: 27px; padding-top: 27px; border-top: 1px solid var(--a-border); }
