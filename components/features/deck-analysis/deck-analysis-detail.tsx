@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ChevronDown, FileText, RefreshCw } from 'lucide-react';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
+import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
 import { Screen, Card, Button, Loading, StagedLoader } from '@/components/atlas';
@@ -39,6 +40,11 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 	const [md, setMd] = useState('');
 	const [scorecard, setScorecard] = useState<DeckScorecard | null>(null);
 	const [streaming, setStreaming] = useState(true);
+	const [busy, setBusy] = useState<'file' | 'rerun' | null>(null);
+	// Bumped by "Run it again". The effect below already does
+	// fetch-row-then-stream, and `reanalyze` resets the row to `pending`
+	// server-side, so re-running the effect is the whole implementation.
+	const [reload, setReload] = useState(0);
 	const abortRef = useRef<AbortController | null>(null);
 
 	const streamAnalysis = useCallback(async (ac: AbortController, cancelled: () => boolean) => {
@@ -68,7 +74,45 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 			} finally { if (!cancelled) setStreaming(false); }
 		})();
 		return () => { cancelled = true; ac.abort(); };
-	}, [id, streamAnalysis]);
+	}, [id, streamAnalysis, reload]);
+
+	/**
+	 * Open the deck itself. The endpoint hands back a 1-hour signed URL, and
+	 * until now nothing called it — you could read an analysis of a deck you
+	 * had no way to look at.
+	 *
+	 * The tab is opened synchronously on the click and only then pointed at the
+	 * URL: opening it after the await is what popup blockers stop.
+	 */
+	const viewDeck = async () => {
+		if (busy) return;
+		setBusy('file');
+		const tab = window.open('about:blank', '_blank');
+		try {
+			const res = await apiRequest('GET', `/api/deck-analysis/${id}/file`);
+			if (!res.ok) throw new Error(String(res.status));
+			const { url } = (await res.json()) as { url: string };
+			if (tab) tab.location.href = url; else window.open(url, '_blank', 'noopener');
+		} catch {
+			tab?.close();
+			toast.error('Could not open the deck. Try again.');
+		} finally { setBusy(null); }
+	};
+
+	/** Re-run the analysis on the same file. Credit-metered server-side. */
+	const rerun = async () => {
+		if (busy || streaming) return;
+		setBusy('rerun');
+		try {
+			const res = await apiRequest('POST', `/api/deck-analysis/${id}/reanalyze`);
+			if (!res.ok) throw new Error(String(res.status));
+			setReload((n) => n + 1);
+		} catch (e) {
+			// A credit or tier refusal already raised its own modal with the
+			// explanation — a toast on top would just be noise.
+			if (!isInsufficientCreditsError(e)) toast.error((e as Error).message ?? 'Could not re-run the analysis.');
+		} finally { setBusy(null); }
+	};
 
 	const overall = scorecard?.overall_score ?? row?.overall_score ?? null;
 	const sectionsByLabel = (labels: string[]) => (scorecard?.sections ?? []).filter((s) => labels.some((l) => s.label.toLowerCase().includes(l)));
@@ -83,7 +127,15 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 					<h1 className="atlas-h1" style={{ fontSize: 28 }}>{row?.filename ?? copy.fallbackName}</h1>
 					{row?.created_at && <div className="atlas-sub">Analysed {new Date(row.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
 				</div>
-				<Button variant="outline" onClick={() => router.push(basePath)}>Analyse revised deck</Button>
+				<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+					<Button variant="outline" disabled={busy !== null} onClick={() => void viewDeck()}>
+						<FileText size={13} /> {busy === 'file' ? 'Opening…' : 'View deck'}
+					</Button>
+					<Button variant="outline" disabled={busy !== null || streaming} onClick={() => void rerun()}>
+						<RefreshCw size={13} /> {busy === 'rerun' ? 'Starting…' : 'Run it again'}
+					</Button>
+					<Button variant="outline" onClick={() => router.push(basePath)}>Analyse revised deck</Button>
+				</div>
 			</div>
 
 			{streaming && !scorecard && (

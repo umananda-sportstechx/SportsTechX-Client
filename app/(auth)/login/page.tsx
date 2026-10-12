@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { track, Events } from '@/lib/analytics';
 import { safeRedirect } from '@/lib/safe-redirect';
+import { callPostLogin } from '@/lib/post-login';
 import { logoutState } from '@/lib/logout-state';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/atlas';
@@ -80,32 +81,6 @@ export default function LoginPage() {
 	}, [reason, notice]);
 
 	const supabase = getSupabaseBrowser();
-
-	/**
-	 * Fire-and-forget, but not silent.
-	 *
-	 * This endpoint bumps login_count, links pending anonymous claims by email,
-	 * records referrals, and invalidates the auth cache so a freshly
-	 * trigger-created stub profile picks up its real tier and role. It used to
-	 * swallow everything — including a 500, since it never checked `res.ok` —
-	 * so a failure left the user with a stale tier and lost claim linkage and
-	 * referral attribution, with no trace on either side.
-	 *
-	 * Non-blocking is right for the sign-in UX. Invisible is not.
-	 */
-	const callPostLogin = async (token: string) => {
-		try {
-			const res = await fetch('/api/auth/post-login', {
-				method: 'POST',
-				headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-			});
-			if (!res.ok) {
-				console.error('[post-login] failed', res.status, await res.text().catch(() => ''));
-			}
-		} catch (e) {
-			console.error('[post-login] request threw', e);
-		}
-	};
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
