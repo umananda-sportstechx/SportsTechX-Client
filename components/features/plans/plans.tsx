@@ -90,37 +90,35 @@ export function Plans() {
 	};
 
 	/**
-	 * Downgrade to Explore. Immediate, because these are yearly plans and
-	 * waiting out the term is not a downgrade.
-	 *
-	 * The refund figure in the dialog is quoted by the server (`?preview=1`)
-	 * rather than recomputed here — one formula, and the number they agree to
-	 * is the number that gets queued.
+	 * Cancel at the end of the billing period. The plan stays active — full
+	 * access — until then; it simply won't renew, and the user moves to Explore
+	 * when it ends. No refund, and no immediate cancellation (that's a sales
+	 * conversation). Until it ends they keep the tier and can't start another.
 	 */
+	const fmtDay = (iso: string | null) =>
+		iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : null;
 	const downgrade = async () => {
 		setBusy('explore');
 		try {
 			const res = await apiRequest('POST', '/api/billing/cancel?preview=1');
-			const { refund } = (await res.json()) as { refund: { amount_cents: number; currency: string; days_remaining: number } | null };
-			const back = refund && refund.amount_cents > 0 ? money(refund.amount_cents, refund.currency) : null;
+			const { access_until } = (await res.json()) as { access_until: string | null };
+			const until = fmtDay(access_until);
 			const ok = await confirm({
-			title: 'Switch to Atlas Explore?',
-			description: back
-				? `Your plan ends straight away and you keep Explore for free. We'll refund ${back} for the ${refund!.days_remaining} days you haven't used — it goes back to your card and can take a few days to appear.`
-				: 'Your plan ends straight away and you keep Explore for free. There is nothing left to refund on the current term.',
-			confirmLabel: 'Switch to Explore',
-			destructive: true,
+				title: 'Cancel your plan?',
+				description: until
+					? `Your plan stays active with full access until ${until}. It won't renew — you'll move to Atlas Explore then. No refund is issued, and you can't start a different plan until it ends. To cancel sooner, contact the SportsTechX team.`
+					: `Your plan won't renew and you'll move to Atlas Explore at the end of the current billing period. No refund is issued. To cancel sooner, contact the SportsTechX team.`,
+				confirmLabel: 'Cancel at period end',
+				destructive: true,
 			});
 			if (!ok) { setBusy(null); return; }
 			const done = await apiRequest('POST', '/api/billing/cancel');
 			if (!done.ok) throw new Error(String(done.status));
-			const body = (await done.json()) as { refund: { amount_cents: number; currency: string } | null };
-			toast.success(body.refund
-			? `Plan cancelled. A ${money(body.refund.amount_cents, body.refund.currency)} refund is being processed.`
-			: 'Plan cancelled. You are on Atlas Explore.');
-			// The server syncs the tier before returning, so the profile is already
-			// correct — revalidate it or the page keeps claiming they are on the old
-			// plan until SWR's 5-minute dedupe window expires.
+			const body = (await done.json()) as { access_until: string | null };
+			const end = fmtDay(body.access_until);
+			toast.success(end
+				? `Plan set to cancel on ${end}. You keep full access until then.`
+				: 'Plan set to cancel at the end of your billing period. You keep full access until then.');
 			await Promise.all([refreshProfile(), sub.mutate(), plans.mutate()]);
 		} catch {
 			toast.error("Couldn't cancel your plan. Please try again or contact support.");
