@@ -40,56 +40,60 @@
 	.atlas .auth-split--panelled .auth-panel { display: flex; }
 }
 
-/* The testimonial panel is an auto-scrolling marquee that fills the rail. */
-.atlas .auth-panel--quotes { justify-content: center; padding: 56px 48px; overflow: hidden; }
+/* The brand panel: lockup at the top (space-between on .auth-panel lifts it),
+   tagline + carousel grouped at the foot. */
+.atlas .auth-panel--brand { overflow: hidden; }
+.atlas .auth-panel__foot { display: flex; flex-direction: column; gap: 30px; min-width: 0; }
+.atlas .auth-panel__tagline {
+	font-family: var(--a-font); font-size: clamp(30px, 3.2vw, 40px); font-weight: 700;
+	line-height: 1.08; letter-spacing: -0.01em; color: var(--a-ink); max-width: 460px; margin: 0;
+}
 
-/* Viewport over the moving track, masked to fade top and bottom. */
-.atlas .auth-marquee {
-	position: relative; width: 100%; max-width: 420px; margin: 0 auto;
-	height: min(72vh, 620px); overflow: hidden;
-	-webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
-	        mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+/* Horizontal auto-scrolling testimonial carousel — fixed height, edge-masked. */
+.atlas .auth-tcarousel {
+	position: relative; width: 100%; height: 176px; overflow: hidden;
+	-webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+	        mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
-.atlas .auth-marquee__track {
-	display: flex; flex-direction: column;
-	animation: auth-scroll linear infinite;
-	will-change: transform;
+.atlas .auth-tcarousel__track {
+	display: flex; height: 100%; width: max-content;
+	animation: auth-hscroll linear infinite; will-change: transform;
 }
-.atlas .auth-marquee:hover .auth-marquee__track { animation-play-state: paused; }
-@keyframes auth-scroll {
-	from { transform: translateY(0); }
-	/* Two identical copies, each card carrying its own bottom margin, so -50%
+.atlas .auth-tcarousel:hover .auth-tcarousel__track { animation-play-state: paused; }
+@keyframes auth-hscroll {
+	from { transform: translateX(0); }
+	/* Two identical copies, each card carrying its own right margin, so -50%
 	   (exactly one copy) lands copy 2's first card where copy 1's began. */
-	to { transform: translateY(-50%); }
+	to { transform: translateX(-50%); }
 }
 @media (prefers-reduced-motion: reduce) {
-	.atlas .auth-marquee { height: auto; -webkit-mask-image: none; mask-image: none; }
-	.atlas .auth-marquee__track { animation: none; }
-	/* Static stack: the duplicate copy would just repeat, so hide it. */
-	.atlas .auth-marquee__track > .auth-tcard[aria-hidden] { display: none; }
+	.atlas .auth-tcarousel { -webkit-mask-image: none; mask-image: none; }
+	.atlas .auth-tcarousel__track { animation: none; }
+	.atlas .auth-tcarousel__track > .auth-tcard[aria-hidden] { display: none; }
 }
 
-/* Testimonial card on the rail. Bottom margin is the inter-card gap (not flex
-   gap) so the two marquee copies stack with even spacing across the seam. */
+/* Testimonial card — fixed width for the horizontal rail; right margin is the
+   inter-card gap (not flex gap) so the two copies tile evenly across the seam. */
 .atlas .auth-tcard {
-	margin: 0 0 18px; padding: 22px 22px 20px; border-radius: var(--a-radius);
+	flex: 0 0 auto; width: 300px; height: 100%; margin: 0 16px 0 0;
+	display: flex; flex-direction: column; justify-content: space-between;
+	padding: 20px 22px; border-radius: var(--a-radius);
 	background: var(--a-surface); border: 1px solid var(--a-border);
 }
-.atlas .auth-tcard__quote { margin: 0; font-family: var(--a-body); font-size: 14px; line-height: 1.6; color: var(--a-ink-2); }
-.atlas .auth-tcard__by { display: flex; align-items: center; gap: 11px; margin-top: 18px; }
-.atlas .auth-tcard__img { width: 38px; height: 38px; flex-shrink: 0; border-radius: var(--a-radius-pill); object-fit: cover; }
+.atlas .auth-tcard__quote {
+	margin: 0; font-family: var(--a-body); font-size: 13.5px; line-height: 1.55; color: var(--a-ink-2);
+	display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.atlas .auth-tcard__by { display: flex; align-items: center; gap: 11px; margin-top: 16px; }
+.atlas .auth-tcard__img { width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--a-radius-pill); object-fit: cover; }
 .atlas .auth-tcard__who { min-width: 0; display: flex; flex-direction: column; }
-.atlas .auth-tcard__name { font-family: var(--a-font); font-size: 13.5px; font-weight: 600; color: var(--a-ink); }
-.atlas .auth-tcard__role { font-size: 12px; color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas .auth-tcard__name { font-family: var(--a-font); font-size: 13px; font-weight: 600; color: var(--a-ink); }
+.atlas .auth-tcard__role { font-size: 11.5px; color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.atlas .auth-panel__head { font-family: var(--a-font); font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; color: var(--a-ink); max-width: 470px; margin: 0; }
-
-/* Numbered value rows, hairline-separated — the mockup's 01/02/03 block. */
-.atlas .auth-points { display: flex; flex-direction: column; }
-.atlas .auth-points__row { display: flex; gap: 18px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--a-border); }
-.atlas .auth-points__row:last-child { border-bottom: 1px solid var(--a-border); }
-.atlas .auth-points__n { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--a-faint); flex-shrink: 0; }
-.atlas .auth-points__t { font-family: var(--a-body); font-size: 14px; line-height: 1.5; color: var(--a-ink-2); }
+/* On desktop the brand lives in the left panel, so drop the one on the form. */
+@media (min-width: 1024px) {
+	.atlas .auth-split--panelled .auth-form .auth-brand { display: none; }
+}
 
 /* ── Right column ────────────────────────────────────────────────────────── */
 

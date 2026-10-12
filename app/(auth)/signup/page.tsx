@@ -8,7 +8,8 @@ import { safeRedirect } from '@/lib/safe-redirect';
 import { callPostLogin } from '@/lib/post-login';
 import { Button } from '@/components/atlas';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, AuthValuePanel, PasswordField } from '@/components/auth/auth-shell';
+import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
+import { AuthBrandPanel } from '@/components/auth/auth-quotes';
 
 /**
  * Create an account.
@@ -23,12 +24,6 @@ import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, AuthValueP
  *
  * Replaces a 40/60 split on the legacy shadcn kit.
  */
-const VALUE_POINTS = [
-	'The sports-tech company, investor and funding database',
-	'Market analytics, monthly roundups and research reports',
-	'Watchlists and signals on the companies you follow',
-];
-
 export default function SignupPage() {
 	const router = useRouter();
 	const params = useSearchParams();
@@ -86,7 +81,7 @@ export default function SignupPage() {
 	return (
 		<>
 			<AuthThemeToggle />
-			<AuthSplit panel={<AuthValuePanel headline="Market intelligence for the business of sports." points={VALUE_POINTS} />}>
+			<AuthSplit panel={<AuthBrandPanel />}>
 				<div>
 					<h1 className="auth-form__title">Create your Atlas account</h1>
 					<p className="auth-form__sub">Free to start. No card required.</p>
