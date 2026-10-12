@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
-import { BadgeCheck, Bookmark, CalendarDays, Layers, ShieldCheck, Sparkles, Target } from 'lucide-react';
+import { BadgeCheck, Bookmark, CalendarDays, Layers, Sparkles, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { AgentComposer, Badge, Button, Card, FeedCard, H1, Loading, SectionHead } from '@/components/atlas';
+import { AgentComposer, FeedCard, H1, Loading, SectionHead } from '@/components/atlas';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { openClaim } from '@/lib/claim-events';
 import { qk } from '@/lib/query-keys';
 import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 import { hrefOf } from '@/lib/routes';
@@ -106,7 +105,6 @@ export function ScoutHome() {
 				</div>
 			</section>
 
-			{data && data.verification !== 'verified' && <VerifyCard state={data.verification} />}
 
 			<section className="scout-home__attn">
 				<SectionHead title="What needs your attention" meta="Based on your thesis · since your last visit" />
@@ -147,35 +145,3 @@ export function ScoutHome() {
 	);
 }
 
-/**
- * Verification is reported by `/api/scout/home` and, until now, had nowhere to
- * act on it. The claim modal is mounted globally in `app/providers.tsx`, so
- * this needs no form of its own — `openClaim(null, 'investor')` opens the same
- * flow whose own first step is titled "Get verified".
- */
-function VerifyCard({ state }: { state: 'unverified' | 'pending' }) {
-	const pending = state === 'pending';
-	return (
-		<Card glow={pending ? undefined : 'blue'} focus={!pending} className="scout-verify-card">
-			<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-				<div style={{ maxWidth: 560 }}>
-					<span className="atlas-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-						<ShieldCheck size={12} aria-hidden="true" />
-						{pending ? 'Verification in review' : 'Get verified'}
-					</span>
-					<div style={{ fontFamily: 'var(--a-font)', fontSize: 17, fontWeight: 700, color: 'var(--a-ink)', margin: '10px 0 6px' }}>
-						{pending ? 'We’re reviewing your fund' : 'Verify your fund to unlock introductions'}
-					</div>
-					<p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)', margin: 0 }}>
-						{pending
-							? 'The SportsTechX team is checking your details. Recommendations, signals and watchlists work in the meantime.'
-							: 'Confirm the fund you invest through. Verified investors can request introductions and see opportunities shared by the Investor Circle.'}
-					</p>
-				</div>
-				{pending
-					? <Badge tone="neutral">Pending</Badge>
-					: <Button size="sm" onClick={() => openClaim(null, 'investor')}>Get verified</Button>}
-			</div>
-		</Card>
-	);
-}
