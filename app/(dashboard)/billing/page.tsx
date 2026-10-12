@@ -31,7 +31,7 @@ import { Screen, PageHead, Card, Button, Badge, Loading, Action } from '@/compon
 // row still renders a name instead of a raw enum value. They are not offered.
 const PLAN: Record<string, { label: string; price: string }> = {
 	explore: { label: 'Explore', price: '€0' },
-	raise: { label: 'Raise', price: '€600 / year' },
+	raise: { label: 'Raise', price: '€600 / 6 months' },
 	scout: { label: 'Scout', price: '€2,500 / year' },
 	free: { label: 'Explore (legacy)', price: '—' },
 	general: { label: 'General (retired)', price: '—' },
