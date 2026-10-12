@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { BookmarkPlus } from 'lucide-react';
 import type { ShellNavEntry, ShellNavItem } from '@/components/atlas';
 import { useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
@@ -40,7 +39,7 @@ export function useNav(): {
 	const { lists } = useCompanyWatchlists();
 
 	return useMemo(() => {
-		const { nav, bottomNav } = buildNav(tier, isAdmin, lists, BookmarkPlus);
+		const { nav, bottomNav } = buildNav(tier, isAdmin, lists, 'nav-list');
 		return {
 			ready, tier, nav, bottomNav,
 			homePath: pathOf('home', tier),

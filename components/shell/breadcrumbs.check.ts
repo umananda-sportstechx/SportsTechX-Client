@@ -2,18 +2,20 @@
  * Self-check for the navbar breadcrumb trail. Run it with:
  *   node components/shell/breadcrumbs.check.ts
  *
- * The rule that earns a test is "never show the page you are on". Get it wrong
- * and the trail silently duplicates the `H1` on ~28 of the 38 authenticated
- * pages — which looks like a styling mistake, not a logic one, so nobody traces
- * it back here.
+ * The rule that earns a test flipped: the trail now ends on the page you are
+ * on. It used to stop one crumb short, which meant every page in a section
+ * rendered the same two crumbs ("Home › Discover") and the trail never said
+ * where you were. The cases below are the ones that made the old version look
+ * broken, plus the two that made it tempting in the first place — a detail
+ * page's unreadable leaf, and an opaque id.
  */
-import { crumbsFor } from './breadcrumbs.ts';
+import { crumbsFor, deslug } from './breadcrumbs.ts';
 import type { ShellNavEntry } from '../atlas/shell/nav.ts';
 
 // `icon` is required by the type and never read by `crumbsFor`, so the check
-// does not drag lucide into a plain `node` run for it.
+// does not drag the icon set into a plain `node` run for it.
 const item = (name: string, path: string, extra: Record<string, unknown> = {}) =>
-	({ name, path, icon: null as unknown as never, ...extra });
+	({ name, path, icon: '', ...extra });
 
 const NAV: ShellNavEntry[] = [
 	item('Home', '/home'),
@@ -24,8 +26,9 @@ const NAV: ShellNavEntry[] = [
 ] as ShellNavEntry[];
 
 const q = (s = '') => new URLSearchParams(s);
-const labels = (pathname: string, search = '') =>
-	crumbsFor(NAV, '/home', pathname, q(search)).map((c) => c.label);
+const trail = (pathname: string, search = '') => crumbsFor(NAV, '/home', pathname, q(search));
+const labels = (pathname: string, search = '') => trail(pathname, search).map((c) => c.label);
+const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 let failures = 0;
 const check = (ok: boolean, msg: string) => {
@@ -33,35 +36,47 @@ const check = (ok: boolean, msg: string) => {
 	if (!ok) failures += 1;
 };
 
-// ── The core rule: the current page is never in the trail ───────────────────
+// ── The trail reaches the current page ─────────────────────────────────────
 check(labels('/home').length === 0, 'home has no trail — the Home crumb IS the page');
-check(JSON.stringify(labels('/companies')) === JSON.stringify(['Discover']),
-	'a section page shows its section only, never its own name');
-check(JSON.stringify(labels('/analytics')) === JSON.stringify(['Intelligence']),
-	'the H1 ("Intelligence") is not repeated by a second crumb');
+check(eq(labels('/companies'), ['Discover', 'Companies']), 'a section page names itself, not just its section');
+check(eq(labels('/signals'), ['Discover', 'Signals']), 'two pages in one section do not share a trail');
+check(eq(labels('/analytics'), ['Intelligence', 'Analytics']), 'the section page reaches its own name');
+check(eq(labels('/account'), ['Account']), 'a sectionless page is one crumb');
 
-// ── Detail pages: the parent becomes an ancestor, the leaf is never invented ─
-check(JSON.stringify(labels('/companies/acme-sports')) === JSON.stringify(['Discover', 'Companies']),
-	'a detail page adds its parent as an ancestor');
-check(crumbsFor(NAV, '/home', '/companies/acme-sports', q()).at(-1)?.href === '/companies',
-	'that ancestor is a link back to the list');
-check(crumbsFor(NAV, '/home', '/companies', q())[0]?.href === undefined,
-	'a section is a grouping label, not a link');
-// The whole reason the trail stops short: nothing publishes "Acme Sports".
-check(!labels('/companies/acme-sports').includes('acme-sports'),
-	'a raw slug never leaks into the trail');
+// The regression that prompted the rewrite: every page in a section used to
+// produce the identical two-crumb trail.
+check(JSON.stringify(labels('/companies')) !== JSON.stringify(labels('/signals')),
+	'sibling pages produce different trails');
 
-// ── Tabbed pages (a query-carrying nav item) ────────────────────────────────
-check(JSON.stringify(labels('/analytics', 'tab=roundup')) === JSON.stringify(['Intelligence']),
-	'a tab is part of the current page, not an extra crumb');
+// ── The current page is never a link; its ancestors are ────────────────────
+check(trail('/companies').at(-1)?.href === undefined, 'the last crumb is the page, so it does not link');
+check(trail('/companies')[0]?.href === undefined, 'a section is a grouping label, not a link');
+check(trail('/companies/acme-sports').at(-2)?.href === '/companies', 'the parent list links back');
+
+// ── Detail pages ───────────────────────────────────────────────────────────
+check(eq(labels('/companies/acme-sports'), ['Discover', 'Companies', 'Acme Sports']),
+	'a detail page reads its leaf from the slug');
+check(eq(labels('/companies/7f1c0a2e-1111-2222-3333-444444444444'), ['Discover', 'Companies']),
+	'an opaque uuid is dropped rather than shown');
+check(eq(labels('/companies/12345'), ['Discover', 'Companies']), 'a numeric id is dropped too');
+check(eq(labels('/companies/acme/team'), ['Discover', 'Companies', 'Acme']),
+	'only the first segment below the list becomes a crumb');
+
+// ── Tabbed pages (a query-carrying nav item) ───────────────────────────────
+check(eq(labels('/analytics', 'tab=roundup'), ['Intelligence', 'Monthly Roundup']),
+	'a tab resolves to its own nav item');
 
 // ── A nav item that IS the leaf (watchlists splices live lists into the nav) ─
-check(JSON.stringify(labels('/watchlists/abc-123')) === JSON.stringify(['Watchlists']),
-	'when the nav item is the page itself it is omitted, not repeated');
+check(eq(labels('/watchlists/abc-123'), ['Watchlists', 'Main watchlist']),
+	'a spliced nav item names itself rather than stopping at the section');
 
-// ── Pages outside every section ─────────────────────────────────────────────
-check(labels('/account').length === 0, 'a top-level page has no ancestors but Home');
-check(labels('/not-a-route').length === 0, 'an unknown path degrades to just Home, it does not throw');
+// ── deslug ─────────────────────────────────────────────────────────────────
+check(deslug('acme-sports') === 'Acme Sports', 'hyphens become spaces and words are capitalised');
+check(deslug('under_score') === 'Under Score', 'underscores too');
+check(deslug('MLS-next') === 'MLS Next', 'an all-caps acronym is left alone');
+check(deslug('7f1c0a2e-1111-2222-3333-444444444444') === '', 'a uuid de-slugs to nothing');
+check(deslug('') === '', 'an empty segment is nothing');
+check(deslug('acme%20sports') === 'Acme Sports', 'a percent-encoded segment is decoded');
 
 console.log(failures === 0 ? '\nPASS' : `\nFAIL — ${failures} check(s)`);
 process.exitCode = failures === 0 ? 0 : 1;

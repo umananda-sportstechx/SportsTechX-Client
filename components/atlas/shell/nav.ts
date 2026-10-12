@@ -4,11 +4,10 @@
  * section containing the current page supplies that page's title + tabs.
  */
 
-import type { LucideIcon } from 'lucide-react';
-
 export interface ShellNavItem {
 	name: string;
-	icon: LucideIcon;
+	/** A Figma icon name — see components/atlas/icons/figma-icons.tsx. */
+	icon: string;
 	path: string;
 	/** Not built yet — shown greyed with a SOON pill, not clickable. */
 	soon?: boolean;
@@ -43,7 +42,13 @@ export function pickActive(items: ShellNavItem[], homePath: string, pathname: st
 	const candidates = parsed
 		.filter((c) => pathMatches(c.p, c.q.size > 0))
 		.sort((a, b) => Number(b.p === pathname) - Number(a.p === pathname) || b.p.length - a.p.length);
-	const strict = candidates.find((c) => [...c.q].every(([k, v]) => params.get(k) === v || (!params.has(k) && c.item.isDefault)));
+	// Most query params matched wins. A tab item and its page's default item
+	// both sit at the same path, and the default's query set is empty — which
+	// `every()` satisfies vacuously — so taking the first match highlighted
+	// "Analytics" while the URL said `?tab=roundup`.
+	const strict = candidates
+		.filter((c) => [...c.q].every(([k, v]) => params.get(k) === v || (!params.has(k) && c.item.isDefault)))
+		.sort((a, b) => b.q.size - a.q.size)[0];
 	if (strict) return strict.item.path;
 	const fallback = candidates.find((c) => c.item.isDefault) ?? candidates.find((c) => c.q.size === 0);
 	if (fallback) return fallback.item.path;

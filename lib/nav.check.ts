@@ -12,6 +12,7 @@
  */
 import { buildNav, navigable } from './nav.ts';
 import { ROUTES, ROUTE_BY_ID, forTier } from './routes.ts';
+import { FIGMA_ICON_NAMES } from '../components/atlas/icons/figma-icon-names.ts';
 // The real guard, not a local copy: a hand-rolled `e is {title, items}`
 // predicate is not a subtype of ShellNavEntry, so `.filter()` never narrows.
 import { isSection } from '../components/atlas/shell/nav.ts';
@@ -48,7 +49,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Watchlists', ['Main watchlist', 'All watchlists']],
 			['Resources', ['Fundraising Guide*', 'Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Subscription'],
+		bottom: [],
 	},
 	scout: {
 		top: ['Home'],
@@ -59,7 +60,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener*']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Subscription'],
+		bottom: [],
 	},
 };
 
@@ -154,6 +155,20 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 		.filter((p) => !allPaths.some((path) => path === p || path?.startsWith(`${p}/`)));
 	check(stalePrefixes.length === 0,
 		`no stale edge prefixes${stalePrefixes.length ? `: ${stalePrefixes.join(', ')}` : ''}`);
+}
+
+// Every route's icon must exist in the generated Figma set. A typo here is
+// silent — `FigmaIcon` renders null for an unknown name, so the item simply
+// loses its glyph and nothing errors. The icons are generated from the Figma
+// exports, so this also catches a route pointing at an icon that was renamed
+// or never exported.
+{
+	const names = new Set<string>(FIGMA_ICON_NAMES);
+	const missing = ROUTES.filter((r) => !names.has(r.icon)).map((r) => `${r.id} -> ${r.icon || '(none)'}`);
+	check(missing.length === 0,
+		`every route icon exists in the Figma set${missing.length ? ` — MISSING: ${missing.join(', ')}` : ` (${ROUTES.length} routes, ${names.size} icons)`}`);
+	// The watchlist items the sidebar splices in at runtime use this one.
+	check(names.has('nav-list'), 'the spliced watchlist icon exists');
 }
 
 // Admin sees every product's items; an explore user sees none of them.
