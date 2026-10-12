@@ -156,10 +156,11 @@ export const ROUTES: RouteDef[] = [
 		// so a free user got a sales page for something their credits covered.
 		id: 'deck', icon: 'nav-screener',
 		name: { explore: 'Pitch Deck', raise: 'Pitch Deck', scout: 'Deck Screener' },
+		// The Deck Screener is live now: Scout runs the same engine in investor
+		// mode (snapshot, thesis fit, red flags, diligence questions). It carried
+		// a `placeholder: { scout: true }` "Not connected" flag while that was
+		// still a founder critique; the flag is gone with the real feature.
 		path: '/deck', tier: ['explore', 'raise', 'scout'],
-		// Scout v4 and the product brief both mark Deck Screener coming soon;
-		// Raise's Pitch Deck is live, so this cannot be a bare `true`.
-		placeholder: { scout: true },
 	},
 	{ id: 'interests', icon: 'nav-interests', name: 'Interests', path: '/interests', tier: 'explore' },
 

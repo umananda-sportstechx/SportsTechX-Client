@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, ChevronDown, FileText, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, FileText, HelpCircle, RefreshCw } from 'lucide-react';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
-import { Screen, Card, Button, Loading, StagedLoader } from '@/components/atlas';
-import { hrefOf } from '@/lib/routes';
+import { Screen, Card, Button, Loading, Logo, StagedLoader } from '@/components/atlas';
+import { companyHref, hrefOf } from '@/lib/routes';
 import { rating } from './score-tone';
 import { DECK_ANALYSIS_STAGES } from './deck-stages';
 
@@ -114,6 +114,12 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 		} finally { setBusy(null); }
 	};
 
+	// Investor-mode screens carry a snapshot / thesis fit / diligence questions;
+	// a founder critique carries `suggestions`. The UI follows the data, so a
+	// screen always renders as what it actually is, whichever page opened it.
+	const isInvestor = !!scorecard && (
+		scorecard.snapshot !== undefined || scorecard.thesis_fit !== undefined || scorecard.diligence_questions !== undefined
+	);
 	const overall = scorecard?.overall_score ?? row?.overall_score ?? null;
 	const sectionsByLabel = (labels: string[]) => (scorecard?.sections ?? []).filter((s) => labels.some((l) => s.label.toLowerCase().includes(l)));
 	const suggestionsFor = (label: string) => (scorecard?.suggestions ?? []).filter((sg) => sg.area.toLowerCase().includes(label.toLowerCase()));
@@ -156,6 +162,59 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 				</Card>
 			)}
 
+				{isInvestor && scorecard?.snapshot && (scorecard.snapshot.one_liner || scorecard.snapshot.sector) && (
+					<Card style={{ marginTop: 20, padding: '20px 24px' }}>
+						<div className="atlas-eyebrow">Snapshot</div>
+						{scorecard.snapshot.one_liner && <p style={{ margin: '12px 0 16px', fontSize: 14, lineHeight: 1.55, color: 'var(--a-ink-2)' }}>{scorecard.snapshot.one_liner}</p>}
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px 24px' }}>
+							{([['Sector', scorecard.snapshot.sector], ['Geography', scorecard.snapshot.geography], ['Business model', scorecard.snapshot.business_model], ['Raising', scorecard.stage]] as [string, string | null | undefined][])
+								.filter(([, v]) => v).map(([k, v]) => (
+									<div key={k}>
+										<div className="atlas-eyebrow" style={{ fontSize: 9 }}>{k}</div>
+										<div style={{ marginTop: 5, fontSize: 14, color: 'var(--a-ink)' }}>{v}</div>
+									</div>
+								))}
+						</div>
+					</Card>
+				)}
+
+				{isInvestor && scorecard?.thesis_fit && (
+					<Card glow="blue" style={{ marginTop: 20, padding: '20px 24px' }}>
+						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+							<div className="atlas-eyebrow">Thesis fit</div>
+							{scorecard.thesis_fit.score != null && <span style={{ fontFamily: 'var(--a-mono)', fontSize: 13 }}>{scorecard.thesis_fit.score}/10</span>}
+						</div>
+						{scorecard.thesis_fit.summary && <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)' }}>{scorecard.thesis_fit.summary}</p>}
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginTop: 16 }}>
+							{scorecard.thesis_fit.matches.length > 0 && (
+								<div>
+									<div className="atlas-eyebrow" style={{ fontSize: 9, color: 'var(--a-ok)' }}>Fits</div>
+									<div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+										{scorecard.thesis_fit.matches.map((m, i) => <span key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--a-muted)' }}><Check size={13} style={{ color: 'var(--a-ok)', flexShrink: 0, marginTop: 2 }} />{m}</span>)}
+									</div>
+								</div>
+							)}
+							{scorecard.thesis_fit.misses.length > 0 && (
+								<div>
+									<div className="atlas-eyebrow" style={{ fontSize: 9, color: 'var(--a-danger)' }}>Doesn&rsquo;t fit</div>
+									<div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+										{scorecard.thesis_fit.misses.map((m, i) => <span key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--a-muted)' }}><AlertTriangle size={12} style={{ color: 'var(--a-danger)', flexShrink: 0, marginTop: 3 }} />{m}</span>)}
+									</div>
+								</div>
+							)}
+						</div>
+					</Card>
+				)}
+
+				{isInvestor && scorecard && scorecard.thesis_fit === null && (
+					<Card style={{ marginTop: 20, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+						<HelpCircle size={15} style={{ color: 'var(--a-muted)', flexShrink: 0 }} />
+						<p style={{ margin: 0, fontSize: 13, color: 'var(--a-muted)' }}>
+							Set up your <a href={hrefOf('thesis')} style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>investment thesis</a> and future screens will be judged against it.
+						</p>
+					</Card>
+				)}
+
 			{scorecard && scorecard.sections.length > 0 && <>
 				<div className="atlas-eyebrow" style={{ margin: '32px 0 12px' }}>Scores by topic</div>
 				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
@@ -182,11 +241,37 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 					))}
 				</Card>
 
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24, marginTop: 34 }}>
-					<Col title={copy.recommendations} items={scorecard.suggestions.map((s) => s.suggestion)} />
-					<Col title={copy.strengths} items={scorecard.strengths} />
-					<Col title={copy.concerns} items={scorecard.risks} />
-				</div>
+									<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24, marginTop: 34 }}>
+						{isInvestor ? <>
+							<FlaggedCol title="Red flags" items={scorecard.red_flags ?? []} tone="danger" icon={<AlertTriangle size={13} />} />
+							<FlaggedCol title="Diligence questions" items={scorecard.diligence_questions ?? []} tone="muted" icon={<HelpCircle size={13} />} />
+							<Col title={copy.strengths} items={scorecard.strengths} />
+						</> : <>
+							<Col title={copy.recommendations} items={scorecard.suggestions.map((s) => s.suggestion)} />
+							<Col title={copy.strengths} items={scorecard.strengths} />
+							<Col title={copy.concerns} items={scorecard.risks} />
+						</>}
+					</div>
+
+					{isInvestor && (scorecard.comparables?.length ?? 0) > 0 && <>
+						<div className="atlas-eyebrow" style={{ margin: '34px 0 12px' }}>Comparable companies in Atlas</div>
+						<Card style={{ padding: '6px 23px' }}>
+							{scorecard.comparables!.map((c, i) => (
+								<a
+									key={c.id}
+									href={companyHref(c.slug ?? c.id)}
+									style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0', borderBottom: i < scorecard.comparables!.length - 1 ? '1px solid var(--a-border)' : 'none', textDecoration: 'none', color: 'inherit' }}
+								>
+									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={34} radius={7} />
+									<span style={{ flex: 1, minWidth: 0 }}>
+										<span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--a-ink)' }}>{c.name}</span>
+										{c.description && <span style={{ display: 'block', fontSize: 12, color: 'var(--a-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description}</span>}
+									</span>
+									<span className="atlas-action__icon" aria-hidden="true"><ArrowUpRight /></span>
+								</a>
+							))}
+						</Card>
+					</>}
 			</>}
 
 			{!scorecard && !streaming && md && (
@@ -222,6 +307,18 @@ function Col({ title, items }: { title: string; items: string[] }) {
 			<div className="atlas-eyebrow">{title}</div>
 			<div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)' }}>
 				{items.length ? items.map((t, i) => <span key={i}>{t}</span>) : <span style={{ color: 'var(--a-faint)' }}>—</span>}
+			</div>
+		</div>
+	);
+}
+
+function FlaggedCol({ title, items, tone, icon }: { title: string; items: string[]; tone: 'danger' | 'muted'; icon: React.ReactNode }) {
+	const color = tone === 'danger' ? 'var(--a-danger)' : 'var(--a-muted)';
+	return (
+		<div>
+			<div className="atlas-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6, color }}>{icon}{title}</div>
+			<div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, lineHeight: 1.5, color: 'var(--a-muted)' }}>
+				{items.length ? items.map((t, i) => <span key={i} style={{ display: 'flex', gap: 7 }}><span style={{ color, flexShrink: 0 }}>{tone === 'danger' ? '!' : (i + 1) + '.'}</span>{t}</span>) : <span style={{ color: 'var(--a-faint)' }}>None noted.</span>}
 			</div>
 		</div>
 	);
