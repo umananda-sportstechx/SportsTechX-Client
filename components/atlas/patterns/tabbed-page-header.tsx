@@ -26,13 +26,15 @@ export function TabbedPageHeader({ title, sub, tabs, actions }: {
 				<div><H1>{title}</H1>{sub && <Sub>{sub}</Sub>}</div>
 				{actions && <div className="atlas-tabbed-head__actions">{actions}</div>}
 			</div>
-			<nav className="atlas-tabs atlas-tabbed-head__tabs" aria-label={typeof title === 'string' ? `${title} sections` : 'Sections'}>
+			{/* A one-item section is just a page — a tab strip with a single tab
+			    reads as a mistake (Scout's Watchlists). Show the heading only. */}
+			{tabs.length > 1 && <nav className="atlas-tabs atlas-tabbed-head__tabs" aria-label={typeof title === 'string' ? `${title} sections` : 'Sections'}>
 				{tabs.map((t) => t.soon ? (
 					<span key={t.href} className="atlas-tab is-soon" aria-disabled="true">{t.label}<span className="atlas-soon">Soon</span></span>
 				) : (
 					<Link key={t.href} href={t.href} className={cx('atlas-tab', t.placeholder && 'has-pill', t.active && 'active')} aria-current={t.active ? 'page' : undefined}>{t.label}{t.placeholder && <PlaceholderTag short={!t.active} />}</Link>
 				))}
-			</nav>
+			</nav>}
 		</header>
 	);
 }
