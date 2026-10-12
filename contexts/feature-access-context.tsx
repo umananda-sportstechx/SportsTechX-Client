@@ -1,10 +1,16 @@
 'use client';
 
+import { activeSandbox } from '@/lib/sandbox/store';
+import { isSandboxEligible } from '@/lib/sandbox/eligibility';
+
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import { useUserProfile, useIsAdmin, getUserType, type UserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
+
+/** Features a sandbox never unlocks. */
+const SANDBOX_LOCKED_FEATURES = new Set(['company_contacts']);
 
 export interface Feature {
   /** A uuid. This was typed `number` and never was one. */
@@ -129,6 +135,13 @@ export function FeatureAccessProvider({ children }: { children: React.ReactNode 
     const feature = featureMap.get(normalized) ?? features.find(f => f.slug === normalized || f.slug.replace(/_/g, '-') === slug);
 
     if (!feature) return { hasAccess: false, isLocked: true, userType, requiredTier: null, isLoading: false, error: false };
+
+    // "Try Sandbox": contact details stay locked even though the sandbox shows
+    // the paid tier (lib/sandbox). Exports are refused by the sandbox itself.
+    const sandbox = isSandboxEligible() ? activeSandbox() : null;
+    if (sandbox && SANDBOX_LOCKED_FEATURES.has(feature.slug)) {
+      return { hasAccess: false, isLocked: true, userType, requiredTier: sandbox, isLoading: false, error: false };
+    }
 
     // Per-user override wins regardless of tier. Lets admins unlock individual
     // features for specific users without bumping their whole tier.

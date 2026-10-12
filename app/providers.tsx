@@ -19,6 +19,10 @@ import { TierRequiredHost } from '@/components/features/tier-gate/tier-required-
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { identify, initAnalytics, reset } from '@/lib/analytics';
 import { useEffect } from 'react';
+import { installSandboxInterceptor } from '@/lib/sandbox/interceptor';
+
+// "Try Sandbox": answers Raise/Scout-only requests locally while a sandbox is open (no-op otherwise).
+if (typeof window !== 'undefined') installSandboxInterceptor();
 
 function AppInit() {
   const { sessionValid } = useAuthSession();

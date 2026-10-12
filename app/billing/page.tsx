@@ -9,7 +9,7 @@ import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
-import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
+import { useUserProfile, getRealUserType as getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { Brand } from '@/components/ui/brand';
 import { Card, Button, Badge, Loading, PageHead, Action } from '@/components/atlas';

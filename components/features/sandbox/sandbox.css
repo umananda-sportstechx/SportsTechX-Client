@@ -1,0 +1,28 @@
+/* Sandbox ("Try Sandbox For Free"): entry button + banner. Atlas tokens only. */
+.sandbox-try {
+	display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 34px; padding: 0 14px;
+	border-radius: var(--a-radius-pill, 35px); border: 1px dashed var(--a-border-strong, rgba(0,0,0,.25)); background: transparent; cursor: pointer;
+	font-family: var(--a-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-ink, #000);
+}
+.sandbox-try:hover:not(:disabled) { border-style: solid; border-color: var(--a-ink, #000); }
+.sandbox-try:disabled { opacity: 0.5; cursor: default; }
+
+.sandbox-banner {
+	display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 9px 20px;
+	background: var(--a-primary, #000); color: var(--a-primary-ink, #fff);
+	font-family: var(--a-body, system-ui); font-size: 12.5px; line-height: 1.4;
+}
+.sandbox-banner__tag {
+	display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--a-radius-pill, 35px);
+	background: color-mix(in srgb, var(--a-primary-ink, #fff) 16%, transparent);
+	font-family: var(--a-mono, ui-monospace, monospace); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sandbox-banner__text { flex: 1; min-width: 200px; }
+.sandbox-banner__text b { font-weight: 600; }
+.sandbox-banner__actions { display: flex; gap: 8px; }
+.sandbox-banner__cta, .sandbox-banner__exit {
+	padding: 6px 12px; border-radius: var(--a-radius-pill, 35px); cursor: pointer;
+	font-family: var(--a-mono, ui-monospace, monospace); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sandbox-banner__cta { border: none; background: var(--a-primary-ink, #fff); color: var(--a-primary, #000); }
+.sandbox-banner__exit { border: 1px solid color-mix(in srgb, var(--a-primary-ink, #fff) 40%, transparent); background: transparent; color: var(--a-primary-ink, #fff); }

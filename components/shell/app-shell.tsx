@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
+import { SandboxBanner } from '@/components/features/sandbox/sandbox-banner';
 import { RouteGate } from '@/components/auth/route-gate';
 import { Navbar } from './navbar';
 // Raise-only, so a static import here shipped the co-pilot to Explore and
@@ -67,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				// Breadcrumbs, search, Get Verified and the account menu. Account and
 				// the theme toggle used to sit at the foot of the rail; they live in
 				// the navbar's menu now, so there is one home for account actions.
-				topbar={<Navbar />}
+				topbar={<><SandboxBanner /><Navbar /></>}
 				// Explore's sidebar carries the Raise / Scout upgrade cards. Held back
 				// until the tier is actually known — `getUserType(undefined)` is
 				// 'explore', so without this a paying user is shown an upgrade pitch
