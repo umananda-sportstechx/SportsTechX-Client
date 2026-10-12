@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import type { CSSProperties } from 'react';
-import { ArrowUpRight, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, RotateCcw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Loading, Empty } from '@/components/atlas';
 import { useFramework, useCategoryCount } from './use-framework';
@@ -15,16 +15,24 @@ import './framework.css';
  * technologies, example use cases and example companies, and a CTA into the
  * company database filtered to this category.
  */
-export function FrameworkCategory({ slug, backHref, exploreHref }: {
+export function FrameworkCategory({ slug, backHref, categoryHref, exploreHref }: {
 	slug: string;
 	/** Where RETURN goes (the framework overview). */
 	backHref: string;
+	/** Another category's URL (for prev / next). */
+	categoryHref: (slug: string) => string;
 	/** Company database filtered to this category. */
 	exploreHref: (pillarSlug: string, categorySlug: string) => string;
 }) {
 	const { pillars, isLoading } = useFramework();
 	const pillar = pillars.find((p) => p.categories.some((c) => c.slug === slug));
 	const c = pillar?.categories.find((x) => x.slug === slug);
+	// Prev / next walk every category across all pillars in order, as the
+	// Figma "Browseable content card" does — not just within one pillar.
+	const flat = pillars.flatMap((p) => p.categories);
+	const idx = flat.findIndex((x) => x.slug === slug);
+	const prev = idx > 0 ? flat[idx - 1] : null;
+	const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : null;
 	const count = useCategoryCount(c?.filter);
 	const examples = useSWR<{ data: Array<{ id: string; name: string }> }>(
 		c?.filter ? qk.companies.list({ sector_slug: c.filter, sort: '-total_funding', page: 1, limit: 4 }) : null,
@@ -47,7 +55,15 @@ export function FrameworkCategory({ slug, backHref, exploreHref }: {
 					<span className="atlas-fw-badge">{pillar.copy.badge}</span>
 					<h2 className="atlas-fw-detail__title">{c.name}</h2>
 				</div>
-				<Link href={backHref} className="atlas-btn atlas-btn--outline"><RotateCcw /> Return</Link>
+				<div className="atlas-fw-detail__nav">
+					{prev
+						? <Link href={categoryHref(prev.slug)} className="atlas-fw-navbtn" aria-label={`Previous: ${prev.name}`} title={prev.name}><ArrowLeft size={14} /></Link>
+						: <span className="atlas-fw-navbtn is-disabled" aria-hidden="true"><ArrowLeft size={14} /></span>}
+					{next
+						? <Link href={categoryHref(next.slug)} className="atlas-fw-navbtn" aria-label={`Next: ${next.name}`} title={next.name}><ArrowRight size={14} /></Link>
+						: <span className="atlas-fw-navbtn is-disabled" aria-hidden="true"><ArrowRight size={14} /></span>}
+					<Link href={backHref} className="atlas-btn atlas-btn--outline"><RotateCcw /> Return</Link>
+				</div>
 			</header>
 			{c.copy && <p className="atlas-fw-detail__desc">{c.copy.description}</p>}
 			<hr className="atlas-fw-detail__rule" />
