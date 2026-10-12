@@ -47,7 +47,7 @@ export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, 
 					<div className="atlas-menu__list atlas-menu__list--scroll">
 						{shown.length === 0 && <div className="atlas-menu__empty">No {noun}s match</div>}
 						{shown.map((l) => (
-							<button key={l.id} type="button" className={cx('atlas-menu__item', l.id === value && 'on')} aria-pressed={l.id === value} onClick={() => { onChange(l.id); close(); }}>
+							<button key={l.id} type="button" className={cx('atlas-menu__item', 'atlas-menu__item--plain', l.id === value && 'on')} aria-pressed={l.id === value} onClick={() => { onChange(l.id); close(); }}>
 								<span className="atlas-menu__dot" aria-hidden="true" />
 								<span className="atlas-switcher__name">{l.name}</span>
 								{l.meta && <span className="atlas-switcher__meta">{l.meta}</span>}
@@ -55,7 +55,7 @@ export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, 
 						))}
 					</div>
 					<div className="atlas-switcher__foot">
-						<button type="button" className="atlas-menu__item" disabled={!onCreate} aria-disabled={!onCreate} onClick={() => { onCreate?.(); close(); }}>
+						<button type="button" className="atlas-menu__item atlas-menu__item--plain" disabled={!onCreate} aria-disabled={!onCreate} onClick={() => { onCreate?.(); close(); }}>
 							<Plus size={11} aria-hidden="true" /> New {noun}
 							{createPlaceholder && <span className="atlas-switcher__soon">Not connected</span>}
 						</button>

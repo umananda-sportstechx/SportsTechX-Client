@@ -46,17 +46,12 @@
 	transition: color 0.15s, border-color 0.15s;
 }
 .atlas .atlas-navsearch__btn:hover { color: var(--a-ink); border-color: var(--a-ink); }
-.atlas .atlas-navsearch__menu { z-index: 50; left: 0; min-width: min(92vw, 380px); }
-.atlas .atlas-navsearch__field {
-	display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-	padding: 0 10px; height: 30px; border-radius: var(--a-radius-pill);
-	background: color-mix(in srgb, var(--a-primary-ink) 12%, transparent);
-	color: color-mix(in srgb, var(--a-primary-ink) 70%, transparent);
+.atlas .atlas-navsearch__kbd {
+	padding: 1px 5px; border-radius: var(--a-radius-xs);
+	box-shadow: inset 0 0 0 1px var(--a-border-strong);
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.04em; color: var(--a-faint);
 }
-.atlas .atlas-navsearch__field input { flex: 1; min-width: 0; }
-.atlas .atlas-navsearch__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; letter-spacing: 0; font-family: var(--a-body); font-size: 12.5px; }
-.atlas .atlas-navsearch__meta { flex-shrink: 0; font-size: 9px; color: color-mix(in srgb, var(--a-primary-ink) 55%, transparent); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.atlas .atlas-navsearch__menu .atlas-menu__item { text-decoration: none; }
+@media (max-width: 900px) { .atlas .atlas-navsearch__kbd { display: none; } }
 
 /* ── Avatar + account menu ─────────────────────────────────────────────────*/
 .atlas .atlas-avatar {

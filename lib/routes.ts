@@ -35,13 +35,6 @@
  * `/app/investors/abc` inherits the gate from `/app/investors`.
  */
 
-import type { LucideIcon } from 'lucide-react';
-import {
-	House, LayoutGrid, Files, Newspaper, ChartPie, CalendarDays, Building2, CalendarRange,
-	Presentation, SlidersHorizontal, FileCheck, Ticket, Sparkles, Radar, Target, TrendingUp,
-	Bookmark, List, BookOpen, Settings, CreditCard, Layers, Star, BadgeCheck, Users,
-	MessageSquare, Rocket, ShieldCheck,
-} from 'lucide-react';
 import { access, type Tier, type TierReq } from './access.ts';
 
 /** One value, or a different value per tier. */
@@ -71,7 +64,8 @@ export interface RouteDef {
 	 */
 	tier?: TierReq;
 	name: PerTier<string>;
-	icon: LucideIcon;
+	/** A Figma icon name from components/atlas/icons/figma-icons.tsx. */
+	icon: string;
 	/** Built to the design, no backend yet — shows a "Not connected" pill. */
 	placeholder?: PerTier<boolean>;
 	/** Supported by `pickActive`; no route uses it today. */
@@ -82,11 +76,11 @@ export interface RouteDef {
 export const ROUTES: RouteDef[] = [
 	// ── Shared: the free Explore base, open to every signed-in user ──────────
 	{
-		id: 'home', icon: House, name: 'Home',
+		id: 'home', icon: 'nav-home', name: 'Home',
 		path: '/home',
 	},
 	{
-		id: 'companies', icon: Building2, name: 'Companies',
+		id: 'companies', icon: 'nav-companies', name: 'Companies',
 		path: '/companies',
 	},
 	{
@@ -94,64 +88,64 @@ export const ROUTES: RouteDef[] = [
 		// Funded for Explore, and leaving them ungated rendered them with no
 		// heading and no tab strip, because NavSectionHeader can only find a
 		// section the viewer's sidebar actually has.
-		id: 'signals', icon: Radar, name: 'Signals',
+		id: 'signals', icon: 'nav-signals', name: 'Signals',
 		path: '/signals', tier: ['raise', 'scout'],
 	},
 	{
 		// One URL, two different domain objects: recommended investors for a
 		// founder, recommended companies for an investor. Dispatched inside the
 		// page — a user only ever holds one paid tier.
-		id: 'recommended', icon: Sparkles, name: 'Recommended',
+		id: 'recommended', icon: 'nav-recommended', name: 'Recommended',
 		path: '/recommended', tier: ['raise', 'scout'],
 	},
 	{
 		// Three names for one screen.
-		id: 'analytics', icon: ChartPie,
+		id: 'analytics', icon: 'nav-analysis',
 		name: { explore: 'Analysis', raise: 'Analytics', scout: 'Market' },
 		path: '/analytics',
 	},
 	{
-		id: 'roundup', icon: CalendarDays, name: 'Monthly Roundup',
+		id: 'roundup', icon: 'nav-roundup', name: 'Monthly Roundup',
 		path: '/roundup',
 	},
 	{
-		id: 'recently-funded', icon: TrendingUp, name: 'Recently Funded',
+		id: 'recently-funded', icon: 'nav-funded', name: 'Recently Funded',
 		path: '/recently-funded', tier: ['raise', 'scout'],
 	},
 	{
-		id: 'watchlists', icon: List, name: 'All watchlists',
+		id: 'watchlists', icon: 'nav-list', name: 'All watchlists',
 		path: '/watchlists',
 	},
 	{
-		id: 'framework', icon: LayoutGrid, name: 'Framework',
+		id: 'framework', icon: 'nav-framework', name: 'Framework',
 		path: '/framework',
 	},
 	{
-		id: 'reports', icon: Files, name: 'Reports',
+		id: 'reports', icon: 'nav-reports', name: 'Reports',
 		path: '/reports',
 	},
 	{
-		id: 'newsletter', icon: Newspaper, name: 'Newsletter',
+		id: 'newsletter', icon: 'nav-newsletter', name: 'Newsletter',
 		path: '/newsletter',
 	},
 	{
-		id: 'events', icon: CalendarRange, name: 'Events',
+		id: 'events', icon: 'nav-events', name: 'Events',
 		path: '/events',
 	},
 	{
 		// Reached from the account badge, which AtlasShell renders separately.
 		// Listed so the gate and `pickActive` know about it.
-		id: 'account', icon: Settings, name: 'Account',
+		id: 'account', icon: 'nav-thesis', name: 'Account',
 		path: '/account',
 	},
-	{ id: 'billing', icon: CreditCard, name: 'Subscription', path: '/billing' },
+	{ id: 'billing', icon: 'nav-subscription', name: 'Subscription', path: '/billing' },
 	// Deliberately untiered. Claiming your company or fund is how the
 	// directory stays accurate, so a free user must be able to do it — the
 	// API never gated it and the UI used to have no door at all.
-	{ id: 'verify', icon: ShieldCheck, name: 'Get verified', path: '/verify' },
+	{ id: 'verify', icon: 'nav-onboarding', name: 'Get verified', path: '/verify' },
 	// Reachable from the sidebar upgrade cards, the tier gate and billing, but
 	// never listed in a sidebar — it is a destination, not a section.
-	{ id: 'plans', icon: Layers, name: 'Plans', path: '/plans' },
+	{ id: 'plans', icon: 'nav-subscription', name: 'Plans', path: '/plans' },
 	{
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
@@ -160,34 +154,34 @@ export const ROUTES: RouteDef[] = [
 		// tier: the welcome grant pays for about four analyses. It used to resolve
 		// to `upsell` here while the service refused base-tier callers outright,
 		// so a free user got a sales page for something their credits covered.
-		id: 'deck', icon: FileCheck,
+		id: 'deck', icon: 'nav-screener',
 		name: { explore: 'Pitch Deck', raise: 'Pitch Deck', scout: 'Deck Screener' },
 		path: '/deck', tier: ['explore', 'raise', 'scout'],
 		// Scout v4 and the product brief both mark Deck Screener coming soon;
 		// Raise's Pitch Deck is live, so this cannot be a bare `true`.
 		placeholder: { scout: true },
 	},
-	{ id: 'interests', icon: SlidersHorizontal, name: 'Interests', path: '/interests', tier: 'explore' },
+	{ id: 'interests', icon: 'nav-interests', name: 'Interests', path: '/interests', tier: 'explore' },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
-	{ id: 'investors', icon: Presentation, name: 'Investors', path: '/investors', tier: 'raise' },
-	{ id: 'programs', icon: Ticket, name: 'Programs', path: '/programs', tier: 'raise' },
-	{ id: 'my-market', icon: Target, name: 'My Market', path: '/my-market', tier: 'raise' },
-	{ id: 'pipeline', icon: Bookmark, name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
-	{ id: 'guide', icon: BookOpen, name: 'Fundraising Guide', path: '/guide', tier: 'raise', placeholder: true },
-	{ id: 'raise-settings', icon: Settings, name: 'Thesis Settings', path: '/settings', tier: 'raise' },
+	{ id: 'investors', icon: 'nav-circle', name: 'Investors', path: '/investors', tier: 'raise' },
+	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs', tier: 'raise' },
+	{ id: 'my-market', icon: 'nav-analysis', name: 'My Market', path: '/my-market', tier: 'raise' },
+	{ id: 'pipeline', icon: 'nav-list', name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
+	{ id: 'guide', icon: 'nav-reports', name: 'Fundraising Guide', path: '/guide', tier: 'raise', placeholder: true },
+	{ id: 'raise-settings', icon: 'nav-thesis', name: 'Thesis Settings', path: '/settings', tier: 'raise' },
 	// No tier: every plan gets the assistant, bounded by credits rather than by a
 	// locked door (see chat.controller.ts). Still unlisted in NAV_LAYOUT — it is
 	// reached from the home composer and the FAB.
-	{ id: 'chat', icon: MessageSquare, name: 'Chat', path: '/chat' },
-	{ id: 'strategy', icon: Rocket, name: 'Strategy', path: '/strategy', tier: 'raise' },
+	{ id: 'chat', icon: 'nav-watchlist', name: 'Chat', path: '/chat' },
+	{ id: 'strategy', icon: 'nav-onboarding', name: 'Strategy', path: '/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
-	{ id: 'deal-flow', icon: Layers, name: 'All', path: '/deal-flow', tier: 'scout' },
-	{ id: 'deal-flow-featured', icon: Star, name: 'Featured', path: '/deal-flow/featured', tier: 'scout' },
-	{ id: 'deal-flow-verified', icon: BadgeCheck, name: 'Verified Raises', path: '/deal-flow/verified', tier: 'scout' },
-	{ id: 'deal-flow-circle', icon: Users, name: 'From the Circle', path: '/deal-flow/circle', tier: 'scout' },
-	{ id: 'thesis', icon: Settings, name: 'Thesis Settings', path: '/thesis', tier: 'scout' },
+	{ id: 'deal-flow', icon: 'nav-dealflow', name: 'All', path: '/deal-flow', tier: 'scout' },
+	{ id: 'deal-flow-featured', icon: 'nav-recommended', name: 'Featured', path: '/deal-flow/featured', tier: 'scout' },
+	{ id: 'deal-flow-verified', icon: 'nav-dealflow', name: 'Verified Raises', path: '/deal-flow/verified', tier: 'scout' },
+	{ id: 'deal-flow-circle', icon: 'nav-circle', name: 'From the Circle', path: '/deal-flow/circle', tier: 'scout' },
+	{ id: 'thesis', icon: 'nav-thesis', name: 'Thesis Settings', path: '/thesis', tier: 'scout' },
 ];
 
 export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));
@@ -196,6 +190,12 @@ export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));
 export interface NavGroup {
 	title: string | null;
 	/** Bottom nav rather than the main list. */
+	/**
+	 * Pinned to the foot of the rail. No group uses it any more: Thesis
+	 * Settings and Subscription moved into the Account page's tabs, and the
+	 * rail's footer is the account block. Kept because `nav.check.ts` asserts
+	 * the foot stays empty, which is the thing worth guarding.
+	 */
 	bottom?: boolean;
 	/** Route ids, in render order. */
 	items: string[];
@@ -226,7 +226,6 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
 		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['raise-settings', 'billing'] },
 	],
 	scout: [
 		{ title: null, items: ['home'] },
@@ -235,7 +234,6 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Watchlists', items: ['watchlists'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
-		{ title: null, bottom: true, items: ['thesis', 'billing'] },
 	],
 };
 

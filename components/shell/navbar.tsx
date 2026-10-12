@@ -1,22 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
-import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
-import { cx, useDismiss, Logo } from '@/components/atlas';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard } from 'lucide-react';
+import { cx, useDismiss } from '@/components/atlas';
 import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
 import { ThemeToggle } from '@/components/atlas/shell/theme-toggle';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { NotificationBell } from './notification-bell';
+import { CommandPalette, useCommandShortcut } from './command-palette';
 import { useNav } from '@/hooks/use-nav';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useLogout } from '@/hooks/use-logout';
-import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { qk } from '@/lib/query-keys';
-import { companyHref, hrefOf } from '@/lib/routes';
+import { hrefOf } from '@/lib/routes';
 import type { Tier } from '@/lib/access';
 import './navbar.css';
 
@@ -58,10 +56,10 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 						</span>
 					))}
 				</nav>
-				<NavSearch tier={tier} />
 			</div>
 
 			<div className="atlas-navbar__right">
+				<SearchButton />
 				<VerifyButton />
 				<NotificationBell />
 				<AccountMenu tier={tier} accountPath={accountPath} />
@@ -83,116 +81,24 @@ function useBreadcrumbs(
 	);
 }
 
-/** Buckets whose results this tier can actually open — see the comment in NavSearch. */
-function bucketsFor(tier: Tier): string[] {
-	const b = ['companies'];
-	if (tier === 'raise') b.push('investors');
-	if (tier === 'scout') b.push('deals');
-	return b;
-}
-
-const BUCKET_LABEL: Record<string, string> = {
-	companies: 'Companies', investors: 'Investors', deals: 'Deal Flow',
-};
-
-interface SearchHit {
-	type: string;
-	id: string;
-	name: string;
-	slug: string | null;
-	subtitle?: string | null;
-	website?: string | null;
-}
-
 /**
- * Typeahead over `GET /search`, which already existed and had no caller — as did
- * `qk.search.typeahead`.
- *
- * Only the buckets this tier can open are requested. `/investors/:id` is
- * Raise-only and `/deal-flow/:id` is Scout-only, so offering either to an
- * Explore user would be a result that leads to a tier wall. Sectors, sports and
- * tech tags are excluded for a blunter reason: they have no detail page at all.
+ * The search trigger. Opens the palette rather than a menu of its own: search
+ * spans pages and records, so it needs the room, and ⌘K is the shortcut people
+ * reach for before they look for a button.
  */
-function NavSearch({ tier }: { tier: Tier }) {
-	const router = useRouter();
+function SearchButton() {
 	const [open, setOpen] = useState(false);
-	const [q, setQ] = useState('');
-	const ref = useRef<HTMLDivElement>(null);
-	const close = () => { setOpen(false); setQ(''); };
-	useDismiss(ref, open, close);
-
-	const dq = useDebouncedValue(q);
-	const term = dq.trim();
-	// The endpoint rejects anything under 3 characters (its own comment explains
-	// that trigram candidates explode below that), so don't even ask.
-	const types = bucketsFor(tier);
-	const { data, isLoading } = useSWR<{ q: string; results: Record<string, SearchHit[]> }>(
-		open && term.length >= 3 ? qk.search.typeahead(term, types) : null,
-	);
-
-	const groups = types
-		.map((b) => [b, data?.results?.[b] ?? []] as const)
-		.filter(([, hits]) => hits.length > 0);
-	const empty = term.length >= 3 && !isLoading && groups.length === 0;
-
-	const hrefFor = (h: SearchHit): string => {
-		if (h.type === 'investor') return `${hrefOf('investors')}/${encodeURIComponent(h.id)}`;
-		if (h.type === 'deal') return `${hrefOf('deal-flow')}/${encodeURIComponent(h.id)}`;
-		return companyHref(h.slug ?? h.id);
-	};
-
+	const openIt = useCallback(() => setOpen(true), []);
+	useCommandShortcut(openIt);
 	return (
-		<div className="atlas-navbar__anchor" ref={ref}>
-			<button
-				type="button"
-				className="atlas-navsearch__btn"
-				aria-haspopup="dialog"
-				aria-expanded={open}
-				onClick={() => (open ? close() : setOpen(true))}
-			>
+		<>
+			<button type="button" className="atlas-navsearch__btn" aria-haspopup="dialog" aria-expanded={open} onClick={openIt}>
 				<Search size={13} strokeWidth={1.75} aria-hidden="true" />
 				<span className="atlas-navsearch__label">Search</span>
+				<kbd className="atlas-navsearch__kbd">⌘K</kbd>
 			</button>
-
-			{open && (
-				<div className="atlas-menu atlas-navsearch__menu" role="dialog" aria-label="Search Atlas">
-					<div className="atlas-navsearch__field">
-						<Search size={11} aria-hidden="true" />
-						<input
-							className="atlas-menu__search"
-							placeholder="Search companies, investors…"
-							value={q}
-							onChange={(e) => setQ(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key !== 'Enter') return;
-								const first = groups[0]?.[1][0];
-								if (first) { router.push(hrefFor(first)); close(); }
-							}}
-							autoFocus
-							aria-label="Search"
-						/>
-						{isLoading && <Loader2 className="animate-spin" size={11} aria-hidden="true" />}
-					</div>
-
-					<div className="atlas-menu__list atlas-menu__list--scroll">
-						{term.length < 3 && <div className="atlas-menu__empty">Type at least 3 characters.</div>}
-						{empty && <div className="atlas-menu__empty">No matches for “{term}”.</div>}
-						{groups.map(([bucket, hits]) => (
-							<section key={bucket}>
-								<div className="atlas-menu__head"><span>{BUCKET_LABEL[bucket] ?? bucket}</span></div>
-								{hits.map((h) => (
-									<Link key={`${h.type}-${h.id}`} href={hrefFor(h)} className="atlas-menu__item" onClick={close}>
-										<Logo co={{ name: h.name, website: h.website ?? null, custom_logo_url: null }} size={18} radius={4} />
-										<span className="atlas-navsearch__name">{h.name}</span>
-										{h.subtitle && <span className="atlas-navsearch__meta">{h.subtitle.replace(/^https?:\/\//, '')}</span>}
-									</Link>
-								))}
-							</section>
-						))}
-					</div>
-				</div>
-			)}
-		</div>
+			<CommandPalette open={open} onClose={() => setOpen(false)} />
+		</>
 	);
 }
 
@@ -232,18 +138,18 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 						<span className="atlas-ellipsis">{name || profile?.email || 'Signed in'}</span>
 					</div>
 					<div className="atlas-menu__list">
-						<Link href={accountPath} className="atlas-menu__item" onClick={() => setOpen(false)}>
+						<Link href={accountPath} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 							<Settings size={13} strokeWidth={1.5} aria-hidden="true" /> Account
 						</Link>
 						{tier !== 'explore' && (
-							<Link href={hrefOf('billing')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+							<Link href={hrefOf('billing')} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 								<CreditCard size={13} strokeWidth={1.5} aria-hidden="true" /> Subscription
 							</Link>
 						)}
 						{/* The only door to `/verify` now that the button beside this menu
 						    opens the modal instead. The page is also where a verified
 						    claim's market report is listed. */}
-						<Link href={hrefOf('verify')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+						<Link href={hrefOf('verify')} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 							<ShieldCheck size={13} strokeWidth={1.5} aria-hidden="true" /> Get verified
 						</Link>
 						<ThemeToggle menu />
@@ -251,7 +157,7 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 					<div className="atlas-account-menu__foot">
 						<button
 							type="button"
-							className={cx('atlas-menu__item', 'atlas-account-menu__out')}
+							className={cx('atlas-menu__item', 'atlas-menu__item--plain', 'atlas-account-menu__out')}
 							onClick={() => void logout()}
 							disabled={signingOut}
 						>

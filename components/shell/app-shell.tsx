@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
 import { Navbar } from './navbar';
+import { RailAccount } from './rail-account';
 // Raise-only, so a static import here shipped the co-pilot to Explore and
 // Scout users who can never open it.
 const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
@@ -54,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// without 39 per-page calls to keep in sync. No-ops until
 	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
 	useEffect(() => { trackPage(pathname); }, [pathname]);
-	const { ready, tier, nav, bottomNav, homePath } = useNav();
+	const { ready, tier, nav, homePath, accountPath } = useNav();
 
 	return (
 		<>
@@ -63,11 +64,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				productColor={COLOR[tier]}
 				homePath={homePath}
 				nav={nav}
-				bottomNav={bottomNav}
 				// Breadcrumbs, search, Get Verified and the account menu. Account and
 				// the theme toggle used to sit at the foot of the rail; they live in
 				// the navbar's menu now, so there is one home for account actions.
 				topbar={<Navbar />}
+				// Avatar, name and log out, pinned to the foot of the rail.
+				railAccount={<RailAccount accountPath={accountPath} />}
 				// Explore's sidebar carries the Raise / Scout upgrade cards. Held back
 				// until the tier is actually known — `getUserType(undefined)` is
 				// 'explore', so without this a paying user is shown an upgrade pitch

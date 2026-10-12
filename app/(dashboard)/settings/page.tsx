@@ -8,6 +8,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
+import { AccountTabs } from '@/components/features/account/account-tabs';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 import { DealflowOptIn } from '@/components/raise/dealflow-opt-in';
 
@@ -100,7 +101,8 @@ export default function RaiseSettingsPage() {
 
 	return (
 		<Screen>
-			<PageHead title="Thesis settings" sub="Edit the underlying information Atlas uses to run your raise." />
+			<PageHead title="Raise settings" sub="Edit the underlying information Atlas uses to run your raise." />
+			<AccountTabs />
 
 			<div style={{ display: 'grid', gap: 18 }}>
 				<Section title="Company profile">
