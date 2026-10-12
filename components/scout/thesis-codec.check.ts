@@ -77,7 +77,8 @@ const back = toForm(
 	{
 		full_name: 'A Tester', role_title: 'Partner', linkedin_url: null,
 		fund_name: 'Northline', investor_type: 'venture_capital',
-		fund_website: 'https://northline.vc', aum: '€100–250m', setup_completed_at: null,
+		fund_website: 'https://northline.vc', hq_country: 'Germany', hq_city: 'Berlin',
+		aum: '€100–250m', setup_completed_at: null,
 	},
 	DEFAULT_THESIS,
 );
