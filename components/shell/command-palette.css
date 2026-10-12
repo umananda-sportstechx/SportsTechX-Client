@@ -8,16 +8,19 @@
 	inset: 0;
 	z-index: 1200;
 	display: grid;
-	/* Not centred: a palette belongs in the upper third, where the eye already
-	   is and where the list has room to grow downward. */
-	align-content: start;
+	/* Centred. At 12vh from the top it sat high enough to read as a dropdown
+	   attached to the bar rather than a dialog over the page. */
+	align-content: center;
 	justify-items: center;
-	padding: 12vh 16px 24px;
-	background: rgba(0, 0, 0, 0.45);
+	padding: 24px 16px;
+	/* Deep enough to actually feel like depth — at 0.45 the page behind stayed
+	   legible and the modal read as flat on top of it. */
+	background: rgba(0, 0, 0, 0.72);
+	backdrop-filter: blur(3px);
 }
 
 .atlas .cmdk {
-	width: min(620px, 100%);
+	width: min(640px, 100%);
 	max-height: min(66vh, 560px);
 	display: flex;
 	flex-direction: column;
@@ -98,10 +101,14 @@
 /* Keyboard and pointer share one highlight, so the arrow keys and the mouse
    cannot disagree about which row is selected. */
 .atlas .cmdk__row.is-active { background: color-mix(in srgb, var(--a-primary-ink) 14%, transparent); }
-.atlas .cmdk__dot {
-	width: 4px; height: 4px; border-radius: 50%; flex: none; margin: 0 7px;
-	background: color-mix(in srgb, var(--a-primary-ink) 38%, transparent);
+/* A 22px slot so a page icon and a company logo occupy the same column and
+   the names stay aligned down the list. */
+.atlas .cmdk__ico {
+	display: flex; align-items: center; justify-content: center;
+	width: 22px; height: 22px; flex: none;
+	color: color-mix(in srgb, var(--a-primary-ink) 75%, transparent);
 }
+.atlas .cmdk__row.is-active .cmdk__ico { color: var(--a-primary-ink); }
 .atlas .cmdk__name {
 	flex: 1;
 	min-width: 0;
@@ -109,7 +116,7 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	font-family: var(--a-body);
-	font-size: 13.5px;
+	font-size: 14px;
 	line-height: 1.3;
 }
 .atlas .cmdk__meta {
