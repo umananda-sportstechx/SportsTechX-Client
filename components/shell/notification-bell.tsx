@@ -54,7 +54,17 @@ export function NotificationBell() {
 	// read has to move both or the badge lies until the next poll. The write is
 	// fire-and-forget with a revalidate on failure — re-reading on success would
 	// undo the very update that just landed.
+	//
+	// `apiRequest` resolves with the Response rather than throwing on a 4xx, so
+	// the status has to be checked explicitly: a `.catch` alone would only see a
+	// network error and a refused write would leave the badge showing a count
+	// the server never cleared.
 	const patch = (fn: (c: Feed) => Feed) => void mutate((cur) => (cur ? fn(cur) : cur), { revalidate: false });
+	const write = (url: string) => {
+		apiRequest('POST', url)
+			.then((res) => { if (!res.ok) void mutate(); })
+			.catch(() => void mutate());
+	};
 
 	const markRead = (id: string) => {
 		const at = new Date().toISOString();
@@ -63,13 +73,13 @@ export function NotificationBell() {
 			data: c.data.map((n) => (n.id === id ? { ...n, read_at: at } : n)),
 			unread_count: Math.max(0, c.unread_count - 1),
 		}));
-		apiRequest('POST', `/api/me/notifications/${id}/read`).catch(() => void mutate());
+		write(`/api/me/notifications/${id}/read`);
 	};
 
 	const markAll = () => {
 		const at = new Date().toISOString();
 		patch((c) => ({ ...c, data: c.data.map((n) => ({ ...n, read_at: n.read_at ?? at })), unread_count: 0 }));
-		apiRequest('POST', '/api/me/notifications/read-all').catch(() => void mutate());
+		write('/api/me/notifications/read-all');
 	};
 
 	const openItem = (n: NotificationRow) => {
