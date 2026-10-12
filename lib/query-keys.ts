@@ -131,6 +131,8 @@ export const qk = {
   reports: {
     list: (params: Record<string, unknown> = {}) => ['/api/reports', params] as const,
     detail: (idOrSlug: string) => [`/api/reports/${idOrSlug}`] as const,
+    // Per-language / per-tier PDF editions the caller may open, already tier-filtered server-side.
+    versions: (idOrSlug: string) => [`/api/reports/${idOrSlug}/versions`] as const,
     sections: (idOrSlug: string, as?: 'explore' | 'raise' | 'scout') =>
       [`/api/reports/${idOrSlug}/sections`, as ? { as } : {}] as const,
     sectionData: (sectionId: string) => [`/api/reports/sections/${sectionId}/data`] as const,
