@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowUpRight } from 'lucide-react';
+import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, CardGrid, lockedFiltersNote } from '@/components/atlas';
@@ -96,6 +97,7 @@ export function ProgramsList() {
 				canClear={anyFilter}
 				onClear={() => { setQ(''); setCategory(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setEntriesOpen(false); reset(); }}
 				count={`${(res.data?.total ?? 0).toLocaleString()} program${(res.data?.total ?? 0) === 1 ? '' : 's'}`}
+				actions={<ExportButton entity="programs" search={dq} params={params} />}
 			/>
 			<Divider />
 			{res.isLoading && rows.length === 0 ? <Loading />
@@ -176,6 +178,7 @@ export function EventsList() {
 				canClear={anyFilter}
 				onClear={() => { setQ(''); setMode(''); setSport(''); setMonth(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setUpcoming(true); reset(); }}
 				count={`${(res.data?.total ?? 0).toLocaleString()} event${(res.data?.total ?? 0) === 1 ? '' : 's'}`}
+				actions={<ExportButton entity="events" search={dq} params={params} />}
 			/>
 			<Divider />
 			{res.isLoading && rows.length === 0 ? <Loading />

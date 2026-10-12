@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
+import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -65,6 +66,7 @@ export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string
 				canClear={anyFilter}
 				onClear={() => { setQ(''); setRound(''); setCountry(''); setPeriod(''); reset(); }}
 				count={`${total.toLocaleString()} round${total === 1 ? '' : 's'}`}
+				actions={<ExportButton entity="deals" search={dq} params={params} />}
 			/>
 
 			<section className="atlas-card atlas-funded">
