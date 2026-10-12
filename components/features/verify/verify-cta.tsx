@@ -44,7 +44,11 @@ export type VerifyState = 'none' | 'pending' | 'verified';
  * on a company the viewer does not own.
  */
 export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean } {
-	const { data, isLoading } = useSWR<ClaimRow[] | { data: ClaimRow[] }>(qk.claims.mine());
+	// The navbar mounts this on every authenticated page, so a default dedupe
+	// window means a refetch on each navigation. Claims only change when an
+	// admin acts on one, so a minute of staleness costs nothing and this stops
+	// being a request per page view.
+	const { data, isLoading } = useSWR<ClaimRow[] | { data: ClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
 	const rows = Array.isArray(data) ? data : (data?.data ?? []);
 	const relevant = entityId
 		? rows.filter((r) => r.target_company_id === entityId

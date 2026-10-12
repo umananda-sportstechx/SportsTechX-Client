@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { ChevronRight, LogOut, Search, Settings, CreditCard, Loader2 } from 'lucide-react';
+import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import { cx, useDismiss, Logo } from '@/components/atlas';
 import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
@@ -240,6 +240,12 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 								<CreditCard size={13} strokeWidth={1.5} aria-hidden="true" /> Subscription
 							</Link>
 						)}
+						{/* The only door to `/verify` now that the button beside this menu
+						    opens the modal instead. The page is also where a verified
+						    claim's market report is listed. */}
+						<Link href={hrefOf('verify')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+							<ShieldCheck size={13} strokeWidth={1.5} aria-hidden="true" /> Get verified
+						</Link>
 						<ThemeToggle menu />
 					</div>
 					<div className="atlas-account-menu__foot">
