@@ -8,7 +8,14 @@ import { cx } from './cx';
 
 /** Padded content wrapper — the founder shell's content region has no padding.
  *  Centred within the main column; padding shrinks on small screens (see styles/base.css). */
-export function Screen({ children, width = 1180 }: { children: ReactNode; width?: number }) {
+/**
+ * The standard page frame. 1440px is the one content width every page shares;
+ * the three home screens use the same value in their own wrappers. A page
+ * passes a smaller `width` only when it is a focused form.
+ */
+export const PAGE_MAX = 1440;
+
+export function Screen({ children, width = PAGE_MAX }: { children: ReactNode; width?: number }) {
 	return <div className="atlas-screen" style={{ maxWidth: width }}>{children}</div>;
 }
 
