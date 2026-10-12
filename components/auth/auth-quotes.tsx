@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { PLACEHOLDER_QUOTES, quoted, type Quote } from '@/lib/testimonial-quotes';
-import { AuthBrand } from './auth-shell';
 
 /**
  * The left panel shared by sign-in and sign-up, so both read the same.
  *
- * Top: the Atlas brand lockup. Bottom: the tagline, and under it a horizontal,
- * auto-scrolling testimonial carousel (fixed height, loops seamlessly, no
- * controls). This replaces the old per-page panels — login's single quote +
- * arrows and signup's numbered value points — with one consistent surface.
+ * Top: the tagline. Below it, vertically centred in the remaining space, a
+ * horizontal auto-scrolling testimonial carousel (fixed height, loops
+ * seamlessly, no controls). The Atlas brand lockup lives on the form (right),
+ * not here.
  *
  * Testimonials read the same admin-managed section the Atlas landing does (Site
  * assets → Atlas → Testimonials). The CMS call goes straight to the public
@@ -19,12 +18,11 @@ import { AuthBrand } from './auth-shell';
  */
 interface SiteItem { url: string | null; title: string | null; subtitle: string | null; body: string | null }
 
-export function AuthBrandPanel() {
+export function AuthSidePanel() {
 	return (
-		<aside className="auth-panel auth-panel--brand">
-			<AuthBrand />
-			<div className="auth-panel__foot">
-				<h2 className="auth-panel__tagline">Market intelligence for the business of sports.</h2>
+		<aside className="auth-panel auth-panel--side">
+			<h2 className="auth-panel__tagline">Market intelligence for the business of sports.</h2>
+			<div className="auth-panel__mid">
 				<AuthTestimonials />
 			</div>
 		</aside>
