@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import useSWR from 'swr';
 import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard } from 'lucide-react';
 import { cx, useDismiss } from '@/components/atlas';
 import { crumbsFor, type Crumb } from './breadcrumbs';
@@ -14,7 +15,9 @@ import { CommandPalette, useCommandShortcut } from './command-palette';
 import { useNav } from '@/hooks/use-nav';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useLogout } from '@/hooks/use-logout';
-import { hrefOf } from '@/lib/routes';
+import { forTier, hrefOf, routeForPath } from '@/lib/routes';
+import { qk } from '@/lib/query-keys';
+import type { ConversationListItem } from '@/components/chat/chat-core';
 import type { Tier } from '@/lib/access';
 import './navbar.css';
 
@@ -40,7 +43,7 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 }) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const crumbs = useBreadcrumbs(nav, homePath, pathname, searchParams);
+	const crumbs = useBreadcrumbs(nav, homePath, pathname, searchParams, tier);
 
 	return (
 		<header className="atlas-navbar">
@@ -74,11 +77,21 @@ function useBreadcrumbs(
 	homePath: string,
 	pathname: string,
 	searchParams: ReturnType<typeof useSearchParams>,
+	tier: Tier,
 ): Crumb[] {
-	return useMemo(
-		() => crumbsFor(nav, homePath, pathname, searchParams),
-		[nav, homePath, pathname, searchParams],
-	);
+	// A chat's id is opaque, so its leaf would be dropped. The conversation
+	// list is already fetched by the chat page; SWR dedupes, so reading it here
+	// costs no extra request — and only happens on a chat URL at all.
+	const chatBase = hrefOf('chat');
+	const chatId = pathname.startsWith(`${chatBase}/`) ? pathname.slice(chatBase.length + 1).split('/')[0] : null;
+	const { data: convos } = useSWR<ConversationListItem[]>(chatId ? qk.chat.conversations() : null);
+	const leafLabel = chatId ? (convos?.find((c) => c.id === chatId)?.title ?? 'Conversation') : null;
+
+	return useMemo(() => {
+		const r = routeForPath(pathname, tier);
+		const route = r ? { name: forTier(r.name, tier) ?? r.id, path: forTier(r.path, tier) ?? pathname } : undefined;
+		return crumbsFor(nav, homePath, pathname, searchParams, { route, leafLabel });
+	}, [nav, homePath, pathname, searchParams, tier, leafLabel]);
 }
 
 /**
