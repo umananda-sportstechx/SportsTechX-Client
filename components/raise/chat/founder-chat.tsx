@@ -129,7 +129,7 @@ export function founderActionFromTool(tool: string, input: unknown, tier: Tier):
 			pipeline: { label: 'Open Watchlist', routeId: 'pipeline' },
 			programs: { label: 'Open Programs', routeId: 'programs' },
 			events: { label: 'Open Events', routeId: 'events' },
-			resources: { label: 'Open Resources', routeId: 'guide' },
+			resources: { label: 'Open Framework', routeId: 'framework' },
 			// Scout destinations. Deal Flow is wired now, so it is offerable; the
 			// Deck Screener stays out because Scout's view of it is still
 			// `placeholder: true` and `navigable` would drop the chip anyway.
