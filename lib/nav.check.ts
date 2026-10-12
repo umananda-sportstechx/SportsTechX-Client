@@ -57,7 +57,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
 			['Watchlists', ['All watchlists']],
-			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener*']],
+			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
 		bottom: [],
@@ -270,12 +270,11 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 	check(access(ROUTE_BY_ID.get('recently-funded')!.tier, 'explore', false) === 'upsell'
 		&& !navigable('recently-funded', 'explore'),
 		'navigable: an upsell route is listed in nav but not offered as a chip');
-	// Coming-soon routes resolve, so only the placeholder flag catches them.
-	// Deal Flow used to be here; it reads the API now, so it is navigable. Scout's
-	// Deck Screener is still a placeholder while Raise's Pitch Deck is live, which
-	// is what makes this per-tier rather than a bare boolean.
-	check(!navigable('deck', 'scout') && navigable('deck', 'raise'),
-		'navigable: a coming-soon page is dropped, per tier');
+	// Deck Screener went live: Scout runs the same deck engine in investor mode,
+	// so `deck` is now offerable to both products (the `placeholder: { scout }`
+	// flag that dropped it is gone).
+	check(navigable('deck', 'scout') && navigable('deck', 'raise'),
+		'navigable: Deck Screener is offerable now that investor mode is wired');
 	check(navigable('deal-flow', 'scout') && navigable('deal-flow-circle', 'scout'),
 		'navigable: Deal Flow is offerable now that it is wired');
 	check(!navigable('no-such-route', 'scout'), 'navigable: an unknown route id is dropped');

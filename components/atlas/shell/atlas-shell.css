@@ -139,7 +139,8 @@
 .atlas-acct__who:hover { background: color-mix(in srgb, var(--a-ink) 4%, transparent); }
 .atlas-acct__avatar {
   display: grid; place-items: center; flex: none; overflow: hidden;
-  width: 26px; height: 26px; border-radius: 50%;
+  /* Square with soft corners, as in the Figma sidebar — not a circle. */
+  width: 28px; height: 28px; border-radius: 6px;
   background: var(--a-primary); color: var(--a-primary-ink);
   font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.04em;
 }
