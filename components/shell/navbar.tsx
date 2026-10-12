@@ -64,6 +64,7 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 			<div className="atlas-navbar__right">
 				<SearchButton />
 				<VerifyButton />
+				<ThemeToggle header />
 				<NotificationBell />
 				<AccountMenu tier={tier} accountPath={accountPath} />
 			</div>
@@ -186,7 +187,6 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 						<Link href={hrefOf('verify')} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 							<ShieldCheck size={13} strokeWidth={1.5} aria-hidden="true" /> Get verified
 						</Link>
-						<ThemeToggle menu />
 					</div>
 					<div className="atlas-account-menu__foot">
 						<button
