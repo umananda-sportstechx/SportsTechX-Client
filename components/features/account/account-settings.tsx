@@ -10,7 +10,7 @@ import { useLogout } from '@/hooks/use-logout';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
-import { Screen, PageHead, Card, ReadOnly, Button, PlaceholderTag } from '@/components/atlas';
+import { Screen, PageHead, Card, ReadOnly, Button } from '@/components/atlas';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 
 /**
@@ -118,10 +118,6 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
 					<SplitRow label="Password" sub="Managed through email reset">
 						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Change password'}</Button>
-					</SplitRow>
-					<hr className="atlas-divider" style={{ margin: '14px 0' }} />
-					<SplitRow label={<>Two-factor authentication<PlaceholderTag /></>} sub="Not enabled">
-						<Button variant="outline" size="sm" disabled title="Backend Not Connected (Placeholders)">Enable</Button>
 					</SplitRow>
 				</Card>
 

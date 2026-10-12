@@ -156,7 +156,16 @@
 	gap: 7px;
 	font-size: 11px;
 }
-.atlas .atlas-verify-btn__tick { color: var(--a-blue); flex-shrink: 0; }
+.atlas .atlas-verify-btn__tick { flex-shrink: 0; }
 @media (max-width: 860px) {
 	.atlas .atlas-navbar__right .atlas-verify-btn { padding: 0 10px; }
 }
+
+/* ── Standalone navbar icon button (theme toggle) ──────────────────────────*/
+.atlas .atlas-navbar__iconbtn {
+	display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
+	padding: 0; border: 1px solid var(--a-border-strong); border-radius: 50%;
+	background: var(--a-inset); color: var(--a-muted); cursor: pointer;
+	transition: color 0.15s, border-color 0.15s;
+}
+.atlas .atlas-navbar__iconbtn:hover { color: var(--a-ink); border-color: var(--a-ink); }
