@@ -9,20 +9,31 @@
 .atlas .explore-card { padding: 22px 23px 24px; }
 
 /* ── Sidebar upgrade cards ───────────────────────────────────────────────── */
+/* Figma banner: a subtle per-product gradient wash (blue for Raise, green for
+   Scout) rising from the bottom-right, like the solution cards on the landing. */
 .atlas .explore-upgrade {
 	display: flex; flex-direction: column; gap: 6px; padding: 12px 13px; border-radius: var(--a-radius-sm); text-decoration: none;
-	background: var(--a-field); box-shadow: inset 0 0 0 1px var(--a-border); color: var(--a-ink); transition: box-shadow 0.15s;
+	background-color: var(--a-field);
+	background-image: linear-gradient(150deg, transparent 50%, color-mix(in srgb, var(--explore-dot) 16%, transparent) 100%);
+	box-shadow: inset 0 0 0 1px var(--a-border); color: var(--a-ink);
+	transition: box-shadow 0.15s, background-image 0.2s;
 }
-.atlas .explore-upgrade:hover { box-shadow: inset 0 0 0 1px var(--a-ink); }
+.atlas .explore-upgrade:hover {
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--explore-dot) 45%, var(--a-border-strong));
+	background-image: linear-gradient(150deg, transparent 42%, color-mix(in srgb, var(--explore-dot) 24%, transparent) 100%);
+}
 .atlas .explore-upgrade__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .atlas .explore-upgrade__name { display: inline-flex; align-items: center; gap: 7px; font-family: var(--a-font); font-size: 13px; font-weight: 700; }
 .atlas .explore-upgrade__name::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--explore-dot); }
 .atlas .explore-upgrade--raise { --explore-dot: #1479FF; }
 .atlas .explore-upgrade--scout { --explore-dot: #0FB86A; }
 .atlas .explore-upgrade__action {
-	padding: 3px 8px; border-radius: var(--a-radius-pill); background: var(--a-primary); color: var(--a-primary-ink);
+	padding: 3px 9px; border-radius: var(--a-radius-pill);
+	background: color-mix(in srgb, var(--a-ink) 5%, transparent); box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-muted);
 	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+	transition: background 0.15s, color 0.15s;
 }
+.atlas .explore-upgrade:hover .explore-upgrade__action { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
 .atlas .explore-upgrade__body { font-family: var(--a-body); font-size: 11px; line-height: 1.45; color: var(--a-muted); }
 
 /* ── Home ────────────────────────────────────────────────────────────────── */
