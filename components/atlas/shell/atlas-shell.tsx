@@ -78,11 +78,25 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 	const activePath = pickActive(allItems, homePath, pathname, searchParams);
 	const isActive = (path: string) => path === activePath;
 
+	// Collapsed, the labels are hidden, so the only thing identifying an icon
+	// was the native `title` — slow to appear and unstyled. The rail and the
+	// nav both clip their overflow (one hides the collapsed h-scrollbar, the
+	// other is the scroll container), so the tooltip cannot live inside either
+	// and is positioned against the viewport instead.
+	const [tip, setTip] = useState<{ label: string; top: number } | null>(null);
+	const tipProps = (label: string) => (collapsed ? {
+		onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+			const r = e.currentTarget.getBoundingClientRect();
+			setTip({ label, top: r.top + r.height / 2 });
+		},
+		onMouseLeave: () => setTip(null),
+	} : {});
+
 	const renderItem = (item: ShellNavItem) => {
 		const cls = 'atlas-nav-item';
 		if (item.soon) {
 			return (
-				<span key={item.path} className={`${cls} is-soon`} aria-disabled="true" title={collapsed ? `${item.name} (soon)` : undefined}>
+				<span key={item.path} className={`${cls} is-soon`} aria-disabled="true" {...tipProps(`${item.name} (soon)`)}>
 					<span className="atlas-nav-ico"><FigmaIcon name={item.icon} /></span>
 					<span className="atlas-nav-label">{item.name}</span>
 					<span className="atlas-soon" aria-label="coming soon">Soon</span>
@@ -90,7 +104,7 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 			);
 		}
 		return (
-			<Link key={item.path} href={item.path} className={`${cls} ${isActive(item.path) ? 'active' : ''}`} aria-current={isActive(item.path) ? 'page' : undefined} title={collapsed ? item.name : undefined} onClick={() => setOpen(false)}>
+			<Link key={item.path} href={item.path} className={`${cls} ${isActive(item.path) ? 'active' : ''}`} aria-current={isActive(item.path) ? 'page' : undefined} {...tipProps(item.name)} onClick={() => { setOpen(false); setTip(null); }}>
 				<span className="atlas-nav-ico"><FigmaIcon name={item.icon} /></span>
 				<span className="atlas-nav-label">{item.name}</span>
 				{item.placeholder && <span className="atlas-soon" title={PLACEHOLDER_LABEL}>Not connected</span>}
@@ -122,8 +136,9 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 					{/* Collapsed, the mark IS the expand control. The design put a bare
 					    hamburger here, which left no sign of which product you were in. */}
 					{collapsed ? (
-						<button type="button" className="atlas-rail-mark" aria-label="Expand sidebar" aria-expanded={false} title="Expand sidebar" onClick={() => writeStored(railKey, '0')}>
-							<AtlasMark size={26} />
+						<button type="button" className="atlas-rail-mark" aria-label="Expand sidebar" aria-expanded={false} onClick={() => writeStored(railKey, '0')}>
+							<span className="atlas-rail-mark__logo"><AtlasMark size={26} /></span>
+							<span className="atlas-rail-mark__menu"><MenuIcon /></span>
 						</button>
 					) : (
 						<Link href={homePath} className="atlas-brand" aria-label={homeLabel}><AtlasLogo height={24} product={product} productColor={productColor} /></Link>
@@ -149,6 +164,10 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 				{topbar}
 				<div className="atlas-content">{children}</div>
 			</div>
+
+			{collapsed && tip && (
+				<div className="atlas-tip" style={{ top: tip.top }} role="tooltip">{tip.label}</div>
+			)}
 
 			{open && <div className="atlas-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />}
 			{overlay}

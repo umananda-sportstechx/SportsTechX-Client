@@ -41,7 +41,7 @@
   background-image: var(--a-noise);
   background-size: 128px 128px;
   box-shadow: inset -1px 0 0 var(--a-border);
-  padding: 23px 19px 33px 17px;
+  padding: 23px 19px 14px 17px;
   /* The rail itself never scrolls — only the nav does. `overflow-y: auto` was
      here, which scrolled the whole column: with enough nav items the brand and
      the account badge slid away with it. */
@@ -126,7 +126,7 @@
    content back where the nav sits. */
 .atlas-rail-account {
   flex: none; margin-top: auto;
-  padding: 16px 19px 0 17px;
+  padding: 10px 19px 0 17px;
   margin-left: -17px; margin-right: -19px;
   border-top: 1px solid var(--a-border);
 }
@@ -139,7 +139,7 @@
 .atlas-acct__who:hover { background: color-mix(in srgb, var(--a-ink) 4%, transparent); }
 .atlas-acct__avatar {
   display: grid; place-items: center; flex: none; overflow: hidden;
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 26px; height: 26px; border-radius: 50%;
   background: var(--a-primary); color: var(--a-primary-ink);
   font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.04em;
 }
@@ -159,6 +159,18 @@
 .atlas-acct__out:hover { background: color-mix(in srgb, var(--a-danger) 12%, transparent); color: var(--a-danger); }
 .atlas-acct__out:disabled { opacity: 0.6; cursor: default; }
 
+/* Sits beside the collapsed rail. Fixed, because both the rail and the nav
+   clip their overflow and an absolutely positioned tip would be cut off. */
+.atlas-tip {
+  position: fixed; left: 80px; z-index: 70;
+  transform: translateY(-50%);
+  padding: 5px 9px; border-radius: var(--a-radius-xs);
+  background: var(--a-primary); color: var(--a-primary-ink);
+  font-family: var(--a-font); font-size: 12px; font-weight: 500; line-height: 1.2;
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
 .atlas-backdrop { display: none; }
 
 /* ── Collapse toggle + collapsed (icon-only) rail — desktop only ─────────────*/
@@ -166,8 +178,10 @@
 .atlas-rail-toggle {
   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 36px; height: 34px; border-radius: var(--a-radius-xs);
-  background: color-mix(in srgb, var(--a-page) 35%, transparent);
-  border: 1px solid color-mix(in srgb, var(--a-ink) 6%, transparent); cursor: pointer; color: var(--a-ink);
+  /* No wash of its own — it reads as part of the rail, not a chip on top of
+     it. The hairline is the only thing marking it as a control at rest. */
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--a-ink) 8%, transparent); cursor: pointer; color: var(--a-ink);
   transition: background 0.12s;
 }
 .atlas-rail-toggle:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
@@ -179,9 +193,15 @@
   background: transparent; color: var(--a-ink); cursor: pointer; transition: background 0.12s;
 }
 .atlas-rail-mark:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
+/* Hovering reveals what the control does. The mark alone says "Atlas"; the
+   hamburger says "this expands". */
+.atlas-rail-mark__logo, .atlas-rail-mark__menu { display: inline-flex; align-items: center; justify-content: center; }
+.atlas-rail-mark__menu { display: none; }
+.atlas-rail-mark:hover .atlas-rail-mark__logo, .atlas-rail-mark:focus-visible .atlas-rail-mark__logo { display: none; }
+.atlas-rail-mark:hover .atlas-rail-mark__menu, .atlas-rail-mark:focus-visible .atlas-rail-mark__menu { display: inline-flex; }
 
 .atlas-shell.is-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
-.is-collapsed .atlas-rail { padding: 23px 0 33px; }
+.is-collapsed .atlas-rail { padding: 23px 0 14px; }
 .is-collapsed .atlas-rail-head { justify-content: center; padding: 0; margin-bottom: 20px; }
 .is-collapsed .atlas-nav { padding: 0; margin-right: 0; align-items: center; }
 .is-collapsed .atlas-nav-item,
@@ -196,10 +216,9 @@
 .is-collapsed .atlas-nav-section__head > * { display: none; }
 .is-collapsed .atlas-nav-section.is-closed .atlas-nav-section__items { display: flex; }
 .is-collapsed .atlas-nav-item.is-soon, .is-collapsed .atlas-soon { display: none; }
-.is-collapsed .atlas-rail-account { padding: 16px 0 0; margin-left: 0; margin-right: 0; }
-.is-collapsed .atlas-acct { flex-direction: column; gap: 4px; }
-.is-collapsed .atlas-acct__who { flex: none; justify-content: center; padding: 2px; }
-.is-collapsed .atlas-acct__name { display: none; }
+.is-collapsed .atlas-rail-account { padding: 10px 0 0; margin-left: 0; margin-right: 0; }
+.is-collapsed .atlas-acct { justify-content: center; gap: 0; }
+.is-collapsed .atlas-acct__who { display: none; }
 /* Labels stay in the accessibility tree (names for links/buttons), just not on screen. */
 .is-collapsed .atlas-nav-label {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -245,7 +264,7 @@
   .atlas-rail-toggle, .atlas-rail-mark { display: none; }
   /* The drawer is always full width, so every collapsed rule is undone here. */
   .atlas-shell.is-collapsed { grid-template-columns: 1fr; }
-  .is-collapsed .atlas-rail { padding: 23px 19px 33px 17px; }
+  .is-collapsed .atlas-rail { padding: 23px 19px 14px 17px; }
   .is-collapsed .atlas-rail-head { justify-content: space-between; padding: 0 0 0 16px; }
   .is-collapsed .atlas-brand { display: inline-flex; }
   .is-collapsed .atlas-nav { padding: 0 10px; align-items: stretch; }
@@ -261,10 +280,9 @@
   }
   .is-collapsed .atlas-nav-section__head > * { display: block; }
   .is-collapsed .atlas-nav-section.is-closed .atlas-nav-section__items { display: none; }
-  .is-collapsed .atlas-rail-account { padding: 16px 19px 0 17px; margin-left: -17px; margin-right: -19px; }
-  .is-collapsed .atlas-acct { flex-direction: row; gap: 6px; }
-  .is-collapsed .atlas-acct__who { flex: 1; justify-content: flex-start; padding: 4px; }
-  .is-collapsed .atlas-acct__name { display: block; }
+  .is-collapsed .atlas-rail-account { padding: 10px 19px 0 17px; margin-left: -17px; margin-right: -19px; }
+  .is-collapsed .atlas-acct { justify-content: flex-start; gap: 6px; }
+  .is-collapsed .atlas-acct__who { display: flex; flex: 1; }
   .atlas-rail-close {
     display: inline-flex; align-items: center; justify-content: center;
     width: 36px; height: 34px; border-radius: var(--a-radius-xs);
