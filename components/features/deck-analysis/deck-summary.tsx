@@ -49,15 +49,17 @@ export const FOUNDER_DECK_COPY: DeckSummaryCopy = {
 	fallbackName: 'Pitch deck',
 };
 
-export function DeckSummary({ header, copy = FOUNDER_DECK_COPY }: {
+export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder' }: {
 	/** Page header; receives the "Upload new deck" action once a deck exists. */
 	header: (actions?: ReactNode) => ReactNode;
 	copy?: DeckSummaryCopy;
+	/** `investor` = Scout's Deck Screener (screening someone else's deck). */
+	mode?: 'founder' | 'investor';
 }) {
 	const router = useRouter();
 	// This page's own route; the full analysis opens at `${DECK}/${id}`.
 	const DECK = hrefOf('deck');
-	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(), { dedupingInterval: 10_000, refreshInterval: (d) => (d?.[0] && d[0].status !== 'done' ? 4000 : 0) });
+	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(mode), { dedupingInterval: 10_000, refreshInterval: (d) => (d?.[0] && d[0].status !== 'done' ? 4000 : 0) });
 	const latest = list?.[0] ?? null;
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
@@ -83,7 +85,7 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY }: {
 			const key = `${uid}/decks/${crypto.randomUUID()}.${ext}`;
 			const { error } = await supabase.storage.from(BUCKET).upload(key, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
 			if (error) throw error;
-			const res = await apiRequest('POST', '/api/deck-analysis', { storage_path: key, filename: file.name });
+			const res = await apiRequest('POST', '/api/deck-analysis', { storage_path: key, filename: file.name, mode });
 			if (!res.ok) {
 				const body = await res.json().catch(() => null);
 				throw new Error((body?.error?.message as string) ?? (res.status === 403 ? 'Pitch deck analysis is a paid feature.' : 'Could not start analysis'));

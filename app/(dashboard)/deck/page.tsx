@@ -16,6 +16,6 @@ import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
  */
 export default function Page() {
 	const { data: profile } = useUserProfile();
-	const copy = getUserType(profile) === 'scout' ? SCREENER_COPY : undefined;
-	return <DeckSummary copy={copy} header={(actions) => <SectionHeader actions={actions} />} />;
+	const isScout = getUserType(profile) === 'scout';
+	return <DeckSummary copy={isScout ? SCREENER_COPY : undefined} mode={isScout ? 'investor' : 'founder'} header={(actions) => <SectionHeader actions={actions} />} />;
 }

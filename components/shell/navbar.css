@@ -60,7 +60,8 @@
 /* ── Avatar + account menu ─────────────────────────────────────────────────*/
 .atlas .atlas-avatar {
 	display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
-	padding: 0; border: none; border-radius: 50%; overflow: hidden; cursor: pointer;
+	/* Square with soft corners, matching the sidebar account avatar. */
+	padding: 0; border: none; border-radius: 7px; overflow: hidden; cursor: pointer;
 	background: var(--a-primary); color: var(--a-primary-ink);
 	font-family: var(--a-mono); font-size: 12px; letter-spacing: 0.06em;
 }

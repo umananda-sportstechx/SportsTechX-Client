@@ -2,13 +2,26 @@
 
 export interface DeckSection { key: string; label: string; score: number | null; page_refs: number[]; quote: string | null }
 export interface DeckSuggestion { area: string; suggestion: string; page_ref: number | null; quote: string | null }
+/** Investor-mode extras (Deck Screener). Absent on a founder analysis. */
+export interface DeckSnapshot { company: string | null; one_liner: string | null; sector: string | null; geography: string | null; business_model: string | null }
+export interface DeckThesisFit { score: number | null; summary: string | null; matches: string[]; misses: string[] }
+export interface DeckComparable { id: string; name: string; slug: string | null; website: string | null; custom_logo_url: string | null; description: string | null }
+
 export interface DeckScorecard {
 	overall_score: number | null;
 	verdict: string | null;
+	/** Funding stage the deck is raising (shown in the investor snapshot). */
+	stage?: string | null;
 	sections: DeckSection[];
 	strengths: string[];
 	risks: string[];
 	suggestions: DeckSuggestion[];
+	/** Present only for an investor-mode screen. */
+	snapshot?: DeckSnapshot | null;
+	thesis_fit?: DeckThesisFit | null;
+	red_flags?: string[];
+	diligence_questions?: string[];
+	comparables?: DeckComparable[];
 }
 export interface DeckListItem { id: string; filename: string | null; status: string; overall_score: number | null; created_at: string }
 
