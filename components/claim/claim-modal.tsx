@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Flag } from '@/components/atlas';
+import { LocationSelect } from '@/components/features/location/location-select';
 // One sheet now. This used to also pull in `company-detail.css`, purely because
 // it rendered `VerifiedBadge` from the legacy atoms and that badge's `.vb`
 // class lives over there — so the modal dragged a second, unrelated stylesheet
@@ -351,7 +352,7 @@ export function ClaimModal({
                   </div>
                   <div className="cm-row2">
                     <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-req">*</span></label><input className="cm-input" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Your city" /></div>
-                    <div className="cm-field cm-half"><label className="cm-label">Country <span className="cm-req">*</span></label><input className="cm-input" value={form.country} onChange={(e) => set('country', e.target.value)} placeholder="Your country" /></div>
+                    <div className="cm-field cm-half"><label className="cm-label">Country <span className="cm-req">*</span></label><LocationSelect className="cm-select" value={form.country} onChange={(v) => set('country', v)} placeholder="Select your country" /></div>
                   </div>
                 </div>
                 <div className="cm-block" style={{ marginBottom: 0 }}>
@@ -412,7 +413,7 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">City</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="London" /></div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Country</label><input className="cm-input" value={form.coCountry} onChange={(e) => set('coCountry', e.target.value)} placeholder="UK" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Sport</label><select className="cm-select" value={form.sport} onChange={(e) => set('sport', e.target.value)}><option value="">Select…</option>{SPORTS_LIST.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
                     </div>
                     <div className="cm-field"><label className="cm-label">Program participation</label><input className="cm-input" value={form.programs} onChange={(e) => set('programs', e.target.value)} placeholder="e.g. Stadia Ventures '24" /></div>
@@ -512,7 +513,7 @@ export function ClaimModal({
                 <div className="cm-sub">Profile</div>
                 <div className="cm-row2">
                   <div className="cm-field cm-half"><label className="cm-label">Location</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="London" /></div>
-                  <div className="cm-field cm-half"><label className="cm-label">Country</label><input className="cm-input" value={form.coCountry} onChange={(e) => set('coCountry', e.target.value)} placeholder="UK" /></div>
+                  <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                 </div>
                 <div className="cm-field"><label className="cm-label">Type</label><select className="cm-select" value={form.opType} onChange={(e) => set('opType', e.target.value)}>{OP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
               </div>
@@ -578,7 +579,7 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">City</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="Boston" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Country</label><input className="cm-input" value={form.coCountry} onChange={(e) => set('coCountry', e.target.value)} placeholder="USA" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">AUM <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.aum} onChange={(e) => set('aum', e.target.value)} placeholder="e.g. 230M" /></div>
