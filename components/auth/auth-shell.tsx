@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Loader2, Moon, Sun } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Moon, Sun } from 'lucide-react';
 import { AtlasLogo } from '@/components/atlas';
 import type { ReactNode } from 'react';
 import './auth.css';
@@ -84,6 +84,57 @@ export function AuthNotice({ tone, children, action }: {
 /** Hairline — OR — hairline, between the social buttons and the email form. */
 export function AuthOr() {
 	return <div className="auth-or"><span>OR</span></div>;
+}
+
+/**
+ * Password input with a show/hide toggle and autofill support.
+ *
+ * Every auth password field was a bare `.atlas-input` with no way to reveal what
+ * was typed and no `autocomplete`, so browsers couldn't offer to fill or save.
+ * `labelAccessory` carries login's "Forgot password?" link in the label row.
+ */
+export function PasswordField({ id, label, value, onChange, placeholder, autoComplete, minLength = 8, labelAccessory }: {
+	id: string;
+	label: string;
+	value: string;
+	onChange: (v: string) => void;
+	placeholder?: string;
+	autoComplete: 'current-password' | 'new-password';
+	minLength?: number;
+	labelAccessory?: ReactNode;
+}) {
+	const [show, setShow] = useState(false);
+	return (
+		<div>
+			<div className="auth-field__row">
+				<label htmlFor={id} className="atlas-label">{label}</label>
+				{labelAccessory}
+			</div>
+			<div className="auth-pw">
+				<input
+					id={id}
+					type={show ? 'text' : 'password'}
+					className="atlas-input auth-pw__input"
+					placeholder={placeholder}
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					required
+					minLength={minLength}
+					autoComplete={autoComplete}
+				/>
+				<button
+					type="button"
+					className="auth-pw__toggle"
+					aria-label={show ? 'Hide password' : 'Show password'}
+					aria-pressed={show}
+					onClick={() => setShow((s) => !s)}
+					tabIndex={-1}
+				>
+					{show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+				</button>
+			</div>
+		</div>
+	);
 }
 
 /** Spinner sized for an `.atlas-btn` (components.css sizes svg children to 13px). */
