@@ -23,11 +23,27 @@ export interface Crumb {
  *
  * Pure, so `breadcrumbs.check.ts` can exercise it without React.
  */
+export interface CrumbOptions {
+	/**
+	 * The manifest route for the current path, used when no sidebar item
+	 * matches. Pages that are reachable but deliberately unlisted (Chat, Get
+	 * verified, the account tabs) otherwise had no trail beyond "Home".
+	 */
+	route?: { name: string; path: string };
+	/**
+	 * A real title for the detail leaf, when the caller has one (a chat's
+	 * conversation title). Beats the de-slugged segment, and is shown even when
+	 * the segment is an opaque id that would otherwise be dropped.
+	 */
+	leafLabel?: string | null;
+}
+
 export function crumbsFor(
 	nav: ShellNavEntry[],
 	homePath: string,
 	pathname: string,
 	params: { get(k: string): string | null; has(k: string): boolean },
+	opts: CrumbOptions = {},
 ): Crumb[] {
 	// On home there is no trail — the "Home" crumb the navbar always renders is
 	// the page itself.
@@ -40,7 +56,8 @@ export function crumbsFor(
 	const section = nav.filter(isSection).find((s) => s.items.some((i) => i.path === activePath));
 	if (section) out.push({ label: section.title });
 
-	const active = items.find((i) => i.path === activePath);
+	const active = items.find((i) => i.path === activePath)
+		?? (opts.route && (pathname === opts.route.path || pathname.startsWith(`${opts.route.path}/`)) ? opts.route : undefined);
 	if (!active) return out;
 
 	const base = active.path.split('?')[0];
@@ -51,7 +68,7 @@ export function crumbsFor(
 
 	if (below) {
 		const leaf = pathname.slice(base.length + 1).split('/')[0];
-		const label = leaf ? deslug(leaf) : '';
+		const label = opts.leafLabel?.trim() || (leaf ? deslug(leaf) : '');
 		if (label) out.push({ label });
 	}
 	return out;

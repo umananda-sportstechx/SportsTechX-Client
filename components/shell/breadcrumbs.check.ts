@@ -70,6 +70,22 @@ check(eq(labels('/analytics', 'tab=roundup'), ['Intelligence', 'Monthly Roundup'
 check(eq(labels('/watchlists/abc-123'), ['Watchlists', 'Main watchlist']),
 	'a spliced nav item names itself rather than stopping at the section');
 
+// ── Pages with no sidebar entry (chat) ────────────────────────────────────
+// Chat is reachable but unlisted, so without the manifest fallback its trail
+// stopped at "Home".
+const CHAT = { route: { name: 'Chat', path: '/chat' } };
+const chatTrail = (pathname: string, leafLabel?: string | null) =>
+	crumbsFor(NAV, '/home', pathname, q(), { ...CHAT, leafLabel });
+check(eq(chatTrail('/chat').map((c) => c.label), ['Chat']), 'an unlisted page falls back to its manifest name');
+check(chatTrail('/chat')[0]?.href === undefined, 'on the page itself, that crumb is not a link');
+check(eq(chatTrail('/chat/28f9f0f8-a26e-405b-a1c5-29c8bc27f5fe', 'Show recent sports tech deals').map((c) => c.label),
+	['Chat', 'Show recent sports tech deals']), 'a conversation shows its title, not its id');
+check(chatTrail('/chat/28f9f0f8-a26e-405b-a1c5-29c8bc27f5fe', 'Deals')[0]?.href === '/chat',
+	'and "Chat" links back to a fresh conversation');
+check(!chatTrail('/chat/28f9f0f8-a26e-405b-a1c5-29c8bc27f5fe', 'Conversation').some((c) => c.label.includes('28f9f0f8')),
+	'the uuid never reaches the trail, even before titles load');
+check(eq(labels('/companies'), ['Discover', 'Companies']), 'a nav match still wins over any fallback');
+
 // ── deslug ─────────────────────────────────────────────────────────────────
 check(deslug('acme-sports') === 'Acme Sports', 'hyphens become spaces and words are capitalised');
 check(deslug('under_score') === 'Under Score', 'underscores too');
