@@ -69,21 +69,19 @@ export function PostCard({ cover, meta, title, desc, tags, actions, className }:
 }) {
 	return (
 		<article className={cx('atlas-post atlas-post--card', className)}>
-			<div className="atlas-post__head">
-				<Cover src={cover} alt="" className="atlas-post__cover atlas-post__cover--thumb" />
-				<div className="atlas-post__headtext">
-					<div className="atlas-post__meta">{meta}</div>
-					<h3 className="atlas-post__title">{title}</h3>
-				</div>
+			<Cover src={cover} alt="" className="atlas-post__cover atlas-post__cover--banner" />
+			<div className="atlas-post__cardbody">
+				<div className="atlas-post__meta">{meta}</div>
+				<h3 className="atlas-post__title">{title}</h3>
+				{desc && <p className="atlas-post__desc atlas-post__desc--clamp">{desc}</p>}
+				{!!tags?.length && (
+					<div className="atlas-post__tags">
+						<Tag size={13} strokeWidth={1.5} aria-hidden="true" />
+						{tags.map((t) => <span key={t} className="atlas-post__tag">{t}</span>)}
+					</div>
+				)}
+				{actions && <div className="atlas-post__actions atlas-post__actions--card">{actions}</div>}
 			</div>
-			{desc && <p className="atlas-post__desc atlas-post__desc--clamp">{desc}</p>}
-			{!!tags?.length && (
-				<div className="atlas-post__tags">
-					<Tag size={13} strokeWidth={1.5} aria-hidden="true" />
-					{tags.map((t) => <span key={t} className="atlas-post__tag">{t}</span>)}
-				</div>
-			)}
-			{actions && <div className="atlas-post__actions atlas-post__actions--card">{actions}</div>}
 		</article>
 	);
 }

@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 /**
  * Authenticated-shell error boundary. Catches errors thrown inside any /app
@@ -13,40 +12,48 @@ import { Button } from '@/components/ui/button';
  * This used to cover only the Raise tree — Explore and Scout had no boundary at
  * all, so an error there escaped to the global one and took the shell with it.
  * One tree means one boundary for all three.
+ *
+ * Styled with the Atlas tokens (not shadcn) so it matches app/error.tsx and the
+ * 404 — the shell CSS is already loaded by the layout above it.
  */
 export default function AppShellError({
-  error,
-  reset,
+	error,
+	reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+	error: Error & { digest?: string };
+	reset: () => void;
 }) {
-  useEffect(() => {
-    console.error('[AppShellError]', error);
-  }, [error]);
+	useEffect(() => {
+		console.error('[AppShellError]', error);
+	}, [error]);
 
-  return (
-    <div className="flex items-center justify-center min-h-[60vh] p-8">
-      <div className="max-w-md w-full text-center">
-        <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
-          <AlertTriangle className="h-7 w-7 text-destructive" />
-        </div>
-        <h2 className="text-xl font-semibold mb-2">Couldn&apos;t load this page</h2>
-        <p className="text-sm text-muted-foreground mb-2">
-          {process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong.'}
-        </p>
-        {error.digest && (
-          <p className="text-xs text-muted-foreground font-mono mb-6">Reference: {error.digest}</p>
-        )}
-        <div className="flex gap-3 justify-center mt-4">
-          <Button onClick={reset}>
-            <RotateCcw className="h-4 w-4 mr-2" />Try again
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/home">Home</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', padding: 24 }}>
+			<div style={{ textAlign: 'center', maxWidth: 440 }}>
+				<span style={{
+					display: 'grid', placeItems: 'center', width: 44, height: 44, margin: '0 auto 16px',
+					borderRadius: 'var(--a-radius-pill)', background: 'var(--a-danger-bg)', color: 'var(--a-danger)',
+				}}>
+					<AlertTriangle size={22} aria-hidden="true" />
+				</span>
+				<h1 style={{ margin: 0, fontFamily: 'var(--a-font)', fontSize: 22, fontWeight: 700, color: 'var(--a-ink)' }}>
+					Couldn&apos;t load this page
+				</h1>
+				<p style={{ margin: '10px 0 0', fontFamily: 'var(--a-body)', fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)' }}>
+					{process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error stopped this page from rendering.'}
+				</p>
+				{error.digest && (
+					<p style={{ margin: '12px 0 0', fontFamily: 'var(--a-mono)', fontSize: 11, color: 'var(--a-faint)' }}>
+						Reference: {error.digest}
+					</p>
+				)}
+				<div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 24 }}>
+					<button type="button" className="atlas-btn atlas-btn--primary" onClick={reset}>
+						<RotateCcw size={14} aria-hidden="true" style={{ marginRight: 6 }} />Try again
+					</button>
+					<Link href="/home" className="atlas-btn atlas-btn--outline">Home</Link>
+				</div>
+			</div>
+		</div>
+	);
 }

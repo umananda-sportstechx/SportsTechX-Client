@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { Inbox, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cx } from './cx';
 
@@ -19,12 +19,34 @@ export function Screen({ children, width = PAGE_MAX }: { children: ReactNode; wi
 	return <div className="atlas-screen" style={{ maxWidth: width }}>{children}</div>;
 }
 
-export function Loading() {
-	return <div style={{ display: 'grid', placeItems: 'center', minHeight: 320 }}><Loader2 className="animate-spin" size={22} /></div>;
+export function Loading({ label }: { label?: ReactNode }) {
+	return (
+		<div className="atlas-loading" role="status" aria-live="polite">
+			<Loader2 className="animate-spin" size={22} aria-hidden="true" />
+			{label && <span className="atlas-loading__label">{label}</span>}
+			<span className="atlas-sr-only">Loading…</span>
+		</div>
+	);
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-	return <div className="atlas-card" style={{ textAlign: 'center', color: 'var(--a-muted)', fontSize: 14, padding: 28 }}>{children}</div>;
+/**
+ * The empty state. A string still works (`<Empty>No reports yet.</Empty>`), but
+ * a real empty state gets a soft icon, a short title and — where the user can do
+ * something about it — an action. Pages that read empty because the user hasn't
+ * finished a step (thesis, profile) pass a `title` + `action` so the blankness
+ * reads as a prompt, not a dead end.
+ */
+export function Empty({ children, icon, title, action }: {
+	children?: ReactNode; icon?: ReactNode; title?: ReactNode; action?: ReactNode;
+}) {
+	return (
+		<div className="atlas-empty">
+			<div className="atlas-empty__icon">{icon ?? <Inbox size={22} strokeWidth={1.5} aria-hidden="true" />}</div>
+			{title && <div className="atlas-empty__title">{title}</div>}
+			{children && <div className="atlas-empty__text">{children}</div>}
+			{action && <div className="atlas-empty__action">{action}</div>}
+		</div>
+	);
 }
 
 export function H1({ children, className }: { children: ReactNode; className?: string }) {
