@@ -1,10 +1,14 @@
 /*
- * Atlas founder chat — launcher FAB + slide-in panel, plus the transcript styles
- * shared with the full chat page. Rendered inside the `.atlas` scope (RaiseShell),
- * so it inherits the --a-* palette. We alias the legacy token names the shared
- * markdown renderer uses (--accent, --bg-2, …) onto Atlas tokens here, so
- * chat-core's markdown themes to the raise palette in both light and dark
- * without touching the shared code.
+ * Atlas co-pilot — launcher + slide-in panel, plus the transcript styles shared
+ * with the full chat page. Rendered inside the `.atlas` scope, so it inherits
+ * the --a-* palette. The legacy token names the shared markdown renderer uses
+ * (--accent, --bg-2, …) are aliased onto Atlas tokens here, so chat-core's
+ * markdown themes correctly in light and dark without touching shared code.
+ *
+ * No Figma frame exists for this panel. It is assembled from the parts of the
+ * system that do have one: the sidebar's textured rail (header), the Atlas mark
+ * (identity), mono uppercase labels, hairlines, 13px cards, and the command
+ * palette's row (suggested prompts).
  */
 .raise-chat-panel,
 .raise-chat-fab,
@@ -19,88 +23,162 @@
 	--font-mono: var(--a-mono);
 }
 
-/* ── Launcher FAB: black pill + Sparkles ───────────────────────────────────*/
+/* ── Launcher ──────────────────────────────────────────────────────────────*/
+/* A labelled pill rather than a bare icon: "Ask Atlas" says what it is, and
+   the mark says whose it is. */
 .raise-chat-fab {
 	position: fixed; right: 24px; bottom: 24px; z-index: 70;
-	width: 58px; height: 38px; border-radius: var(--a-radius-pill);
-	display: inline-flex; align-items: center; justify-content: center;
+	display: inline-flex; align-items: center; gap: 9px;
+	height: 40px; padding: 0 16px 0 6px;
+	border: 0; border-radius: var(--a-radius-pill); cursor: pointer;
 	background: var(--a-primary); color: var(--a-primary-ink);
-	border: 0.5px solid var(--a-border); cursor: pointer;
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
-	transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 0 0 0.5px var(--a-border);
+	transition: transform 0.15s, box-shadow 0.15s;
 }
-.raise-chat-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2); }
-.raise-chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 18%, transparent), 0 6px 20px rgba(0, 0, 0, 0.16); }
+.raise-chat-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22), inset 0 0 0 0.5px var(--a-border); }
+.raise-chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 22%, transparent), 0 8px 24px rgba(0, 0, 0, 0.18); }
+.raise-chat-fab__mark {
+	display: grid; place-items: center; flex: none;
+	width: 28px; height: 28px; border-radius: 50%;
+	background: var(--a-primary-ink); color: var(--a-primary);
+}
+.raise-chat-fab__label {
+	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1;
+}
 
-/* ── Panel: desktop right drawer ───────────────────────────────────────────*/
+/* ── Scrim ─────────────────────────────────────────────────────────────────*/
+/* Depth, and a click-away. Without it the drawer read as a column bolted onto
+   the page rather than a layer above it. */
+.raise-chat-scrim {
+	position: fixed; inset: 0; z-index: 79;
+	background: rgba(0, 0, 0, 0.32);
+	animation: raiseChatFade 0.2s ease;
+}
+@keyframes raiseChatFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Panel ─────────────────────────────────────────────────────────────────*/
 .raise-chat-panel {
 	position: fixed; top: 0; right: 0; z-index: 80;
-	width: 420px; max-width: 100vw; height: 100dvh;
+	width: 440px; max-width: 100vw; height: 100dvh;
 	display: flex; flex-direction: column;
 	background: var(--a-page);
-	border-left: 1px solid var(--a-card-border);
-	box-shadow: -8px 0 28px rgba(0, 0, 0, 0.1);
+	box-shadow: inset 1px 0 0 var(--a-border), -16px 0 48px rgba(0, 0, 0, 0.14);
 	transform: translateX(100%);
-	transition: transform 0.24s ease;
+	transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
 	color: var(--a-ink); font-family: var(--a-body);
 }
 .raise-chat-panel.open { transform: none; }
 
-/* ── Head (hairline) ───────────────────────────────────────────────────────*/
+/* ── Head ──────────────────────────────────────────────────────────────────*/
+/* On the rail's own texture, so the panel reads as Atlas chrome — the same
+   surface as the sidebar it sits opposite. */
 .raise-chat-head {
-	display: flex; align-items: center; gap: 12px;
-	padding: 16px 16px 15px 20px; border-bottom: 1px solid var(--a-border);
-	flex-shrink: 0;
+	display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+	padding: 16px 14px 16px 20px;
+	background-color: var(--a-rail);
+	background-image: var(--a-noise);
+	background-size: 128px 128px;
+	box-shadow: inset 0 -1px 0 var(--a-border);
 }
 .raise-chat-mark {
-	width: 33px; height: 24px; border-radius: var(--a-radius-pill); flex-shrink: 0;
-	display: inline-flex; align-items: center; justify-content: center;
+	display: grid; place-items: center; flex-shrink: 0;
+	width: 36px; height: 36px; border-radius: var(--a-radius-sm);
 	background: var(--a-primary); color: var(--a-primary-ink);
-	border: 0.5px solid var(--a-border);
 }
+.raise-chat-titles { flex: 1; min-width: 0; }
 .raise-chat-head h3 {
-	margin: 0; font-family: var(--a-font); font-size: 16px; font-weight: 700;
-	line-height: 1.2; color: var(--a-ink);
+	margin: 0; font-family: var(--a-font); font-size: 17px; font-weight: 700;
+	line-height: 1.15; color: var(--a-ink);
 }
 .raise-chat-status {
-	display: flex; align-items: center; gap: 6px; margin-top: 3px;
-	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+	display: flex; align-items: center; gap: 6px; margin-top: 4px;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
 	color: var(--a-muted);
+	overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .raise-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--a-ok); flex-shrink: 0; }
 .raise-chat-dot.busy { background: var(--a-warn-ring); animation: raiseChatPulse 1s ease-in-out infinite; }
-@keyframes raiseChatPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+@keyframes raiseChatPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+.raise-chat-tools { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+/* Same control as the sidebar toggle: square-ish, 4px radius, no wash at rest. */
 .raise-chat-iconbtn {
-	display: inline-flex; align-items: center; justify-content: center;
-	width: 30px; height: 24px; border-radius: var(--a-radius-pill); flex-shrink: 0;
-	background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--a-muted);
-	transition: background 0.12s, color 0.12s, border-color 0.12s;
+	display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+	width: 32px; height: 32px; border-radius: var(--a-radius-xs);
+	background: transparent; border: 0; cursor: pointer; color: var(--a-muted);
+	transition: background 0.12s, color 0.12s;
 }
-.raise-chat-iconbtn:hover { background: var(--a-inset); color: var(--a-ink); }
-.raise-chat-iconbtn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 18%, transparent); }
-.raise-chat-iconbtn[data-active="true"] { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-border); }
+.raise-chat-iconbtn:hover { background: color-mix(in srgb, var(--a-ink) 6%, transparent); color: var(--a-ink); }
+.raise-chat-iconbtn:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink); color: var(--a-ink); }
+.raise-chat-iconbtn[data-active="true"] { background: var(--a-primary); color: var(--a-primary-ink); }
 
-/* History list inside the drawer (chat-core .ai-history markup, Atlas-styled). */
-.raise-chat-panel .ai-history { padding: 8px 0; border-bottom: 1px solid var(--a-border); background: var(--a-surface); }
+/* History list (chat-core .ai-history markup, Atlas-styled). */
+.raise-chat-panel .ai-history {
+	flex-shrink: 0; max-height: 44%; overflow-y: auto;
+	padding: 12px 10px 10px; background: var(--a-surface);
+	box-shadow: inset 0 -1px 0 var(--a-border);
+}
 .raise-chat-panel .ai-history-head {
-	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
-	color: var(--a-muted); padding: 6px 20px 8px;
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: var(--a-muted); padding: 0 10px 8px;
 }
-.raise-chat-panel .ai-history-empty { font-size: 12px; color: var(--a-faint); padding: 8px 20px 10px; }
+.raise-chat-panel .ai-history-empty { font-size: 12.5px; color: var(--a-faint); padding: 4px 10px 6px; }
 .raise-chat-panel .ai-history-item {
-	border-radius: 0; padding: 11px 20px; border-top: 1px solid var(--a-border);
-	transition: background 0.15s;
+	display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+	width: 100%; padding: 9px 10px; border: 0; border-radius: var(--a-radius-sm);
+	background: none; text-align: left; cursor: pointer; transition: background 0.12s;
 }
-.raise-chat-panel .ai-history-item:hover { background: linear-gradient(180deg, transparent, var(--a-navy-soft)); }
-.raise-chat-panel .ai-history-title { font-size: 12px; color: var(--a-ink); }
+.raise-chat-panel .ai-history-item:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
+.raise-chat-panel .ai-history-title {
+	min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	font-size: 13px; color: var(--a-ink);
+}
 .raise-chat-panel .ai-history-date {
-	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-faint);
+	flex: none; font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-faint);
 }
+
+/* ── Body ──────────────────────────────────────────────────────────────────*/
+.raise-chat-body {
+	flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px;
+	scrollbar-width: thin; scrollbar-color: var(--a-track) transparent;
+}
+
+/* Fresh conversation: an intro and suggested prompts, not a single paragraph
+   floating at the top of an empty panel. */
+.raise-chat-intro { display: flex; flex-direction: column; padding-top: 8px; }
+.raise-chat-intro__eyebrow {
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: var(--a-muted);
+}
+.raise-chat-intro__title {
+	margin: 8px 0 0; font-family: var(--a-font); font-size: 24px; font-weight: 700;
+	line-height: 1.15; letter-spacing: -0.01em; color: var(--a-ink);
+}
+.raise-chat-intro__lede {
+	margin: 12px 0 0; font-family: var(--a-body); font-size: 13.5px; line-height: 1.6;
+	color: var(--a-muted);
+}
+.raise-chat-intro__label {
+	margin: 28px 0 10px; font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: var(--a-faint);
+}
+.raise-chat-prompts { display: flex; flex-direction: column; gap: 8px; }
+.raise-chat-prompt {
+	display: flex; align-items: center; justify-content: space-between; gap: 12px;
+	width: 100%; padding: 12px 14px;
+	border: 0; border-radius: var(--a-radius-sm);
+	background: var(--a-surface); box-shadow: inset 0 0 0 1px var(--a-card-border);
+	font-family: var(--a-body); font-size: 13.5px; line-height: 1.35; color: var(--a-ink-2);
+	text-align: left; cursor: pointer;
+	transition: background 0.12s, box-shadow 0.12s, color 0.12s;
+}
+.raise-chat-prompt svg { flex: none; color: var(--a-faint); transition: color 0.12s, transform 0.12s; }
+.raise-chat-prompt:hover { background: var(--a-page); box-shadow: inset 0 0 0 1px var(--a-ink); color: var(--a-ink); }
+.raise-chat-prompt:hover svg { color: var(--a-ink); transform: translate(1px, -1px); }
+.raise-chat-prompt:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink); }
 
 /* ── Transcript (shared by drawer + full chat page) ────────────────────────*/
-.raise-chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
-.raise-chat-msg { font-family: var(--a-body); font-size: 13px; line-height: 1.6; min-width: 0; }
+.raise-chat-msg { font-family: var(--a-body); font-size: 13.5px; line-height: 1.6; min-width: 0; }
 .raise-chat-msg.user {
 	--accent: var(--a-primary-ink);
 	--bg-2: color-mix(in srgb, var(--a-primary-ink) 14%, transparent);
@@ -108,12 +186,14 @@
 	--fg-2: color-mix(in srgb, var(--a-primary-ink) 75%, transparent);
 	align-self: flex-end; max-width: 85%;
 	background: var(--a-primary); color: var(--a-primary-ink);
-	padding: 10px 15px; border-radius: var(--a-radius);
-	border: 0.5px solid var(--a-border);
+	padding: 10px 15px;
+	/* The tail corner points at the sender, which is what makes a bubble read
+	   as "you" without needing a label. */
+	border-radius: var(--a-radius) var(--a-radius) var(--a-radius-xs) var(--a-radius);
 }
 .raise-chat-msg.assistant { align-self: stretch; color: var(--a-ink-2); }
 
-/* Markdown (chat-core AI_MD_CSS) tuned to Atlas type inside the Raise shell. */
+/* Markdown (chat-core AI_MD_CSS) tuned to Atlas type. */
 .atlas .raise-chat-msg .ai-md { line-height: 1.6; }
 .atlas .raise-chat-msg .ai-md .ai-table { font-size: 12px; }
 .atlas .raise-chat-msg .ai-md .ai-table th {
@@ -148,44 +228,62 @@
 	color: var(--a-muted);
 }
 
-/* ── Input (drawer composer; mirrors .atlas-composer-box) ────────────────────*/
+/* ── Composer ──────────────────────────────────────────────────────────────*/
+.raise-chat-foot {
+	flex-shrink: 0; padding: 12px 16px 12px;
+	background: var(--a-page);
+	box-shadow: inset 0 1px 0 var(--a-border);
+}
 .raise-chat-input-row {
-	display: flex; gap: 8px; align-items: flex-end;
-	margin: 12px 16px 16px; padding: 10px 10px 10px 14px;
-	background: color-mix(in srgb, var(--a-ink) 3%, var(--a-page));
-	border: 1px solid var(--a-border-strong); border-radius: 17px;
-	flex-shrink: 0;
-	transition: border-color 0.15s, box-shadow 0.15s;
+	display: flex; gap: 10px; align-items: flex-end;
+	padding: 10px 8px 8px 14px;
+	background: var(--a-field);
+	border-radius: var(--a-radius);
+	box-shadow: inset 0 0 0 1px var(--a-border-strong);
+	transition: box-shadow 0.15s;
 }
 .raise-chat-input-row:focus-within {
-	border-color: var(--a-ink);
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 8%, transparent);
+	box-shadow: inset 0 0 0 1px var(--a-ink), 0 0 0 3px color-mix(in srgb, var(--a-ink) 8%, transparent);
 }
 .raise-chat-input {
-	flex: 1; resize: none; max-height: 120px; min-height: 24px;
-	padding: 2px 0; border: none; outline: none; background: transparent;
-	color: var(--a-ink); font-family: var(--a-body); font-size: 13px; line-height: 1.6;
+	flex: 1; resize: none; max-height: 140px; min-height: 26px;
+	padding: 3px 0 4px; border: none; outline: none; background: transparent;
+	color: var(--a-ink); font-family: var(--a-body); font-size: 14px; line-height: 1.5;
 }
-.raise-chat-input::placeholder { color: color-mix(in srgb, var(--a-ink) 55%, transparent); }
+.raise-chat-input::placeholder { color: color-mix(in srgb, var(--a-ink) 45%, transparent); }
+.raise-chat-input:disabled { opacity: 0.6; }
 .raise-chat-send {
-	width: 35px; height: 24px; border-radius: var(--a-radius-pill); flex-shrink: 0;
-	display: inline-flex; align-items: center; justify-content: center;
+	display: grid; place-items: center; flex-shrink: 0;
+	width: 32px; height: 32px; border-radius: 50%;
 	background: var(--a-primary); color: var(--a-primary-ink);
-	border: 0.5px solid var(--a-border); cursor: pointer;
-	transition: opacity 0.15s;
+	border: 0; cursor: pointer;
+	transition: opacity 0.15s, transform 0.15s;
 }
-.raise-chat-send svg { width: 13px; height: 13px; }
-.raise-chat-send:disabled { opacity: 0.35; cursor: not-allowed; }
-.raise-chat-send:not(:disabled):hover { opacity: 0.85; }
+.raise-chat-send:disabled { opacity: 0.25; cursor: not-allowed; }
+.raise-chat-send:not(:disabled):hover { transform: translateY(-1px); }
+.raise-chat-send:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 22%, transparent); }
 
-/* ── Mobile: full-screen modal ─────────────────────────────────────────────*/
+.raise-chat-hint {
+	display: flex; gap: 14px; padding: 8px 4px 0;
+	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+	color: var(--a-faint);
+}
+.raise-chat-hint span { display: inline-flex; align-items: center; gap: 3px; }
+.raise-chat-hint kbd {
+	padding: 1px 4px; border-radius: 3px; font-family: inherit; font-size: 9px;
+	box-shadow: inset 0 0 0 1px var(--a-border-strong);
+}
+
+/* ── Mobile: full-screen ───────────────────────────────────────────────────*/
 @media (max-width: 720px) {
-	.raise-chat-panel { width: 100vw; border-left: none; box-shadow: none; }
-	.raise-chat-head { padding: 14px 12px 13px 16px; }
-	.raise-chat-body { padding: 16px; }
-	.raise-chat-input-row { margin: 10px 12px 12px; }
+	.raise-chat-panel { width: 100vw; box-shadow: none; }
+	.raise-chat-scrim { display: none; }
+	.raise-chat-head { padding: 14px 10px 14px 16px; }
+	.raise-chat-body { padding: 20px 16px; }
+	.raise-chat-foot { padding: 10px 12px 12px; }
+	.raise-chat-hint { display: none; }
 	.raise-chat-fab { right: 16px; bottom: 16px; }
-	/* Hide the FAB while the mobile nav drawer is open (the rail gets `.open`);
-	   the FAB is a following sibling of the rail in AtlasShell. */
+	/* Hide the launcher while the mobile nav drawer is open (the rail gets
+	   `.open`); the launcher is a following sibling of the rail in AtlasShell. */
 	.atlas-rail.open ~ .raise-chat-fab { display: none; }
 }
