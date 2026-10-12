@@ -103,8 +103,8 @@ export function MarketAnalysis() {
 				/>
 			</div>
 
-			{/* KPIs */}
-			<div className="atlas-kpis">
+			{/* KPIs — pink highlight, matching the Figma Market frames (and Roundup). */}
+			<div className="atlas-kpis atlas-kpis--pink">
 				<Kpi k={`Total ${series === 'ma' ? 'M&A value' : series === 'total' ? 'capital' : 'funding'}`} v={fmtUsd(stats.grand)} note={rangeLabel(range)} />
 				<Kpi k="Latest year" v={fmtUsd(stats.last?.amt)} note={stats.last ? `${stats.last.year} · ${fmtCount(stats.last.deals)} ${lineLabel.toLowerCase()}` : '—'} />
 				<Kpi k={series === 'ma' ? 'Deals recorded' : 'Rounds recorded'} v={fmtCount(stats.deals)} note={rangeLabel(range)} />
