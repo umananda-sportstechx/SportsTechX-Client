@@ -48,7 +48,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Watchlists', ['Main watchlist', 'All watchlists']],
 			['Resources', ['Fundraising Guide*', 'Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Subscription'],
+		bottom: [],
 	},
 	scout: {
 		top: ['Home'],
@@ -59,7 +59,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener*']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
-		bottom: ['Thesis Settings', 'Subscription'],
+		bottom: [],
 	},
 };
 

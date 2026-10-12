@@ -4,11 +4,10 @@
  * section containing the current page supplies that page's title + tabs.
  */
 
-import type { LucideIcon } from 'lucide-react';
-
 export interface ShellNavItem {
 	name: string;
-	icon: LucideIcon;
+	/** A Figma icon name — see components/atlas/icons/figma-icons.tsx. */
+	icon: string;
 	path: string;
 	/** Not built yet — shown greyed with a SOON pill, not clickable. */
 	soon?: boolean;
