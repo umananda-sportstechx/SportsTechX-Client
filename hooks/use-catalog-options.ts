@@ -14,6 +14,7 @@ import { useSectorTiers, expandSectorSelection, type SectorRef } from '@/hooks/u
  *  `lib/location-facets.ts`, whose other exports had no callers. */
 export interface LocationFacets {
 	cities: string[];
+	countries: string[];
 	continents: string[];
 	regions: string[];
 }
@@ -79,6 +80,7 @@ export function useLocationFacetOptions() {
 	const { data } = useSWR<LocationFacets>(qk.reference.locationFacets(), { dedupingInterval: 60 * 60_000 });
 	return useMemo(() => ({
 		city: (data?.cities ?? []).map((c) => [c, c] as [string, string]),
+		country: (data?.countries ?? []).map((c) => [c, c] as [string, string]),
 		continent: (data?.continents ?? []).map((c) => [c, c] as [string, string]),
 		region: (data?.regions ?? []).map((r) => [r, r] as [string, string]),
 	}), [data]);

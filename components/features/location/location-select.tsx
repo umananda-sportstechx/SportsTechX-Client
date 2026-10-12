@@ -1,0 +1,58 @@
+'use client';
+
+import { useMemo } from 'react';
+import { useLocationFacetOptions } from '@/hooks/use-catalog-options';
+
+/**
+ * Country / region dropdown for HQ-location fields.
+ *
+ * Fed by the same `GET /api/locations/facets` the Market and Raise filter rails
+ * already use — distinct `country`, `region` and `continent` values straight
+ * from the `locations` table (cached server-side). No external geocoding API:
+ * the list is our own data, so a chosen value always matches what the catalog
+ * filters on. City stays a free-text field beside it where one exists.
+ *
+ * `className` lets it wear the Atlas field style (`atlas-select`, the default)
+ * or the claim modal's (`cm-select`). A stored value that isn't in the facet
+ * list (legacy free text) is kept as a selectable option so nothing is lost.
+ */
+export function LocationSelect({ value, onChange, id, disabled, className = 'atlas-select', placeholder = 'Select a country or region' }: {
+	value: string;
+	onChange: (value: string) => void;
+	id?: string;
+	disabled?: boolean;
+	className?: string;
+	placeholder?: string;
+}) {
+	const loc = useLocationFacetOptions();
+	const regions = useMemo(() => {
+		// Continents + regions, de-duplicated and sorted — the "Regions" group.
+		const seen = new Set<string>();
+		return [...loc.continent, ...loc.region]
+			.filter(([v]) => (seen.has(v) ? false : seen.add(v)))
+			.sort((a, b) => a[1].localeCompare(b[1]));
+	}, [loc.continent, loc.region]);
+	const countries = loc.country;
+
+	// A saved value the facets don't contain (older free text) — keep it listed
+	// so switching this field to a dropdown never silently clears it.
+	const known = useMemo(() => new Set([...regions, ...countries].map(([v]) => v)), [regions, countries]);
+	const orphan = value && !known.has(value) ? value : null;
+
+	return (
+		<select id={id} className={className} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+			<option value="">{placeholder}</option>
+			{orphan && <option value={orphan}>{orphan}</option>}
+			{regions.length > 0 && (
+				<optgroup label="Regions">
+					{regions.map(([v, l]) => <option key={`r-${v}`} value={v}>{l}</option>)}
+				</optgroup>
+			)}
+			{countries.length > 0 && (
+				<optgroup label="Countries">
+					{countries.map(([v, l]) => <option key={`c-${v}`} value={v}>{l}</option>)}
+				</optgroup>
+			)}
+		</select>
+	);
+}
