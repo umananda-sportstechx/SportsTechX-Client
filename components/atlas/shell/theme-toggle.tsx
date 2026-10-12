@@ -29,7 +29,7 @@ export function ThemeToggle({ compact, menu, collapsed }: { compact?: boolean; m
 	}
 	if (menu) {
 		return (
-			<button type="button" className="atlas-menu__item" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
+			<button type="button" className="atlas-menu__item atlas-menu__item--plain" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>
 				{mounted ? <Icon size={13} strokeWidth={1.5} /> : <Moon size={13} strokeWidth={1.5} />}
 				{mounted && isDark ? 'Light mode' : 'Dark mode'}
 			</button>

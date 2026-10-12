@@ -138,18 +138,18 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 						<span className="atlas-ellipsis">{name || profile?.email || 'Signed in'}</span>
 					</div>
 					<div className="atlas-menu__list">
-						<Link href={accountPath} className="atlas-menu__item" onClick={() => setOpen(false)}>
+						<Link href={accountPath} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 							<Settings size={13} strokeWidth={1.5} aria-hidden="true" /> Account
 						</Link>
 						{tier !== 'explore' && (
-							<Link href={hrefOf('billing')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+							<Link href={hrefOf('billing')} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 								<CreditCard size={13} strokeWidth={1.5} aria-hidden="true" /> Subscription
 							</Link>
 						)}
 						{/* The only door to `/verify` now that the button beside this menu
 						    opens the modal instead. The page is also where a verified
 						    claim's market report is listed. */}
-						<Link href={hrefOf('verify')} className="atlas-menu__item" onClick={() => setOpen(false)}>
+						<Link href={hrefOf('verify')} className="atlas-menu__item atlas-menu__item--plain" onClick={() => setOpen(false)}>
 							<ShieldCheck size={13} strokeWidth={1.5} aria-hidden="true" /> Get verified
 						</Link>
 						<ThemeToggle menu />
@@ -157,7 +157,7 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 					<div className="atlas-account-menu__foot">
 						<button
 							type="button"
-							className={cx('atlas-menu__item', 'atlas-account-menu__out')}
+							className={cx('atlas-menu__item', 'atlas-menu__item--plain', 'atlas-account-menu__out')}
 							onClick={() => void logout()}
 							disabled={signingOut}
 						>
