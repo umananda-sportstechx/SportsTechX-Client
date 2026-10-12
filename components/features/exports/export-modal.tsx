@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Download, X } from 'lucide-react';
 import { Badge, Button, Loading } from '@/components/atlas';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
@@ -59,10 +60,16 @@ export function ExportModal({ entity, search, filters, onClose }: {
 		[cols.data],
 	);
 	const selected = picked ?? defaults;
-	// Priced against the actual selection, so the number tracks the checkboxes.
+	// Priced against the actual selection, so the number tracks the checkboxes —
+	// but debounced, because the count endpoint runs a COUNT(*) over the whole
+	// filtered table and someone ticking ten boxes should not fire ten of them.
+	const pricedFor = useDebouncedValue(selected.join(','));
 	const count = useSWR<CountResponse>(
-		selected.length > 0 ? qk.exports.count(entity, search ?? null, selected, filters ?? null) : null,
+		pricedFor ? qk.exports.count(entity, search ?? null, pricedFor.split(','), filters ?? null) : null,
 	);
+	// True while the debounce is still catching up, so the figure on screen is
+	// never silently stale against the boxes.
+	const repricing = pricedFor !== selected.join(',');
 
 	const toggle = (key: string) =>
 		setPicked(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key]);
@@ -133,7 +140,7 @@ export function ExportModal({ entity, search, filters, onClose }: {
 				<footer className="export-modal__foot">
 					<div className="export-modal__cost">
 						{selected.length === 0 ? 'Pick at least one column'
-							: count.isLoading ? 'Pricing…'
+							: (count.isLoading || repricing) ? 'Pricing…'
 								: count.data
 									? <>
 										<strong>{count.data.rows.toLocaleString()}</strong> rows ·{' '}
@@ -147,7 +154,7 @@ export function ExportModal({ entity, search, filters, onClose }: {
 							<option value="csv">CSV</option>
 							<option value="xlsx">Excel</option>
 						</select>
-						<Button disabled={downloading || selected.length === 0} onClick={() => void download()}>
+						<Button disabled={downloading || repricing || selected.length === 0} onClick={() => void download()}>
 							<Download size={13} /> {downloading ? 'Preparing…' : 'Download'}
 						</Button>
 					</div>

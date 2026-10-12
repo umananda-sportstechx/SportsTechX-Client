@@ -44,7 +44,6 @@ export default function SignupPage() {
 
 	const supabase = getSupabaseBrowser();
 
-
 	const handleSignup = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setError('');

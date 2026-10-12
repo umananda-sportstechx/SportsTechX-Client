@@ -46,7 +46,12 @@ export async function GET(request: NextRequest) {
     if (!error && data.session) {
       // The email and password paths both do this before navigating. OAuth did
       // not, so a Google signup never got its signup credits.
-      await callPostLogin(data.session.access_token, process.env.BACKEND_URL ?? '');
+      // `BACKEND_URL` is required at build time by next.config, but fall back
+      // to this deployment's own origin rather than assume it is also present
+      // at runtime: an empty base would make this a relative fetch, which has
+      // nothing to resolve against inside a route handler. Going via `origin`
+      // just takes the same `/api/*` rewrite the browser uses.
+      await callPostLogin(data.session.access_token, process.env.BACKEND_URL || origin);
 
       // A new account goes to onboarding — the plan chooser and persona step
       // live there, and `redirectTo` defaults to the dashboard, so OAuth
