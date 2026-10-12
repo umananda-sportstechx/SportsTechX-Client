@@ -1,0 +1,77 @@
+/*
+ * Sonner toast styling — the Figma "Toast notifications" card.
+ *
+ * Toasts portal to <body>, outside the `.atlas` scope, so these target
+ * sonner's own data attributes and reference the Atlas tokens directly. A toast
+ * is a dark card in both themes (like the command palette and tooltips): a
+ * transient overlay reads better dark, and the Figma draws it that way over a
+ * light page. Status is a left accent bar, not a whole coloured card, so the
+ * toast stays on-brand instead of sonner's default red/green fills.
+ */
+[data-sonner-toaster] {
+	--normal-bg: #161618;
+	--normal-text: #ffffff;
+	--normal-border: rgba(255, 255, 255, 0.12);
+	--border-radius: 13px;
+	font-family: var(--a-body, "Inter", system-ui, sans-serif);
+}
+
+[data-sonner-toast] {
+	position: relative;
+	gap: 10px;
+	padding: 14px 16px;
+	background: #161618;
+	color: #ffffff;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 13px;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+	overflow: hidden;
+}
+
+[data-sonner-toast] [data-title] {
+	font-family: var(--a-font, "Satoshi", system-ui, sans-serif);
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: #ffffff;
+}
+[data-sonner-toast] [data-description] {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: rgba(255, 255, 255, 0.72);
+	margin-top: 3px;
+}
+
+/* A status rail down the left edge, in Atlas status colours. */
+[data-sonner-toast]::before {
+	content: '';
+	position: absolute;
+	left: 0; top: 0; bottom: 0;
+	width: 3px;
+	background: rgba(255, 255, 255, 0.35);
+}
+[data-sonner-toast][data-type="success"]::before { background: #2ac792; }
+[data-sonner-toast][data-type="error"]::before { background: #ff5c7a; }
+[data-sonner-toast][data-type="warning"]::before { background: #e9a86c; }
+[data-sonner-toast][data-type="info"]::before { background: #5aa6ea; }
+
+[data-sonner-toast] [data-icon] { color: #ffffff; }
+[data-sonner-toast][data-type="success"] [data-icon] { color: #2ac792; }
+[data-sonner-toast][data-type="error"] [data-icon] { color: #ff5c7a; }
+
+/* Close button + the action link, both on the dark surface. */
+[data-sonner-toast] [data-close-button] {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	color: #ffffff;
+}
+[data-sonner-toast] [data-close-button]:hover { background: rgba(255, 255, 255, 0.2); }
+[data-sonner-toast] [data-button] {
+	background: #ffffff;
+	color: #161618;
+	border-radius: 35px;
+	font-family: var(--a-mono, ui-monospace, monospace);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
