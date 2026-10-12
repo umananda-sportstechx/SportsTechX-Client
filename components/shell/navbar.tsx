@@ -10,6 +10,7 @@ import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
 import { ThemeToggle } from '@/components/atlas/shell/theme-toggle';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
+import { NotificationBell } from './notification-bell';
 import { useNav } from '@/hooks/use-nav';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useLogout } from '@/hooks/use-logout';
@@ -21,7 +22,7 @@ import './navbar.css';
 
 /**
  * The bar across the top of every authenticated page: breadcrumbs and search on
- * the left, Get Verified and the account menu on the right.
+ * the left, Get Verified, notifications and the account menu on the right.
  *
  * Rendered via AtlasShell's `topbar` slot rather than inside AtlasShell, which
  * is deliberately manifest-free — breadcrumbs need `lib/routes` and the account
@@ -62,6 +63,7 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 
 			<div className="atlas-navbar__right">
 				<VerifyButton />
+				<NotificationBell />
 				<AccountMenu tier={tier} accountPath={accountPath} />
 			</div>
 		</header>

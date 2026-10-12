@@ -1,0 +1,113 @@
+/*
+ * The verified-company report. Atlas tokens only; the charts bring their own
+ * styling from the global analytics stylesheet, so there is nothing here for
+ * them beyond the grid they sit in.
+ */
+.atlas .vcr-lede {
+	margin: 0 0 18px;
+	font-family: var(--a-body);
+	font-size: 14.5px;
+	line-height: 1.6;
+	color: var(--a-ink);
+}
+
+.atlas .vcr-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 14px 20px;
+	margin: 0 0 18px;
+}
+.atlas .vcr-facts__row dd {
+	margin: 4px 0 0;
+	font-family: var(--a-body);
+	font-size: 13.5px;
+	line-height: 1.4;
+	color: var(--a-ink);
+}
+
+.atlas .vcr-link {
+	font-family: var(--a-mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--a-ink);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.atlas .vcr-headline {
+	margin: 10px 0 14px;
+	font-family: var(--a-font);
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1.35;
+	color: var(--a-ink);
+}
+.atlas .vcr-bullets { margin: 0 0 14px; padding-left: 18px; display: grid; gap: 8px; }
+.atlas .vcr-bullets li,
+.atlas .vcr-para {
+	font-family: var(--a-body);
+	font-size: 13.5px;
+	line-height: 1.65;
+	color: var(--a-muted);
+}
+.atlas .vcr-para { margin: 0 0 12px; }
+.atlas .vcr-para:last-child { margin-bottom: 0; }
+
+.atlas .vcr-split {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 27px;
+	align-items: start;
+}
+
+.atlas .vcr-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.atlas .vcr-list__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px 10px;
+	padding: 11px 13px;
+	border-radius: var(--a-radius-sm);
+	background: var(--a-inset);
+}
+.atlas .vcr-list__name {
+	font-family: var(--a-body);
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--a-ink);
+}
+.atlas .vcr-list__tag {
+	padding: 2px 7px;
+	border-radius: var(--a-radius-tag);
+	background: var(--a-field);
+	box-shadow: inset 0 0 0 1px var(--a-border);
+	font-family: var(--a-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--a-muted);
+}
+/* The generator writes multi-paragraph investor blurbs. Three lines is enough
+   to tell them apart; the full text is a click away on the investor page. */
+.atlas .vcr-list__desc {
+	flex-basis: 100%;
+	font-family: var(--a-body);
+	font-size: 12.5px;
+	line-height: 1.55;
+	color: var(--a-muted);
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.atlas .vcr-list__link {
+	flex-basis: 100%;
+	font-family: var(--a-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.06em;
+	color: var(--a-muted);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.atlas .vcr-list__link:hover { color: var(--a-ink); }

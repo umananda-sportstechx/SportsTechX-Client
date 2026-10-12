@@ -145,7 +145,7 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 
 	// And nothing stale: a prefix that matches no route and is not one of the two
 	// non-ROUTES trees is a leftover that would gate a URL we no longer serve.
-	const EXTRA = ['/onboarding', '/docs'];
+	const EXTRA = ['/onboarding', '/docs', '/verified-reports'];
 	const allPaths = ROUTES.flatMap((r) => (['explore', 'raise', 'scout'] as Tier[]).map((t) => forTier(r.path, t)));
 	const stalePrefixes = PRIVATE_PREFIXES
 		.filter((p) => !EXTRA.includes(p))
