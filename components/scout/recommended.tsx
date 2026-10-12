@@ -44,6 +44,9 @@ interface Recommendation {
 	match_geo: boolean;
 	match_stage: boolean;
 	match_cheque: boolean;
+	/** Matches what the Scout has been searching for / asking about, not the
+	 *  declared thesis — shown as a distinct "from your activity" chip. */
+	match_activity: boolean;
 	match_count: number;
 }
 
@@ -137,8 +140,15 @@ export function Recommended() {
 												{label}
 											</span>
 										))}
+										{c.match_activity && (
+											<span className="atlas-rec__check on atlas-rec__check--activity">
+												<Check size={11} strokeWidth={2.25} aria-hidden="true" />From your activity
+											</span>
+										)}
 									</div>
-									<p className="atlas-rec__reason">Matches {c.match_count} of {CHIPS.length} thesis dimensions.</p>
+									<p className="atlas-rec__reason">
+										Matches {CHIPS.filter(([, key]) => c[key]).length} of {CHIPS.length} thesis dimensions{c.match_activity ? ' · in line with your recent activity' : ''}.
+									</p>
 								</div>
 
 								<div className="atlas-rec__actions">
