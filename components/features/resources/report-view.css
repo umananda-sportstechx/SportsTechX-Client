@@ -1,0 +1,60 @@
+/* A single report — the featured-post card's language at page scale. */
+.atlas .atlas-rv { display: flex; flex-direction: column; gap: 28px; }
+
+.atlas .atlas-rv__hero {
+	display: flex; gap: 32px; padding: 20px 32px 24px 20px;
+	background-color: var(--a-surface);
+	background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 16%, transparent) 100%);
+	border: 1px solid var(--a-card-border); border-radius: var(--a-radius);
+}
+.atlas .atlas-rv__cover {
+	flex: none; width: 260px; aspect-ratio: 3 / 4; align-self: flex-start;
+	display: grid; place-items: center; overflow: hidden;
+	background: var(--a-page); border: 1px solid var(--a-card-border); border-radius: var(--a-radius-sm);
+	color: var(--a-faint);
+}
+.atlas .atlas-rv__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.atlas .atlas-rv__body { display: flex; flex-direction: column; min-width: 0; flex: 1; padding-top: 12px; }
+.atlas .atlas-rv__title {
+	margin: 14px 0 0; font-family: var(--a-font); font-size: 32px; font-weight: 700;
+	line-height: 1.15; letter-spacing: -0.01em; color: var(--a-ink);
+}
+.atlas .atlas-rv__desc { margin: 12px 0 0; max-width: 680px; font-family: var(--a-body); font-size: 14px; line-height: 1.6; color: var(--a-muted); }
+
+.atlas .atlas-rv__label {
+	margin-bottom: 10px; font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: var(--a-faint);
+}
+.atlas .atlas-rv__points { margin-top: 26px; }
+.atlas .atlas-rv__points ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; max-width: 680px; }
+.atlas .atlas-rv__points li {
+	display: flex; align-items: flex-start; gap: 10px;
+	font-family: var(--a-body); font-size: 13.5px; line-height: 1.5; color: var(--a-ink-2);
+}
+.atlas .atlas-rv__points li svg { flex: none; margin-top: 3px; color: var(--a-ok); }
+
+.atlas .atlas-rv__editions { margin-top: 24px; }
+.atlas .atlas-rv__pills { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The Figma filter pill: outline at rest, filled when chosen. */
+.atlas .atlas-rv__pill {
+	height: 29px; padding: 0 13px; border: 0; border-radius: var(--a-radius-pill); cursor: pointer;
+	box-shadow: inset 0 0 0 1px var(--a-border-strong); background: var(--a-field); color: var(--a-ink);
+	font-family: var(--a-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+	transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.atlas .atlas-rv__pill:hover { box-shadow: inset 0 0 0 1px var(--a-ink); }
+.atlas .atlas-rv__pill.on { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
+
+.atlas .atlas-rv__note { font-family: var(--a-body); font-size: 13px; color: var(--a-muted); }
+.atlas .atlas-rv__upsell {
+	display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 14px 0 0;
+	font-family: var(--a-body); font-size: 12.5px; color: var(--a-muted);
+}
+.atlas .atlas-rv__upsell a { color: var(--a-ink); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 760px) {
+	.atlas .atlas-rv__hero { flex-direction: column; padding: 16px; gap: 20px; }
+	.atlas .atlas-rv__cover { width: 100%; aspect-ratio: 16 / 10; }
+	.atlas .atlas-rv__title { font-size: 26px; }
+}

@@ -79,19 +79,40 @@ function useBreadcrumbs(
 	searchParams: ReturnType<typeof useSearchParams>,
 	tier: Tier,
 ): Crumb[] {
-	// A chat's id is opaque, so its leaf would be dropped. The conversation
-	// list is already fetched by the chat page; SWR dedupes, so reading it here
-	// costs no extra request — and only happens on a chat URL at all.
-	const chatBase = hrefOf('chat');
-	const chatId = pathname.startsWith(`${chatBase}/`) ? pathname.slice(chatBase.length + 1).split('/')[0] : null;
-	const { data: convos } = useSWR<ConversationListItem[]>(chatId ? qk.chat.conversations() : null);
-	const leafLabel = chatId ? (convos?.find((c) => c.id === chatId)?.title ?? 'Conversation') : null;
+	const leafLabel = useLeafTitle(pathname);
 
 	return useMemo(() => {
 		const r = routeForPath(pathname, tier);
 		const route = r ? { name: forTier(r.name, tier) ?? r.id, path: forTier(r.path, tier) ?? pathname } : undefined;
 		return crumbsFor(nav, homePath, pathname, searchParams, { route, leafLabel });
 	}, [nav, homePath, pathname, searchParams, tier, leafLabel]);
+}
+
+/** The id segment below a list route, or null when the path is not a detail page. */
+function leafOf(pathname: string, base: string): string | null {
+	return pathname.startsWith(`${base}/`) ? decodeURIComponent(pathname.slice(base.length + 1).split('/')[0]) : null;
+}
+
+/**
+ * A real title for a detail page's last crumb.
+ *
+ * Each of these is already being fetched by the page itself under the same
+ * SWR key, so reading it here costs no extra request, and each lookup only
+ * runs on its own URL. A chat's id is opaque and would otherwise be dropped;
+ * a report or company slug would otherwise be de-slugged ("bsm-report-english"
+ * → "Bsm Report English") instead of reading as its actual title.
+ */
+function useLeafTitle(pathname: string): string | null {
+	const chatId = leafOf(pathname, hrefOf('chat'));
+	const reportSlug = leafOf(pathname, hrefOf('reports'));
+	const companySlug = leafOf(pathname, hrefOf('companies'));
+	const { data: convos } = useSWR<ConversationListItem[]>(chatId ? qk.chat.conversations() : null);
+	const { data: report } = useSWR<{ title?: string }>(reportSlug ? qk.reports.detail(reportSlug) : null);
+	const { data: company } = useSWR<{ name?: string }>(companySlug ? qk.companies.detail(companySlug) : null);
+	if (chatId) return convos?.find((c) => c.id === chatId)?.title ?? 'Conversation';
+	if (reportSlug) return report?.title ?? null;
+	if (companySlug) return company?.name ?? null;
+	return null;
 }
 
 /**
