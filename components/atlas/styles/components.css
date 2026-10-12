@@ -270,9 +270,9 @@ span.atlas-fbar__pill-main { cursor: default; }
 .atlas-entity-card { display: flex; flex-direction: column; padding: 11px 13px 14px; transition: background-image .2s; }
 .atlas-entity-card:hover { background-image: var(--a-glow-pink); }
 .atlas-entity-card__head { display: flex; gap: 16px; margin-bottom: 16px; }
-.atlas-entity-card__eyebrow { font-family: var(--a-mono); font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 6px; }
-.atlas-entity-card__name { font-family: var(--a-font); font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--a-ink); }
-.atlas-entity-card__meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 9px; color: var(--a-faint); }
+.atlas-entity-card__eyebrow { font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 7px; }
+.atlas-entity-card__name { font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); }
+.atlas-entity-card__meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 10px; color: var(--a-faint); }
 .atlas-entity-card__desc {
   font-size: 11px; line-height: 1.4; color: var(--a-muted); margin: 0 3px 14px;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
@@ -281,6 +281,7 @@ span.atlas-fbar__pill-main { cursor: default; }
   display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
   margin: auto 3px 0; padding-top: 16px; border-top: 1px solid var(--a-border);
 }
+.atlas-entity-card:hover .atlas-action__icon { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-primary); }
 
 /* ── Row list (hairline-separated rows in one card) ─────────────────────── */
 .atlas-rowlist {
