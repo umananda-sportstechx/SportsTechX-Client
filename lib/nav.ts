@@ -86,12 +86,16 @@ export function buildNav(tier: Tier, isAdmin: boolean, lists: NavWatchlist[] = [
 
 		if (group.bottom) { bottomNav.push(...items); continue; }
 		if (group.title === null) { nav.push(...items); continue; }
-		nav.push({
-			title: group.title,
-			items: group.title === 'Watchlists' && watchlistIcon
-				? withWatchlists(items, tier, lists, watchlistIcon)
-				: items,
-		});
+		const sectionItems = group.title === 'Watchlists' && watchlistIcon
+			? withWatchlists(items, tier, lists, watchlistIcon)
+			: items;
+		// A heading over a single link reads as a mistake — it is Scout's
+		// "Watchlists" before the user has saved any list (then the section is
+		// just "All watchlists"). Render it as a plain top-level item, the way
+		// the heading-less Home group already renders. The section reappears the
+		// moment a second item does (a saved list splices in above the anchor).
+		if (sectionItems.length === 1) { nav.push(sectionItems[0]); continue; }
+		nav.push({ title: group.title, items: sectionItems });
 	}
 
 	return { nav, bottomNav };
