@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { Loader2, Search } from 'lucide-react';
 import { Logo, cx } from '@/components/atlas';
+import { FigmaIcon } from '@/components/atlas/icons/figma-icons';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useNav } from '@/hooks/use-nav';
 import { flattenNav } from '@/components/atlas/shell/nav';
@@ -53,7 +54,7 @@ function bucketsFor(tier: Tier): string[] {
 	return ['companies'];
 }
 
-interface PageHit { label: string; href: string; group: string }
+interface PageHit { label: string; href: string; group: string; icon: string }
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const router = useRouter();
@@ -73,19 +74,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 	const pages = useMemo<PageHit[]>(() => {
 		const fromNav = nav.flatMap((e) =>
 			'items' in e
-				? e.items.filter((i) => !i.soon).map((i) => ({ label: i.name, href: i.path, group: e.title }))
-				: [{ label: e.name, href: e.path, group: 'Pages' }],
+				? e.items.filter((i) => !i.soon).map((i) => ({ label: i.name, href: i.path, group: e.title, icon: i.icon }))
+				: [{ label: e.name, href: e.path, group: 'Pages', icon: e.icon }],
 		);
 		// Reachable but deliberately unlisted in the sidebar.
 		const extra: PageHit[] = [
-			{ label: 'Account', href: accountPath, group: 'Account' },
-			{ label: 'Get verified', href: hrefOf('verify'), group: 'Account' },
-			{ label: 'Chat', href: hrefOf('chat'), group: 'Pages' },
+			{ label: 'Account', href: accountPath, group: 'Account', icon: 'nav-thesis' },
+			{ label: 'Get verified', href: hrefOf('verify'), group: 'Account', icon: 'nav-onboarding' },
+			{ label: 'Chat', href: hrefOf('chat'), group: 'Pages', icon: 'nav-watchlist' },
 		];
-		if (tier === 'raise') extra.push({ label: 'Raise settings', href: hrefOf('raise-settings'), group: 'Account' });
-		if (tier === 'scout') extra.push({ label: 'Thesis settings', href: hrefOf('thesis'), group: 'Account' });
-		if (tier !== 'explore') extra.push({ label: 'Subscription', href: hrefOf('billing'), group: 'Account' });
-		else extra.push({ label: 'Compare plans', href: hrefOf('plans'), group: 'Account' });
+		if (tier === 'raise') extra.push({ label: 'Raise settings', href: hrefOf('raise-settings'), group: 'Account', icon: 'nav-thesis' });
+		if (tier === 'scout') extra.push({ label: 'Thesis settings', href: hrefOf('thesis'), group: 'Account', icon: 'nav-thesis' });
+		if (tier !== 'explore') extra.push({ label: 'Subscription', href: hrefOf('billing'), group: 'Account', icon: 'nav-subscription' });
+		else extra.push({ label: 'Compare plans', href: hrefOf('plans'), group: 'Account', icon: 'nav-subscription' });
 
 		const seen = new Set<string>();
 		return [...fromNav, ...extra].filter((p) => {
@@ -189,7 +190,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 									onMouseEnter={() => setCursor(flat.indexOf(p.href))}
 									onClick={() => go(p.href)}
 								>
-									<span className="cmdk__dot" aria-hidden="true" />
+									<span className="cmdk__ico"><FigmaIcon name={p.icon} size={18} /></span>
 									<span className="cmdk__name">{p.label}</span>
 									<span className="cmdk__meta">{p.group}</span>
 								</button>
@@ -210,7 +211,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 										onMouseEnter={() => setCursor(flat.indexOf(href))}
 										onClick={() => go(href)}
 									>
-										<Logo co={{ name: h.name, website: h.website ?? null, custom_logo_url: null }} size={18} radius={4} />
+										<Logo co={{ name: h.name, website: h.website ?? null, custom_logo_url: null }} size={22} radius={4} />
 										<span className="cmdk__name">{h.name}</span>
 										{h.subtitle && <span className="cmdk__meta">{h.subtitle.replace(/^https?:\/\//, '')}</span>}
 									</button>
