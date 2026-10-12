@@ -113,3 +113,18 @@ assert.equal(empty.chequeMin, '');
 console.log('  ok    an unset thesis reads as empty, not as the sample data');
 
 console.log('\nPASS');
+
+// Real round-type names ("Seed Round", "Series C"…): stage chips translate both
+// ways, so "Seed" and "Growth" survive a save instead of being dropped.
+{
+	const real = {
+		sectors: indexByName([]), sports: indexByName([]),
+		rounds: indexByName([{ id: 'r-seed', name: 'Seed Round' }, { id: 'r-a', name: 'Series A' }, { id: 'r-c', name: 'Series C' }, { id: 'r-d', name: 'Series D' }]),
+	};
+	const out = toThesisDto({ ...(form as Parameters<typeof toThesisDto>[0]), stages: ['Seed', 'Series A', 'Growth'] }, real);
+	assert.deepEqual(out.round_type_ids, ['r-seed', 'r-a', 'r-c', 'r-d']);
+	const loaded = toForm({ round_types: [{ id: 'r-seed', name: 'Seed Round' }, { id: 'r-c', name: 'Series C' }, { id: 'r-d', name: 'Series D' }, { id: 'x', name: 'Angel Round' }] } as never, null, form as never);
+	assert.deepEqual(loaded.stages, ['Seed', 'Growth', 'Angel Round']);
+}
+
+console.log('thesis-codec: real round names ok');

@@ -98,7 +98,28 @@ export function formatMoney(n: number | null): string {
 export const indexByName = (rows: TaxonomyRef[]) =>
 	new Map(rows.filter((r) => r.name).map((r) => [r.name!.toLowerCase(), r.id]));
 
+/**
+ * Stage chips → the round-type names they stand for in the database.
+ *
+ * The form speaks the investor's language ("Seed", "Growth"); `round_types`
+ * holds Crunchbase-style names ("Seed Round", "Series C"…). Matching the chip
+ * label against those names directly dropped every stage but "Series A/B" on
+ * save. A label can cover several rounds ("Growth" = Series C onwards).
+ */
+export const STAGE_ROUNDS: Record<string, string[]> = {
+	'Pre-Seed': ['Pre Seed Round'],
+	Seed: ['Seed Round'],
+	'Series A': ['Series A', 'Series A-1'],
+	'Series B': ['Series B'],
+	Growth: ['Series C', 'Series D', 'Series E', 'Series F', 'Series G', 'Series H', 'Late Stage Venture', 'Private Equity'],
+};
+const ROUND_TO_STAGE = new Map(Object.entries(STAGE_ROUNDS).flatMap(([label, rounds]) => rounds.map((r) => [r.toLowerCase(), label] as const)));
+
+
 const names = (rows: TaxonomyRef[]) => rows.map((r) => r.name).filter((n): n is string => !!n);
+
+/** Saved round names → stage chips, de-duplicated. Rounds no chip covers are kept as-is so a save round-trips them. */
+const stagesOf = (rows: TaxonomyRef[]) => [...new Set(names(rows).map((n) => ROUND_TO_STAGE.get(n.toLowerCase()) ?? n))];
 
 /** Server → form. */
 export function toForm(
@@ -117,7 +138,7 @@ export function toForm(
 		website: p?.fund_website ?? '',
 		aum: p?.aum ?? '',
 		sectors: names(t?.sectors ?? []),
-		stages: names(t?.round_types ?? []),
+		stages: stagesOf(t?.round_types ?? []),
 		regions: (t?.geo ?? []).map((g) => g.scope_value),
 		chequeMin: formatMoney(t?.cheque_min ?? null),
 		chequeMax: formatMoney(t?.cheque_max ?? null),
@@ -136,9 +157,12 @@ export function toForm(
 export function toThesisDto(t: Thesis, idx: { sectors: Map<string, string>; rounds: Map<string, string>; sports: Map<string, string> }) {
 	const ids = (labels: string[], m: Map<string, string>) =>
 		labels.map((l) => m.get(l.toLowerCase())).filter((v): v is string => !!v);
+	// A stage chip matches its own label or the round names it stands for
+	// (taxonomies differ); anything else is already a round name.
+	const roundNames = t.stages.flatMap((s) => [s, ...(STAGE_ROUNDS[s] ?? [])]);
 	return {
 		sector_ids: ids(t.sectors, idx.sectors),
-		round_type_ids: ids(t.stages, idx.rounds),
+		round_type_ids: [...new Set(ids(roundNames, idx.rounds))],
 		sport_ids: ids(t.include, idx.sports),
 		geo: t.regions.map((r) => ({ scope_type: scopeTypeOf(r), scope_value: r })),
 		business_models: t.include.map((i) => BUSINESS_MODEL[i]).filter(Boolean),

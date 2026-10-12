@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { Field, Input } from '@/components/atlas';
 import { ChipSet, AddButton, PickerDialog, toggleIn, withSelected } from './thesis-fields';
-import { PILLAR_SECTORS, THESIS_OPTIONS, type Thesis } from './sample-data';
+import useSWR from 'swr';
+import { qk } from '@/lib/query-keys';
+import { THESIS_OPTIONS, type Thesis } from './sample-data';
+
+interface SectorRow { id: string; name: string; parent_id: string | null }
+/** Pill colours for the three framework pillars, in taxonomy order. */
+const PILLAR_TONES = ['athletes', 'fans', 'executives'] as const;
 
 /**
  * Thesis field groups, shared by Thesis settings (all on one page) and the
@@ -69,13 +75,20 @@ export function GeographyFields({ t, patch }: Props) {
 }
 
 export function SectorFields({ t, patch }: Props) {
+	// The real SportsTechX framework from /api/sectors: top-level pillars with
+	// their sectors as chips. Built from the data (not a hand-kept list) so every
+	// chip exists in the taxonomy — a chip that doesn't is silently dropped on save.
+	const { data } = useSWR<SectorRow[] | { data: SectorRow[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	const rows = Array.isArray(data) ? data : (data?.data ?? []);
+	const pillars = rows.filter((r) => !r.parent_id).map((p) => ({ name: p.name, sectors: rows.filter((r) => r.parent_id === p.id).map((r) => r.name) }));
 	return (
 		<FieldBlock label="SportsTechX sectors" hint="Select all that apply">
 			<div className="scout-pillars">
-				{(Object.keys(PILLAR_SECTORS) as (keyof typeof PILLAR_SECTORS)[]).map((p) => (
-					<div key={p} className="scout-pillar">
-						<span className={`scout-pillar__pill scout-pillar__pill--${p.toLowerCase()}`}>{p}</span>
-						<ChipSet wide options={PILLAR_SECTORS[p]} value={t.sectors} onToggle={(o) => patch({ sectors: toggleIn(t.sectors, o) })} />
+				{pillars.length === 0 && <span className="scout-muted">Loading sectors…</span>}
+				{pillars.map((p, i) => (
+					<div key={p.name} className="scout-pillar">
+						<span className={`scout-pillar__pill scout-pillar__pill--${PILLAR_TONES[i % PILLAR_TONES.length]}`}>{p.name}</span>
+						<ChipSet wide options={p.sectors} value={t.sectors} onToggle={(o) => patch({ sectors: toggleIn(t.sectors, o) })} />
 					</div>
 				))}
 			</div>

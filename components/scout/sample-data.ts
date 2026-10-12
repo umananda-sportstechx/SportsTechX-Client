@@ -51,13 +51,6 @@ export const THESIS_OPTIONS = {
 	invStyle: ['Lead', 'Follow', 'Either'] as const,
 };
 
-/** SportsTechX framework sectors by pillar (onboarding + thesis sector chips). */
-export const PILLAR_SECTORS: Record<'Athletes' | 'Fans' | 'Executives', string[]> = {
-	Athletes: ['Activity & Performance', 'Health & Wellbeing', 'Coaching & Education'],
-	Fans: ['Fan Engagement', 'Media & Content', 'Betting & Fantasy'],
-	Executives: ['Management & Operations', 'Venues & Infrastructure', 'Commerce & Sponsorship'],
-};
-
 /** Full pick lists behind "+ Add" (regions, include/exclude attributes). */
 export const PICK_LISTS: Record<'regions' | 'attrs', [string, string[]][]> = {
 	regions: [
