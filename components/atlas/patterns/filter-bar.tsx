@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Search, Plus, X, ChevronLeft, SlidersHorizontal, Lock } from 'lucide-react';
 import { cx } from '../ui/cx';
 import { useDismiss } from './use-dismiss';
+import { useSearchSignal } from '@/hooks/use-search-signal';
 
 /**
  * Figma "Toolbar" filter pattern: pill search · applied-filter pills · black
@@ -41,6 +42,10 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 }) {
 	const [menu, setMenu] = useState<MenuState>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
+
+	// Every catalog search flows through here, so this is the one place that
+	// feeds searches into the behavioural personalization profile.
+	useSearchSignal(search.value);
 
 	const closeMenu = useCallback(() => setMenu(null), []);
 	useDismiss(rootRef, !!menu, closeMenu);
