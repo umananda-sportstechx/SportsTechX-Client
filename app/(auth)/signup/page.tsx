@@ -9,7 +9,7 @@ import { callPostLogin } from '@/lib/post-login';
 import { Button } from '@/components/atlas';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
-import { AuthBrandPanel } from '@/components/auth/auth-quotes';
+import { AuthSidePanel } from '@/components/auth/auth-quotes';
 
 /**
  * Create an account.
@@ -81,7 +81,7 @@ export default function SignupPage() {
 	return (
 		<>
 			<AuthThemeToggle />
-			<AuthSplit panel={<AuthBrandPanel />}>
+			<AuthSplit panel={<AuthSidePanel />}>
 				<div>
 					<h1 className="auth-form__title">Create your Atlas account</h1>
 					<p className="auth-form__sub">Free to start. No card required.</p>
