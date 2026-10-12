@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowUpRight } from 'lucide-react';
-import { Empty, Loading, PillTabs } from '@/components/atlas';
+import { Empty, Loading, PillTabs, Select } from '@/components/atlas';
 import { qk } from '@/lib/query-keys';
+import { useSectorTierData, useLocationFacetOptions } from '@/hooks/use-catalog-options';
 import { ago, place } from '@/components/features/market/format';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import type { Signal, SignalType } from '@/types/api';
@@ -42,12 +43,28 @@ const TYPE_LABEL: Record<string, string> = {
 
 export function Signals({ companiesHref }: { companiesHref: string }) {
 	const [type, setType] = useState<'All' | SignalType>('All');
+	// Optional soft filters the user applies — never automatic scoping. A Raise
+	// founder sees the whole market by default and narrows it if they want.
+	const [sector, setSector] = useState('');
+	const [country, setCountry] = useState('');
+	const [watchlistOnly, setWatchlistOnly] = useState(false);
+	const sectorTiers = useSectorTierData();
+	const loc = useLocationFacetOptions();
+
 	// Filtered server-side, not with rows.filter — otherwise `limit` would cap
-	// the feed before the filter ran and a quiet type could look empty.
-	const params = useMemo(() => (type === 'All' ? { limit: 50 } : { type, limit: 50 }), [type]);
+	// the feed before the filter ran and a quiet slice could look empty.
+	const params = useMemo(() => {
+		const p: Record<string, unknown> = { limit: 50 };
+		if (type !== 'All') p.type = type;
+		if (sector) p.sector_slug = sector;
+		if (country) p.country = country;
+		if (watchlistOnly) p.watchlist_only = true;
+		return p;
+	}, [type, sector, country, watchlistOnly]);
 	const res = useSWR<{ data: Signal[] }>(qk.signals.list(params), { keepPreviousData: true });
 	const rows = res.data?.data ?? [];
-	const typeName = FILTERS.find((f) => f.key === type)?.label ?? '';
+	const hasFilters = type !== 'All' || !!sector || !!country || watchlistOnly;
+	const clearAll = () => { setType('All'); setSector(''); setCountry(''); setWatchlistOnly(false); };
 
 	return (
 		<>
@@ -58,13 +75,19 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 			<div className="atlas-sig-filter">
 				<PillTabs ariaLabel="Signal type" value={type} onChange={setType} options={FILTERS} />
 			</div>
+			<div className="atlas-sig-filter atlas-sig-filter--row">
+				<Select aria-label="Sector" placeholder="All sectors" value={sector} onChange={(e) => setSector(e.target.value)} options={sectorTiers.topOptions} />
+				<Select aria-label="Country" placeholder="All countries" value={country} onChange={(e) => setCountry(e.target.value)} options={loc.country} />
+				<button type="button" className={watchlistOnly ? 'atlas-pilltab on' : 'atlas-pilltab'} aria-pressed={watchlistOnly} onClick={() => setWatchlistOnly((v) => !v)}>My watchlists</button>
+				{hasFilters && <button type="button" className="atlas-sig-clear" onClick={clearAll}>Clear</button>}
+			</div>
 
 			{res.isLoading && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? (
 					<Empty>
-						{type === 'All'
-							? 'No signals yet.'
-							: `No ${typeName.toLowerCase()} signals yet — this type has no source feeding it today.`}
+						{hasFilters
+							? 'No signals match these filters. Try widening them or clearing to see the whole market.'
+							: 'No signals yet.'}
 					</Empty>
 				) : (
 					<div className="atlas-sig-list">
