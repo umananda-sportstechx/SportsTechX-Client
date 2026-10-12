@@ -2,6 +2,7 @@
 
 import { Card, PageHead, Screen } from '@/components/atlas';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
+import { MyReportsCard } from '@/components/features/verified-reports/my-reports-card';
 
 /**
  * Get verified — reachable by every tier, on purpose.
@@ -32,6 +33,7 @@ export default function Page() {
 				</ul>
 				<VerifyButton label="Start verification" />
 			</Card>
+			<MyReportsCard />
 		</Screen>
 	);
 }

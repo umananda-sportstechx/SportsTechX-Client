@@ -5,6 +5,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Check, Plus, ArrowUpRight, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import type { InvestorListItem as Investor } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
@@ -237,6 +238,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 				canClear={anyFilter}
 				onClear={clearAll}
 				count={`${total.toLocaleString()} investor${total === 1 ? '' : 's'}`}
+				actions={<ExportButton entity="investors" search={dq} params={params} />}
 			/>
 			<div style={{ borderTop: '1px solid var(--a-border)', margin: '6px 0 30px' }} />
 

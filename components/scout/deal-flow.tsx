@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import useSWR from 'swr';
-import { Empty, Loading, Progress } from '@/components/atlas';
+import { toast } from 'sonner';
+import { Button, Empty, Field, Input, Loading, Progress, Select } from '@/components/atlas';
+import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
-	MY_STATUS, closeLabel, committedPct, companyLabel, money, submitterLabel,
+	LEAD_LABEL, MY_STATUS, closeLabel, committedPct, companyLabel, money, submitterLabel,
 	type DealRow, type DealTab, type MyDealRow,
 } from './deal-types';
 
@@ -26,6 +29,8 @@ import {
  * splits it locally rather than firing three.
  */
 export const dealHref = (id: string) => `${hrefOf('deal-flow')}/${id}`;
+/** Reopen one of your own submissions in the share wizard. */
+const editHref = (id: string) => `${hrefOf('deal-flow-circle')}/share?draft=${id}`;
 
 /**
  * The list caps at 50 server-side and returns no total, so there is nothing to
@@ -129,7 +134,7 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
  * already says it.
  */
 function MySubmissions() {
-	const { data } = useSWR<{ data: MyDealRow[] }>(qk.scout.dealflowMine());
+	const { data, mutate } = useSWR<{ data: MyDealRow[] }>(qk.scout.dealflowMine());
 	const mine = data?.data ?? [];
 	if (mine.length === 0) return null;
 
@@ -161,14 +166,86 @@ function MySubmissions() {
 							{!m.founder_consent && m.status === 'draft' && (
 								<span className="scout-df-pending">Needs founder consent before it can be submitted</span>
 							)}
+							{/* A returned deal used to be a dead end: the note said what to
+							    change and nothing could be changed. `PATCH :id` accepts both
+							    of these statuses, so both get a way back into the wizard. */}
+							{(m.status === 'draft' || m.status === 'changes_requested') && (
+								<Link href={editHref(m.id)} className="scout-df-card__link">
+									{m.status === 'draft' ? 'Continue this draft →' : 'Make the changes →'}
+								</Link>
+							)}
 							{m.status === 'live' && (
-								<Link href={dealHref(m.id)} className="scout-df-card__link">View listing →</Link>
+								<>
+									<Link href={dealHref(m.id)} className="scout-df-card__link">View listing →</Link>
+									<LiveEdit m={m} onSaved={() => void mutate()} />
+								</>
 							)}
 						</article>
 					);
 				})}
 			</div>
 		</section>
+	);
+}
+
+/**
+ * The three fields `PATCH /scout/dealflow/:id/live` lets a submitter move after
+ * their deal is listed: how much is committed, whether a lead is confirmed, and
+ * when it closes. Everything else is frozen once STX has reviewed it, which is
+ * why this is a three-field panel and not the wizard again.
+ *
+ * The endpoint `COALESCE`s each column, so an untouched field is left alone
+ * rather than cleared — a blank input here means "no change", not "set to null".
+ */
+function LiveEdit({ m, onSaved }: { m: MyDealRow; onSaved: () => void }) {
+	const [open, setOpen] = useState(false);
+	const [committed, setCommitted] = useState(m.committed_amount == null ? '' : String(Number(m.committed_amount)));
+	const [lead, setLead] = useState(m.lead_status ?? '');
+	const [close, setClose] = useState((m.target_close_date ?? '').slice(0, 10));
+	const [busy, setBusy] = useState(false);
+
+	if (!open) {
+		return (
+			<button type="button" className="scout-link" onClick={() => setOpen(true)} style={{ alignSelf: 'flex-start', marginTop: 8 }}>
+				Update progress
+			</button>
+		);
+	}
+
+	const save = async () => {
+		setBusy(true);
+		try {
+			const amount = Number(committed.replace(/[^0-9.]/g, ''));
+			const res = await apiRequest('PATCH', `/api/scout/dealflow/${m.id}/live`, {
+				committed_amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+				lead_status: lead || null,
+				target_close_date: close || null,
+			});
+			if (!res.ok) throw new Error(String(res.status));
+			toast.success('Updated');
+			onSaved();
+			setOpen(false);
+		} catch {
+			toast.error('We could not save that. Please try again.');
+		} finally { setBusy(false); }
+	};
+
+	return (
+		<div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+			<Field label={`Committed to date (${m.currency_code ?? 'EUR'})`}>
+				<Input type="number" min="0" value={committed} onChange={(e) => setCommitted(e.target.value)} placeholder="500000" />
+			</Field>
+			<Field label="Lead status">
+				<Select value={lead} onChange={(e) => setLead(e.target.value)} options={Object.entries(LEAD_LABEL)} placeholder="No change" />
+			</Field>
+			<Field label="Target close date">
+				<Input type="date" value={close} onChange={(e) => setClose(e.target.value)} />
+			</Field>
+			<div style={{ display: 'flex', gap: 8 }}>
+				<Button size="sm" disabled={busy} onClick={() => void save()}>{busy ? 'Saving…' : 'Save'}</Button>
+				<Button size="sm" variant="outline" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button>
+			</div>
+		</div>
 	);
 }
 
