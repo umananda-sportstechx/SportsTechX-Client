@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountTabs } from './account-tabs';
 import { useState } from 'react';
 import { mutate } from 'swr';
 import { toast } from 'sonner';
@@ -95,6 +96,7 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	return (
 		<Screen>
 			<PageHead title="Account" sub={sub} />
+			<AccountTabs />
 
 			<div style={{ display: 'grid', gap: 18 }}>
 				<Card>

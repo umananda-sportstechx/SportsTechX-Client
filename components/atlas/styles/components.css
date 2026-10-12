@@ -201,14 +201,35 @@ span.atlas-fbar__pill-main { cursor: default; }
   color: color-mix(in srgb, var(--a-primary-ink) 55%, transparent); margin-bottom: 8px;
 }
 .atlas-menu__group { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
-.atlas-menu__list { display: flex; flex-direction: column; align-items: stretch; gap: 3px; }
+.atlas-menu__list { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .atlas-menu__list--scroll { max-height: 280px; overflow-y: auto; margin-right: -8px; padding-right: 8px; scrollbar-width: thin; }
+/* The Figma option pill: a hairline outline, a dot, and an uppercase mono
+   label. Every dropdown in the product uses this so the filter menus, the sort
+   menu and the account menu are one component rather than three lookalikes.
+   Rows that carry real names (search results) opt out — see `--plain`. */
 .atlas-menu__item {
-  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-  background: none; border: none; cursor: pointer; padding: 3px 4px; border-radius: 4px;
-  font-family: var(--a-mono); font-size: 11px; line-height: 1.35; letter-spacing: 0.1em; color: inherit;
+  display: flex; align-items: center; gap: 8px; width: auto; max-width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer; padding: 6px 12px;
+  border-radius: var(--a-radius-pill);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-primary-ink) 22%, transparent);
+  font-family: var(--a-mono); font-size: 10px; line-height: 1.2; letter-spacing: 0.1em;
+  text-transform: uppercase; color: inherit; white-space: nowrap;
+  transition: background 0.12s, box-shadow 0.12s;
 }
-.atlas-menu__item:hover, .atlas-menu__item:focus-visible { background: color-mix(in srgb, var(--a-primary-ink) 12%, transparent); outline: none; }
+.atlas-menu__item:hover, .atlas-menu__item:focus-visible {
+  background: color-mix(in srgb, var(--a-primary-ink) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-primary-ink) 45%, transparent);
+  outline: none;
+}
+.atlas-menu__item.on { box-shadow: inset 0 0 0 1px var(--a-primary-ink); }
+/* A row rather than a pill: full width, sentence case, no outline. For lists of
+   real names, where an uppercase mono pill would mangle the content. */
+.atlas-menu__item--plain {
+  width: 100%; padding: 5px 6px; border-radius: var(--a-radius-xs);
+  box-shadow: none; text-transform: none; letter-spacing: 0;
+  font-family: var(--a-body); font-size: 12.5px;
+}
+.atlas-menu__item--plain:hover, .atlas-menu__item--plain:focus-visible { box-shadow: none; }
 .atlas-menu__dot {
   width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0;
   background: color-mix(in srgb, var(--a-primary-ink) 38%, transparent);

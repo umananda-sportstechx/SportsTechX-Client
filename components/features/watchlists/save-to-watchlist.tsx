@@ -71,7 +71,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 						{shown.map((l) => {
 							const on = ids.includes(l.id);
 							return (
-								<button key={l.id} type="button" className={cx('atlas-menu__item', on && 'on')} aria-pressed={on} disabled={busy !== null} onClick={() => void toggle(l.id, l.name)}>
+								<button key={l.id} type="button" className={cx('atlas-menu__item', 'atlas-menu__item--plain', on && 'on')} aria-pressed={on} disabled={busy !== null} onClick={() => void toggle(l.id, l.name)}>
 									<span className="atlas-wl-check" aria-hidden="true">{busy === l.id ? <Loader2 className="animate-spin" size={10} /> : on ? <Check size={10} /> : null}</span>
 									<span className="atlas-switcher__name">{l.name}</span>
 									{l.company_count != null && <span className="atlas-switcher__meta">{l.company_count}</span>}
@@ -86,7 +86,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 								<button type="submit" className="atlas-wl-create" disabled={!newName.trim() || busy !== null}>{busy === 'new' ? <Loader2 className="animate-spin" size={11} /> : 'Create'}</button>
 							</form>
 						) : (
-							<button type="button" className="atlas-menu__item" onClick={() => setCreating(true)}>
+							<button type="button" className="atlas-menu__item atlas-menu__item--plain" onClick={() => setCreating(true)}>
 								<Plus size={11} aria-hidden="true" /> New watchlist
 							</button>
 						)}

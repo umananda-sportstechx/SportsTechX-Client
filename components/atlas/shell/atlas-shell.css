@@ -22,6 +22,12 @@
 .atlas-topbar { display: none; }
 
 /* ── Sidebar ───────────────────────────────────────────────────────────────*/
+/*
+ * Geometry is the Figma sidebar's, read off the signed-off mockup
+ * (Assets/ATLAS Base UI Mockups, `sideStyle` / `navStyle`): 261px open, 72px
+ * collapsed, a 128px-tiled noise texture over the rail colour, and an inset
+ * right edge rather than a border so the width IS 261 and not 260 + 1.
+ */
 .atlas-rail {
   position: sticky;
   top: 0;
@@ -29,56 +35,129 @@
   display: flex;
   flex-direction: column;
   background-color: var(--a-rail);
+  /* The real Figma texture. What was here before was an feTurbulence SVG at
+     0.09 alpha, which rendered as flat grey — the sidebar had no visible grain
+     at all. The PNG is RGBA, so it overlays the dark rail too. */
   background-image: var(--a-noise);
-  padding: 23px 17px 13px;
+  background-size: 128px 128px;
+  box-shadow: inset -1px 0 0 var(--a-border);
+  padding: 23px 19px 33px 17px;
   /* The rail itself never scrolls — only the nav does. `overflow-y: auto` was
      here, which scrolled the whole column: with enough nav items the brand and
      the account badge slid away with it. */
   overflow: hidden;
 }
-.atlas-rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; min-height: 34px; flex-shrink: 0; }
+.atlas-rail-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: 0 0 0 16px; min-height: 30px; flex-shrink: 0;
+  /* Figma specifies 55px here. At the real wordmark size that reads as a hole
+     between the brand and the first item, so it is tightened. */
+  margin-bottom: 24px;
+}
 .atlas-rail-close { display: none; }
-
-.atlas-brand { display: inline-flex; padding-top: 10px; text-decoration: none; color: var(--a-ink); }
+.atlas-brand { display: inline-flex; text-decoration: none; color: var(--a-ink); }
 
 /* `min-height: 0` is the load-bearing half. A flex item defaults to
    `min-height: auto`, which refuses to shrink below its content, so `flex: 1`
    alone made the nav push the rail taller instead of scrolling inside it. */
-.atlas-nav { display: flex; flex-direction: column; gap: 5px; margin-top: 55px; padding: 10px; flex: 1; min-height: 0; overflow-y: auto; }
-.atlas-nav-bottom { display: flex; flex-direction: column; gap: 5px; padding: 10px; flex-shrink: 0; }
+.atlas-nav {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+  padding: 0 10px;
+  overflow-y: auto;
+  /* Without this the collapsed rail grew a horizontal scrollbar: items are laid
+     out at their open width until the collapsed rules apply, and the overflow
+     bar outlived the reflow. */
+  overflow-x: hidden;
+  /* Put the scrollbar on the rail's own edge rather than leaving it floating
+     19px inside, then restore the padding within the scroll box. */
+  margin-right: -19px;
+  padding-right: 19px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--a-track) transparent;
+}
+.atlas-nav::-webkit-scrollbar { width: 6px; }
+.atlas-nav::-webkit-scrollbar-track { background: transparent; }
+.atlas-nav::-webkit-scrollbar-thumb { background: var(--a-track); border-radius: 3px; }
+.atlas-nav::-webkit-scrollbar-thumb:hover { background: var(--a-border-strong); }
 
 .atlas-nav-item {
   display: flex; align-items: center; gap: 4px; width: 100%;
-  min-height: 28px; padding: 2px 5px; border-radius: var(--a-radius-xs);
-  border: none; background: transparent;
+  height: 32px; padding: 4px 5px; margin-bottom: 5px;
+  border-radius: var(--a-radius-xs); border: none; background: transparent;
   /* Figma nav text: Satoshi Medium 14 / 100% / 0 tracking, #000 @ 60% */
-  color: color-mix(in srgb, var(--a-ink) 60%, transparent); font-size: 14px; font-weight: 500; line-height: 1; letter-spacing: 0; font-family: var(--a-font);
+  color: color-mix(in srgb, var(--a-ink) 60%, transparent);
+  font-size: 14px; font-weight: 500; line-height: 1; letter-spacing: 0; font-family: var(--a-font);
   text-align: left; text-decoration: none; cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
-.atlas-nav-item svg { flex-shrink: 0; width: 24px; padding: 0 3.5px; color: var(--a-ink); }
+/* A 24px box holds every icon, but each keeps its own Figma size inside it —
+   they are not all 24x24, and stretching Home (13x12) to fill the box is what
+   made the set look mismatched. */
+.atlas-nav-ico { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none; }
 .atlas-nav-item:hover { background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-ink-2); }
-.atlas-nav-item.active { background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: var(--a-ink-2); }
+.atlas-nav-item.active { background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: color-mix(in srgb, var(--a-ink) 85%, transparent); }
+.atlas-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Collapsible nav sections (Figma "Menu Section Title / Toggle") */
-.atlas-nav-section { display: flex; flex-direction: column; gap: 5px; margin-top: 18px; }
+.atlas-nav-section { display: flex; flex-direction: column; }
 .atlas-nav-section__head {
   display: flex; align-items: center; justify-content: space-between; width: 100%;
-  min-height: 24px; padding: 0 5px; margin-bottom: 2px;
+  height: 24px; padding: 0 5px; margin: 25px 0 5px;
   background: none; border: none; cursor: pointer; text-align: left;
   font-family: var(--a-font); font-size: 11px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase;
   color: color-mix(in srgb, var(--a-ink) 45%, transparent);
 }
 .atlas-nav-section__head:disabled { cursor: default; }
 .atlas-nav-section__head:not(:disabled):hover { color: var(--a-ink-2); }
-.atlas-nav-section__head svg { color: var(--a-ink); transition: transform 0.15s; }
-.atlas-nav-section.is-closed .atlas-nav-section__head svg { transform: rotate(180deg); }
-.atlas-nav-section__items { display: flex; flex-direction: column; gap: 5px; }
+.atlas-nav-caret { display: inline-flex; color: currentColor; transition: transform 0.15s; }
+/* Open points up, matching the mockup's `transform: isOpen ? rotate(180deg)`. */
+.atlas-nav-section:not(.is-closed) .atlas-nav-caret { transform: rotate(180deg); }
+.atlas-nav-section__items { display: flex; flex-direction: column; }
+/* Sub-items are one size down from a top-level row, per `navStyle(active, sub)`. */
+.atlas-nav-section__items .atlas-nav-item { height: 28px; padding: 2px 5px; margin-bottom: 4px; }
 .atlas-nav-section.is-closed .atlas-nav-section__items { display: none; }
 .atlas-nav-item.is-soon { cursor: default; color: var(--a-faint); }
 .atlas-nav-item.is-soon:hover { background: none; color: var(--a-faint); }
 .atlas-nav-item .atlas-soon { margin-left: auto; }
 
+/* ── Rail footer: the account ──────────────────────────────────────────────*/
+/* Negative margins pull the rule out to the rail's edges; the padding puts the
+   content back where the nav sits. */
+.atlas-rail-account {
+  flex: none; margin-top: auto;
+  padding: 16px 19px 0 17px;
+  margin-left: -17px; margin-right: -19px;
+  border-top: 1px solid var(--a-border);
+}
+.atlas-acct { display: flex; align-items: center; gap: 6px; }
+.atlas-acct__who {
+  display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;
+  padding: 4px; border-radius: var(--a-radius-xs);
+  text-decoration: none; color: var(--a-ink); transition: background 0.12s;
+}
+.atlas-acct__who:hover { background: color-mix(in srgb, var(--a-ink) 4%, transparent); }
+.atlas-acct__avatar {
+  display: grid; place-items: center; flex: none; overflow: hidden;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--a-primary); color: var(--a-primary-ink);
+  font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.04em;
+}
+.atlas-acct__img { width: 100%; height: 100%; object-fit: cover; }
+.atlas-acct__name {
+  font-family: var(--a-font); font-size: 13px; font-weight: 500; line-height: 1.2;
+  color: var(--a-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.atlas-acct__out {
+  display: grid; place-items: center; flex: none;
+  width: 30px; height: 30px; border-radius: var(--a-radius-xs);
+  border: none; background: transparent; color: var(--a-muted); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+/* Danger on intent only — a log-out button that is red at rest reads as an
+   error state sitting in the chrome of every page. */
+.atlas-acct__out:hover { background: color-mix(in srgb, var(--a-danger) 12%, transparent); color: var(--a-danger); }
+.atlas-acct__out:disabled { opacity: 0.6; cursor: default; }
 
 .atlas-backdrop { display: none; }
 
@@ -92,18 +171,35 @@
   transition: background 0.12s;
 }
 .atlas-rail-toggle:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
-.atlas-rail-head { gap: 12px; }
+/* Collapsed, the Atlas "A" is the expand control. The mockup put a bare
+   hamburger here, which left no sign of which product you were in. */
+.atlas-rail-mark {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 40px; height: 34px; padding: 0; border: none; border-radius: var(--a-radius-xs);
+  background: transparent; color: var(--a-ink); cursor: pointer; transition: background 0.12s;
+}
+.atlas-rail-mark:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
 
 .atlas-shell.is-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
-.is-collapsed .atlas-rail { padding-left: 12px; padding-right: 12px; overflow-x: hidden; }
-.is-collapsed .atlas-rail-head { justify-content: center; padding: 0; }
-.is-collapsed .atlas-brand { display: none; }
-.is-collapsed .atlas-nav, .is-collapsed .atlas-nav-bottom { padding-left: 0; padding-right: 0; align-items: center; }
-.is-collapsed .atlas-nav-item { justify-content: center; width: 40px; min-height: 34px; padding: 0; }
-.is-collapsed .atlas-nav-section { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--a-border); align-items: center; }
-.is-collapsed .atlas-nav-section__head { display: none; }
+.is-collapsed .atlas-rail { padding: 23px 0 33px; }
+.is-collapsed .atlas-rail-head { justify-content: center; padding: 0; margin-bottom: 20px; }
+.is-collapsed .atlas-nav { padding: 0; margin-right: 0; align-items: center; }
+.is-collapsed .atlas-nav-item,
+.is-collapsed .atlas-nav-section__items .atlas-nav-item {
+  justify-content: center; width: 34px; height: 34px; padding: 0; margin-left: auto; margin-right: auto;
+}
+/* A section head becomes the short divider the mockup's `shrink()` draws. */
+.is-collapsed .atlas-nav-section__head {
+  display: block; width: 24px; height: 1px; padding: 0; margin: 16px auto;
+  background: var(--a-border); pointer-events: none; overflow: hidden;
+}
+.is-collapsed .atlas-nav-section__head > * { display: none; }
 .is-collapsed .atlas-nav-section.is-closed .atlas-nav-section__items { display: flex; }
 .is-collapsed .atlas-nav-item.is-soon, .is-collapsed .atlas-soon { display: none; }
+.is-collapsed .atlas-rail-account { padding: 16px 0 0; margin-left: 0; margin-right: 0; }
+.is-collapsed .atlas-acct { flex-direction: column; gap: 4px; }
+.is-collapsed .atlas-acct__who { flex: none; justify-content: center; padding: 2px; }
+.is-collapsed .atlas-acct__name { display: none; }
 /* Labels stay in the accessibility tree (names for links/buttons), just not on screen. */
 .is-collapsed .atlas-nav-label {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -120,6 +216,7 @@
     padding: 14px 16px 10px;
     background-color: var(--a-rail);
     background-image: var(--a-noise);
+    background-size: 128px 128px;
     border-bottom: 1px solid var(--a-border);
   }
   .atlas-hamburger {
@@ -145,26 +242,35 @@
     box-shadow: 2px 0 18px rgba(0, 0, 0, 0.14);
   }
   .atlas-rail.open { transform: none; }
-  .atlas-rail-toggle { display: none; }
+  .atlas-rail-toggle, .atlas-rail-mark { display: none; }
+  /* The drawer is always full width, so every collapsed rule is undone here. */
   .atlas-shell.is-collapsed { grid-template-columns: 1fr; }
-  .is-collapsed .atlas-rail { padding: 23px 17px 13px; }
-  .is-collapsed .atlas-rail-head { justify-content: space-between; padding: 0 16px; }
+  .is-collapsed .atlas-rail { padding: 23px 19px 33px 17px; }
+  .is-collapsed .atlas-rail-head { justify-content: space-between; padding: 0 0 0 16px; }
   .is-collapsed .atlas-brand { display: inline-flex; }
-  .is-collapsed .atlas-nav, .is-collapsed .atlas-nav-bottom { padding: 10px; align-items: stretch; }
-  .is-collapsed .atlas-nav-item { justify-content: flex-start; width: 100%; min-height: 28px; padding: 2px 5px; }
-  .is-collapsed .atlas-nav-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
-  .is-collapsed   .is-collapsed .atlas-nav-item.is-soon { display: flex; }
+  .is-collapsed .atlas-nav { padding: 0 10px; align-items: stretch; }
+  .is-collapsed .atlas-nav-item { justify-content: flex-start; width: 100%; height: 32px; padding: 4px 5px; }
+  .is-collapsed .atlas-nav-section__items .atlas-nav-item { height: 28px; padding: 2px 5px; }
+  .is-collapsed .atlas-nav-label { position: static; width: auto; height: auto; margin: 0; overflow: hidden; clip: auto; }
+  .is-collapsed .atlas-nav-item.is-soon { display: flex; }
   .is-collapsed .atlas-soon { display: inline-block; }
-  .is-collapsed .atlas-nav-section { margin-top: 15px; padding-top: 0; border-top: none; align-items: stretch; }
-  .is-collapsed .atlas-nav-section__head { display: flex; }
+  .is-collapsed .atlas-nav-section { align-items: stretch; }
+  .is-collapsed .atlas-nav-section__head {
+    display: flex; width: 100%; height: 24px; margin: 25px 0 5px; padding: 0 5px;
+    background: none; pointer-events: auto;
+  }
+  .is-collapsed .atlas-nav-section__head > * { display: block; }
   .is-collapsed .atlas-nav-section.is-closed .atlas-nav-section__items { display: none; }
+  .is-collapsed .atlas-rail-account { padding: 16px 19px 0 17px; margin-left: -17px; margin-right: -19px; }
+  .is-collapsed .atlas-acct { flex-direction: row; gap: 6px; }
+  .is-collapsed .atlas-acct__who { flex: 1; justify-content: flex-start; padding: 4px; }
+  .is-collapsed .atlas-acct__name { display: block; }
   .atlas-rail-close {
     display: inline-flex; align-items: center; justify-content: center;
     width: 36px; height: 34px; border-radius: var(--a-radius-xs);
     background: none; border: 1px solid var(--a-border); cursor: pointer; color: var(--a-ink);
   }
   .atlas-rail-close:hover { background: color-mix(in srgb, var(--a-ink) 5%, transparent); }
-  .atlas-nav { margin-top: 32px; }
 
   .atlas-backdrop {
     display: block; position: fixed; inset: 0;
@@ -173,4 +279,4 @@
 }
 /* `margin-top: auto` no longer does anything now the nav grows instead —
    kept so a short nav still pins the cards to the bottom. */
-.atlas-rail-extra { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding: 18px 10px 4px; flex-shrink: 0; }
+.atlas-rail-extra { display: flex; flex-direction: column; gap: 10px; padding: 18px 10px 4px; flex-shrink: 0; }

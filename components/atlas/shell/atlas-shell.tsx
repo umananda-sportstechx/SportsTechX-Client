@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
-import { X, ChevronUp } from 'lucide-react';
+import { X } from 'lucide-react';
 import { MenuIcon } from '../brand/menu-icon';
 import { PLACEHOLDER_LABEL } from '../patterns/placeholder-tag';
-import { AtlasLogo } from '../brand/atlas-logo';
+import { AtlasLogo, AtlasMark } from '../brand/atlas-logo';
+import { FigmaIcon } from '../icons/figma-icons';
 import { isSection, pickActive, type ShellNavEntry, type ShellNavItem } from './nav';
 import './atlas-shell.css';
 
@@ -33,7 +34,6 @@ export interface AtlasShellProps {
 	/** Where the logo links to (the product home). */
 	homePath: string;
 	nav: ShellNavEntry[];
-	bottomNav: ShellNavItem[];
 	/**
 	 * The bar across the top of the content column (breadcrumbs, search, account).
 	 * A slot rather than something built here: the navbar needs the route manifest
@@ -43,12 +43,18 @@ export interface AtlasShellProps {
 	topbar?: ReactNode;
 	/** Rendered after the sidebar as a sibling (e.g. a floating assistant button). */
 	overlay?: ReactNode;
-	/** Extra sidebar content above the bottom nav (e.g. Explore's upgrade cards). Hidden when the rail is collapsed. */
+	/** Extra sidebar content above the account footer (e.g. Explore's upgrade cards). Hidden when the rail is collapsed. */
 	railExtra?: ReactNode;
+	/**
+	 * The rail's footer: avatar, name and log out. A slot for the same reason
+	 * `topbar` is one — it needs the signed-in profile, and this component is
+	 * deliberately manifest- and session-free.
+	 */
+	railAccount?: ReactNode;
 	children: ReactNode;
 }
 
-export function AtlasShell({ product, productColor, homePath, nav, bottomNav, topbar, overlay, railExtra, children }: AtlasShellProps) {
+export function AtlasShell({ product, productColor, homePath, nav, topbar, overlay, railExtra, railAccount, children }: AtlasShellProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const railKey = `stx:${product.toLowerCase()}-rail-collapsed`;
@@ -59,21 +65,25 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, to
 	const closed = parseList(closedRaw);
 	const toggleSection = (title: string) =>
 		writeStored(sectionsKey, JSON.stringify(closed.includes(title) ? closed.filter((t) => t !== title) : [...closed, title]));
-	const [open, setOpen] = useState(false);
-	// Close the mobile drawer whenever the route changes (i.e. a nav item was tapped).
-	useEffect(() => { setOpen(false); }, [pathname]);
+	// The mobile drawer, stored as the route it was opened on rather than a
+	// boolean. Any navigation then closes it by definition — including from a
+	// link inside `railExtra`, which a nav item's own onClick would have missed.
+	// Resetting it from an effect instead is a cascading render, and React lints
+	// it as one.
+	const [openOn, setOpenOn] = useState<string | null>(null);
+	const open = openOn === pathname;
+	const setOpen = (v: boolean) => setOpenOn(v ? pathname : null);
 
-	const allItems = [...nav.flatMap((e) => (isSection(e) ? e.items : [e])), ...bottomNav];
+	const allItems = nav.flatMap((e) => (isSection(e) ? e.items : [e]));
 	const activePath = pickActive(allItems, homePath, pathname, searchParams);
 	const isActive = (path: string) => path === activePath;
 
 	const renderItem = (item: ShellNavItem) => {
-		const Icon = item.icon;
 		const cls = 'atlas-nav-item';
 		if (item.soon) {
 			return (
 				<span key={item.path} className={`${cls} is-soon`} aria-disabled="true" title={collapsed ? `${item.name} (soon)` : undefined}>
-					<Icon size={17} strokeWidth={1.25} />
+					<span className="atlas-nav-ico"><FigmaIcon name={item.icon} /></span>
 					<span className="atlas-nav-label">{item.name}</span>
 					<span className="atlas-soon" aria-label="coming soon">Soon</span>
 				</span>
@@ -81,7 +91,7 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, to
 		}
 		return (
 			<Link key={item.path} href={item.path} className={`${cls} ${isActive(item.path) ? 'active' : ''}`} aria-current={isActive(item.path) ? 'page' : undefined} title={collapsed ? item.name : undefined} onClick={() => setOpen(false)}>
-				<Icon size={17} strokeWidth={1.25} />
+				<span className="atlas-nav-ico"><FigmaIcon name={item.icon} /></span>
 				<span className="atlas-nav-label">{item.name}</span>
 				{item.placeholder && <span className="atlas-soon" title={PLACEHOLDER_LABEL}>Not connected</span>}
 			</Link>
@@ -97,7 +107,7 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, to
 			<div key={e.title} className={`atlas-nav-section${isOpen ? '' : ' is-closed'}`}>
 				<button type="button" className="atlas-nav-section__head" aria-expanded={isOpen} aria-controls={id} onClick={() => toggleSection(e.title)} disabled={holdsActive}>
 					<span>{e.title}</span>
-					<ChevronUp size={14} strokeWidth={1.5} aria-hidden="true" />
+					<span className="atlas-nav-caret"><FigmaIcon name="nav-caret" /></span>
 				</button>
 				<div id={id} className="atlas-nav-section__items">{e.items.map((i) => renderItem(i))}</div>
 			</div>
@@ -109,16 +119,26 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, to
 		<div className={`atlas atlas-shell${collapsed ? ' is-collapsed' : ''}`}>
 			<aside className={`atlas-rail ${open ? 'open' : ''}`}>
 				<div className="atlas-rail-head">
-					<Link href={homePath} className="atlas-brand" aria-label={homeLabel}><AtlasLogo height={31} product={product} productColor={productColor} /></Link>
-					<button className="atlas-rail-toggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => writeStored(railKey, collapsed ? '0' : '1')}><MenuIcon /></button>
+					{/* Collapsed, the mark IS the expand control. The design put a bare
+					    hamburger here, which left no sign of which product you were in. */}
+					{collapsed ? (
+						<button type="button" className="atlas-rail-mark" aria-label="Expand sidebar" aria-expanded={false} title="Expand sidebar" onClick={() => writeStored(railKey, '0')}>
+							<AtlasMark size={26} />
+						</button>
+					) : (
+						<Link href={homePath} className="atlas-brand" aria-label={homeLabel}><AtlasLogo height={24} product={product} productColor={productColor} /></Link>
+					)}
+					{!collapsed && (
+						<button className="atlas-rail-toggle" aria-label="Collapse sidebar" aria-expanded title="Collapse sidebar" onClick={() => writeStored(railKey, '1')}><MenuIcon /></button>
+					)}
 					<button className="atlas-rail-close" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} strokeWidth={1.5} /></button>
 				</div>
 				<nav className="atlas-nav">{nav.map(renderEntry)}</nav>
 				{railExtra && !collapsed && <div className="atlas-rail-extra">{railExtra}</div>}
-				{/* Account and the theme toggle used to live here. Both moved into the
-				    navbar's account menu — one home for account actions, and it frees
-				    the rail's footer. */}
-				{bottomNav.length > 0 && <nav className="atlas-nav-bottom">{bottomNav.map(renderItem)}</nav>}
+				{/* Thesis Settings and Subscription used to sit here as nav items.
+				    They are account settings, not places, so they moved into the
+				    Account page's tabs and the footer is the account itself. */}
+				{railAccount && <div className="atlas-rail-account">{railAccount}</div>}
 			</aside>
 
 			<div className="atlas-main">
