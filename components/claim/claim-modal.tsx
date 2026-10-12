@@ -17,6 +17,7 @@ import { Flag } from '@/components/atlas';
 // along with it. A lucide icon on an Atlas token does the same job.
 import '@/app/claim-modal.css';
 import type { ClaimRole, ClaimTarget } from '@/lib/claim-events';
+import { soleRoleOf } from '@/lib/claim-roles';
 import {
   CM_ROLES, CM_ROLE_LIST, blankClaimForm,
   BIZ_MODELS, SPORTS_LIST, RAISE_AMOUNTS, FUND_ROUND_NAMES, INV_CATEGORIES,
@@ -48,11 +49,19 @@ type Step =
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
 
 export function ClaimModal({
-  target, initialRole, prefill, onClose, onSubmitted,
+  target, initialRole, prefill, allowedRoles, onClose, onSubmitted,
 }: {
   target: ClaimTarget | null;
   initialRole: ClaimRole | null;
   prefill?: Partial<ClaimForm>;
+  /**
+   * Which roles the chooser may offer, by tier — Explore gets all three, Raise
+   * gets founder + operator (it owns events and programmes), Scout gets
+   * investor only. Omitted means all three, which is what
+   * `app/(onboarding)/onboarding/page.tsx` relies on: it renders this modal
+   * directly rather than through the event bus and passes no such prop.
+   */
+  allowedRoles?: ClaimRole[];
   onClose: () => void;
   onSubmitted?: () => void;
 }) {
@@ -60,7 +69,16 @@ export function ClaimModal({
   const ref = useClaimReference();
 
   const lockedTarget = !!target?.id;
-  const startRole = target?.role ?? initialRole ?? null;
+  // The cards the chooser will show. An unknown role in the list is dropped
+  // rather than crashing the chooser.
+  const roleList = allowedRoles?.length
+    ? CM_ROLE_LIST.filter((r) => allowedRoles.includes(r.id))
+    : CM_ROLE_LIST;
+  // A single permitted role is not a choice — collapse it so Scout lands on
+  // the investor search directly, exactly as it did when the tier forced one
+  // role. An explicit `role`/`target.role` still wins over the set.
+  const soleRole = soleRoleOf(roleList.map((r) => r.id));
+  const startRole = target?.role ?? initialRole ?? soleRole;
   const hasPrefill = !!prefill && Object.keys(prefill).length > 0;
   const [role, setRole] = useState<ClaimRole | null>(startRole);
   // With a prefill (e.g. verifying a brand-new company straight after Raise Setup)
@@ -262,7 +280,7 @@ export function ClaimModal({
               <div>
                 <p className="cm-intro">Tell us who you are and we&apos;ll take you to the right place to claim and verify your profile.</p>
                 <div className="cm-roles">
-                  {CM_ROLE_LIST.map((r) => (
+                  {roleList.map((r) => (
                     <button key={r.id} className="cm-role-card" onClick={() => pickRole(r.id)}>
                       <span className="cm-role-ico"><RoleIcon icon={r.icon} size={20} /></span>
                       <span className="cm-role-text"><span className="cm-role-h">{r.label}</span><span className="cm-role-p pl-1">{r.chooserDesc}</span></span>
@@ -277,7 +295,7 @@ export function ClaimModal({
             {/* SEARCH */}
             {isSearch && R && (
               <div>
-                {!initialRole && !lockedTarget && <button className="cm-backlink" onClick={() => setStep('role')}><ArrowRight size={11} /> Change type</button>}
+                {!initialRole && !lockedTarget && roleList.length > 1 && <button className="cm-backlink" onClick={() => setStep('role')}><ArrowRight size={11} /> Change type</button>}
                 <p className="cm-intro">Search our database. If your {R.noun} is already listed you can claim it — if not, you can add it.</p>
                 <div className="cm-search-wrap">
                   <span className="cm-search-ico"><Search size={16} /></span>
