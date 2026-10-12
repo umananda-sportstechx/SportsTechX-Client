@@ -213,8 +213,8 @@ function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved
 			<div style={{ marginBottom: 8 }}><Eyebrow>From the Atlas database</Eyebrow></div>
 			<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 12 }}>Search the investor database — adds with a full profile.</div>
 			<div style={{ position: 'relative' }}>
-				<Search size={13} style={{ position: 'absolute', left: 12, top: 8, color: 'var(--a-ink)', pointerEvents: 'none' }} />
-				<Input className="atlas-input--search" placeholder="Search investors by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 31 }} autoFocus />
+				<Search size={13} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--a-muted)', pointerEvents: 'none' }} />
+				<Input className="atlas-input--search" placeholder="Search investors by name…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 34 }} autoFocus />
 			</div>
 			{dq.trim().length >= 2 && (
 				<div className="atlas-card" style={{ marginTop: 10, padding: 0, overflow: 'hidden' }}>
