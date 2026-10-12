@@ -30,7 +30,9 @@ const EXPECTED: Record<Tier, Shape> = {
 		// design shows it like any other item and lets the page sell. It is the
 		// one nav entry in any product that resolves to `upsell` rather than
 		// `allow`, which is why `buildNav` filters on `!== 'hidden'`.
-		top: ['Home', 'Interests'],
+		// Pitch Deck joined Explore when the deck analyser stopped being tier-gated:
+		// credits pay for it, so the page has to be findable rather than sold.
+		top: ['Home', 'Interests', 'Pitch Deck'],
 		sections: [
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
 			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],

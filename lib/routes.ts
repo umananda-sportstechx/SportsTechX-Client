@@ -156,9 +156,13 @@ export const ROUTES: RouteDef[] = [
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
 		// copy and a different name in each sidebar.
+		// Explore is included because the feature is bounded by credits, not by
+		// tier: the welcome grant pays for about four analyses. It used to resolve
+		// to `upsell` here while the service refused base-tier callers outright,
+		// so a free user got a sales page for something their credits covered.
 		id: 'deck', icon: FileCheck,
-		name: { raise: 'Pitch Deck', scout: 'Deck Screener' },
-		path: '/deck', tier: ['raise', 'scout'],
+		name: { explore: 'Pitch Deck', raise: 'Pitch Deck', scout: 'Deck Screener' },
+		path: '/deck', tier: ['explore', 'raise', 'scout'],
 		// Scout v4 and the product brief both mark Deck Screener coming soon;
 		// Raise's Pitch Deck is live, so this cannot be a bare `true`.
 		placeholder: { scout: true },
@@ -206,7 +210,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// Interests sits with Home, per the Figma Side Nav (31:15195). The HTML
 		// mockup puts it in the bottom group with Account; Figma is the newer
 		// file and the one named as the UI source, so it wins.
-		{ title: null, items: ['home', 'interests'] },
+		{ title: null, items: ['home', 'interests', 'deck'] },
 		{ title: 'Intelligence', items: ['framework', 'reports', 'newsletter'] },
 		// Investors is a Raise feature listed in Explore's sidebar on purpose —
 		// the design surfaces it unlocked-looking and lets the page do the
