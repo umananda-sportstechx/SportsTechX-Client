@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/query-client';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
 import { AccountTabs } from '@/components/features/account/account-tabs';
+import { LocationSelect } from '@/components/features/location/location-select';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 import { DealflowOptIn } from '@/components/raise/dealflow-opt-in';
 
@@ -110,7 +111,7 @@ export default function RaiseSettingsPage() {
 					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field></Grid>
 					<Grid n={3}>
 						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field>
-						<Field label="Country"><Input value={s(form.hq_country)} onChange={(e) => set('hq_country', e.target.value)} disabled={coLock('hq_country')} /></Field>
+						<Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field>
 						<Field label="Current stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 					</Grid>
 					<Field label="Company description"><Input value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
