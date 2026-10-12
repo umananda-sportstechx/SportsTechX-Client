@@ -122,10 +122,23 @@
 	.raise-chatpage-transcript { padding: 40px 32px 12px; }
 	.raise-chatpage-composer { padding: 12px 32px 20px; }
 }
+/* The rail goes before the layout does: between 721px and 860px the shell is
+   still the desktop one — `.atlas-main` is pinned to 100dvh and
+   `.atlas-content` is the scroller — so `height: 100%` keeps resolving and the
+   composer stays on the fold. Measuring the viewport here instead left 67px of
+   dead space under it once the navbar took 53px off the content box. */
 @media (max-width: 860px) {
-	.raise-chatpage { grid-template-columns: 1fr; height: auto; }
-	.raise-chatpage-main { height: calc(100dvh - 120px); }
+	.raise-chatpage { grid-template-columns: 1fr; }
 	.raise-chatpage-transcript { padding: 24px 16px 8px; }
 	.raise-chatpage-composer { padding: 10px 16px 16px; }
 	.raise-chatpage-rail { display: none; }
+}
+
+/* At 720px the shell hands scrolling back to the document: `.atlas-main` goes
+   `height: auto`, so `height: 100%` resolves to auto and the composer would
+   unpin. This is the one place that has to measure the viewport, and the number
+   is the chrome above it: the 59px mobile top bar plus the 47px navbar. */
+@media (max-width: 720px) {
+	.raise-chatpage { height: auto; }
+	.raise-chatpage-main { height: calc(100dvh - 106px); }
 }

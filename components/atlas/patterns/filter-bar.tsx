@@ -29,13 +29,15 @@ type MenuState = null | { at: 'add' | 'sort' | string; view: 'root' | string };
 /** Show an in-menu search when an option list is longer than this. */
 const SEARCHABLE_OPTIONS = 10;
 
-export function FilterBar({ search, groups, sort, canClear, onClear, count }: {
+export function FilterBar({ search, groups, sort, canClear, onClear, count, actions }: {
 	search: { value: string; onChange: (v: string) => void; placeholder: string };
 	groups: FilterGroup[];
 	sort?: { value: string; options: [string, string][]; onChange: (v: string) => void };
 	canClear?: boolean;
 	onClear?: () => void;
 	count?: ReactNode;
+	/** Right-aligned list actions (Export, etc.) — rendered before Sort by. */
+	actions?: ReactNode;
 }) {
 	const [menu, setMenu] = useState<MenuState>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count }: {
 
 			<div className="atlas-fbar__right">
 				{count && <span className="atlas-fbar__count">{count}</span>}
+				{actions}
 				{sort && (
 					<div className="atlas-fbar__anchor">
 						<button type="button" className="atlas-btn atlas-btn--outline" aria-expanded={menu?.at === 'sort'} onClick={() => toggleMenu('sort')}>
