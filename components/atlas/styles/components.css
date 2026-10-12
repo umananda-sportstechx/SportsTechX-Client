@@ -114,7 +114,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%23fff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 /* Pill search field (Figma "Search Field"). */
-.atlas-input--search { border-radius: var(--a-radius-pill); height: 29px; font-size: 12px; background: var(--a-inset); }
+.atlas-input--search { border-radius: var(--a-radius-pill); height: 32px; font-size: 13px; background: var(--a-inset); }
 
 /* ── Badge / tag (Figma "Suggestion tag") ───────────────────────────────── */
 .atlas-badge {
@@ -155,12 +155,16 @@
 
 /* ── Filter toolbar (Figma "Toolbar": search · pills · + ADD FILTER · × CLEAR · SORT BY) ── */
 .atlas-fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
-.atlas-fbar__search { position: relative; flex: 0 1 321px; min-width: 200px; }
-.atlas-fbar__search svg { position: absolute; left: 12px; top: 8px; color: var(--a-ink); pointer-events: none; }
-.atlas-fbar__search .atlas-input { padding-left: 31px; }
+/* The search was capped at 321px with a 29px field and an icon pinned 8px from
+   the top — on a 1440px page it read as squashed. Wider, a size taller, and the
+   icon centred however tall the field ends up. The toolbar's buttons match it. */
+.atlas-fbar__search { position: relative; flex: 1 1 380px; max-width: 480px; min-width: 220px; }
+.atlas-fbar__search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--a-muted); pointer-events: none; }
+.atlas-fbar__search .atlas-input { padding-left: 34px; }
+.atlas-fbar .atlas-btn { height: 32px; }
 .atlas-fbar__anchor { position: relative; }
 .atlas-fbar__pill {
-  display: inline-flex; align-items: center; height: 29px; max-width: 280px;
+  display: inline-flex; align-items: center; height: 32px; max-width: 280px;
   border: 1px solid var(--a-border-strong); border-radius: var(--a-radius-pill); background: var(--a-field);
 }
 .atlas-fbar__pill-main {
@@ -513,3 +517,99 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 .atlas-composer-chip:hover svg { color: var(--a-primary-ink); }
 .atlas-composer-chip:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink), 0 0 0 3px color-mix(in srgb, var(--a-ink) 12%, transparent); }
 
+
+/* ── Post cards (Figma "Featured post content card" + "Default post content
+      cards + hover highlight") ─────────────────────────────────────────────── */
+/* One highlight for every card in the system: the pink wash rising from the
+   bottom-right corner. Featured cards wear it always; default cards on hover. */
+.atlas-post {
+  position: relative; display: flex; gap: 22px;
+  background-color: var(--a-surface);
+  border: 1px solid var(--a-card-border); border-radius: var(--a-radius);
+  transition: border-color 0.15s, background-image 0.2s;
+}
+.atlas-post--featured {
+  padding: 16px 24px 16px 16px; max-width: 980px;
+  background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 16%, transparent) 100%);
+}
+.atlas-post--card {
+  flex-direction: column; gap: 0; padding: 14px 16px 16px;
+}
+.atlas-post--card:hover {
+  border-color: var(--a-border-strong);
+  background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 16%, transparent) 100%);
+}
+
+.atlas-post__cover {
+  flex: none; overflow: hidden; background: var(--a-page);
+  border: 1px solid var(--a-card-border); border-radius: var(--a-radius-sm);
+}
+.atlas-post__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.atlas-post__cover--tall { width: 186px; aspect-ratio: 3 / 4; align-self: flex-start; }
+.atlas-post__cover--thumb { width: 60px; height: 76px; }
+
+.atlas-post__body { display: flex; flex-direction: column; min-width: 0; flex: 1; padding: 12px 0 2px; }
+.atlas-post__head { display: flex; align-items: flex-start; gap: 14px; }
+.atlas-post__headtext { min-width: 0; padding-top: 2px; }
+
+.atlas-post__meta {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--a-muted);
+}
+.atlas-post__meta svg { flex: none; color: var(--a-muted); }
+.atlas-post__meta .is-premium { color: var(--a-pink); }
+
+.atlas-post__title { margin: 6px 0 0; font-family: var(--a-font); font-size: 16px; font-weight: 700; line-height: 1.25; color: var(--a-ink); }
+.atlas-post__title--lg { margin-top: 12px; font-size: 22px; line-height: 1.2; }
+.atlas-post__desc { margin: 10px 0 0; font-family: var(--a-body); font-size: 13px; line-height: 1.55; color: var(--a-muted); max-width: 640px; }
+.atlas-post__desc--clamp {
+  margin-top: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Featured: bordered mono chips. Default card: underlined mono tag links. */
+.atlas-post__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.atlas-post__chip {
+  display: inline-flex; align-items: center; height: 21px; padding: 0 9px;
+  border-radius: var(--a-radius-tag); background: var(--a-field); box-shadow: inset 0 0 0 1px var(--a-border-strong);
+  font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-ink);
+}
+.atlas-post__tags { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 14px; color: var(--a-muted); }
+.atlas-post__tag {
+  font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--a-muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--a-border-strong);
+}
+
+/* The rule above the actions, then the actions pinned to the card's foot. */
+.atlas-post__actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px 22px;
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--a-border);
+}
+.atlas-post__actions--card { margin-top: auto; padding-top: 14px; gap: 10px 18px; }
+.atlas-post--card .atlas-post__tags + .atlas-post__actions--card,
+.atlas-post--card .atlas-post__desc + .atlas-post__actions--card { margin-top: 16px; }
+/* Default card at rest: the action icon is the outline variant; the card's
+   hover fills it, which is the "+ hover highlight" half of the component. */
+.atlas-post--card .atlas-action__icon { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
+.atlas-post--card:hover .atlas-action__icon { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-primary); }
+
+.atlas-post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: stretch; }
+.atlas-post-grid .atlas-post--card { height: 100%; }
+
+@media (max-width: 640px) {
+  .atlas-post--featured { flex-direction: column; padding: 14px; }
+  .atlas-post__cover--tall { width: 100%; aspect-ratio: 16 / 9; }
+}
+
+/* ── Filter pills (mockup `pill(active)`) ─────────────────────────────────── */
+.atlas-pilltabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.atlas-pilltab {
+  display: inline-flex; align-items: center; height: 29px; padding: 0 13px;
+  border: 0; border-radius: var(--a-radius-pill); cursor: pointer; white-space: nowrap;
+  background: var(--a-field); color: var(--a-ink); box-shadow: inset 0 0 0 1px var(--a-border-strong);
+  font-family: var(--a-mono); font-size: 10.5px; line-height: 1; letter-spacing: 0.1em; text-transform: uppercase;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.atlas-pilltab:hover { box-shadow: inset 0 0 0 1px var(--a-ink); }
+.atlas-pilltab.on { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
+.atlas-pilltab:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--a-ink), 0 0 0 3px color-mix(in srgb, var(--a-ink) 14%, transparent); }

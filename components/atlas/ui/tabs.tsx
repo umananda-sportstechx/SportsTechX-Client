@@ -28,3 +28,29 @@ export function Seg<T extends string>({ options, value, onChange, ariaLabel }: {
 		</div>
 	);
 }
+
+/**
+ * Filter pills — the mockup's `pill(active)`: separate 29px outline pills, the
+ * chosen one filled black. For a single-choice filter over a feed (signal type,
+ * deal stage) where a joined segmented switch would be too wide to wrap.
+ */
+export function PillTabs<T extends string>({ options, value, onChange, ariaLabel }: {
+	options: { key: T; label: string }[]; value: T; onChange: (k: T) => void; ariaLabel?: string;
+}) {
+	return (
+		<div className="atlas-pilltabs" role="radiogroup" aria-label={ariaLabel}>
+			{options.map((o) => (
+				<button
+					key={o.key}
+					type="button"
+					role="radio"
+					aria-checked={o.key === value}
+					className={cx('atlas-pilltab', o.key === value && 'on')}
+					onClick={() => onChange(o.key)}
+				>
+					{o.label}
+				</button>
+			))}
+		</div>
+	);
+}

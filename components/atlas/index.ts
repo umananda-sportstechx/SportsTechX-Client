@@ -19,7 +19,7 @@ export { Card } from './ui/card';
 export { Button, Action } from './ui/button';
 export { Field, Input, Textarea, Select, ReadOnly } from './ui/form';
 export { Badge } from './ui/badge';
-export { Tabs, Seg } from './ui/tabs';
+export { Tabs, Seg, PillTabs } from './ui/tabs';
 export { Stat, Progress } from './ui/stat';
 
 // Patterns
@@ -29,6 +29,7 @@ export type { FilterDef, FilterGroup } from './patterns/filter-bar';
 export { Logo, Flag, countryToIso } from './patterns/entity-logo';
 export { StagedLoader } from './patterns/staged-loader';
 export { FeedCard } from './patterns/feed-card';
+export { FeaturedPost, PostCard } from './patterns/post-card';
 export { ListSwitcher } from './patterns/list-switcher';
 export type { SwitcherList } from './patterns/list-switcher';
 export { Pager, CardGrid, LockedFilters, lockedFiltersNote } from './patterns/catalog-ui';

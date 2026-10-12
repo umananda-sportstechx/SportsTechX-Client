@@ -44,20 +44,6 @@
 @media (max-width: 640px) { .atlas .scout-home { padding: 24px 16px 0; } .atlas .scout-home__attn { padding-top: 40px; } }
 
 /* ── Company cards (Recommended, Deal Flow) ──────────────────────────────── */
-.atlas .scout-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
-.atlas .scout-co-card { display: flex; flex-direction: column; gap: 12px; padding: 20px 21px 18px; }
-.atlas .scout-co-card__top { display: flex; align-items: center; gap: 12px; }
-.atlas .scout-co-card__id { flex: 1; min-width: 0; }
-.atlas .scout-co-card__name { font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); }
-.atlas .scout-co-card__meta { margin-top: 3px; font-family: var(--a-body); font-size: 11px; color: var(--a-muted); }
-.atlas .scout-co-card__desc { margin: 0; font-family: var(--a-body); font-size: 12px; line-height: 1.55; color: var(--a-muted); }
-.atlas .scout-co-card__facts { display: flex; justify-content: space-between; gap: 10px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-ink-2); }
-.atlas .scout-co-card__actions { display: flex; flex-wrap: wrap; gap: 14px 18px; margin-top: auto; padding-top: 4px; }
-.atlas .scout-why { padding: 12px 14px; border-radius: var(--a-radius-sm); background: var(--a-inset); }
-.atlas .scout-why p { margin: 8px 0 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-ink-2); }
-.atlas .scout-checks { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; }
-.atlas .scout-check { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-faint); }
-.atlas .scout-check.on { color: var(--a-ok); }
 .atlas .scout-watch {
 	display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; padding: 7px 12px; border: none; border-radius: var(--a-radius-pill); cursor: pointer;
 	background: transparent; box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink);
