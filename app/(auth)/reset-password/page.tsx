@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/atlas';
-import { AuthBrand, AuthNotice, AuthSpinner, AuthThemeToggle } from '@/components/auth/auth-shell';
+import { AuthBrand, AuthNotice, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
 
 /**
  * Set a new password, from the link the reset email carries.
@@ -46,32 +46,22 @@ export default function ResetPasswordPage() {
 
 					<form onSubmit={handleSubmit} className="auth-fields">
 						{error && <AuthNotice tone="error">{error}</AuthNotice>}
-						<div>
-							<label htmlFor="password" className="atlas-label">New password</label>
-							<input
-								id="password"
-								type="password"
-								placeholder="At least 8 characters"
-								value={password}
-								onChange={e => setPassword(e.target.value)}
-								required
-								minLength={8}
-								className="atlas-input"
-							/>
-						</div>
-						<div>
-							<label htmlFor="confirm" className="atlas-label">Confirm password</label>
-							<input
-								id="confirm"
-								type="password"
-								placeholder="Re-enter your password"
-								value={confirm}
-								onChange={e => setConfirm(e.target.value)}
-								required
-								minLength={8}
-								className="atlas-input"
-							/>
-						</div>
+						<PasswordField
+							id="password"
+							label="New password"
+							placeholder="At least 8 characters"
+							value={password}
+							onChange={setPassword}
+							autoComplete="new-password"
+						/>
+						<PasswordField
+							id="confirm"
+							label="Confirm password"
+							placeholder="Re-enter your password"
+							value={confirm}
+							onChange={setConfirm}
+							autoComplete="new-password"
+						/>
 						<Button type="submit" className="auth-btn" disabled={loading}>
 							{loading && <AuthSpinner />}
 							Update password

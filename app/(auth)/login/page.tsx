@@ -12,7 +12,7 @@ import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/atlas';
 import { AuthQuotes } from '@/components/auth/auth-quotes';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle } from '@/components/auth/auth-shell';
+import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
 
 /**
  * Log in.
@@ -166,26 +166,24 @@ export default function LoginPage() {
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
+							autoComplete="email"
 							className="atlas-input"
 						/>
 					</div>
-					<div>
-						<div className="auth-field__row">
-							<label htmlFor="login-password" className="atlas-label">Password</label>
+					<PasswordField
+						id="login-password"
+						label="Password"
+						placeholder="Enter your password"
+						value={password}
+						onChange={setPassword}
+						autoComplete="current-password"
+						minLength={1}
+						labelAccessory={
 							<button type="button" className="auth-link-btn" onClick={handleForgotPassword} disabled={loading}>
 								Forgot password?
 							</button>
-						</div>
-						<input
-							id="login-password"
-							type="password"
-							placeholder="Enter your password"
-							value={password}
-							onChange={e => setPassword(e.target.value)}
-							required
-							className="atlas-input"
-						/>
-					</div>
+						}
+					/>
 
 					<Button type="submit" className="auth-btn" disabled={loading}>
 						{loading && <AuthSpinner />}

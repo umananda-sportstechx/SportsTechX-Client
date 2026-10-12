@@ -1,29 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { PLACEHOLDER_QUOTES, quoted, type Quote } from '@/lib/testimonial-quotes';
 
 /**
- * The testimonial panel beside the sign-in form (team feedback "Atlas login
- * page", referencing app.trykondo.com/signin).
+ * The testimonial panel beside the sign-in form.
  *
- * Shaped after that reference: one card on the page's own background — not a
- * coloured block — with the person at the top and the quote under them, and a
- * round arrow either side to step through. Everything is drawn from the Atlas
- * auth tokens, so it follows the light/dark switch with the rest of the page.
+ * It used to be a single card with a left/right arrow either side — the "pointer"
+ * navigation. Per the Atlas auth redesign that is now an auto-scrolling carousel:
+ * the quotes ride a vertical marquee that loops seamlessly, with no controls to
+ * operate. The rail background (rail colour + noise, set on `.auth-panel`) is
+ * kept. A soft mask fades the cards in and out at the top and bottom edges.
  *
  * It reads the same admin-managed section the Atlas landing does, so a quote
  * added in Site assets → Atlas → Testimonials shows up in both places. The CMS
- * call goes straight to the public endpoint from the browser: next.config
- * rewrites /api/* to the backend, the route needs no session, and doing it this
- * way leaves the auth page a client component — restructuring the login route
- * around a decorative panel is not a trade worth making.
+ * call goes straight to the public endpoint from the browser (next.config
+ * rewrites /api/* to the backend, the route needs no session). A failure of any
+ * kind keeps the built-in set, and the panel never blocks sign-in.
  *
- * A failure of any kind keeps the built-in set. The panel never blocks sign-in.
+ * The track renders the list twice and animates from 0 to -50%, so the second
+ * copy is exactly under the first when the loop restarts — no visible jump.
+ * `prefers-reduced-motion` drops the animation and shows a static stack.
  */
-const ROTATE_MS = 8000;
-
 interface SiteItem {
   url: string | null;
   title: string | null;
@@ -33,9 +31,6 @@ interface SiteItem {
 
 export function AuthQuotes() {
   const [quotes, setQuotes] = useState<Quote[]>(PLACEHOLDER_QUOTES);
-  const [i, setI] = useState(0);
-  // Once someone drives it themselves, stop moving it under them.
-  const manual = useRef(false);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -57,81 +52,40 @@ export function AuthQuotes() {
     return () => ac.abort();
   }, []);
 
-  useEffect(() => {
-    if (quotes.length < 2) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = window.setInterval(() => {
-      if (!manual.current) setI((n) => (n + 1) % quotes.length);
-    }, ROTATE_MS);
-    return () => window.clearInterval(t);
-  }, [quotes.length]);
-
-  const step = useCallback(
-    (dir: 1 | -1) => {
-      manual.current = true;
-      setI((n) => (n + dir + quotes.length) % quotes.length);
-    },
-    [quotes.length],
-  );
-
-  const q = quotes[i % quotes.length];
-  if (!q) return null;
+  if (!quotes.length) return null;
+  // ~7s on screen per card keeps the speed constant however many there are.
+  const duration = `${quotes.length * 7}s`;
+  // Two copies flat in one track. Every card carries its own bottom spacing (no
+  // flex gap), so translateY(-50%) — exactly one copy — loops with no seam.
+  const cards = (clone: boolean) =>
+    quotes.map((q, n) => <QuoteCard key={`${clone ? 'b' : 'a'}-${n}`} q={q} clone={clone} />);
 
   return (
-    <aside aria-label="What members say" className="auth-panel auth-panel--center">
-      <Arrow side="left" onClick={() => step(-1)} disabled={quotes.length < 2} />
-
-      <div
-        className="w-full max-w-[380px] rounded-xl border px-6 py-6"
-        style={{ background: 'var(--a-surface)', borderColor: 'var(--a-border)' }}
-      >
-        <div className="flex items-center gap-3">
-          {q.img && (
-            // eslint-disable-next-line @next/next/no-img-element -- a CMS URL or
-            // a static file; next/image would add a wrapper for no gain at 40px.
-            <img src={q.img} alt="" className="size-10 shrink-0 rounded-full object-cover" />
-          )}
-          <span className="min-w-0">
-            <span className="block text-[14px] font-semibold text-[var(--a-ink)]">{q.name}</span>
-            {q.role && (
-              <span className="block truncate text-[12px] text-[var(--a-muted)]">{q.role}</span>
-            )}
-          </span>
+    <aside aria-label="What members say" className="auth-panel auth-panel--quotes">
+      <div className="auth-marquee">
+        <div className="auth-marquee__track" style={{ animationDuration: duration }}>
+          {cards(false)}
+          {cards(true)}
         </div>
-
-        <blockquote
-          key={i}
-          className="mt-5 text-[14px] leading-[1.6] text-[var(--a-muted)]"
-        >
-          {q.quote}
-        </blockquote>
       </div>
-
-      <Arrow side="right" onClick={() => step(1)} disabled={quotes.length < 2} />
     </aside>
   );
 }
 
-function Arrow({
-  side,
-  onClick,
-  disabled,
-}: {
-  side: 'left' | 'right';
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+function QuoteCard({ q, clone }: { q: Quote; clone?: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={side === 'left' ? 'Previous testimonial' : 'Next testimonial'}
-      className="grid size-8 shrink-0 place-items-center rounded-full border text-[var(--a-muted)] transition-colors hover:text-[var(--a-ink)] disabled:opacity-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--a-navy)]"
-      style={{ background: 'var(--a-field)', borderColor: 'var(--a-border)' }}
-    >
-      <Icon size={16} strokeWidth={1.75} />
-    </button>
+    <figure className="auth-tcard" aria-hidden={clone || undefined}>
+      <blockquote className="auth-tcard__quote">{q.quote}</blockquote>
+      <figcaption className="auth-tcard__by">
+        {q.img && (
+          // eslint-disable-next-line @next/next/no-img-element -- CMS URL or static file; 40px, no next/image gain.
+          <img src={q.img} alt="" className="auth-tcard__img" />
+        )}
+        <span className="auth-tcard__who">
+          <span className="auth-tcard__name">{q.name}</span>
+          {q.role && <span className="auth-tcard__role">{q.role}</span>}
+        </span>
+      </figcaption>
+    </figure>
   );
 }
