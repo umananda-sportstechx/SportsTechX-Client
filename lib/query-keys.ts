@@ -276,7 +276,9 @@ export const qk = {
 
   // ── Pitch deck analyzer (founder-facing) ────────────────────────────────
   deckAnalysis: {
-    list: () => ['/api/deck-analysis'] as const,
+    // Mode keeps the two products' histories apart: a Scout's Deck Screener
+    // list must not show a deck they once analysed as a founder, and vice versa.
+    list: (mode?: 'founder' | 'investor') => (mode ? ['/api/deck-analysis', { mode }] as const : ['/api/deck-analysis'] as const),
     detail: (id: string) => [`/api/deck-analysis/${id}`] as const,
   },
 
