@@ -12,7 +12,7 @@ import { Sun, Moon } from 'lucide-react';
  * whole reason this exists (SSR has no theme, so rendering the real icon first
  * paint is a hydration mismatch), and that is not worth copying per variant.
  */
-export function ThemeToggle({ compact, menu, collapsed }: { compact?: boolean; menu?: boolean; collapsed?: boolean }) {
+export function ThemeToggle({ compact, menu, collapsed, header }: { compact?: boolean; menu?: boolean; collapsed?: boolean; header?: boolean }) {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	useEffect(() => setMounted(true), []);
@@ -20,6 +20,13 @@ export function ThemeToggle({ compact, menu, collapsed }: { compact?: boolean; m
 	const toggle = () => setTheme(isDark ? 'light' : 'dark');
 	const Icon = isDark ? Sun : Moon;
 
+	if (header) {
+		return (
+			<button type="button" className="atlas-navbar__iconbtn" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} title={isDark ? 'Light mode' : 'Dark mode'} onClick={toggle}>
+				{mounted ? <Icon size={15} strokeWidth={1.75} /> : <Moon size={15} strokeWidth={1.75} />}
+			</button>
+		);
+	}
 	if (compact) {
 		return (
 			<button className="atlas-hamburger" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>

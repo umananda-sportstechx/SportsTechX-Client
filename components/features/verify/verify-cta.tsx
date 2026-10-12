@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { BadgeCheck } from 'lucide-react';
+import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { Badge, Button } from '@/components/atlas';
 import { openClaim, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
 import { rolesForTier } from '@/lib/claim-roles';
@@ -92,7 +92,7 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, undefined, allowed)}>
 			{/* The verification tick everyone already reads as "verified", in the
 			    one place Atlas spends a hue on something that is not a status. */}
-			<BadgeCheck size={16} strokeWidth={1.75} className="atlas-verify-btn__tick" aria-hidden="true" /> {label ?? 'Get verified'}
+			<VerifiedBadge size={17} className="atlas-verify-btn__tick" /> {label ?? 'Get verified'}
 		</Button>
 	);
 }
