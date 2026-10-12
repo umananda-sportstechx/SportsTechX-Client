@@ -2,6 +2,7 @@
 
 import { AccountSettings } from '@/components/features/account/account-settings';
 import { ProductAccess } from '@/components/explore/product-access';
+import { ApiKeysCard } from '@/components/features/api-keys/api-keys-card';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
 
@@ -27,5 +28,7 @@ const SUB: Record<Tier, string | undefined> = {
 export default function Page() {
 	const { data: profile } = useUserProfile();
 	const tier = getUserType(profile);
-	return <AccountSettings sub={SUB[tier]} extra={tier === 'explore' ? <ProductAccess /> : undefined} />;
+	// Mutually exclusive by definition: Explore gets the upgrade card, the paid
+	// tiers get API keys (the controller is `@RequireTier(...PAID_TIERS)`).
+	return <AccountSettings sub={SUB[tier]} extra={tier === 'explore' ? <ProductAccess /> : <ApiKeysCard />} />;
 }

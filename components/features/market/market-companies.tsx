@@ -8,7 +8,9 @@ import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { CompanyListItem as Company } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, lockedFiltersNote } from '@/components/atlas';
+import { Loading, Empty, Action, Button, FilterBar, type FilterDef, Logo, Flag, Pager, lockedFiltersNote } from '@/components/atlas';
+import { Download } from 'lucide-react';
+import { ExportModal } from '@/components/features/exports/export-modal';
 import { COUNTRY_OPTIONS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
 import { fmtUsd } from './format';
@@ -105,6 +107,14 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	);
 	const rows = all.data?.data ?? [];
 	const total = all.data?.total ?? 0;
+	const [exporting, setExporting] = useState(false);
+	// What the export should reproduce: the same facets the list is showing,
+	// minus pagination and sort, with the search term passed separately.
+	const exportFilters = useMemo(() => {
+		const omit = new Set(['page', 'limit', 'sort', 'q']);
+		return Object.fromEntries(Object.entries(params).filter(([k]) => !omit.has(k)));
+	}, [params]);
+
 	const anyFilter = !!(dq || model || sector || subSector || subSubSector || sport || country || city || continent || region || techTag || funding || founded || verified || raising || unicorn);
 	const clearAll = () => { setQ(''); setModel(''); setSector(''); setSubSector(''); setSubSubSector(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setTechTag(''); setFunding(''); setFounded(''); setVerified(false); setRaising(false); setUnicorn(false); setSort('-created_at'); setPage(1); };
 	// Filter defs for the toolbar — each change resets to page 1, as before.
@@ -159,8 +169,9 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 				: rows.length === 0 ? <Empty>No companies match your filters.</Empty>
 					: (
 						<div className="atlas-card atlas-chart-card" style={{ marginTop: 10 }}>
-							<div className="atlas-chart-card__head" style={{ padding: '17px 25px 16px', fontSize: 13, color: 'var(--a-muted)' }}>
-								{total.toLocaleString()} compan{total === 1 ? 'y' : 'ies'}{anyFilter ? ' match your filters' : ' · Filter to refine results'}
+							<div className="atlas-chart-card__head" style={{ padding: '17px 25px 16px', fontSize: 13, color: 'var(--a-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+								<span>{total.toLocaleString()} compan{total === 1 ? 'y' : 'ies'}{anyFilter ? ' match your filters' : ' · Filter to refine results'}</span>
+								<Button size="sm" variant="outline" onClick={() => setExporting(true)}><Download size={13} /> Export</Button>
 							</div>
 							<div className="mkt-list">{rows.map((c) => <CompanyRow key={c.id} c={c} href={companyHref?.(c.slug ?? c.id)} onOpen={() => setOpenId(c.slug ?? c.id)} />)}</div>
 						</div>
@@ -168,6 +179,10 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 
 			<ResultCapNote cap={all.data?.cap} total={total} noun="companies" />
 	<Pager page={page} totalPages={all.data?.totalPages ?? 1} onPage={setPage} />
+
+			{exporting && (
+				<ExportModal entity="companies" search={dq.trim() || null} filters={exportFilters} onClose={() => setExporting(false)} />
+			)}
 
 			{!companyHref && <CompanyDrawer idOrSlug={openId} onClose={() => setOpenId(null)} />}
 		</>
