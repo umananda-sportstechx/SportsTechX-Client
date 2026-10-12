@@ -88,7 +88,7 @@ export function isPublicPath(pathname: string): boolean {
 export const PRIVATE_PREFIXES = [
   // Dashboard routes — mirrors `ROUTES` in lib/routes.ts (nav.check enforces it).
   '/account', '/analytics', '/billing', '/chat', '/companies', '/deal-flow',
-  '/deck', '/events', '/framework', '/guide', '/home', '/interests',
+  '/deck', '/events', '/framework', '/home', '/interests',
   '/investors', '/my-market', '/newsletter', '/pipeline', '/plans', '/programs',
   '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',

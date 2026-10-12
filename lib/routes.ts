@@ -169,7 +169,6 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs', tier: 'raise' },
 	{ id: 'my-market', icon: 'nav-analysis', name: 'My Market', path: '/my-market', tier: 'raise' },
 	{ id: 'pipeline', icon: 'nav-list', name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
-	{ id: 'guide', icon: 'nav-reports', name: 'Fundraising Guide', path: '/guide', tier: 'raise', placeholder: true },
 	{ id: 'raise-settings', icon: 'nav-thesis', name: 'Thesis Settings', path: '/settings', tier: 'raise' },
 	// No tier: every plan gets the assistant, bounded by credits rather than by a
 	// locked door (see chat.controller.ts). Still unlisted in NAV_LAYOUT — it is
@@ -226,7 +225,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
-		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
+		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 	],
 	scout: [
 		{ title: null, items: ['home'] },
