@@ -52,11 +52,14 @@ const EXPECTED: Record<Tier, Shape> = {
 		bottom: [],
 	},
 	scout: {
-		top: ['Home'],
+		// "All watchlists" is heading-less: its "Watchlists" section holds a single
+		// item until the user saves a list, and a one-item section collapses to a
+		// plain top-level item (see buildNav). The splice test below covers the
+		// section form, which reappears the moment a saved list joins it.
+		top: ['Home', 'All watchlists'],
 		sections: [
 			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
-			['Watchlists', ['All watchlists']],
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],

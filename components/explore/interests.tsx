@@ -2,10 +2,9 @@
 
 import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
-import { cx, PlaceholderTag } from '@/components/atlas';
+import { cx } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
-import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { useSectorTiers, type SectorRef } from '@/hooks/use-sector-tiers';
 
 /**
@@ -18,12 +17,11 @@ import { useSectorTiers, type SectorRef } from '@/hooks/use-sector-tiers';
  * could not reach `/api/explore/home` — the endpoint whose whole job is to
  * personalise from them.
  *
- * Geographies and goals are still local, and marked as such in the UI. The
- * server has nowhere to put them: `location_ids` wants `locations` UUIDs that
- * no endpoint exposes (and the design asks for countries/regions, while the
- * table holds cities), and `goals` is accepted by the onboarding schema and
- * then silently dropped — `completeOnboarding` never writes it. Both need a
- * column before they can be wired; see the handover notes.
+ * Geographies and goals are the fixed UI sets below — regions, not the city
+ * rows in `locations`, and the onboarding goals answer. Both now persist as
+ * `text[]` on `user_preferences` through the same `GET`/`PUT /explore/interests`
+ * (see migration `20261012160000_explore_geos_goals`), so they survive a new
+ * browser and reach `/explore/home` like the taxonomy-backed groups.
  */
 export interface Interests {
 	/** Top-level sector ids. */
@@ -31,22 +29,20 @@ export interface Interests {
 	/** Sector ids below the top level. Same table — split for the UI only. */
 	subs: string[];
 	sports: string[];
-	/** Not persisted server-side yet. */
 	geos: string[];
-	/** Not persisted server-side yet. */
 	goals: string[];
 }
 
 export const NO_INTERESTS: Interests = { sectors: [], subs: [], sports: [], geos: [], goals: [] };
 
-/** Still hardcoded, because nothing server-side stores them. */
-const LOCAL_OPTIONS = {
+/** Fixed option sets — stored as text, so the chip value is its own label. */
+const FIXED_OPTIONS = {
 	geos: { label: 'Countries or regions', options: ['Europe', 'United Kingdom', 'India', 'North America', 'Middle East', 'Global'] },
 	goals: { label: 'Primary goals', options: ['Understand the market', 'Track companies', 'Follow developments', 'Discover events', 'Read research', 'Explore a sector'] },
 };
 
 interface Ref { id: string; name: string | null }
-interface StoredInterests { sectors: Ref[]; sports: Ref[] }
+interface StoredInterests { sectors: Ref[]; sports: Ref[]; geos: string[]; goals: string[] }
 
 type Group = { label: string; options: [value: string, label: string][]; backed: boolean };
 
@@ -66,8 +62,8 @@ export function useInterestOptions(): Record<keyof Interests, Group> {
 			sectors: { label: 'Sectors', backed: true, options: tiers.tops.map(pair).sort(byLabel) },
 			subs: { label: 'Sub-sectors', backed: true, options: sectorList.filter((s) => !topIds.has(s.id)).map(pair).sort(byLabel) },
 			sports: { label: 'Sports', backed: true, options: sportList.map(pair).sort(byLabel) },
-			geos: { label: LOCAL_OPTIONS.geos.label, backed: false, options: LOCAL_OPTIONS.geos.options.map((o) => [o, o] as [string, string]) },
-			goals: { label: LOCAL_OPTIONS.goals.label, backed: false, options: LOCAL_OPTIONS.goals.options.map((o) => [o, o] as [string, string]) },
+			geos: { label: FIXED_OPTIONS.geos.label, backed: true, options: FIXED_OPTIONS.geos.options.map((o) => [o, o] as [string, string]) },
+			goals: { label: FIXED_OPTIONS.goals.label, backed: true, options: FIXED_OPTIONS.goals.options.map((o) => [o, o] as [string, string]) },
 		};
 	}, [tiers, sectorList, sportList]);
 }
@@ -86,9 +82,6 @@ export function useInterests(): {
 	isLoading: boolean;
 } {
 	const { data, isLoading, mutate } = useSWR<StoredInterests>(qk.explore.interests());
-	const [local, saveLocal] = usePlaceholderState<Pick<Interests, 'geos' | 'goals'>>(
-		'explore-interests-local', { geos: [], goals: [] },
-	);
 	const opts = useInterestOptions();
 
 	const value = useMemo<Interests>(() => {
@@ -98,21 +91,22 @@ export function useInterests(): {
 			sectors: stored.filter((id) => topIds.has(id)),
 			subs: stored.filter((id) => !topIds.has(id)),
 			sports: (data?.sports ?? []).map((s) => s.id),
-			geos: local.geos,
-			goals: local.goals,
+			geos: data?.geos ?? [],
+			goals: data?.goals ?? [],
 		};
-	}, [data, local, opts.sectors.options]);
+	}, [data, opts.sectors.options]);
 
 	const save = useCallback(async (next: Interests) => {
-		saveLocal({ geos: next.geos, goals: next.goals });
-		// Both sector tiers are one column server-side.
+		// Both sector tiers are one column server-side; geos/goals are text arrays.
 		const res = await apiRequest('PUT', qk.explore.interests()[0], {
 			sector_ids: [...next.sectors, ...next.subs],
 			sport_ids: next.sports,
+			geos: next.geos,
+			goals: next.goals,
 		});
 		if (!res.ok) throw new Error(`save failed (${res.status})`);
 		await mutate();
-	}, [mutate, saveLocal]);
+	}, [mutate]);
 
 	const picked = useMemo(() => {
 		const name = (group: keyof Interests, id: string) =>
@@ -143,8 +137,6 @@ export function InterestFields({ value, onChange, keys }: {
 				<div key={k} className="explore-interests__group">
 					<div className="explore-interests__label">
 						{opts[k].label}
-						{/* The two groups the server has nowhere to put yet. */}
-						{!opts[k].backed && <PlaceholderTag short />}
 					</div>
 					<div className="explore-chips">
 						{opts[k].options.length === 0
