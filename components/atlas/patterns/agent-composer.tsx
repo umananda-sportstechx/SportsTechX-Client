@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Sparkles, Send, Square } from 'lucide-react';
+import { ArrowUpRight, Sparkles, Send, Square } from 'lucide-react';
 
 import type { ReactNode } from 'react';
 
@@ -81,7 +81,7 @@ export function AgentComposer({
 				<div className="atlas-composer-suggest">
 					<span className="atlas-composer-suggest-label">Suggestions:</span>
 					{suggestions.map((s) => (
-						<button key={s} type="button" className="atlas-composer-chip" onClick={() => { (onSuggestion ?? onChange)(s); taRef.current?.focus(); }}>{s}</button>
+						<button key={s} type="button" className="atlas-composer-chip" onClick={() => { (onSuggestion ?? onChange)(s); taRef.current?.focus(); }}>{s}<ArrowUpRight size={12} strokeWidth={1.75} aria-hidden="true" /></button>
 					))}
 				</div>
 			)}
