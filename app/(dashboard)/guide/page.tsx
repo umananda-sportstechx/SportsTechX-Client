@@ -42,7 +42,6 @@ const GROUPS: { phase: string; blurb: string; items: Item[] }[] = [
 		],
 	},
 ];
-const ACTION: Record<Kind, string> = { Guide: 'Open', Template: 'View', Checklist: 'Open' };
 
 export default function RaiseResourcesPage() {
 	return (
@@ -66,7 +65,9 @@ export default function RaiseResourcesPage() {
 									</div>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
 										<Badge>{it.kind}</Badge>
-										<button className="atlas-btn atlas-btn--outline atlas-btn--sm" disabled title="Backend Not Connected (Placeholders)">{ACTION[it.kind]}</button>
+										{/* Content is still being produced; a disabled "Open" read as broken,
+										    so this says plainly that it is on the way. */}
+										<span style={{ fontFamily: 'var(--a-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--a-faint)', whiteSpace: 'nowrap' }}>Coming soon</span>
 									</div>
 								</div>
 							))}
