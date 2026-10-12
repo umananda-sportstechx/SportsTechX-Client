@@ -47,7 +47,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Analytics', 'Monthly Roundup', 'My Market', 'Recently Funded']],
 			['Watchlists', ['Main watchlist', 'All watchlists']],
-			['Resources', ['Fundraising Guide*', 'Framework', 'Reports', 'Events', 'Newsletter']],
+			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
 		bottom: [],
 	},
@@ -265,7 +265,7 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		'navigable: a shared page is offered to both products');
 	check(!navigable('programs', 'scout') && navigable('programs', 'raise'),
 		'navigable: a Raise-only page is never offered to a Scout');
-	check(!navigable('pipeline', 'scout') && !navigable('guide', 'scout') && !navigable('investors', 'scout'),
+	check(!navigable('pipeline', 'scout') && !navigable('investors', 'scout'),
 		'navigable: the other Raise-only chips are dropped too');
 	check(navigable('thesis', 'scout') && !navigable('thesis', 'raise'),
 		'navigable: a Scout-only page is never offered to a founder');

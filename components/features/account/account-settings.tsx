@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Screen, PageHead, Card, ReadOnly, Button } from '@/components/atlas';
+import { PasswordField } from '@/components/auth/auth-shell';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 
 /**
@@ -54,6 +55,13 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	const { data: profile } = useUserProfile();
 	const [busy, setBusy] = useState(false);
 	const { logout, signingOut } = useLogout();
+	// In-platform password change: open the form, re-auth with the current
+	// password, then update. No email round-trip.
+	const [pwOpen, setPwOpen] = useState(false);
+	const [curPw, setCurPw] = useState('');
+	const [newPw, setNewPw] = useState('');
+	const [confirmPw, setConfirmPw] = useState('');
+	const closePw = () => { setPwOpen(false); setCurPw(''); setNewPw(''); setConfirmPw(''); };
 	// Overlay, not a snapshot: the old `useState` initialiser read the props
 	// once at mount and then drifted from the server forever.
 	const [pending, setPending] = useState<Partial<Record<NotificationKey, boolean>>>({});
@@ -84,12 +92,21 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 
 	const changePassword = async () => {
 		if (!profile?.email) { toast.error('No email on file'); return; }
+		if (!curPw) { toast.error('Enter your current password.'); return; }
+		if (newPw.length < 8) { toast.error('New password must be at least 8 characters.'); return; }
+		if (newPw !== confirmPw) { toast.error('New passwords do not match.'); return; }
 		setBusy(true);
 		try {
-			const { error } = await getSupabaseBrowser().auth.resetPasswordForEmail(profile.email, { redirectTo: `${window.location.origin}/reset-password` });
+			const supabase = getSupabaseBrowser();
+			// Re-authenticate first so a hijacked open session can't change the
+			// password without knowing the current one — fail closed on a bad match.
+			const { error: authErr } = await supabase.auth.signInWithPassword({ email: profile.email, password: curPw });
+			if (authErr) { toast.error('Current password is incorrect.'); return; }
+			const { error } = await supabase.auth.updateUser({ password: newPw });
 			if (error) throw error;
-			toast.success('Password reset email sent');
-		} catch (e) { toast.error((e as Error).message ?? 'Could not send email'); }
+			toast.success('Password updated.');
+			closePw();
+		} catch (e) { toast.error((e as Error).message ?? 'Could not update password'); }
 		finally { setBusy(false); }
 	};
 
@@ -116,9 +133,21 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 
 				<Card>
 					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
-					<SplitRow label="Password" sub="Managed through email reset">
-						<Button variant="outline" size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Change password'}</Button>
-					</SplitRow>
+					{!pwOpen ? (
+						<SplitRow label="Password" sub="Change your password without leaving the app">
+							<Button variant="outline" size="sm" onClick={() => setPwOpen(true)}>Change password</Button>
+						</SplitRow>
+					) : (
+						<div style={{ display: 'grid', gap: 14, maxWidth: 380 }}>
+							<PasswordField id="acct-cur-pw" label="Current password" value={curPw} onChange={setCurPw} autoComplete="current-password" minLength={1} placeholder="Your current password" />
+							<PasswordField id="acct-new-pw" label="New password" value={newPw} onChange={setNewPw} autoComplete="new-password" placeholder="At least 8 characters" />
+							<PasswordField id="acct-confirm-pw" label="Confirm new password" value={confirmPw} onChange={setConfirmPw} autoComplete="new-password" placeholder="Re-enter new password" />
+							<div style={{ display: 'flex', gap: 10 }}>
+								<Button size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Update password'}</Button>
+								<Button size="sm" variant="outline" disabled={busy} onClick={closePw}>Cancel</Button>
+							</div>
+						</div>
+					)}
 				</Card>
 
 				<Card>
