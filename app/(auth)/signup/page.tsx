@@ -8,7 +8,7 @@ import { safeRedirect } from '@/lib/safe-redirect';
 import { callPostLogin } from '@/lib/post-login';
 import { Button } from '@/components/atlas';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, AuthValuePanel } from '@/components/auth/auth-shell';
+import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, AuthValuePanel, PasswordField } from '@/components/auth/auth-shell';
 
 /**
  * Create an account.
@@ -120,35 +120,26 @@ export default function SignupPage() {
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
+							autoComplete="email"
 							className="atlas-input"
 						/>
 					</div>
-					<div>
-						<label htmlFor="signup-password" className="atlas-label">Password</label>
-						<input
-							id="signup-password"
-							type="password"
-							placeholder="At least 8 characters"
-							value={password}
-							onChange={e => setPassword(e.target.value)}
-							required
-							minLength={8}
-							className="atlas-input"
-						/>
-					</div>
-					<div>
-						<label htmlFor="signup-confirm" className="atlas-label">Confirm password</label>
-						<input
-							id="signup-confirm"
-							type="password"
-							placeholder="Re-enter your password"
-							value={confirmPassword}
-							onChange={e => setConfirmPassword(e.target.value)}
-							required
-							minLength={8}
-							className="atlas-input"
-						/>
-					</div>
+					<PasswordField
+						id="signup-password"
+						label="Password"
+						placeholder="At least 8 characters"
+						value={password}
+						onChange={setPassword}
+						autoComplete="new-password"
+					/>
+					<PasswordField
+						id="signup-confirm"
+						label="Confirm password"
+						placeholder="Re-enter your password"
+						value={confirmPassword}
+						onChange={setConfirmPassword}
+						autoComplete="new-password"
+					/>
 
 					<Button type="submit" className="auth-btn" disabled={loading}>
 						{loading && <AuthSpinner />}
