@@ -21,10 +21,15 @@
  *   tag          .atlas-badge     mono 9px · uppercase · --a-radius-tag
  *   focus ring   0 0 0 3px color-mix(in srgb, var(--a-ink) 10%, transparent)
  *
- * The one deliberate exception is the left rail: it keeps its own surface
- * (`--a-surface-2` + the kit's own `--a-glow-blue`) because it is a persuasion
- * panel, not a content card — but it is now an Atlas surface that inverts with
- * the theme, rather than a fixed dark slab that fought light mode.
+ * On colour: Atlas has no hue accent. `--a-primary` (black in light, white in
+ * dark) IS the accent, and hue is reserved for STATUS -- `--a-ok` for success,
+ * `--a-danger` for destructive. Chrome is monochrome.
+ *
+ * An earlier pass here spent `--a-glow-blue` on the whole left rail and
+ * `--a-navy` on icon tiles, tags and the info note. Those are real Atlas
+ * tokens, but spending them on chrome gave the modal a blue identity the
+ * platform does not have. The rail is a neutral surface now, and the only
+ * colour left in here is status.
  */
 
 /* ── Shell ─────────────────────────────────────────────────────────────────*/
@@ -61,16 +66,16 @@
 
 /* ── Left rail ─────────────────────────────────────────────────────────────*/
 .cm-rail {
+  /* Flat and neutral. `<Card glow="blue">`'s wash is for a feature card; at
+     full-panel size it reads as a brand colour the platform does not have. */
   background-color: var(--a-surface-2);
-  /* The kit's own glow, the same one `<Card glow="blue">` uses. */
-  background-image: var(--a-glow-blue);
   border-right: 1px solid var(--a-border);
   color: var(--a-ink);
   padding: 24px 22px 22px;
   display: flex; flex-direction: column;
   position: relative; overflow: hidden;
 }
-/* Superseded by --a-glow-blue above; the element still renders, so neutralise
+/* The rail is flat now; this decorative div still renders, so neutralise
    it rather than reaching into the component for one div. */
 .cm-rail-glow { display: none; }
 .cm-rail-brand {
@@ -116,7 +121,7 @@
 }
 .cm-rail-bonus-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .cm-rail-bonus-list li { display: flex; align-items: flex-start; gap: 8px; font-family: var(--a-body); font-size: 12px; line-height: 1.45; color: var(--a-ink-2); }
-.cm-rail-bonus-list svg { color: var(--a-ok); flex-shrink: 0; margin-top: 1px; }
+.cm-rail-bonus-list svg { color: var(--a-ink); flex-shrink: 0; margin-top: 1px; }
 
 /* ── Body, header, footer ──────────────────────────────────────────────────*/
 .cm-body { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -212,9 +217,9 @@
   padding: 3px 9px 2px; border-radius: var(--a-radius-tag);
   background: var(--a-inset); color: var(--a-muted); border: 1px solid var(--a-border);
 }
-.cm-role-tag.free, .cm-selco-mode {
-  background: var(--a-navy-soft); color: var(--a-navy);
-  border-color: color-mix(in srgb, var(--a-navy) 30%, transparent);
+.cm-role-tag.free {
+  background: var(--a-ok-bg); color: var(--a-ok);
+  border-color: color-mix(in srgb, var(--a-ok) 30%, transparent);
 }
 
 /* ── Cards, panels, pickable rows ──────────────────────────────────────────*/
@@ -226,7 +231,7 @@
   transition: border-color 0.15s, background 0.15s;
 }
 .cm-role-card:hover { border-color: var(--a-border-strong); background: var(--a-inset); }
-.cm-role-ico { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: var(--a-radius-sm); background: var(--a-navy-soft); color: var(--a-navy); }
+.cm-role-ico { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: var(--a-radius-sm); background: var(--a-inset); color: var(--a-ink); }
 .cm-role-text { flex: 1; min-width: 0; }
 .cm-role-h { font-family: var(--a-font); font-weight: 700; font-size: 15px; color: var(--a-ink); }
 .cm-role-p { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); margin-top: 3px; line-height: 1.45; }
@@ -276,8 +281,8 @@
 .cm-drop-clear:hover { color: var(--a-danger); }
 
 /* An advisory note, so it reads as information rather than as a card. */
-.cm-pending { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; margin-bottom: 16px; background: var(--a-navy-soft); border-radius: var(--a-radius-sm); font-family: var(--a-body); font-size: 12px; color: var(--a-ink-2); line-height: 1.5; }
-.cm-pending svg { color: var(--a-navy); flex-shrink: 0; margin-top: 1px; }
+.cm-pending { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; margin-bottom: 16px; background: var(--a-inset); border-radius: var(--a-radius-sm); font-family: var(--a-body); font-size: 12px; color: var(--a-ink-2); line-height: 1.5; }
+.cm-pending svg { color: var(--a-muted); flex-shrink: 0; margin-top: 1px; }
 
 .cm-block { background: var(--a-surface); border: 1px solid var(--a-card-border); border-radius: var(--a-radius); padding: 18px; margin-bottom: 16px; }
 .cm-block-h { display: flex; align-items: center; gap: 8px; font-family: var(--a-font); font-size: 15px; font-weight: 700; margin: 0 0 16px; color: var(--a-ink); }
@@ -320,7 +325,7 @@
 .cm-samebtn { height: 24px; padding: 0 11px; font-size: 10px; letter-spacing: 0.05em; background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
 .cm-samebtn:hover { background: var(--a-inset); }
 
-.cm-thesis { background: var(--a-purple-soft); border: 1px solid color-mix(in srgb, var(--a-purple) 20%, transparent); border-radius: var(--a-radius); padding: 16px; margin-top: 4px; }
+.cm-thesis { background: var(--a-inset); border: 1px solid var(--a-border); border-radius: var(--a-radius); padding: 16px; margin-top: 4px; }
 .cm-grouplabel { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .cm-selectall { background: transparent; border: 0; padding: 0; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-ink); cursor: pointer; }
 .cm-selectall:hover { text-decoration: underline; text-underline-offset: 3px; }
