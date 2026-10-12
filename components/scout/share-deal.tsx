@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowUpLeft, Check, Loader2, Paperclip, ShieldCheck, X } from 'lucide-react';
 import { Action, Button, Card, Empty, Field, Input, Loading, Select, Textarea, cx } from '@/components/atlas';
 import { ChipSet } from './thesis-fields';
+import { BLANK, fromRow, toPayload, num, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -33,26 +35,6 @@ import { hrefOf } from '@/lib/routes';
  * column level, which matches the design, and an omitted key can never widen
  * access. `materials_access` is asked, because the design asks it.
  */
-interface Draft {
-	company: string; website: string; hq: string; sectorId: string; desc: string;
-	founderName: string; founderEmail: string; founderPhone: string;
-	round: string; instrument: string; currency: string;
-	target: string; committed: string; valuation: string; close: string;
-	leadStatus: string; lead: string;
-	notes: string; relation: string; myCommit: string; access: string; consent: boolean;
-	/** `bucket/key`, set once the file is in storage. Not a URL — the column rejects those. */
-	deckPath: string; onePagerPath: string;
-}
-const BLANK: Draft = {
-	company: '', website: '', hq: '', sectorId: '', desc: '',
-	founderName: '', founderEmail: '', founderPhone: '',
-	round: 'Seed', instrument: 'Priced Equity', currency: 'EUR',
-	target: '', committed: '', valuation: '', close: '',
-	leadStatus: 'Lead confirmed', lead: '',
-	notes: '', relation: 'Investing in this round', myCommit: '', access: 'Only after intro request', consent: false,
-	deckPath: '', onePagerPath: '',
-};
-
 const STEPS = [
 	{ name: 'Company', title: 'About the company', sub: 'The company raising and what it does.' },
 	{ name: 'Round', title: 'Round details', sub: 'Terms as currently agreed with the company.' },
@@ -60,43 +42,34 @@ const STEPS = [
 	{ name: 'Review', title: 'Review and submit', sub: 'Check the details before sending for an eligibility check.' },
 ];
 
-// Design labels → the API's enums.
-const INSTRUMENT: Record<string, string> = {
-	'Priced Equity': 'priced_equity', SAFE: 'safe', 'Convertible Note': 'convertible_note',
-	ASA: 'asa', Other: 'other',
-};
-const LEAD: Record<string, string> = {
-	'Lead confirmed': 'confirmed', 'Seeking lead': 'seeking', 'No lead required': 'not_required',
-};
-const RELATION: Record<string, string> = {
-	'Investing in this round': 'investing_this_round', 'Existing investor': 'existing_investor',
-	'Advisor / board': 'advisor_or_board', 'Referral only': 'referral',
-};
-const ACCESS: Record<string, string> = {
-	'Circle members': 'immediate', 'Only after intro request': 'on_request',
-};
-
-/** A typed amount → a number the API will accept, or null. */
-const num = (v: string): number | null => {
-	const n = Number(String(v).replace(/[^0-9.]/g, ''));
-	return Number.isFinite(n) && n > 0 ? n : null;
-};
-
-export function ShareDeal() {
+export function ShareDeal({ resumeId }: { resumeId?: string }) {
 	// Eligibility is a read now, so nobody fills four steps and fails on submit.
 	const gate = useSWR<{ can_submit: boolean }>(qk.scout.canSubmit());
+	// Resuming a draft or a returned deal. `/mine` is the submitter's own
+	// unredacted rows, so it carries every field the form needs — there is no
+	// owner-facing single-deal read, and the list is one request either way.
+	const own = useSWR<{ data: Record<string, unknown>[] }>(resumeId ? qk.scout.dealflowMine() : null);
+	const resumeRow = resumeId ? own.data?.data.find((r) => r['id'] === resumeId) : undefined;
 	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
 
 	const [step, setStep] = useState(0);
-	const [d, setD] = useState<Draft>(BLANK);
+	const [typed, setTyped] = useState<Draft>(BLANK);
+	// The decoded row wins until the first keystroke. Seeding state from an
+	// effect instead would race the fetch and could wipe what was typed while
+	// the request was still in flight.
+	const [touched, setTouched] = useState(false);
+	const d = !touched && resumeRow ? fromRow(resumeRow) : typed;
 	const [err, setErr] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [done, setDone] = useState(false);
 	// Set once a draft exists server-side, so a retry updates it instead of
 	// creating another.
 	const [draftId, setDraftId] = useState<string | null>(null);
+	const router = useRouter();
+	// The id to PATCH: the deal being resumed, or one created by a failed attempt.
+	const editingId = draftId ?? resumeId ?? null;
 
-	const patch = (p: Partial<Draft>) => { setD((prev) => ({ ...prev, ...p })); setErr(''); };
+	const patch = (p: Partial<Draft>) => { setTyped({ ...d, ...p }); setTouched(true); setErr(''); };
 	const txt = (k: keyof Draft) => ({
 		value: String(d[k]),
 		onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => patch({ [k]: e.target.value } as Partial<Draft>),
@@ -118,7 +91,7 @@ export function ShareDeal() {
 	}, [sectors]);
 
 	const needsThesis = (gate.error as { code?: string } | undefined)?.code === 'SCOUT_NOT_SET_UP';
-	if (gate.isLoading) return <Loading />;
+	if (gate.isLoading || (resumeId && own.isLoading)) return <Loading />;
 	if (needsThesis) {
 		return (
 			<Empty>
@@ -161,36 +134,9 @@ export function ShareDeal() {
 			// remembered: a retry PATCHes the draft it already made and submits that,
 			// rather than creating a second row every time someone presses the button
 			// again. Both routes take the identical payload, so this is the same body.
-			const payload = {
-				company_name: d.company.trim(),
-				company_website: d.website.trim() || null,
-				company_hq: d.hq.trim() || null,
-				company_description: d.desc.trim(),
-				sector_id: d.sectorId || null,
-				founder_contact_name: d.founderName.trim() || null,
-				founder_contact_email: d.founderEmail.trim() || null,
-				founder_contact_phone: d.founderPhone.trim() || null,
-				round_type: d.round,
-				instrument: INSTRUMENT[d.instrument] ?? 'other',
-				currency_code: d.currency,
-				target_amount: num(d.target),
-				committed_amount: num(d.committed),
-				// `valuation` is a text column on purpose — "€8m pre-money" is not a
-				// number and squeezing it into one would lose the qualifier.
-				valuation: d.valuation.trim() || null,
-				target_close_date: d.close || null,
-				lead_status: LEAD[d.leadStatus] ?? null,
-				lead_investor: d.leadStatus === 'Lead confirmed' ? (d.lead.trim() || null) : null,
-				member_relationship: RELATION[d.relation] ?? null,
-				member_commitment: num(d.myCommit),
-				member_perspective: d.notes.trim() || null,
-				deck_path: d.deckPath || null,
-				one_pager_path: d.onePagerPath || null,
-				materials_access: ACCESS[d.access] ?? 'on_request',
-				founder_consent: d.consent,
-			};
-			const res = draftId
-				? await apiRequest('PATCH', `/api/scout/dealflow/${draftId}`, payload)
+			const payload = toPayload(d);
+			const res = editingId
+				? await apiRequest('PATCH', `/api/scout/dealflow/${editingId}`, payload)
 				: await apiRequest('POST', '/api/scout/dealflow', payload);
 			if (!res.ok) throw new Error(String(res.status));
 			const { id } = (await res.json()) as { id: string };
@@ -198,6 +144,7 @@ export function ShareDeal() {
 
 			const sent = await apiRequest('POST', `/api/scout/dealflow/${id}/submit`);
 			if (!sent.ok) throw new Error(String(sent.status));
+			await own.mutate();   // so "Your submissions" shows the new status
 			setDone(true); window.scrollTo(0, 0);
 		} catch {
 			setErr('We couldn’t submit that. Please check the details and try again.');
@@ -217,7 +164,12 @@ export function ShareDeal() {
 			<p className="scout-body">SportsTechX will review eligibility, usually within two working days. We&rsquo;ll email you once it&rsquo;s live in From the Circle, or if we need anything else.</p>
 			<div className="scout-intro__actions">
 				<Button href={hrefOf('deal-flow-circle')} variant="outline">Back to From the Circle</Button>
-				<Button onClick={() => { setD(BLANK); setStep(0); setDone(false); setDraftId(null); }}>Share another deal</Button>
+				<Button onClick={() => {
+					setTyped(BLANK); setTouched(true); setStep(0); setDone(false); setDraftId(null);
+					// Drop `?draft=` too, or the next submission would try to PATCH the
+					// deal that was just sent for review.
+					if (resumeId) router.replace(`${hrefOf('deal-flow-circle')}/share`);
+				}}>Share another deal</Button>
 			</div>
 		</Card>
 	);
@@ -228,8 +180,10 @@ export function ShareDeal() {
 			<Action icon={<ArrowUpLeft />} href={hrefOf('deal-flow-circle')}>From the Circle</Action>
 			<div className="scout-subhead scout-subhead--page">
 				<div>
-					<h1 className="atlas-h1">Share a deal with the Circle</h1>
-					<p className="scout-muted">Share an opportunity with Investor Circle members. SportsTechX checks eligibility before it&rsquo;s published.</p>
+					<h1 className="atlas-h1">{resumeId ? 'Edit your submission' : 'Share a deal with the Circle'}</h1>
+					<p className="scout-muted">{resumeId
+						? 'Make the changes the review team asked for, then send it back for another look.'
+						: 'Share an opportunity with Investor Circle members. SportsTechX checks eligibility before it’s published.'}</p>
 				</div>
 			</div>
 			<Steps names={STEPS.map((x) => x.name)} step={step} onPick={(i) => i < step && setStep(i)} />
@@ -325,7 +279,7 @@ export function ShareDeal() {
 					{step === 0
 						? <Link href={hrefOf('deal-flow-circle')} className="atlas-btn atlas-btn--outline">Cancel</Link>
 						: <Button variant="outline" onClick={() => setStep(step - 1)}>← Back</Button>}
-					<Button disabled={busy} onClick={next}>{busy ? 'Submitting…' : step === 3 ? 'Submit deal' : 'Continue'}</Button>
+					<Button disabled={busy} onClick={next}>{busy ? 'Submitting…' : step === 3 ? (resumeId ? 'Resubmit for review' : 'Submit deal') : 'Continue'}</Button>
 				</div>
 			</Card>
 		</>
