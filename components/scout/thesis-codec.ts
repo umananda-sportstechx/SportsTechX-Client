@@ -41,6 +41,8 @@ export interface ScoutProfile {
 	fund_name: string | null;
 	investor_type: string | null;
 	fund_website: string | null;
+	hq_country: string | null;
+	hq_city: string | null;
 	aum: string | null;
 	setup_completed_at: string | null;
 }
@@ -115,6 +117,8 @@ export function toForm(
 		fundName: p?.fund_name ?? '',
 		investorType: p?.investor_type ? (flip(INVESTOR_TYPE)[p.investor_type] ?? '') : '',
 		website: p?.fund_website ?? '',
+		country: p?.hq_country ?? '',
+		city: p?.hq_city ?? '',
 		aum: p?.aum ?? '',
 		sectors: names(t?.sectors ?? []),
 		stages: names(t?.round_types ?? []),
@@ -165,6 +169,8 @@ export function toProfileDto(t: Thesis) {
 		investor_type: INVESTOR_TYPE[t.investorType] ?? null,
 		// The schema demands a URL; the form collects "northline.vc".
 		fund_website: t.website?.trim() ? absolute(t.website.trim()) : null,
+		hq_country: t.country || null,
+		hq_city: t.city || null,
 		aum: t.aum || null,
 	};
 }
