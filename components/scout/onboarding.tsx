@@ -261,7 +261,7 @@ function Review({ t, onEdit }: { t: Thesis; onEdit: (step: number) => void }) {
 	const v = (x: string | string[]) => (Array.isArray(x) ? x.join(', ') : x) || '—';
 	const groups: [string, number, [string, string | string[]][]][] = [
 		['Profile', 0, [['Name', t.name], ['Work email', t.email], ['Role', t.role], ['LinkedIn', t.linkedin]]],
-		['Fund', 1, [['Fund / organisation', t.fundName], ['Investor type', t.investorType], ['Fund size / AUM', t.aum], ['Website', t.website], ['Headquarters', t.location]]],
+		['Fund', 1, [['Fund / organisation', t.fundName], ['Investor type', t.investorType], ['Fund size / AUM', t.aum], ['Website', t.website], ['Headquarters', [t.city, t.country].filter(Boolean).join(', ')]]],
 		['Stage & cheque', 2, [['Stages', t.stages], ['Cheque size', t.chequeMin || t.chequeMax ? `${t.chequeMin || '—'} – ${t.chequeMax || '—'}` : ''], ['Lead or follow', t.invStyle]]],
 		['Investment focus', 3, [['Regions', t.regions], ['Sectors', t.sectors], ['Minimum traction', t.traction], ['Include', t.include], ['Exclude', t.exclude]]],
 	];
