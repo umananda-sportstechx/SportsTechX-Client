@@ -29,6 +29,8 @@ export interface OpenClaimDetail {
   target: ClaimTarget | null;
   role: ClaimRole | null;
   prefill?: ClaimPrefill;
+  /** Which roles the chooser may offer. Omitted means all three. */
+  allowedRoles?: ClaimRole[];
 }
 
 export const CLAIM_EVENT = 'stx:open-claim';
@@ -39,12 +41,19 @@ export const CLAIM_EVENT = 'stx:open-claim';
  *  - `openClaim(null, 'investor')`       → jump straight into a role's search
  *  - `openClaim({ role:'founder', id, name })` → pre-selected founder claim
  *  - `openClaim({ role:'founder', id }, 'founder', prefill)` → pre-filled from Raise Setup
+ *  - `openClaim(null, null, undefined, ['founder','operator'])` → a chooser
+ *    limited to the roles this tier may claim (see `rolesForTier`)
  */
-export function openClaim(target: ClaimTarget | null = null, role: ClaimRole | null = null, prefill?: ClaimPrefill): void {
+export function openClaim(
+  target: ClaimTarget | null = null,
+  role: ClaimRole | null = null,
+  prefill?: ClaimPrefill,
+  allowedRoles?: ClaimRole[],
+): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
     new CustomEvent<OpenClaimDetail>(CLAIM_EVENT, {
-      detail: { target, role: role ?? target?.role ?? null, prefill },
+      detail: { target, role: role ?? target?.role ?? null, prefill, allowedRoles },
     }),
   );
 }
