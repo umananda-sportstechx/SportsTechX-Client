@@ -5,14 +5,14 @@ import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
-import { Brand } from '@/components/ui/brand';
-import { Card, Button, Badge, Loading, PageHead, Action } from '@/components/atlas';
+import { AccountTabs } from '@/components/features/account/account-tabs';
+import { Screen, PageHead, Card, Button, Badge, Loading, Action } from '@/components/atlas';
 
 /**
  * Plan & billing — reachable by every plan (not gated to raise). Shows the
@@ -20,6 +20,12 @@ import { Card, Button, Badge, Loading, PageHead, Action } from '@/components/atl
  * correctly: an existing subscriber changes/cancels in the Stripe portal (a new
  * Checkout would create a SECOND subscription and double-bill), while a user
  * with no active plan starts one via Checkout.
+ *
+ * This lives in the `(dashboard)` group so it renders inside the app shell — the
+ * sidebar, navbar and account tab strip — same as the Account and Thesis tabs
+ * it sits beside. The chrome-less `/billing/success` and `/billing/cancel`
+ * screens stay under `app/billing/`, because those are the surfaces Stripe
+ * redirects *into* and must stay focused.
  */
 // The retired labels stay in the lookup only so a historical `stripe_subscriptions`
 // row still renders a name instead of a raw enum value. They are not offered.
@@ -104,12 +110,9 @@ export default function BillingPage() {
 	const ledgerHasMore = !!ledger.data?.[ledger.data.length - 1]?.nextCursor;
 
 	return (
-		<div className="atlas" style={{ maxWidth: 820, margin: '0 auto', padding: '40px 20px 64px', background: 'var(--a-page)', color: 'var(--a-ink)' }}>
-			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 36 }}>
-				<Action icon={<ArrowLeft />} onClick={() => router.push(hrefOf('home'))}>Back</Action>
-				<Brand variant="horizontal" height={30} />
-			</div>
-			<PageHead title={'Plan & billing'} />
+		<Screen width={900}>
+			<PageHead title="Subscription" />
+			<AccountTabs />
 
 			<Card focus glow="blue" style={{ marginBottom: 24, padding: '24px 26px' }}>
 				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
@@ -220,6 +223,6 @@ export default function BillingPage() {
 								))}
 							</Card>
 						)}
-		</div>
+		</Screen>
 	);
 }
