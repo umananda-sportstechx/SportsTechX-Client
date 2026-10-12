@@ -3,6 +3,7 @@
 import { SWRConfig } from 'swr';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
+import './toast.css';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { swrConfig, enableQueryPolling } from '@/lib/query-client';
 import { logoutState } from '@/lib/logout-state';
@@ -70,7 +71,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <SetupModalHost />
                     <CreditExhaustionHost />
                     <TierRequiredHost />
-                    <Toaster richColors position="top-right" />
+                    <Toaster position="top-right" theme="dark" closeButton toastOptions={{ unstyled: false }} />
                   </ConfirmProvider>
                 </PersonaProvider>
               </MobileNavProvider>
