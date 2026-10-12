@@ -93,7 +93,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 		<article className="atlas-co">
 			<header className="atlas-co__head">
 				<div className="atlas-co__id">
-					<Logo co={{ name: c.name, website: c.website ?? null, custom_logo_url: c.custom_logo_url }} size={104} radius={9} />
+					<Logo co={{ name: c.name, website: c.website ?? null, custom_logo_url: c.custom_logo_url }} size={72} radius={10} />
 					<div>
 						<h1 className="atlas-co__name">{c.name}</h1>
 						<div className="atlas-co__meta">{[hq, c.founded_year ? `Founded ${c.founded_year}` : null].filter(Boolean).join(' · ')}</div>

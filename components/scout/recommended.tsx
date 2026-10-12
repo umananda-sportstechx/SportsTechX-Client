@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowUpRight, Globe, X } from 'lucide-react';
-import { Action, Empty, Loading, Logo, cx } from '@/components/atlas';
+import { ArrowUpRight, Check, Minus } from 'lucide-react';
+import { Empty, Loading, Logo, cx } from '@/components/atlas';
+import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { qk } from '@/lib/query-keys';
 import { companyHref, hrefOf } from '@/lib/routes';
 import { fmtUsd } from '@/components/features/market/format';
+import './recommended.css';
 
 /**
  * Discover → Recommended, from `GET /api/scout/recommended`.
@@ -103,40 +105,45 @@ export function Recommended() {
 				) : rows.length === 0 ? (
 					<Empty>You&apos;ve dismissed every match. Undo above, or widen your thesis.</Empty>
 				) : (
-					<div className="scout-cards">
+					<div className="atlas-rec-list">
 						{rows.map((c) => (
-							<article key={c.id} className="atlas-card scout-co-card">
-								<div className="scout-co-card__top">
-									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={44} radius={8} />
-									<div className="scout-co-card__id">
-										<div className="scout-co-card__name">{c.name}</div>
-										<div className="scout-co-card__meta">{place(c) || '—'}</div>
+							<article key={c.id} className="atlas-rec">
+								<div className="atlas-rec__top">
+									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={72} radius={9} />
+									<div className="atlas-rec__id">
+										<div className="atlas-rec__line">
+											<Link href={companyHref(c.slug ?? c.id)} className="atlas-rec__name">{c.name}</Link>
+											{place(c) && <span className="atlas-rec__meta">{place(c)}</span>}
+										</div>
+										{c.description && <p className="atlas-rec__desc">{c.description}</p>}
+										<div className="atlas-rec__facts">
+											{c.sector && <span className="atlas-rec__chip">{c.sector}</span>}
+											<span className="atlas-rec__raised">
+												{fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd))} raised
+												{c.latest_round ? ` · ${c.latest_round}` : ''}
+											</span>
+										</div>
 									</div>
 								</div>
-								{c.description && <p className="scout-co-card__desc">{c.description}</p>}
-								<div className="scout-co-card__facts">
-									<span>{c.sector ?? '—'}</span>
-									<span>
-										{fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd))} raised
-										{c.latest_round ? ` · ${c.latest_round}` : ''}
-									</span>
-								</div>
-								<div className="scout-why">
-									<div className="atlas-eyebrow">Why it matches</div>
-									<div className="scout-checks">
+
+								{/* Indented under the identity, as in the mockup, so the reason
+								    reads as belonging to this company rather than the list. */}
+								<div className="atlas-rec__why">
+									<div className="atlas-rec__whyhead">
+										<span className="atlas-rec__whylabel">Why it matches</span>
 										{CHIPS.map(([label, key]) => (
-											<span key={label} className={cx('scout-check', c[key] && 'on')}>
-												{label} {c[key] ? '✓' : '–'}
+											<span key={label} className={cx('atlas-rec__check', c[key] && 'on')}>
+												{c[key] ? <Check size={11} strokeWidth={2.25} aria-hidden="true" /> : <Minus size={11} strokeWidth={2} aria-hidden="true" />}
+												{label}
 											</span>
 										))}
 									</div>
-									<p>Matches {c.match_count} of {CHIPS.length} thesis dimensions.</p>
+									<p className="atlas-rec__reason">Matches {c.match_count} of {CHIPS.length} thesis dimensions.</p>
 								</div>
-								<div className="scout-co-card__actions">
-									<button type="button" className="atlas-action" onClick={() => setDismissed([...dismissed, c.id])}>
-										<span className="atlas-action__icon"><X /></span>Not relevant
-									</button>
-									{c.website && <Action icon={<Globe />} href={c.website} external>Website</Action>}
+
+								<div className="atlas-rec__actions">
+									<button type="button" className="atlas-rec__dismiss" onClick={() => setDismissed([...dismissed, c.id])}>Not relevant</button>
+									<SaveToWatchlist companyId={c.id} companyName={c.name} />
 									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)}>
 										<span className="atlas-action__icon"><ArrowUpRight /></span>View company
 									</Link>

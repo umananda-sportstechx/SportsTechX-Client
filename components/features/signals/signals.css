@@ -1,27 +1,42 @@
-/* Signals feed. Atlas tokens only. */
+/* Signals feed — the Scout mockup's signal row. Atlas tokens only. */
 .atlas .atlas-sig-head { margin-bottom: 18px; }
-.atlas .atlas-sig-muted { margin: 6px 0 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-muted); }
-.atlas .atlas-sig-filter { margin-bottom: 18px; overflow-x: auto; }
+.atlas .atlas-sig-lede { margin: 6px 0 0; font-family: var(--a-body); font-size: 14px; line-height: 1.5; color: var(--a-muted); }
+.atlas .atlas-sig-filter { margin-bottom: 22px; }
 .atlas .atlas-sig-list { display: grid; gap: 12px; }
-.atlas .atlas-sig { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; }
-.atlas .atlas-sig__main { flex: 1; min-width: 0; }
-.atlas .atlas-sig__top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.atlas .atlas-sig__top .atlas-sig-muted { margin: 0; }
-.atlas .atlas-sig__name { font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); }
-.atlas .atlas-sig__type {
-	display: inline-flex; align-items: center; height: 19px; padding: 0 9px; border-radius: var(--a-radius-tag);
-	background: var(--a-purple-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-purple) 28%, transparent);
-	font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-deep);
+
+.atlas .atlas-sig {
+	padding: 18px 22px 16px;
+	background: var(--a-surface);
+	border: 1px solid var(--a-card-border); border-radius: var(--a-radius);
+	transition: border-color 0.15s, background-image 0.2s;
 }
-.atlas .atlas-sig__text { margin: 6px 0 0; font-family: var(--a-body); font-size: 13px; line-height: 1.5; color: var(--a-ink-2); }
-.atlas .atlas-sig__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
-.atlas .atlas-sig__watch {
-	display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: none; border-radius: var(--a-radius-pill); cursor: pointer;
-	background: transparent; box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink);
-	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+/* The shared hover highlight, so a signal row behaves like every other card. */
+.atlas .atlas-sig:hover {
+	border-color: var(--a-border-strong);
+	background-image: linear-gradient(170deg, transparent 60%, color-mix(in srgb, var(--a-pink) 12%, transparent) 100%);
 }
-.atlas .atlas-sig__watch.on { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
-@media (max-width: 760px) {
-	.atlas .atlas-sig { flex-wrap: wrap; }
-	.atlas .atlas-sig__actions { flex-direction: row; flex-wrap: wrap; align-items: center; width: 100%; }
+
+.atlas .atlas-sig__top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 8px; }
+.atlas .atlas-sig__name {
+	font-family: var(--a-font); font-size: 18px; font-weight: 700; line-height: 1.25;
+	color: var(--a-ink); text-decoration: none;
+}
+.atlas .atlas-sig__name:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* The mockup sets the type in navy — the one place Atlas uses its positive
+   colour as a label, since the type is what a reader scans for. */
+.atlas .atlas-sig__type { font-family: var(--a-body); font-size: 13px; font-weight: 600; color: var(--a-navy); }
+.atlas .atlas-sig__when { font-family: var(--a-body); font-size: 13px; color: var(--a-faint); }
+
+.atlas .atlas-sig__text { margin: 0; font-family: var(--a-body); font-size: 15px; line-height: 1.5; color: var(--a-ink-2); }
+
+.atlas .atlas-sig__foot {
+	display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+	margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--a-border);
+}
+.atlas .atlas-sig__ctx { min-width: 0; font-family: var(--a-body); font-size: 13px; color: var(--a-muted); }
+.atlas .atlas-sig__actions { display: flex; align-items: center; gap: 16px; flex: none; }
+
+@media (max-width: 640px) {
+	.atlas .atlas-sig { padding: 16px; }
+	.atlas .atlas-sig__actions { width: 100%; justify-content: space-between; }
 }
