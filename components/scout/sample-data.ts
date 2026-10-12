@@ -18,7 +18,7 @@ export type BoardStage = typeof BOARD_STAGES[number];
 // ── Investor thesis (Thesis settings + onboarding) ──────────────────────────
 export interface Thesis {
 	name: string; email: string; role: string; linkedin: string;
-	fundName: string; investorType: string; website: string; location: string; aum: string;
+	fundName: string; investorType: string; website: string; country: string; city: string; aum: string;
 	chequeMin: string; chequeMax: string; stages: string[]; invStyle: 'Lead' | 'Follow' | 'Either';
 	regions: string[]; sectors: string[]; traction: string; include: string[]; exclude: string[];
 }
@@ -34,7 +34,7 @@ export interface Thesis {
  */
 export const DEFAULT_THESIS: Thesis = {
 	name: '', email: '', role: 'Partner', linkedin: '',
-	fundName: '', investorType: '', website: '', location: '', aum: '',
+	fundName: '', investorType: '', website: '', country: '', city: '', aum: '',
 	chequeMin: '', chequeMax: '', stages: [], invStyle: 'Either',
 	regions: [], sectors: [],
 	traction: '', include: [], exclude: [],

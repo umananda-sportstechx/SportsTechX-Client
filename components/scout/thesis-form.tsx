@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Field, Input } from '@/components/atlas';
+import { LocationSelect } from '@/components/features/location/location-select';
 import { ChipSet, AddButton, PickerDialog, toggleIn, withSelected } from './thesis-fields';
 import { PILLAR_SECTORS, THESIS_OPTIONS, type Thesis } from './sample-data';
 
@@ -34,7 +35,8 @@ export function FundFields({ t, patch }: Props) {
 			<div className="scout-form-grid">
 				<Field label="Fund / investor name"><Input {...text(t, patch, 'fundName')} placeholder="e.g. Northline Ventures" /></Field>
 				<Field label="Website"><Input {...text(t, patch, 'website')} placeholder="fund.com" /></Field>
-				<Field label="Location"><Input {...text(t, patch, 'location')} placeholder="City, country" /></Field>
+				<Field label="Country"><LocationSelect value={t.country} onChange={(v) => patch({ country: v })} /></Field>
+				<Field label="City"><Input {...text(t, patch, 'city')} placeholder="City" /></Field>
 			</div>
 			<FieldBlock label="Investor type"><ChipSet options={THESIS_OPTIONS.investorType} value={t.investorType} onToggle={(o) => patch({ investorType: o })} /></FieldBlock>
 			<FieldBlock label="Fund size / AUM"><ChipSet options={THESIS_OPTIONS.aum} value={t.aum} onToggle={(o) => patch({ aum: o })} /></FieldBlock>
