@@ -14,6 +14,7 @@ export default function Page() {
 			<FrameworkCategory
 				slug={slug}
 				backHref={hrefOf('framework')}
+				categoryHref={(s) => `${hrefOf('framework')}/${s}`}
 				exploreHref={(pillar, category) =>
 					`${hrefOf('companies')}?sector=${encodeURIComponent(pillar)}&sub=${encodeURIComponent(category)}`}
 			/>

@@ -27,8 +27,14 @@
 .atlas .atlas-fw-block__title { margin: 0; font-family: var(--a-font); font-size: 18px; font-weight: 700; line-height: 1.25; }
 .atlas .atlas-fw-block__title a { color: var(--a-ink); text-decoration: none; }
 .atlas .atlas-fw-block__title a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.atlas .atlas-fw-block__go { flex-shrink: 0; text-decoration: none; }
-.atlas .atlas-fw-block__go:hover { opacity: 0.85; }
+/* Figma: a filled black circle with the arrow, matching the post-card action. */
+.atlas .atlas-fw-block__go {
+	flex-shrink: 0; text-decoration: none;
+	display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+	background: var(--a-primary); color: var(--a-primary-ink);
+	transition: transform 0.12s, opacity 0.12s;
+}
+.atlas .atlas-fw-block__go:hover { transform: translateY(-1px); opacity: 0.9; }
 .atlas .atlas-fw-count {
 	display: flex; align-items: center; gap: 8px; margin-top: 8px;
 	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-faint);
@@ -62,3 +68,15 @@
 .atlas .atlas-fw-col__title { margin: 0 0 12px; font-family: var(--a-body); font-size: 12px; font-weight: 700; color: var(--a-ink); }
 .atlas .atlas-fw-col__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-family: var(--a-body); font-size: 12px; line-height: 19px; color: var(--a-muted); }
 .atlas .atlas-fw-col__empty { margin: 0; font-size: 12px; color: var(--a-faint); }
+
+/* Category view: prev / next browse buttons beside Return (Figma "Browseable
+   content card"). Round outline buttons, matching the 29px control height. */
+.atlas .atlas-fw-detail__nav { display: flex; align-items: center; gap: 8px; }
+.atlas .atlas-fw-navbtn {
+	display: inline-grid; place-items: center; width: 32px; height: 29px; flex-shrink: 0;
+	border-radius: var(--a-radius-pill); border: 1px solid var(--a-border-strong);
+	background: var(--a-field); color: var(--a-ink); text-decoration: none;
+	transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.atlas .atlas-fw-navbtn:hover { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-primary); }
+.atlas .atlas-fw-navbtn.is-disabled { opacity: 0.35; pointer-events: none; }

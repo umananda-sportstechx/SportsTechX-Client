@@ -40,7 +40,7 @@ function CategoryBlock({ c, href }: { c: FrameworkCategory; href: string }) {
 		<article className="atlas-fw-block">
 			<div className="atlas-fw-block__head">
 				<h3 className="atlas-fw-block__title"><Link href={href}>{c.name}</Link></h3>
-				<Link href={href} className="atlas-action__icon atlas-fw-block__go" aria-label={`Open ${c.name}`}><ArrowUpRight /></Link>
+				<Link href={href} className="atlas-fw-block__go" aria-label={`Open ${c.name}`}><ArrowUpRight size={13} strokeWidth={1.75} /></Link>
 			</div>
 			<div className="atlas-fw-count"><Building2 size={11} strokeWidth={1.25} aria-hidden="true" />{count == null ? '—' : count.toLocaleString()} companies</div>
 			{c.copy && <p className="atlas-fw-block__desc">{c.copy.description}</p>}
