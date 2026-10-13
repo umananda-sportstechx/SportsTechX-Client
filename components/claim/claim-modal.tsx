@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Flag } from '@/components/atlas';
+import { Combobox } from '@/components/atlas/ui/combobox';
 import { LocationSelect } from '@/components/features/location/location-select';
 // One sheet now. This used to also pull in `company-detail.css`, purely because
 // it rendered `VerifiedBadge` from the legacy atoms and that badge's `.vb`
@@ -30,6 +31,12 @@ import { useClaimSearch } from './use-claim-search';
 import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck } from './build-claim-dto';
 
 const initials = (n: string) => (n || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+// Native <select> → the Atlas combobox: options where value === label, with an
+// optional leading empty option so "unselected" stays reachable, as it was.
+const opt = (list: readonly string[]): [string, string][] => list.map((x) => [x, x]);
+const optE = (empty: string, list: readonly string[]): [string, string][] => [['', empty], ...opt(list)];
+const DEAL_TYPES = ['Acquisition', 'Merger', 'Acqui-hire', 'Majority stake', 'Minority stake'] as const;
 
 function RoleIcon({ icon, size = 20 }: { icon: RoleConfig['icon']; size?: number }) {
   if (icon === 'wallet') return <Wallet size={size} />;
@@ -429,7 +436,7 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Sector</label><input className="cm-input" value={form.sector} onChange={(e) => set('sector', e.target.value)} placeholder="e.g. Fans & Content" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Business model</label><select className="cm-select" value={form.businessModel} onChange={(e) => set('businessModel', e.target.value)}>{BIZ_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Business model</label><Combobox className="cm-select" value={form.businessModel} onChange={(v) => set('businessModel', v)} options={opt(BIZ_MODELS)} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Founded year</label><input className="cm-input" value={form.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
@@ -437,7 +444,7 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Sport</label><select className="cm-select" value={form.sport} onChange={(e) => set('sport', e.target.value)}><option value="">Select…</option>{SPORTS_LIST.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Sport</label><Combobox className="cm-select" value={form.sport} onChange={(v) => set('sport', v)} placeholder="Select…" options={optE('Select…', SPORTS_LIST)} /></div>
                     </div>
                     <div className="cm-field"><label className="cm-label">Program participation</label><input className="cm-input" value={form.programs} onChange={(e) => set('programs', e.target.value)} placeholder="e.g. Stadia Ventures '24" /></div>
 
@@ -482,7 +489,7 @@ export function ClaimModal({
                           <div key={i} className="cm-editcard">
                             <button className="cm-editcard-x" onClick={() => set('rounds', form.rounds.filter((_, j) => j !== i))} aria-label="Remove round"><X size={14} /></button>
                             <div className="cm-row3">
-                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Round type</label><select className="cm-select" value={r.roundType} onChange={(e) => upd('roundType', e.target.value)}><option value="">Select…</option>{FUND_ROUND_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}</select></div>
+                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Round type</label><Combobox className="cm-select" value={r.roundType} onChange={(v) => upd('roundType', v)} placeholder="Select…" options={optE('Select…', FUND_ROUND_NAMES)} /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Amount (USD)</label><input className="cm-input" value={r.amount} onChange={(e) => upd('amount', e.target.value.replace(/[^\d]/g, ''))} placeholder="1000000" inputMode="numeric" /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><input className="cm-input" value={r.date} onChange={(e) => upd('date', e.target.value)} placeholder="2024-07-10" /></div>
                             </div>
@@ -509,7 +516,7 @@ export function ClaimModal({
                           <div key={i} className="cm-editcard">
                             <button className="cm-editcard-x" onClick={() => set('mna', form.mna.filter((_, j) => j !== i))} aria-label="Remove deal"><X size={14} /></button>
                             <div className="cm-row3">
-                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Deal type</label><select className="cm-select" value={m.dealType} onChange={(e) => upd('dealType', e.target.value)}><option>Acquisition</option><option>Merger</option><option>Acqui-hire</option><option>Majority stake</option><option>Minority stake</option></select></div>
+                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Deal type</label><Combobox className="cm-select" value={m.dealType} onChange={(v) => upd('dealType', v)} options={opt(DEAL_TYPES)} /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Counterparty</label><input className="cm-input" value={m.counterparty} onChange={(e) => upd('counterparty', e.target.value)} placeholder="Company name" /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><input className="cm-input" value={m.date} onChange={(e) => upd('date', e.target.value)} placeholder="2024" /></div>
                             </div>
@@ -538,7 +545,7 @@ export function ClaimModal({
                   <div className="cm-field cm-half"><label className="cm-label">Location</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="London" /></div>
                   <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                 </div>
-                <div className="cm-field"><label className="cm-label">Type</label><select className="cm-select" value={form.opType} onChange={(e) => set('opType', e.target.value)}>{OP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+                <div className="cm-field"><label className="cm-label">Type</label><Combobox className="cm-select" value={form.opType} onChange={(v) => set('opType', v)} options={opt(OP_TYPES)} /></div>
               </div>
             )}
 
@@ -553,8 +560,8 @@ export function ClaimModal({
                   <div className="cm-nest">
                     <div className="cm-field"><label className="cm-label">Amount seeking to raise (USD) <span className="cm-req">*</span></label>
                       <div className="cm-row2">
-                        <div className="cm-field cm-half" style={{ marginBottom: 0 }}><select className="cm-select" value={form.raiseMin} onChange={(e) => set('raiseMin', e.target.value)}><option value="">Min</option>{RAISE_AMOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
-                        <div className="cm-field cm-half" style={{ marginBottom: 0 }}><select className="cm-select" value={form.raiseMax} onChange={(e) => set('raiseMax', e.target.value)}><option value="">Max</option>{RAISE_AMOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
+                        <div className="cm-field cm-half" style={{ marginBottom: 0 }}><Combobox className="cm-select" value={form.raiseMin} onChange={(v) => set('raiseMin', v)} placeholder="Min" options={optE('Min', RAISE_AMOUNTS)} /></div>
+                        <div className="cm-field cm-half" style={{ marginBottom: 0 }}><Combobox className="cm-select" value={form.raiseMax} onChange={(v) => set('raiseMax', v)} placeholder="Max" options={optE('Max', RAISE_AMOUNTS)} /></div>
                       </div>
                     </div>
                     <div className="cm-field">
@@ -597,7 +604,7 @@ export function ClaimModal({
                     <div className="cm-field"><label className="cm-label">Website</label><div className="cm-input-prefix"><span className="cm-input-prefix-txt">https://</span><input className="cm-input" value={form.website} onChange={(e) => set('website', e.target.value)} placeholder="firm.com" /></div></div>
                     <div className="cm-field"><label className="cm-label">Description</label><textarea className="cm-textarea" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What you back, in a sentence or two." /></div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Category</label><select className="cm-select" value={form.invCategory} onChange={(e) => set('invCategory', e.target.value)}><option value="">Select…</option>{INV_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Category</label><Combobox className="cm-select" value={form.invCategory} onChange={(v) => set('invCategory', v)} placeholder="Select…" options={optE('Select…', INV_CATEGORIES)} /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Year launched</label><input className="cm-input" value={form.yearLaunched} onChange={(e) => set('yearLaunched', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2018" inputMode="numeric" /></div>
                     </div>
                     <div className="cm-row2">
@@ -667,8 +674,8 @@ export function ClaimModal({
                           </div>
                         ))}
                         <div className="cm-row2">
-                          <div className="cm-field cm-half"><label className="cm-label">Min investment</label><select className="cm-select" value={form.minInv} onChange={(e) => set('minInv', e.target.value)}><option value="">Select min</option>{RAISE_AMOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
-                          <div className="cm-field cm-half"><label className="cm-label">Max investment</label><select className="cm-select" value={form.maxInv} onChange={(e) => set('maxInv', e.target.value)}><option value="">Select max</option>{RAISE_AMOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></div>
+                          <div className="cm-field cm-half"><label className="cm-label">Min investment</label><Combobox className="cm-select" value={form.minInv} onChange={(v) => set('minInv', v)} placeholder="Select min" options={optE('Select min', RAISE_AMOUNTS)} /></div>
+                          <div className="cm-field cm-half"><label className="cm-label">Max investment</label><Combobox className="cm-select" value={form.maxInv} onChange={(v) => set('maxInv', v)} placeholder="Select max" options={optE('Select max', RAISE_AMOUNTS)} /></div>
                         </div>
                         <div className="cm-field"><label className="cm-label">Funding stage</label><div className="cm-check-grid">{FUNDING_STAGES.map((o) => <label key={o} className="cm-check"><input type="checkbox" checked={form.fundingStages.includes(o)} onChange={() => toggleIn('fundingStages', o)} /> {o}</label>)}</div></div>
                         <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">Startup financials — revenue stage</label><div className="cm-check-grid">{REVENUE_STAGES.map((o) => <label key={o} className="cm-check"><input type="checkbox" checked={form.revenueStages.includes(o)} onChange={() => toggleIn('revenueStages', o)} /> {o}</label>)}</div></div>
@@ -696,7 +703,7 @@ export function ClaimModal({
                         <button className="cm-editcard-x" onClick={() => set('portfolio', form.portfolio.filter((_, j) => j !== i))} aria-label="Remove company"><X size={14} /></button>
                         <div className="cm-row3">
                           <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Company</label><input className="cm-input" value={p.name} onChange={(e) => upd('name', e.target.value)} placeholder="Company name" /></div>
-                          <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Stage</label><select className="cm-select" value={p.stage} onChange={(e) => upd('stage', e.target.value)}><option value="">—</option>{FUNDING_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+                          <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Stage</label><Combobox className="cm-select" value={p.stage} onChange={(v) => upd('stage', v)} placeholder="—" options={optE('—', FUNDING_STAGES)} /></div>
                           <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Year</label><input className="cm-input" value={p.year} onChange={(e) => upd('year', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2023" inputMode="numeric" /></div>
                         </div>
                       </div>
