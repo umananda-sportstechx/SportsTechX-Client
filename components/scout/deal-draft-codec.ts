@@ -20,6 +20,9 @@
 
 export interface Draft {
 	company: string; website: string; hq: string; sectorId: string; desc: string;
+	/** Set when the company was picked from the Atlas directory; empty for a new
+	 *  company (which the server routes into the startups-to-add pipeline). */
+	companyId: string;
 	founderName: string; founderEmail: string; founderPhone: string;
 	round: string; instrument: string; currency: string;
 	target: string; committed: string; valuation: string; close: string;
@@ -30,7 +33,7 @@ export interface Draft {
 }
 
 export const BLANK: Draft = {
-	company: '', website: '', hq: '', sectorId: '', desc: '',
+	company: '', website: '', hq: '', sectorId: '', desc: '', companyId: '',
 	founderName: '', founderEmail: '', founderPhone: '',
 	round: 'Seed', instrument: 'Priced Equity', currency: 'EUR',
 	target: '', committed: '', valuation: '', close: '',
@@ -79,6 +82,7 @@ function labelFor(map: Record<string, string>, value: unknown, fallback: string)
 /** The submission body for POST /scout/dealflow and PATCH /scout/dealflow/:id. */
 export function toPayload(d: Draft): Record<string, unknown> {
 	return {
+		company_id: d.companyId || null,
 		company_name: d.company.trim(),
 		company_website: d.website.trim() || null,
 		company_hq: d.hq.trim() || null,
@@ -110,6 +114,7 @@ export function toPayload(d: Draft): Record<string, unknown> {
 export function fromRow(r: Record<string, unknown>): Draft {
 	return {
 		company: str(r['company_name']),
+		companyId: str(r['company_id']),
 		website: str(r['company_website']),
 		hq: str(r['company_hq']),
 		sectorId: str(r['sector_id']),
