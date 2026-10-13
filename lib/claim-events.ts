@@ -23,6 +23,10 @@ export interface ClaimTarget {
   id?: string | null;
   name?: string;
   website?: string | null;
+  /** True when the viewer already holds a *verified* claim on this entity, so
+   *  the modal opens in edit mode and submits a data-change-request (which
+   *  leaves the live record untouched) instead of creating a new claim. */
+  verified?: boolean;
 }
 
 export interface OpenClaimDetail {

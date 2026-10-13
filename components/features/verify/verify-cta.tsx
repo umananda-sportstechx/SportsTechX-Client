@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
-import { Badge, Button } from '@/components/atlas';
+import { Button } from '@/components/atlas';
 import { openClaim, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
 import { rolesForTier } from '@/lib/claim-roles';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
@@ -27,13 +27,31 @@ import { qk } from '@/lib/query-keys';
  */
 interface ClaimRow {
 	id: string;
+	claim_type: 'company' | 'investor' | 'ecosystem_entity';
 	is_verified: boolean | null;
 	target_company_id: string | null;
 	target_investor_id: string | null;
 	target_ecosystem_entity_id: string | null;
+	target_name_snapshot: string | null;
+	target_website_snapshot: string | null;
 }
 
 export type VerifyState = 'none' | 'pending' | 'verified';
+
+const ROLE_OF: Record<ClaimRow['claim_type'], ClaimRole> = {
+	company: 'founder', investor: 'investor', ecosystem_entity: 'operator',
+};
+
+/** The entity a claim points at, as a claim target the modal can reopen. */
+function claimToTarget(c: ClaimRow, verified: boolean): ClaimTarget {
+	return {
+		role: ROLE_OF[c.claim_type],
+		id: c.target_company_id ?? c.target_investor_id ?? c.target_ecosystem_entity_id ?? null,
+		name: c.target_name_snapshot ?? '',
+		website: c.target_website_snapshot,
+		verified,
+	};
+}
 
 /**
  * The viewer's claim status, optionally scoped to one entity.
@@ -43,7 +61,7 @@ export type VerifyState = 'none' | 'pending' | 'verified';
  * name matching both misses real claims and — worse — can report "Verified"
  * on a company the viewer does not own.
  */
-export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean } {
+export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean; claim: ClaimRow | null } {
 	// The navbar mounts this on every authenticated page, so a default dedupe
 	// window means a refetch on each navigation. Claims only change when an
 	// admin acts on one, so a minute of staleness costs nothing and this stops
@@ -55,9 +73,12 @@ export function useVerifyState(entityId?: string): { state: VerifyState; isLoadi
 			|| r.target_investor_id === entityId
 			|| r.target_ecosystem_entity_id === entityId)
 		: rows;
-	if (relevant.some((r) => r.is_verified)) return { state: 'verified', isLoading };
-	if (relevant.length > 0) return { state: 'pending', isLoading };
-	return { state: 'none', isLoading };
+	// rows arrive newest-first (claims.listMine orders by created_at DESC), so
+	// the first match in each bucket is the one to reopen.
+	const verified = relevant.find((r) => r.is_verified) ?? null;
+	if (verified) return { state: 'verified', isLoading, claim: verified };
+	if (relevant.length > 0) return { state: 'pending', isLoading, claim: relevant[0] };
+	return { state: 'none', isLoading, claim: null };
 }
 
 
@@ -75,7 +96,7 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 	entityId?: string;
 	label?: string;
 }) {
-	const { state } = useVerifyState(entityId);
+	const { state, claim } = useVerifyState(entityId);
 	const { data: profile } = useUserProfile();
 	// An explicit role always wins — a company profile page knows it is a
 	// founder claim regardless of who is looking at it. Only when nobody has
@@ -83,10 +104,27 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 	const explicitRole = role ?? target?.role ?? null;
 	const allowed = explicitRole ? undefined : rolesForTier(getUserType(profile));
 
-	// Already settled — inviting a duplicate submission helps nobody, and the
-	// admin queue is where duplicates cost real time.
-	if (state === 'verified') return <Badge tone="ok">Verified</Badge>;
-	if (state === 'pending') return <Badge tone="neutral">Verification pending</Badge>;
+	// Already settled — but the capsule is a door, not a dead end: clicking it
+	// reopens the modal in edit mode for that entity. A verified edit becomes a
+	// data-change-request (the live record is untouched until an admin confirms
+	// it); a pending edit replaces the still-pending submission. A duplicate is
+	// never created — that is handled server-side by the re-submit law.
+	if ((state === 'verified' || state === 'pending') && claim) {
+		const name = claim.target_name_snapshot?.trim();
+		const target = claimToTarget(claim, state === 'verified');
+		const reopen = () => openClaim(target, target.role, undefined, allowed);
+		return (
+			<button
+				type="button"
+				className={`atlas-badge atlas-badge--${state === 'verified' ? 'ok' : 'neutral'} atlas-badge--btn`}
+				onClick={reopen}
+				title={state === 'verified' ? 'Edit your verified details' : 'Edit your pending submission'}
+			>
+				{state === 'verified' && <VerifiedBadge size={13} />}
+				{state === 'verified' ? 'Verified' : 'Verification pending'}{name ? ` · ${name}` : ''}
+			</button>
+		);
+	}
 
 	return (
 		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, undefined, allowed)}>
