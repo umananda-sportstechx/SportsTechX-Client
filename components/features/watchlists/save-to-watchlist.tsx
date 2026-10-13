@@ -12,7 +12,11 @@ import './watchlists.css';
  * search, the user's watchlists as toggles (✓ = company is in it), and
  * "+ New watchlist" with a name field (creates the list and adds the company).
  */
-export function SaveToWatchlist({ companyId, companyName }: { companyId: string; companyName: string }) {
+export function SaveToWatchlist({ companyId, companyName, 'data-tour': dataTour }: {
+	companyId: string; companyName: string;
+	/** Guided-tour anchor on the trigger (lib/sandbox/tours). */
+	'data-tour'?: string;
+}) {
 	const [open, setOpen] = useState(false);
 	const [q, setQ] = useState('');
 	const [creating, setCreating] = useState(false);
@@ -51,7 +55,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 
 	return (
 		<div className="atlas-fbar__anchor" ref={ref}>
-			<button type="button" className="atlas-action" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
+			<button type="button" className="atlas-action" data-tour={dataTour} aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
 				<span className="atlas-action__icon">{inCount ? <BookmarkCheck /> : <Bookmark />}</span>
 				{inCount ? `In ${inCount} watchlist${inCount === 1 ? '' : 's'}` : 'Add to watchlist'}
 			</button>

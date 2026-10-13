@@ -10,7 +10,7 @@ import { ArrowUpRight } from 'lucide-react';
  * with icon, title, short body and a black action pill top-right, on the pink
  * glow surface. Lay several out with `.atlas-feed-grid` (two columns).
  */
-export function FeedCard({ tag, icon: Icon, title, body, href, onAction, actionLabel = 'View', extra }: {
+export function FeedCard({ tag, icon: Icon, title, body, href, onAction, actionLabel = 'View', extra, 'data-tour': dataTour }: {
 	tag: string;
 	icon?: LucideIcon;
 	title: ReactNode;
@@ -27,12 +27,14 @@ export function FeedCard({ tag, icon: Icon, title, body, href, onAction, actionL
 	actionLabel?: string;
 	/** Optional slot under the body, e.g. a count badge. */
 	extra?: ReactNode;
+	/** Guided-tour anchor (lib/sandbox/tours). */
+	'data-tour'?: string;
 }) {
 	const action = onAction
 		? <button type="button" className="atlas-feed-card__action" onClick={onAction}>{actionLabel} <ArrowUpRight size={12} strokeWidth={1.5} /></button>
 		: <Link href={href ?? '#'} className="atlas-feed-card__action">{actionLabel} <ArrowUpRight size={12} strokeWidth={1.5} /></Link>;
 	return (
-		<article className="atlas-feed-card">
+		<article className="atlas-feed-card" data-tour={dataTour}>
 			<div className="atlas-feed-card__top">
 				<span className="atlas-feed-card__tag">
 					{Icon && <Icon size={13} strokeWidth={1.25} aria-hidden="true" />}

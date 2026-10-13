@@ -51,15 +51,18 @@ export interface AtlasShellProps {
 	 * deliberately manifest- and session-free.
 	 */
 	railAccount?: ReactNode;
+	/** Force the rail collapsed (e.g. during Walk the Pitch, for room beside the coach panel) without touching the user's own saved preference. */
+	forceCollapsed?: boolean;
 	children: ReactNode;
 }
 
-export function AtlasShell({ product, productColor, homePath, nav, topbar, overlay, railExtra, railAccount, children }: AtlasShellProps) {
+export function AtlasShell({ product, productColor, homePath, nav, topbar, overlay, railExtra, railAccount, forceCollapsed, children }: AtlasShellProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const railKey = `stx:${product.toLowerCase()}-rail-collapsed`;
 	const sectionsKey = `stx:${product.toLowerCase()}-nav-closed`;
-	const collapsed = useSyncExternalStore(subscribe, () => readStored(railKey) === '1', () => false);
+	const storedCollapsed = useSyncExternalStore(subscribe, () => readStored(railKey) === '1', () => false);
+	const collapsed = forceCollapsed || storedCollapsed;
 	// Closed sections, stored as a JSON array of titles (default: all open).
 	const closedRaw = useSyncExternalStore(subscribe, () => readStored(sectionsKey) ?? '[]', () => '[]');
 	const closed = parseList(closedRaw);
@@ -134,9 +137,11 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 			<aside className={`atlas-rail ${open ? 'open' : ''}`}>
 				<div className="atlas-rail-head">
 					{/* Collapsed, the mark IS the expand control. The design put a bare
-					    hamburger here, which left no sign of which product you were in. */}
+					    hamburger here, which left no sign of which product you were in.
+					    While practice forces it collapsed, the mark is inert — it must
+					    not write the user's own rail preference. */}
 					{collapsed ? (
-						<button type="button" className="atlas-rail-mark" aria-label="Expand sidebar" aria-expanded={false} onClick={() => writeStored(railKey, '0')}>
+						<button type="button" className="atlas-rail-mark" aria-label="Expand sidebar" aria-expanded={false} disabled={forceCollapsed} onClick={() => { if (!forceCollapsed) writeStored(railKey, '0'); }}>
 							<span className="atlas-rail-mark__logo"><AtlasMark size={26} /></span>
 							<span className="atlas-rail-mark__menu"><MenuIcon /></span>
 						</button>
