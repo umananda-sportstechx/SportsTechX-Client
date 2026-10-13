@@ -43,7 +43,9 @@ export const DEFAULT_THESIS: Thesis = {
 export const THESIS_OPTIONS = {
 	investorType: ['Venture capital', 'Angel investor', 'Corporate VC', 'Family office', 'Accelerator / studio', 'Growth / PE'],
 	aum: ['Under €25m', '€25–100m', '€100–250m', '€250m–1bn', '€1bn+', 'Not applicable'],
-	stages: ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Growth'],
+	// Values must match the `funding_round_types` taxonomy names exactly — the
+	// thesis saves by name, and non-matches are silently dropped.
+	stages: ['Pre Seed Round', 'Seed Round', 'Series A', 'Series B', 'Late Stage Venture'],
 	regions: ['USA & Canada', 'DACH', 'APAC'],
 	traction: ['Pre-revenue OK', 'Early revenue', '€500k+ ARR', '€2m+ ARR'],
 	include: ['B2C', 'Women’s sports'],
@@ -51,11 +53,16 @@ export const THESIS_OPTIONS = {
 	invStyle: ['Lead', 'Follow', 'Either'] as const,
 };
 
-/** SportsTechX framework sectors by pillar (onboarding + thesis sector chips). */
+/**
+ * SportsTechX framework sectors by pillar (onboarding + thesis sector chips).
+ * The pillar keys are display-only headers; the chip VALUES must match the real
+ * `sectors` taxonomy child names exactly, because the thesis saves sectors by
+ * name and anything without a matching row is silently dropped.
+ */
 export const PILLAR_SECTORS: Record<'Athletes' | 'Fans' | 'Executives', string[]> = {
-	Athletes: ['Activity & Performance', 'Health & Wellbeing', 'Coaching & Education'],
-	Fans: ['Fan Engagement', 'Media & Content', 'Betting & Fantasy'],
-	Executives: ['Management & Operations', 'Venues & Infrastructure', 'Commerce & Sponsorship'],
+	Athletes: ['Before / After Activity', 'For Activity Hardware', 'For Activity Software'],
+	Fans: ['Content Platforms', 'Fan Experiences', 'Fantasy Sports & Betting'],
+	Executives: ['Media & Sponsors', 'Organisations & Venues'],
 };
 
 /** Full pick lists behind "+ Add" (regions, include/exclude attributes). */
