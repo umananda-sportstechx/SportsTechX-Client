@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useLocationFacetOptions } from '@/hooks/use-catalog-options';
+import { Combobox, type ComboGroup } from '@/components/atlas/ui/combobox';
 
 /**
  * Country / region dropdown for HQ-location fields.
@@ -39,20 +40,23 @@ export function LocationSelect({ value, onChange, id, disabled, className = 'atl
 	const known = useMemo(() => new Set([...regions, ...countries].map(([v]) => v)), [regions, countries]);
 	const orphan = value && !known.has(value) ? value : null;
 
+	const groups = useMemo<ComboGroup[]>(() => {
+		const g: ComboGroup[] = [{ label: '', options: [['', placeholder]] }];
+		if (orphan) g.push({ label: 'Current', options: [[orphan, orphan]] });
+		if (regions.length) g.push({ label: 'Regions', options: regions });
+		if (countries.length) g.push({ label: 'Countries', options: countries });
+		return g;
+	}, [placeholder, orphan, regions, countries]);
+
 	return (
-		<select id={id} className={className} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
-			<option value="">{placeholder}</option>
-			{orphan && <option value={orphan}>{orphan}</option>}
-			{regions.length > 0 && (
-				<optgroup label="Regions">
-					{regions.map(([v, l]) => <option key={`r-${v}`} value={v}>{l}</option>)}
-				</optgroup>
-			)}
-			{countries.length > 0 && (
-				<optgroup label="Countries">
-					{countries.map(([v, l]) => <option key={`c-${v}`} value={v}>{l}</option>)}
-				</optgroup>
-			)}
-		</select>
+		<Combobox
+			groups={groups}
+			value={value}
+			onChange={onChange}
+			id={id}
+			disabled={disabled}
+			placeholder={placeholder}
+			className={className}
+		/>
 	);
 }
