@@ -152,12 +152,14 @@
   text-transform: uppercase; color: var(--a-faint);
 }
 .atlas-combo-opt {
-  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
   padding: 8px 10px; border: 0; background: none; cursor: pointer; border-radius: 7px;
   font-family: var(--a-body); font-size: 13px; color: var(--a-ink); text-align: left;
 }
-.atlas-combo-opt > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.atlas-combo-opt svg { flex-shrink: 0; color: var(--a-navy); }
+/* Wrap long labels (e.g. full sector paths) instead of clipping them to an
+   ellipsis — a truncated list reads as identical rows and can't be chosen. */
+.atlas-combo-opt > span { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.atlas-combo-opt svg { flex-shrink: 0; margin-top: 2px; color: var(--a-navy); }
 .atlas-combo-opt.is-active { background: var(--a-inset); }
 .atlas-combo-opt.is-selected { font-weight: 600; }
 .atlas-combo-empty { padding: 14px 12px; font-family: var(--a-body); font-size: 13px; color: var(--a-muted); text-align: center; }
