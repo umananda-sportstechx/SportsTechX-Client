@@ -4,6 +4,7 @@ import { cloneElement, isValidElement, useId } from 'react';
 import type { ChangeEvent, ReactElement, ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './cx';
 import { Combobox } from './combobox';
+import { DatePicker } from './date-picker';
 
 /** Form fields — mono uppercase labels, rounded inputs. Add `className="atlas-input--search"` for a pill search box. */
 
@@ -11,7 +12,7 @@ export function Field({ label, children }: { label?: string; children: ReactNode
 	const autoId = useId();
 	// Tie the label to a single Atlas control (screen readers + click-to-focus).
 	// Other children (button groups, read-only values) keep a plain label.
-	const control = isValidElement<{ id?: string }>(children) && (children.type === Input || children.type === Select || children.type === Textarea)
+	const control = isValidElement<{ id?: string }>(children) && (children.type === Input || children.type === Select || children.type === Textarea || children.type === DatePicker)
 		? (children as ReactElement<{ id?: string }>) : null;
 	const id = control ? (control.props.id ?? autoId) : undefined;
 	return (
