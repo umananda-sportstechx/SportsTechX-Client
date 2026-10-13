@@ -198,6 +198,39 @@
 .atlas .scout-field:last-child { margin-bottom: 0; }
 .atlas .scout-field__label { margin-bottom: 9px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); }
 .atlas .scout-field__label span { color: var(--a-faint); text-transform: none; letter-spacing: 0; font-family: var(--a-body); font-size: 11px; }
+
+/* ── Fund picker (directory search-select for the thesis fund) ───────────── */
+.atlas .fundpicker__wrap { position: relative; }
+.atlas .fundpicker__ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--a-faint); display: grid; place-items: center; pointer-events: none; }
+.atlas .fundpicker__input { padding-left: 36px; }
+.atlas .fundpicker__panel {
+	position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; max-height: 300px; overflow-y: auto; padding: 5px;
+	background: var(--a-surface); border: 1px solid var(--a-border-strong); border-radius: 10px;
+	box-shadow: 0 14px 40px color-mix(in srgb, var(--a-ink) 16%, transparent);
+}
+.atlas .fundpicker__opt { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 9px 10px; border: 0; background: none; cursor: pointer; border-radius: 7px; text-align: left; }
+.atlas .fundpicker__opt:hover { background: var(--a-inset); }
+.atlas .fundpicker__optname { display: inline-flex; align-items: center; gap: 6px; font-family: var(--a-font); font-size: 13px; font-weight: 600; color: var(--a-ink); }
+.atlas .fundpicker__optmeta { font-family: var(--a-body); font-size: 11.5px; color: var(--a-muted); }
+.atlas .fundpicker__add, .atlas .fundpicker__usetyped {
+	width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 0; background: none; cursor: pointer; border-radius: 7px;
+	text-align: left; font-family: var(--a-body); font-size: 12.5px; color: var(--a-ink-2);
+}
+.atlas .fundpicker__add { border-top: 1px solid var(--a-border); margin-top: 4px; padding-top: 11px; }
+.atlas .fundpicker__add:hover, .atlas .fundpicker__usetyped:hover { background: var(--a-inset); color: var(--a-ink); }
+.atlas .fundpicker__usetyped { color: var(--a-muted); }
+.atlas .fundpicker__selected {
+	display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px;
+	border: 1px solid var(--a-border-strong); background: var(--a-field);
+}
+.atlas .fundpicker__selname { font-family: var(--a-font); font-size: 13.5px; font-weight: 600; color: var(--a-ink); }
+.atlas .fundpicker__selmeta { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); }
+.atlas .fundpicker__change { margin-left: auto; background: none; border: 0; cursor: pointer; font-family: var(--a-body); font-size: 12px; color: var(--a-navy); }
+.atlas .fundpicker__change:hover { text-decoration: underline; }
+.atlas .fundpicker__linked { display: flex; }
+.atlas .fundpicker__hint, .atlas .fundpicker__verifynote { font-family: var(--a-body); font-size: 11.5px; color: var(--a-muted); }
+.atlas .fundpicker__hint { margin-top: 8px; }
+.atlas .fundpicker__verify { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .atlas .scout-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .atlas .scout-chips--wide { flex-direction: column; flex-wrap: nowrap; }
 .atlas .scout-chips--wide .scout-chip { width: 100%; text-align: left; padding: 11px 12px; }
