@@ -218,6 +218,14 @@ export function ClaimModal({
           ? buildInvestorDto(form, ref, targetId)
           : buildEntityDto(form, targetId);
 
+      // On an edit, the pitch deck can't be recovered into the form (it's a file
+      // path, not a File), so a re-submit would otherwise send pitch_deck_url=null
+      // and propose *removing* the deck. Drop it unless the user re-uploaded one.
+      if (target?.claimId && role === 'founder' && !form.deckFile) {
+        const c = changes as { details?: Record<string, unknown> };
+        if (c.details) delete c.details.pitch_deck_url;
+      }
+
       if (target?.verified && targetId) {
         // Editing an entity the viewer has *already verified*: this is not a
         // new claim. It goes to the data-change-request queue so the published
