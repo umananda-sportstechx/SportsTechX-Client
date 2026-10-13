@@ -112,17 +112,18 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 	if ((state === 'verified' || state === 'pending') && claim) {
 		const name = claim.target_name_snapshot?.trim();
 		const target = claimToTarget(claim, state === 'verified');
-		const reopen = () => openClaim(target, target.role, undefined, allowed);
+		// Keep the exact pill shape of the "Get verified" button — only the label
+		// changes — so it still reads as the same control, now in edit mode.
 		return (
-			<button
-				type="button"
-				className={`atlas-badge atlas-badge--${state === 'verified' ? 'ok' : 'neutral'} atlas-badge--btn`}
-				onClick={reopen}
+			<Button
+				size="sm"
+				variant="outline"
+				className="atlas-verify-btn"
+				onClick={() => openClaim(target, target.role, undefined, allowed)}
 				title={state === 'verified' ? 'Edit your verified details' : 'Edit your pending submission'}
 			>
-				{state === 'verified' && <VerifiedBadge size={13} />}
-				{state === 'verified' ? 'Verified' : 'Verification pending'}{name ? ` · ${name}` : ''}
-			</button>
+				<VerifiedBadge size={17} className="atlas-verify-btn__tick" /> {state === 'verified' ? 'Verified' : 'Verification pending'}{name ? ` · ${name}` : ''}
+			</Button>
 		);
 	}
 

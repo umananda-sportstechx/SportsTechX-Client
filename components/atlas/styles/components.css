@@ -189,13 +189,6 @@
 .atlas-badge--warn { background: var(--a-warn-bg); color: var(--a-warn); border-color: color-mix(in srgb, var(--a-warn) 18%, transparent); }
 .atlas-badge--danger { background: var(--a-danger-bg); color: var(--a-danger); border-color: color-mix(in srgb, var(--a-danger) 18%, transparent); }
 
-/* A Badge rendered as a button — the verified/pending capsule reopens the
-   claim modal in edit mode, so it reads as a badge but behaves as a control. */
-button.atlas-badge { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-button.atlas-badge:hover { border-color: currentColor; }
-button.atlas-badge:focus-visible { outline: 2px solid var(--a-navy); outline-offset: 2px; }
-.atlas-badge--btn svg { flex-shrink: 0; }
-
 /* ── Tabs (Figma "Tab Bar") ─────────────────────────────────────────────── */
 .atlas-tabs { display: flex; gap: 44px; border-bottom: 1px solid var(--a-border-strong); overflow-x: auto; scrollbar-width: none; }
 .atlas-tabs::-webkit-scrollbar { display: none; }
