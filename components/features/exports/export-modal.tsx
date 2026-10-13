@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Download, X } from 'lucide-react';
 import { Button, Loading } from '@/components/atlas';
+import { Combobox } from '@/components/atlas/ui/combobox';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -150,10 +151,7 @@ export function ExportModal({ entity, search, filters, onClose }: {
 									: 'Could not price this export'}
 					</div>
 					<div className="export-modal__actions">
-						<select className="atlas-select export-modal__format" value={format} onChange={(e) => setFormat(e.target.value as 'csv' | 'xlsx')} aria-label="Format">
-							<option value="csv">CSV</option>
-							<option value="xlsx">Excel</option>
-						</select>
+						<Combobox className="atlas-select export-modal__format" value={format} onChange={(v) => setFormat(v as 'csv' | 'xlsx')} ariaLabel="Format" options={[['csv', 'CSV'], ['xlsx', 'Excel']]} />
 						<Button disabled={downloading || repricing || selected.length === 0} onClick={() => void download()}>
 							<Download size={13} /> {downloading ? 'Preparing…' : 'Download'}
 						</Button>

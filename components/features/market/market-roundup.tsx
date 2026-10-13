@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
 import { Card, Loading, Badge, PieDonut, PieLegend, type PieSegment, paletteAt } from '@/components/atlas';
+import { Combobox } from '@/components/atlas/ui/combobox';
 import { MONTHS } from '@/lib/catalog-options';
 import { fmtUsd, fmtCount } from './format';
 import './market.css';
@@ -115,12 +116,8 @@ export function MarketRoundup() {
 					<div style={{ fontSize: 13, color: 'var(--a-muted)' }}>The most relevant developments from across the global sports-tech market.</div>
 				</div>
 				<div style={{ display: 'flex', gap: 10 }}>
-					<select className="atlas-select atlas-select--pill" aria-label="Month" value={String(month)} onChange={(e) => setMonth(Number(e.target.value))} style={{ width: 132 }}>
-						{MONTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-					</select>
-					<select className="atlas-select atlas-select--pill" aria-label="Year" value={String(year)} onChange={(e) => setYear(Number(e.target.value))} style={{ width: 92 }}>
-						{YEARS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-					</select>
+					<Combobox className="atlas-select atlas-select--pill" ariaLabel="Month" value={String(month)} onChange={(v) => setMonth(Number(v))} style={{ width: 132 }} options={MONTHS.map(([v, l]) => [String(v), l] as [string, string])} />
+					<Combobox className="atlas-select atlas-select--pill" ariaLabel="Year" value={String(year)} onChange={(v) => setYear(Number(v))} style={{ width: 92 }} options={YEARS.map(([v, l]) => [String(v), l] as [string, string])} />
 				</div>
 			</div>
 
