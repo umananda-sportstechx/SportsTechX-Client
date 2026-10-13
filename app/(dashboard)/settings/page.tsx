@@ -8,6 +8,7 @@ import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading } from '@/components/atlas';
+import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { AccountTabs } from '@/components/features/account/account-tabs';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
@@ -125,7 +126,7 @@ export default function RaiseSettingsPage() {
 					<Grid n={3}>
 						<Field label="Round type"><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
 						<Field label="Target raise"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field>
-						<Field label="Target close date"><Input type="date" value={s(form.target_close_date)} onChange={(e) => set('target_close_date', e.target.value)} /></Field>
+						<Field label="Target close date"><DatePicker value={s(form.target_close_date)} onChange={(v) => set('target_close_date', v)} /></Field>
 					</Grid>
 					<Grid n={3}>
 						<ReadOnly label="Amount committed" value={form.committed_amount != null ? String(form.committed_amount) : '—'} note="From your raise profile" />
