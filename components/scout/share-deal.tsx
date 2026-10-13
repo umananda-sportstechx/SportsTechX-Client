@@ -11,7 +11,7 @@ import { ChipSet } from './thesis-fields';
 import { CompanyPicker } from './company-picker';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { LocationSelect } from '@/components/features/location/location-select';
-import { BLANK, fromRow, toPayload, num, type Draft } from './deal-draft-codec';
+import { BLANK, fromRow, toPayload, num, fmtValuation, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -224,7 +224,15 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 							    separately, so "€1.5m" cannot be stored. */}
 							<Field label={`Target raise (${sym})`}><Input type="number" min="0" {...txt('target')} placeholder="1500000" /></Field>
 							<Field label={`Committed to date (${sym}) · Optional`}><Input type="number" min="0" {...txt('committed')} placeholder="500000" /></Field>
-							<Field label="Valuation / cap · Optional"><Input {...txt('valuation')} placeholder={`e.g. ${sym}8m pre-money`} /></Field>
+							<Field label="Valuation / cap · Optional">
+								<div style={{ display: 'flex', gap: 8 }}>
+									<Input type="number" min="0" value={d.valuationAmount} onChange={(e) => patch({ valuationAmount: e.target.value })} placeholder={`${sym}8000000`} disabled={d.valuationUndisclosed} style={{ flex: 1 }} />
+									<Select value={d.valuationBasis} onChange={(e) => patch({ valuationBasis: e.target.value })} disabled={d.valuationUndisclosed} options={[['pre_money', 'Pre-money'], ['post_money', 'Post-money'], ['cap', 'Cap']]} />
+								</div>
+								<label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--a-muted)', cursor: 'pointer' }}>
+									<input type="checkbox" checked={d.valuationUndisclosed} onChange={(e) => patch({ valuationUndisclosed: e.target.checked })} /> Undisclosed
+								</label>
+							</Field>
 							<Field label="Target close date · Optional"><DatePicker value={d.close} onChange={(v) => patch({ close: v })} /></Field>
 						</div>
 						<Block label="Lead status"><ChipSet options={['Lead confirmed', 'Seeking lead', 'No lead required']} value={d.leadStatus} onToggle={(o) => patch({ leadStatus: o })} /></Block>
@@ -267,7 +275,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 					<div className="scout-review">
 						{([
 							['Company', 0, [['Company', d.company], ['Website', d.website], ['Headquarters', d.hq], ['Sector', sectorOptions.find(([v]) => v === d.sectorId)?.[1] ?? ''], ['Description', d.desc], ['Founder contact', [d.founderName, d.founderEmail, d.founderPhone].filter(Boolean).join(' · ')]]],
-							['Round', 1, [['Round', d.round], ['Instrument', d.instrument], ['Target', d.target && `${sym}${d.target}`], ['Committed', d.committed && `${sym}${d.committed}`], ['Valuation', d.valuation], ['Close', d.close], ['Lead', d.leadStatus === 'Lead confirmed' ? d.lead || d.leadStatus : d.leadStatus]]],
+							['Round', 1, [['Round', d.round], ['Instrument', d.instrument], ['Target', d.target && `${sym}${d.target}`], ['Committed', d.committed && `${sym}${d.committed}`], ['Valuation', fmtValuation(d)], ['Close', d.close], ['Lead', d.leadStatus === 'Lead confirmed' ? d.lead || d.leadStatus : d.leadStatus]]],
 							['Your involvement', 2, [['Note', d.notes], ['Relationship', d.relation], ['Your commitment', d.myCommit && `${sym}${d.myCommit}`], ['Materials', d.access], ['Attached', [d.deckPath && 'pitch deck', d.onePagerPath && 'one-pager'].filter(Boolean).join(', ')]]],
 						] as [string, number, [string, string][]][]).map(([name, i, rows]) => (
 							<div key={name} className="scout-review__group">
