@@ -226,8 +226,10 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 							<Field label={`Committed to date (${sym}) · Optional`}><Input type="number" min="0" {...txt('committed')} placeholder="500000" /></Field>
 							<Field label="Valuation / cap · Optional">
 								<div style={{ display: 'flex', gap: 8 }}>
-									<Input type="number" min="0" value={d.valuationAmount} onChange={(e) => patch({ valuationAmount: e.target.value })} placeholder={`${sym}8000000`} disabled={d.valuationUndisclosed} style={{ flex: 1 }} />
-									<Select value={d.valuationBasis} onChange={(e) => patch({ valuationBasis: e.target.value })} disabled={d.valuationUndisclosed} options={[['pre_money', 'Pre-money'], ['post_money', 'Post-money'], ['cap', 'Cap']]} />
+									<Input type="number" min="0" value={d.valuationAmount} onChange={(e) => patch({ valuationAmount: e.target.value })} placeholder={`${sym}8000000`} disabled={d.valuationUndisclosed} style={{ flex: 1, minWidth: 0 }} />
+									<div style={{ width: 150, flexShrink: 0 }}>
+										<Select value={d.valuationBasis} onChange={(e) => patch({ valuationBasis: e.target.value })} disabled={d.valuationUndisclosed} options={[['pre_money', 'Pre-money'], ['post_money', 'Post-money'], ['cap', 'Cap']]} />
+									</div>
 								</div>
 								<label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--a-muted)', cursor: 'pointer' }}>
 									<input type="checkbox" checked={d.valuationUndisclosed} onChange={(e) => patch({ valuationUndisclosed: e.target.checked })} /> Undisclosed
