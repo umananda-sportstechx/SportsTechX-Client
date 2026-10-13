@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
 import {
   Check, X, Search, Plus, ArrowRight, Sparkles, Building2, Wallet, Zap,
@@ -27,6 +27,7 @@ import {
   type ClaimForm, type SelectedEntity, type RoleConfig,
 } from './claim-form';
 import { useClaimReference } from './use-claim-reference';
+import { decodeClaimForm } from './decode-claim-form';
 import { useClaimSearch } from './use-claim-search';
 import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck } from './build-claim-dto';
 
@@ -55,6 +56,10 @@ function EntityLogo({ item, size = 34 }: { item: { name?: string } | null; size?
 type Step =
   | 'role' | 'search' | 'identity' | 'dataedits' | 'fundraising' | 'review'
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
+
+// Editing an existing claim opens on the entity-data step (identity is already
+// known and is dropped from the step list), not the identity step.
+const EDIT_DATA_STEP: Record<ClaimRole, Step> = { founder: 'dataedits', investor: 'invdata', operator: 'details' };
 
 export function ClaimModal({
   target, initialRole, prefill, allowedRoles, onClose, onSubmitted,
@@ -92,7 +97,13 @@ export function ClaimModal({
   // With a prefill (e.g. verifying a brand-new company straight after Raise Setup)
   // open directly on the prefilled data form instead of the search step, so the
   // pre-filled answers aren't discarded.
-  const [step, setStep] = useState<Step>(target?.id ? 'identity' : (hasPrefill && startRole ? 'identity' : startRole ? 'search' : 'role'));
+  // Editing an existing claim (capsule → edit) opens on the data step; a fresh
+  // claim on a known entity opens on identity; otherwise search / role chooser.
+  const [step, setStep] = useState<Step>(
+    target?.claimId && startRole ? EDIT_DATA_STEP[startRole]
+      : target?.id ? 'identity'
+        : (hasPrefill && startRole ? 'identity' : startRole ? 'search' : 'role'),
+  );
   const [selItem, setSelItem] = useState<SelectedEntity | null>(
     target ? { id: target.id ?? null, name: target.name ?? '', website: target.website ?? null } : null,
   );
@@ -108,6 +119,21 @@ export function ClaimModal({
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Editing a verified/pending claim: load the user's submitted data back into
+  // the form so they see (and edit) exactly what they entered, not a blank form.
+  const { data: editData } = useSWR<Record<string, unknown>>(target?.claimId ? qk.claims.form(target.claimId) : null);
+  const [applied, setApplied] = useState(false);
+  // The reverse maps (id→label) need the reference lists loaded first, or sectors
+  // and round types would come back blank.
+  const refReady = ref.sectors.length > 0 && ref.roundTypes.length > 0;
+  useEffect(() => {
+    if (!target?.claimId || applied || !editData || !refReady) return;
+    setForm((f) => ({ ...f, ...decodeClaimForm(editData, ref) }));
+    setApplied(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editData, refReady, applied, target?.claimId]);
+  const loadingEdit = !!target?.claimId && !applied;
 
   const R = role ? CM_ROLES[role] : null;
   const { results } = useClaimSearch(role, q);
@@ -162,7 +188,8 @@ export function ClaimModal({
   const isDone = step === 'done';
   const preStep = isRole || isSearch;
 
-  const STEPS = R ? R.steps : [];
+  // When editing an existing claim, identity is already known — drop that step.
+  const STEPS = R ? (target?.claimId ? R.steps.filter((s) => s.k !== 'identity') : R.steps) : [];
   const stepKeys = STEPS.map((s) => s.k);
   const curIdx = stepKeys.indexOf(step);
   const isLast = curIdx === stepKeys.length - 1;
@@ -306,6 +333,9 @@ export function ClaimModal({
           </header>
 
           <div className="cm-scroll" ref={scrollRef}>
+            {loadingEdit && (
+              <div className="cm-pending"><Loader2 size={15} className="animate-spin" /><span>Loading your saved details…</span></div>
+            )}
             {/* ROLE CHOOSER */}
             {isRole && (
               <div>
@@ -795,7 +825,7 @@ export function ClaimModal({
               ) : <span />}
               <span className="cm-foot-spacer" />
               {isLast && R.free && <span className="cm-foot-meta" style={{ marginRight: 4 }}>Free · ~5 min</span>}
-              <button className="cm-btn" disabled={!stepValid() || submitting} onClick={goNext}>
+              <button className="cm-btn" disabled={!stepValid() || submitting || loadingEdit} onClick={goNext}>
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
                 {submitLabel} {!submitting && (isLast ? <Check size={14} /> : <ArrowRight size={13} />)}
               </button>
