@@ -36,6 +36,7 @@
  */
 
 import { access, type Tier, type TierReq } from './access.ts';
+import { previewBasePath } from './preview-mode.ts';
 
 /** One value, or a different value per tier. */
 export type PerTier<T> = T | Partial<Record<Tier, T>>;
@@ -261,6 +262,18 @@ export const SECTION_SUBS: Record<Tier, Record<string, string>> = {
 };
 
 /**
+ * Prefixes a canonical path for the pre-signup `/preview/[product]/*` tour
+ * (app/preview/, lib/preview-mode.ts) so every link generated while it's
+ * running — sidebar nav, in-page links, breadcrumbs — stays inside the
+ * preview tree instead of bouncing an anonymous visitor to /login. A no-op
+ * (returns `p` unchanged) everywhere else, including the entire real app.
+ */
+const withPreview = (p: string): string => {
+	const base = previewBasePath();
+	return base ? `${base}${p}` : p;
+};
+
+/**
  * A route's canonical path.
  *
  * Throws while that route still carries per-tier paths, which is the guard an
@@ -271,6 +284,25 @@ export const SECTION_SUBS: Record<Tier, Record<string, string>> = {
 export function hrefOf(id: string): string {
 	const p = ROUTE_BY_ID.get(id)?.path;
 	if (typeof p !== 'string') throw new Error(`route '${id}' still has per-tier paths`);
+	return withPreview(p);
+}
+
+/**
+ * `hrefOf`, deliberately NOT preview-aware — for the one caller that must
+ * never be: lib/sandbox/tours/*.ts, which calls this at module scope to build
+ * each TourStep's `path`/pattern once, the first time the module loads. That
+ * first load always happens while already inside `/preview/<product>/*` (the
+ * coach only ever mounts there or in the real signed-in app), so a preview-
+ * aware `hrefOf('home')` bakes `/preview/raise/home` into the step forever —
+ * then the coach's own navigation effect prefixes it a second time on every
+ * push, landing on `/preview/raise/preview/raise/home`, a 404. The coach
+ * (components/features/walkthrough/walkthrough-coach.tsx) already strips and
+ * re-adds the prefix itself at render time; it needs the canonical path here,
+ * not a prefix baked in at the wrong moment.
+ */
+export function canonicalHrefOf(id: string): string {
+	const p = ROUTE_BY_ID.get(id)?.path;
+	if (typeof p !== 'string') throw new Error(`route '${id}' still has per-tier paths`);
 	return p;
 }
 
@@ -279,7 +311,7 @@ export const companyHref = (idOrSlug: string) => `${hrefOf('companies')}/${encod
 
 /** The route a product's logo and account badge point at. */
 export const pathOf = (id: string, tier: Tier): string =>
-	forTier(ROUTE_BY_ID.get(id)?.path, tier) ?? '/';
+	withPreview(forTier(ROUTE_BY_ID.get(id)?.path, tier) ?? '/');
 
 /**
  * The route a URL belongs to, by longest-prefix match — so

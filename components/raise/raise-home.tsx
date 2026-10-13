@@ -11,6 +11,7 @@ import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-
 import { H1, Badge, SectionHead, FeedCard } from '@/components/atlas';
 import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
 import { hrefOf } from '@/lib/routes';
+import { previewHref } from '@/lib/preview-mode';
 
 /**
  * Atlas Raise — Home. Search-first: a centred composer as the focal point, with
@@ -68,7 +69,7 @@ export function RaiseHome() {
 					<div className="raise-attn-empty">You’re all caught up. Keep your watchlist moving.</div>
 				) : (
 					<div className="atlas-feed-grid">
-						{data.attention.map((a) => {
+						{data.attention.map((a, i) => {
 							const t = ATTENTION_TAG[a.id] ?? DEFAULT_TAG;
 							return (
 								<FeedCard
@@ -82,9 +83,10 @@ export function RaiseHome() {
 									// on `cta_href` — the hrefs are the thing being retired.
 									{...(SETUP_CARD_WIZARD[a.id]
 										? { onAction: SETUP_CARD_WIZARD[a.id] === 'raise' ? openRaiseSetup : openScoutThesis }
-										: { href: a.cta_href })}
+										: { href: previewHref(a.cta_href) })}
 									actionLabel={a.cta_label}
 									extra={a.count != null ? <Badge tone="danger">{a.count} overdue</Badge> : undefined}
+									data-tour={i === 0 ? 'raise-attention-card' : undefined}
 								/>
 							);
 						})}
