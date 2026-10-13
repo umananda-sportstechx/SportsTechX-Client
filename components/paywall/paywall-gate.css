@@ -1,0 +1,54 @@
+/* Post-login plan chooser — full-screen overlay on the Atlas tokens so it reads
+   as part of the product (light + dark), not a separate cream mockup. */
+.atlas.pg {
+	position: fixed; inset: 0; z-index: 200; overflow-y: auto;
+	background: var(--a-page); color: var(--a-ink);
+}
+.pg__inner { max-width: 1040px; margin: 0 auto; padding: clamp(36px, 7vh, 80px) 24px; }
+
+.pg__head { text-align: center; margin-bottom: 40px; }
+.pg__title { margin: 12px 0 10px; font-family: var(--a-font); font-size: clamp(28px, 4vw, 36px); font-weight: 700; letter-spacing: -0.01em; color: var(--a-ink); }
+.pg__sub { margin: 0; font-family: var(--a-body); font-size: 14px; line-height: 1.55; color: var(--a-muted); }
+
+.pg__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: stretch; }
+
+/* Plan card — the dashboard card surface + the signature pink gradient on the
+   recommended one, matching the post/entity cards. */
+.pg-card {
+	position: relative; display: flex; flex-direction: column;
+	background: var(--a-surface); border: 1px solid var(--a-card-border);
+	border-radius: var(--a-radius); padding: 26px 24px;
+}
+.pg-card--hl {
+	border-color: var(--a-border-strong);
+	background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 14%, transparent) 100%);
+	box-shadow: 0 10px 34px color-mix(in srgb, var(--a-ink) 8%, transparent);
+}
+.pg-card__badge {
+	position: absolute; top: -11px; left: 24px;
+	background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
+	padding: 4px 10px; border-radius: var(--a-radius-pill);
+}
+.pg-card__name { font-family: var(--a-font); font-size: 19px; font-weight: 700; color: var(--a-ink); }
+.pg-card__tagline { margin: 3px 0 16px; font-family: var(--a-body); font-size: 12.5px; color: var(--a-muted); }
+.pg-card__price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 18px; }
+.pg-card__amount { font-family: var(--a-font); font-size: 32px; font-weight: 700; line-height: 1; color: var(--a-ink); }
+.pg-card__interval { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); }
+
+.pg-card__features { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 10px; flex: 1; }
+.pg-card__features li { display: flex; gap: 9px; font-family: var(--a-body); font-size: 13px; line-height: 1.45; color: var(--a-ink-2); }
+.pg-card__features svg { flex-shrink: 0; margin-top: 1px; color: var(--a-navy); }
+
+.pg-card__cta { width: 100%; height: 42px; }
+
+.pg__err { text-align: center; margin: 18px 0 0; font-family: var(--a-body); font-size: 13px; color: var(--a-danger); }
+
+.pg__later { text-align: center; margin-top: 28px; }
+.pg__later button {
+	background: none; border: 0; cursor: pointer; padding: 4px;
+	font-family: var(--a-body); font-size: 13px; color: var(--a-muted);
+	text-decoration: underline; text-underline-offset: 3px;
+}
+.pg__later button:hover { color: var(--a-ink); }
+.pg__later button:disabled { opacity: 0.6; cursor: default; }
