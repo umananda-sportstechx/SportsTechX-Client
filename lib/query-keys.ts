@@ -114,6 +114,7 @@ export const qk = {
   claims: {
     mine: () => ['/api/claims/mine'] as const,
     detail: (id: string) => [`/api/claims/${id}`] as const,
+    form: (id: string) => [`/api/claims/${id}/form`] as const,
   },
   dataRequests: {
     changeMine: () => ['/api/data-change-requests/mine'] as const,
