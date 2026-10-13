@@ -74,10 +74,14 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 		const gap = 4, margin = 8, want = 320;
 		const below = window.innerHeight - r.bottom - margin;
 		const above = r.top - margin;
+		// At least the trigger width, widened toward a readable target (so long
+		// labels like full sector paths aren't forced to wrap), but never past the
+		// right edge of the viewport.
+		const width = Math.min(Math.max(r.width, 360), window.innerWidth - r.left - margin);
 		if (below >= Math.min(want, 180) || below >= above) {
-			setPos({ left: r.left, width: r.width, top: r.bottom + gap, maxH: Math.min(want, below) });
+			setPos({ left: r.left, width, top: r.bottom + gap, maxH: Math.min(want, below) });
 		} else {
-			setPos({ left: r.left, width: r.width, bottom: window.innerHeight - r.top + gap, maxH: Math.min(want, above) });
+			setPos({ left: r.left, width, bottom: window.innerHeight - r.top + gap, maxH: Math.min(want, above) });
 		}
 	};
 	useLayoutEffect(() => {
