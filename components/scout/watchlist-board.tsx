@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Empty, Loading, Logo, cx } from '@/components/atlas';
+import { Combobox } from '@/components/atlas/ui/combobox';
 import { useWatchlistCompanies } from '@/components/features/watchlists/use-company-watchlists';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { BOARD_STAGES, type BoardStage } from './sample-data';
@@ -45,9 +46,7 @@ export function WatchlistBoard({ id }: { id: string }) {
 											<Link href={companyHref(c.slug ?? c.id)} className="scout-board__name">{c.name}</Link>
 										</div>
 										<div className="scout-board__meta">{[c.primary_sector, c.hq_country].filter(Boolean).join(' · ')}</div>
-										<select className="scout-board__select" aria-label={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(e) => move(c.id, e.target.value as BoardStage)}>
-											{BOARD_STAGES.map((x) => <option key={x} value={x}>{x}</option>)}
-										</select>
+										<Combobox className="scout-board__select" ariaLabel={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(v) => move(c.id, v as BoardStage)} options={BOARD_STAGES.map((x) => [x, x] as [string, string])} />
 									</article>
 								))}
 							</section>

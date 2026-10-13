@@ -80,6 +80,10 @@
 	width: 100%; height: 24px; padding: 0 6px; border-radius: var(--a-radius-xs); border: 1px solid var(--a-border); background: var(--a-field); color: var(--a-ink);
 	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
 }
+/* Combobox trigger on this micro-control: keep its compact padding/gap rather
+   than the field-sized default so the 24px pill doesn't look cramped. */
+.atlas .scout-board__select.atlas-combo { padding: 0 6px; gap: 4px; }
+.atlas .scout-board__select.atlas-combo .atlas-combo__chev { width: 12px; height: 12px; }
 .atlas .scout-board__note { margin-top: 14px; }
 
 /* ── Deal Flow (Claude Design "Deal Flow" / "Deal") ──────────────────────── */
