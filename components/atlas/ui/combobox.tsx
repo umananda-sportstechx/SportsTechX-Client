@@ -34,17 +34,19 @@ interface Props {
 	id?: string;
 	/** Applied to the trigger so it keeps the call site's field style. */
 	className?: string;
+	/** Inline style for the trigger (e.g. a fixed width in a pill filter row). */
+	style?: React.CSSProperties;
 	ariaLabel?: string;
 }
 
 const flatten = (options?: ComboOption[], groups?: ComboGroup[]): ComboOption[] =>
 	groups ? groups.flatMap((g) => g.options) : (options ?? []);
 
-export function Combobox({ value, onChange, options, groups, placeholder = 'Select…', disabled, id, className, ariaLabel }: Props) {
+export function Combobox({ value, onChange, options, groups, placeholder = 'Select…', disabled, id, className, style, ariaLabel }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState('');
 	const [active, setActive] = useState(0);
-	const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
+	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +65,20 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 	}, [groups, options, q]);
 	const visible = useMemo(() => renderGroups.flatMap((g) => g.options), [renderGroups]);
 
+	// Open downward by default, but flip above the trigger when there isn't room
+	// below (a country select low in the claim modal would otherwise run off the
+	// bottom of the viewport). `position: fixed`, so this is viewport space.
 	const place = () => {
 		const r = triggerRef.current?.getBoundingClientRect();
-		if (r) setRect({ top: r.bottom + 4, left: r.left, width: r.width });
+		if (!r) return;
+		const gap = 4, margin = 8, want = 320;
+		const below = window.innerHeight - r.bottom - margin;
+		const above = r.top - margin;
+		if (below >= Math.min(want, 180) || below >= above) {
+			setPos({ left: r.left, width: r.width, top: r.bottom + gap, maxH: Math.min(want, below) });
+		} else {
+			setPos({ left: r.left, width: r.width, bottom: window.innerHeight - r.top + gap, maxH: Math.min(want, above) });
+		}
 	};
 	useLayoutEffect(() => {
 		if (!open) return;
@@ -93,16 +106,34 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 
 	const pick = (v: string) => { onChange(v); setOpen(false); triggerRef.current?.focus(); };
 
-	const onKey = (e: React.KeyboardEvent) => {
-		if (disabled) return;
-		if (!open) {
-			if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); }
-			return;
-		}
-		if (e.key === 'Escape') { e.preventDefault(); setOpen(false); triggerRef.current?.focus(); }
-		else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(visible.length - 1, i + 1)); }
-		else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
-		else if (e.key === 'Enter') { e.preventDefault(); const o = visible[active]; if (o) pick(o[0]); }
+	// Keyboard while open is driven from a capture-phase document listener, not a
+	// React handler on the panel: the panel is portalled to <body>, and Escape
+	// must not also reach a host's window keydown (the claim modal closes on
+	// Escape) — stopPropagation in the capture phase prevents that bubble. It
+	// also works regardless of whether focus sits on the search input or trigger.
+	useEffect(() => {
+		if (!open) return;
+		const onKeyCap = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); triggerRef.current?.focus(); }
+			else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(visible.length - 1, i + 1)); }
+			else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
+			else if (e.key === 'Enter') { e.preventDefault(); const o = visible[active]; if (o) pick(o[0]); }
+		};
+		document.addEventListener('keydown', onKeyCap, true);
+		return () => document.removeEventListener('keydown', onKeyCap, true);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open, visible, active]);
+
+	// Keep the keyboard-highlighted option in view in a long (scrolled) list.
+	useEffect(() => {
+		if (!open) return;
+		panelRef.current?.querySelector<HTMLElement>(`[data-ci="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+	}, [active, open]);
+
+	// Trigger only needs to handle opening; once open the document listener drives.
+	const onTriggerKey = (e: React.KeyboardEvent) => {
+		if (disabled || open) return;
+		if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); }
 	};
 
 	return (
@@ -111,25 +142,25 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 				type="button"
 				ref={triggerRef}
 				id={id}
+				style={style}
 				disabled={disabled}
 				aria-label={ariaLabel}
 				aria-haspopup="listbox"
 				aria-expanded={open}
 				className={cx(className, 'atlas-combo', !selectedLabel && 'atlas-combo--placeholder', open && 'atlas-combo--open')}
 				onClick={() => !disabled && setOpen((o) => !o)}
-				onKeyDown={onKey}
+				onKeyDown={onTriggerKey}
 			>
 				<span className="atlas-combo__label">{selectedLabel || placeholder}</span>
 				<ChevronDown size={15} className="atlas-combo__chev" aria-hidden="true" />
 			</button>
-			{open && rect && createPortal(
+			{open && pos && createPortal(
 				<div className="atlas">
 					<div
 						ref={panelRef}
 						className="atlas-combo-panel"
-						style={{ top: rect.top, left: rect.left, width: rect.width }}
+						style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.maxH }}
 						role="listbox"
-						onKeyDown={onKey}
 					>
 						{bigList && (
 							<div className="atlas-combo-search">
@@ -154,6 +185,7 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 												key={v}
 												type="button"
 												role="option"
+												data-ci={idx}
 												aria-selected={v === value}
 												className={cx('atlas-combo-opt', v === value && 'is-selected', idx === active && 'is-active')}
 												onMouseEnter={() => setActive(idx)}
