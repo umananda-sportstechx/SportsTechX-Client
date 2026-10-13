@@ -25,7 +25,9 @@ export interface Draft {
 	companyId: string;
 	founderName: string; founderEmail: string; founderPhone: string;
 	round: string; instrument: string; currency: string;
-	target: string; committed: string; valuation: string; close: string;
+	target: string; committed: string; close: string;
+	// Structured valuation: amount (in `currency`) + basis, or "undisclosed".
+	valuationAmount: string; valuationBasis: string; valuationUndisclosed: boolean;
 	leadStatus: string; lead: string;
 	notes: string; relation: string; myCommit: string; access: string; consent: boolean;
 	/** `bucket/key`, set once the file is in storage. Not a URL — the column rejects those. */
@@ -36,7 +38,8 @@ export const BLANK: Draft = {
 	company: '', website: '', hq: '', sectorId: '', desc: '', companyId: '',
 	founderName: '', founderEmail: '', founderPhone: '',
 	round: 'Seed', instrument: 'Priced Equity', currency: 'EUR',
-	target: '', committed: '', valuation: '', close: '',
+	target: '', committed: '', close: '',
+	valuationAmount: '', valuationBasis: 'pre_money', valuationUndisclosed: false,
 	leadStatus: 'Lead confirmed', lead: '',
 	notes: '', relation: 'Investing in this round', myCommit: '', access: 'Only after intro request', consent: false,
 	deckPath: '', onePagerPath: '',
@@ -79,6 +82,18 @@ function labelFor(map: Record<string, string>, value: unknown, fallback: string)
 	return found ? found[0] : fallback;
 }
 
+const VALUATION_BASIS_LABEL: Record<string, string> = { pre_money: 'pre-money', post_money: 'post-money', cap: 'cap' };
+
+/** Human-readable valuation for display/back-compat (the `valuation` text column). */
+export function fmtValuation(d: Draft): string {
+	if (d.valuationUndisclosed) return 'Undisclosed';
+	const n = num(d.valuationAmount);
+	if (!n) return '';
+	const sym = d.currency === 'USD' ? '$' : '€';
+	const basis = VALUATION_BASIS_LABEL[d.valuationBasis] ?? '';
+	return `${sym}${n.toLocaleString()}${basis ? ` ${basis}` : ''}`;
+}
+
 /** The submission body for POST /scout/dealflow and PATCH /scout/dealflow/:id. */
 export function toPayload(d: Draft): Record<string, unknown> {
 	return {
@@ -96,7 +111,10 @@ export function toPayload(d: Draft): Record<string, unknown> {
 		currency_code: d.currency,
 		target_amount: num(d.target),
 		committed_amount: num(d.committed),
-		valuation: d.valuation.trim() || null,
+		valuation: fmtValuation(d) || null,
+		valuation_amount: d.valuationUndisclosed ? null : num(d.valuationAmount),
+		valuation_basis: d.valuationUndisclosed ? null : (d.valuationBasis || null),
+		valuation_undisclosed: d.valuationUndisclosed,
 		target_close_date: d.close || null,
 		lead_status: LEAD[d.leadStatus] ?? null,
 		lead_investor: d.leadStatus === 'Lead confirmed' ? (d.lead.trim() || null) : null,
@@ -127,7 +145,9 @@ export function fromRow(r: Record<string, unknown>): Draft {
 		currency: str(r['currency_code']) || BLANK.currency,
 		target: amount(r['target_amount'] as string | number | null),
 		committed: amount(r['committed_amount'] as string | number | null),
-		valuation: str(r['valuation']),
+		valuationAmount: amount(r['valuation_amount'] as string | number | null),
+		valuationBasis: str(r['valuation_basis']) || 'pre_money',
+		valuationUndisclosed: r['valuation_undisclosed'] === true,
 		// A `date` column arrives as an ISO timestamp once it has been through JSON.
 		close: str(r['target_close_date']).slice(0, 10),
 		leadStatus: labelFor(LEAD, r['lead_status'], BLANK.leadStatus),
