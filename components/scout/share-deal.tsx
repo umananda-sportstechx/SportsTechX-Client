@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { ArrowUpLeft, Check, Loader2, Paperclip, ShieldCheck, X } from 'lucide-react';
 import { Action, Button, Card, Empty, Field, Input, Loading, Select, Textarea, cx } from '@/components/atlas';
 import { ChipSet } from './thesis-fields';
+import { CompanyPicker } from './company-picker';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { BLANK, fromRow, toPayload, num, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
@@ -193,7 +194,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 				<div className="scout-section__head"><h2 className="atlas-h2">{s.title}</h2><p className="scout-muted">{s.sub}</p></div>
 				{step === 0 && (
 					<div className="scout-form-grid">
-						<Field label="Company name"><Input {...txt('company')} placeholder="e.g. Goalbound" /></Field>
+						<Field label="Company name"><CompanyPicker d={d} patch={patch} /></Field>
 						<Field label="Website · Optional"><Input {...txt('website')} placeholder="e.g. goalbound.io" /></Field>
 						<Field label="Headquarters"><LocationSelect value={d.hq} onChange={(v) => patch({ hq: v })} placeholder="Country or region" /></Field>
 						<Field label="Sector">

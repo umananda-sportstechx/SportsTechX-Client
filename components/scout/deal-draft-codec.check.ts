@@ -17,7 +17,7 @@ const check = (ok: boolean, msg: string) => {
 };
 
 const FILLED: Draft = {
-	company: 'Goalbound', website: 'goalbound.io', hq: 'Lisbon, Portugal',
+	company: 'Goalbound', companyId: '', website: 'goalbound.io', hq: 'Lisbon, Portugal',
 	sectorId: '7f1c0a2e-1111-2222-3333-444444444444', desc: 'Match analytics for academies.',
 	founderName: 'Ana Silva', founderEmail: 'ana@goalbound.io', founderPhone: '+351 900 000 000',
 	round: 'Series A', instrument: 'SAFE', currency: 'USD',
