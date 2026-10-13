@@ -17,13 +17,11 @@ export function Tabs<T extends string>({ tabs, value, onChange }: {
 }
 
 /** Segmented switch — Figma "Select UX bar" (FUNDING | M&A | TOTAL). */
-export function Seg<T extends string>({ options, value, onChange, ariaLabel, 'data-tour': dataTour }: {
+export function Seg<T extends string>({ options, value, onChange, ariaLabel }: {
 	options: { key: T; label: string }[]; value: T; onChange: (k: T) => void; ariaLabel?: string;
-	/** Guided-tour anchor (lib/sandbox/tours). */
-	'data-tour'?: string;
 }) {
 	return (
-		<div className="atlas-seg" role="group" aria-label={ariaLabel} data-tour={dataTour}>
+		<div className="atlas-seg" role="group" aria-label={ariaLabel}>
 			{options.map((o) => (
 				<button key={o.key} type="button" className={cx('atlas-seg__btn', o.key === value && 'active')} aria-pressed={o.key === value} onClick={() => onChange(o.key)}>{o.label}</button>
 			))}

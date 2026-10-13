@@ -114,8 +114,8 @@ export default function RaisePipelinePage() {
 								<div style={{ display: 'grid', gap: 8, gridAutoRows: 'min-content', minHeight: 60, flex: 1, borderRadius: 'var(--a-radius-sm)', background: dragOver === s ? 'var(--a-navy-soft)' : 'transparent', outline: dragOver === s ? '1px dashed var(--a-navy)' : 'none', padding: dragOver === s ? 6 : 0, transition: 'background 0.1s' }}>
 									{(byStage[s] ?? []).length === 0 && dragOver !== s
 										? <div style={{ border: '1px dashed var(--a-border-strong)', borderRadius: 'var(--a-radius-sm)', padding: '14px 10px', textAlign: 'center', fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>No investors yet</div>
-										: (byStage[s] ?? []).map((p, i) => (
-											<div key={p.id} draggable data-tour={s === 'target' && i === 0 ? 'raise-pipeline-card' : undefined}
+										: (byStage[s] ?? []).map((p) => (
+											<div key={p.id} draggable
 												onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }}
 												onClick={() => setOpen(p)}
 												style={{ textAlign: 'left', cursor: 'grab', background: 'var(--a-field)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', padding: 12 }}>

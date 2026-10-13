@@ -30,7 +30,6 @@ export function FinalHero() {
 				<p className="lp-hero-sub">See how founders and investors use Atlas to navigate, raise and do deals in sports tech.</p>
 				<div className="lp-hero-ctas">
 					<Link className="lp-btn lp-btn--ui lp-btn--pink" href="/signup">Apply for membership</Link>
-					<Link className="lp-btn lp-btn--ui lp-btn--outline" href="/preview">Walk the Pitch</Link>
 				</div>
 			</div>
 		</section>

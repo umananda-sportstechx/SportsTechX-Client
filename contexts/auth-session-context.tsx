@@ -7,7 +7,6 @@ import { enableQueryPolling, clearAuthCache } from '@/lib/query-client';
 import { sessionRefreshLock } from '@/lib/session-refresh-lock';
 import { logoutState } from '@/lib/logout-state';
 import { isPublicPath } from '@/lib/public-paths';
-import { isPreviewMode } from '@/lib/preview-mode';
 import type { User } from '@supabase/supabase-js';
 
 export interface AuthSessionState {
@@ -85,15 +84,9 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 		// whose session had expired was being thrown from `/` to /login, which
 		// is the whole bug — the landing page is public and has to stay put
 		// whatever state the session is in.
-		// Nor off the pre-signup preview (app/preview/) — it has no real session
-		// to begin with, so a real session expiring elsewhere on this origin is
-		// not a reason to pull the visitor out of it. `isPreviewMode()` rather
-		// than relying on `/preview` being in PUBLIC_PATHS alone: that flag is
-		// the authoritative "are we in the preview tree" signal the pathname
-		// check only stands in for.
 		const STAY_PUT = ['/confirm'];
 		const here = typeof window !== 'undefined' ? window.location.pathname : '';
-		if (here && !STAY_PUT.includes(here) && !isPublicPath(here) && !isPreviewMode()) {
+		if (here && !STAY_PUT.includes(here) && !isPublicPath(here)) {
 			window.location.href = '/login?reason=session_expired';
 		}
 	}, [clearAuthCookies]);

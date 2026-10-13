@@ -71,7 +71,7 @@ export function MyMarket() {
 				</Button>
 			</div>
 
-			<div className="atlas-kpis" data-tour="raise-market-size">
+			<div className="atlas-kpis">
 				<Kpi label="Total market (TAM)" value={estimating || recomputing ? '—' : eur(data.tam)} note={estimating || recomputing ? 'Estimating…' : data.tam != null ? 'Estimate' : undefined} />
 				<Kpi label="Addressable market (SAM)" value={estimating || recomputing ? '—' : eur(data.sam)} note={estimating || recomputing ? 'Estimating…' : data.sam != null ? 'Estimate' : undefined} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />

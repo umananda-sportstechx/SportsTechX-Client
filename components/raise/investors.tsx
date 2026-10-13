@@ -110,8 +110,8 @@ export function RecommendedInvestors() {
 						</div>
 					)}
 					<Grid>
-						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m, i) => (
-							<InvestorCard key={m.id} tour={i === 0 ? 'raise-top-investor' : undefined} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
+						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
+							<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
 								onDismiss={() => setDismissed((s) => new Set(s).add(m.id))} />
 						))}
 					</Grid>
@@ -259,11 +259,11 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 	);
 }
 
-function InvestorCard({ inv, added, onAdd, reasons, onDismiss, tour }: { inv: InvestorCardData; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void; tour?: string }) {
+function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: InvestorCardData; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void }) {
 	const [busy, setBusy] = useState(false);
 	const doAdd = async () => { setBusy(true); await onAdd(); setBusy(false); };
 	return (
-		<div className="atlas-card atlas-entity-card" data-tour={tour}>
+		<div className="atlas-card atlas-entity-card">
 			<div className="atlas-entity-card__head">
 				<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
