@@ -7,6 +7,7 @@ import { getUserType, useUserProfile, type UserType } from '@/hooks/use-user-pro
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { Button, Loading } from '@/components/atlas';
+import { PRODUCT } from '@/components/features/tier-gate/tier-gate';
 import './paywall-gate.css';
 
 /**
@@ -86,17 +87,25 @@ export function PaywallGate() {
 							const isCurrent = current === p.tier;
 							const paid = p.tier !== 'explore';
 							const highlight = p.tier === 'raise';
+							// feature_highlights + tagline are NULL for Raise/Scout in the DB;
+							// fall back to the approved PRODUCT blurbs so the card isn't blank
+							// (and `.map` never runs on null — that crashed /onboarding).
+							const prod = p.tier === 'raise' || p.tier === 'scout' ? PRODUCT[p.tier] : null;
+							const tagline = p.tagline || prod?.tagline || '';
+							const features = p.feature_highlights?.length
+								? p.feature_highlights
+								: (prod?.points.map(([label]) => label) ?? []);
 							return (
 								<div key={p.slug} className={`pg-card${highlight ? ' pg-card--hl' : ''}`}>
 									{highlight && <div className="pg-card__badge">Recommended</div>}
 									<div className="pg-card__name">{p.name}</div>
-									{p.tagline && <div className="pg-card__tagline">{p.tagline}</div>}
+									{tagline && <div className="pg-card__tagline">{tagline}</div>}
 									<div className="pg-card__price">
 										<span className="pg-card__amount">{p.price_amount === 0 ? 'Free' : money(p.price_amount, p.currency_code)}</span>
 										{paid && <span className="pg-card__interval">{intervalLabel(p.billing_interval)}</span>}
 									</div>
 									<ul className="pg-card__features">
-										{p.feature_highlights.map((f) => (
+										{features.map((f) => (
 											<li key={f}><Check size={15} aria-hidden="true" />{f}</li>
 										))}
 									</ul>
