@@ -9,7 +9,9 @@ export const INV_TYPES = ['VC', 'PE', 'CVC', 'Angel / Syndicate', 'Family Office
 export const OP_TYPES = ['Accelerator', 'Incubator', 'Initiative / Challenge', 'Event / Conference', 'Federation / League', 'Venue / Facility'];
 export const INV_CATEGORIES = ['Venture Capital', 'Private Equity', 'Corporate VC', 'Angel / Syndicate', 'Family Office', 'Accelerator', 'Corporate', 'Sovereign Fund', 'Other'];
 export const CONTINENTS = ['North America', 'South America', 'Europe', 'Africa', 'Asia', 'Oceania', 'Middle East'];
-export const THESIS_SECTORS = ['For Athletes', 'For Fans', 'For Execs', 'Performance', 'Media & Streaming', 'Fan Engagement', 'Wearables & Gear', 'Esports'];
+// Must match the real `sectors` taxonomy child names — investor-claim thesis
+// sectors save by name, and unmatched labels are dropped on the server.
+export const THESIS_SECTORS = ['Before / After Activity', 'For Activity Hardware', 'For Activity Software', 'Content Platforms', 'Fan Experiences', 'Fantasy Sports & Betting', 'Media & Sponsors', 'Organisations & Venues'];
 export const TECH_PREFS = ['AI / ML', 'Hardware', 'Wearables', 'Analytics', 'Streaming', 'Marketplace', 'SaaS', 'Web3', 'Computer Vision', 'Mobile'];
 export const FUNDING_STAGES = ['Angel', 'Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C+', 'Venture (Unknown Stage)', 'Private Equity'];
 export const REVENUE_STAGES = ['Pre-Revenue', 'Early Revenue', 'Product-Market Fit', 'Scaling', 'Late Stage'];
