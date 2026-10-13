@@ -1,7 +1,5 @@
 'use client';
 
-import { activeSandbox } from '@/lib/sandbox/store';
-import { noteRealTier } from '@/lib/sandbox/eligibility';
 import useSWR from 'swr';
 import { useAuthSession } from './use-auth-session';
 import { qk } from '@/lib/query-keys';
@@ -80,21 +78,7 @@ export function useUserProfile() {
   });
 }
 
-/**
- * The tier the UI should treat the viewer as. Same as getRealUserType, except
- * inside Walk the Pitch practice, where an Explore user is shown the Raise or
- * Scout product (display only — the server still sees Explore; see lib/sandbox).
- */
 export function getUserType(profile: Profile | null | undefined): UserType {
-  const real = getRealUserType(profile);
-  if (!profile) return real;
-  noteRealTier(real);
-  const sandbox = real === 'explore' ? activeSandbox() : null;
-  return sandbox ?? real;
-}
-
-/** The viewer's actual plan, ignoring any sandbox (Plans, Billing, checkout). */
-export function getRealUserType(profile: Profile | null | undefined): UserType {
   const raw = profile?.user_type?.toLowerCase();
   // Validated rather than cast. The old cast let any string through, so a
   // profile holding a retired label landed in whatever branch happened to

@@ -8,7 +8,6 @@ import { Badge, Button } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { openRaiseSetup } from '@/lib/setup-events';
-import { TierRequiredError } from '@/lib/tier-events';
 
 /**
  * Share your round with the Investor Circle.
@@ -53,10 +52,7 @@ export function DealflowOptIn() {
 			if (!res.ok) throw new Error(String(res.status));
 			toast.success(okMsg);
 			void mutate();
-		} catch (e) {
-			// A plan refusal (402) already opened the upgrade modal — don't stack a
-			// "try again" toast on top of it; retrying won't change the answer.
-			if (e instanceof TierRequiredError) return;
+		} catch {
 			toast.error('That did not go through. Please try again.');
 		} finally { setBusy(false); }
 	};

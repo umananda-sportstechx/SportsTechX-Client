@@ -289,7 +289,7 @@ function FeaturedDeal({ d }: { d: DealRow }) {
 				<div className="scout-df-feat__main">
 					<h2 className="scout-df-feat__name">{companyLabel(d)}</h2>
 					<p className="scout-df-feat__desc">{d.company_description ?? ''}</p>
-					<Link href={dealHref(d.id)} className="scout-df-feat__btn" data-tour="scout-featured-deal">View opportunity →</Link>
+					<Link href={dealHref(d.id)} className="scout-df-feat__btn">View opportunity →</Link>
 				</div>
 				<div className="scout-df-feat__terms">
 					{terms.map(([k, v]) => <div key={k}><div className="scout-df-feat__k">{k}</div><div className="scout-df-feat__v">{v}</div></div>)}

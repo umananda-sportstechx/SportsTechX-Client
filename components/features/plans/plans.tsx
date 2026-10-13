@@ -5,12 +5,11 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Check, Loader2, Minus } from 'lucide-react';
 import { Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
-import { WalkthroughButton } from '@/components/features/walkthrough/walkthrough-button';
 import { apiRequest } from '@/lib/query-client';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { qk } from '@/lib/query-keys';
 import { track, Events } from '@/lib/analytics';
-import { getRealUserType as getUserType, useUserProfile } from '@/hooks/use-user-profile';
+import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { useFeatureAccessContext } from '@/contexts/feature-access-context';
 import { PRODUCT } from '@/components/features/tier-gate/tier-gate';
 import type { Tier } from '@/lib/access';
@@ -176,13 +175,9 @@ export function Plans() {
 									)
 									: <span className="plans-muted">Included with every plan</span>)
 										: (
-											<>
-												<Button size="sm" variant={tier === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void checkout(tier)}>
-													{busy === tier ? <Loader2 className="animate-spin" size={13} /> : `Get ${copy?.name ?? tier}`}
-												</Button>
-												{/* Free users can walk through the paid workspace first (lib/sandbox). */}
-												{current === 'explore' && <WalkthroughButton product={tier} source="plans" />}
-											</>
+											<Button size="sm" variant={tier === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void checkout(tier)}>
+												{busy === tier ? <Loader2 className="animate-spin" size={13} /> : `Get ${copy?.name ?? tier}`}
+											</Button>
 										)}
 							</div>
 						</Card>
