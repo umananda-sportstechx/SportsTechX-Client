@@ -10,6 +10,7 @@ import type { PipelineActivity as Activity, PipelineStage, PipelineUpdate } from
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Eyebrow, Field, Flag, Input, ListSwitcher, Loading, Logo, SectionHeader, Select, Textarea } from '@/components/atlas';
+import { DatePicker } from '@/components/atlas/ui/date-picker';
 
 /**
  * Atlas Raise — investor Watchlist, formerly "Pipeline" (mock-up 14 / Notion "Pipeline"). Full-width
@@ -161,7 +162,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 				<Field label="Contact"><Input value={f.contact_name ?? ''} onChange={(e) => set('contact_name', e.target.value)} /></Field>
 				<Field label="Potential amount (€)"><Input type="number" min={0} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
 				<Field label="Next step"><Input value={f.next_step ?? ''} onChange={(e) => set('next_step', e.target.value)} /></Field>
-				<Field label="Next step due"><Input type="date" value={f.next_step_due ?? ''} onChange={(e) => set('next_step_due', e.target.value)} /></Field>
+				<Field label="Next step due"><DatePicker value={f.next_step_due ?? ''} onChange={(v) => set('next_step_due', v)} /></Field>
 				<Field label="Notes"><Textarea value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
 			</div>
 			<div style={{ display: 'flex', gap: 8, marginTop: 20 }}>

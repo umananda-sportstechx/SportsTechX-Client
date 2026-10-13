@@ -9,6 +9,7 @@ import { ArrowUpLeft, Check, Loader2, Paperclip, ShieldCheck, X } from 'lucide-r
 import { Action, Button, Card, Empty, Field, Input, Loading, Select, Textarea, cx } from '@/components/atlas';
 import { ChipSet } from './thesis-fields';
 import { CompanyPicker } from './company-picker';
+import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { BLANK, fromRow, toPayload, num, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
@@ -224,7 +225,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 							<Field label={`Target raise (${sym})`}><Input type="number" min="0" {...txt('target')} placeholder="1500000" /></Field>
 							<Field label={`Committed to date (${sym}) · Optional`}><Input type="number" min="0" {...txt('committed')} placeholder="500000" /></Field>
 							<Field label="Valuation / cap · Optional"><Input {...txt('valuation')} placeholder={`e.g. ${sym}8m pre-money`} /></Field>
-							<Field label="Target close date · Optional"><Input type="date" {...txt('close')} /></Field>
+							<Field label="Target close date · Optional"><DatePicker value={d.close} onChange={(v) => patch({ close: v })} /></Field>
 						</div>
 						<Block label="Lead status"><ChipSet options={['Lead confirmed', 'Seeking lead', 'No lead required']} value={d.leadStatus} onToggle={(o) => patch({ leadStatus: o })} /></Block>
 						{d.leadStatus === 'Lead confirmed' && (
