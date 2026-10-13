@@ -46,11 +46,6 @@ export const PUBLIC_PATHS = [
   '/privacy-policy',
   '/terms-of-service',
   '/w', // /w/[token] — public read-only shared watchlist pages
-  // Pre-signup "Walk the Pitch" (app/preview/) — the real app's pages,
-  // reached with no session at all. Never gated the way PRIVATE_PREFIXES
-  // gates their real counterparts: lib/preview-mode.ts + the sandbox
-  // interceptor are what keep it on sample data, not the edge gate.
-  '/preview',
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

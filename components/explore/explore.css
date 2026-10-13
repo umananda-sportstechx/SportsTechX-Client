@@ -35,13 +35,6 @@
 }
 .atlas .explore-upgrade:hover .explore-upgrade__action { background: var(--a-primary); color: var(--a-primary-ink); box-shadow: inset 0 0 0 1px var(--a-primary); }
 .atlas .explore-upgrade__body { font-family: var(--a-body); font-size: 11px; line-height: 1.45; color: var(--a-muted); }
-.atlas .explore-upgrade__link { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; }
-.atlas .explore-upgrade__walk {
-	align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; cursor: pointer;
-	font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-ink);
-}
-.atlas .explore-upgrade__walk:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
-.atlas .explore-upgrade__walk:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Home ────────────────────────────────────────────────────────────────── */
 /* Same width as <Screen> (PAGE_MAX) — homes are not a narrower special case. */

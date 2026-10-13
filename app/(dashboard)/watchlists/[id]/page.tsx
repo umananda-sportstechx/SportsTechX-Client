@@ -28,7 +28,7 @@ export default function Page() {
 				actions={isScout ? (
 					<>
 						{board && <PlaceholderTag />}
-						<Seg ariaLabel="Watchlist view" data-tour="scout-board-toggle" value={view} onChange={setView} options={[{ key: 'list', label: 'List' }, { key: 'board', label: 'Board' }]} />
+						<Seg ariaLabel="Watchlist view" value={view} onChange={setView} options={[{ key: 'list', label: 'List' }, { key: 'board', label: 'Board' }]} />
 					</>
 				) : undefined}
 			/>

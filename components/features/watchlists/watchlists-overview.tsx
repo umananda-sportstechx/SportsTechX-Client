@@ -32,7 +32,7 @@ export function WatchlistsOverview({ watchlistHref }: { watchlistHref: (id: stri
 				<Empty>No watchlists yet. Create one above, or use “Add to watchlist” on any company page.</Empty>
 			) : (
 				<div className="atlas-rowlist">
-					{lists.map((l, i) => (
+					{lists.map((l) => (
 						<div key={l.id} className="atlas-rowlist__row">
 							<div className="atlas-rowlist__main">
 								{editing === l.id ? (
@@ -43,7 +43,7 @@ export function WatchlistsOverview({ watchlistHref }: { watchlistHref: (id: stri
 									</form>
 								) : (
 									<>
-										<Link href={watchlistHref(l.id)} className="atlas-rowlist__title atlas-wl-title" data-tour={i === 0 ? 'watchlist-open' : undefined}>{l.name}</Link>
+										<Link href={watchlistHref(l.id)} className="atlas-rowlist__title atlas-wl-title">{l.name}</Link>
 										<div className="atlas-rowlist__desc">{l.company_count ?? 0} compan{(l.company_count ?? 0) === 1 ? 'y' : 'ies'}</div>
 									</>
 								)}
