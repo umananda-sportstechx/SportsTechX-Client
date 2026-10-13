@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Field, Input } from '@/components/atlas';
 import { LocationSelect } from '@/components/features/location/location-select';
+import { VerifyButton, useVerifyState } from '@/components/features/verify/verify-cta';
 import { ChipSet, AddButton, PickerDialog, toggleIn, withSelected } from './thesis-fields';
 import { PILLAR_SECTORS, THESIS_OPTIONS, type Thesis } from './sample-data';
 
@@ -30,11 +31,34 @@ export function ProfileFields({ t, patch }: Props) {
 }
 
 export function FundFields({ t, patch }: Props) {
+	// The fund is picked from the directory, not typed free-hand: the Verify
+	// flow searches investors, lets you claim an existing one or add a new one
+	// (which goes to admin approval), and shows the editable capsule once it's
+	// pending or verified. A verified fund's identity comes from that record, so
+	// its name/website are auto-filled and locked here — edit them through the
+	// capsule instead. The thesis still saves without any of this; verification
+	// only gates deal submission.
+	const { state, claim } = useVerifyState();
+	const verified = state === 'verified' && claim?.claim_type === 'investor';
+	const name = claim?.claim_type === 'investor' ? (claim.target_name_snapshot ?? '') : '';
+	const website = claim?.claim_type === 'investor' ? (claim.target_website_snapshot ?? '') : '';
+	useEffect(() => {
+		if (!verified) return;
+		const next: Partial<Thesis> = {};
+		if (name && t.fundName !== name) next.fundName = name;
+		if (website && t.website !== website) next.website = website;
+		if (Object.keys(next).length) patch(next);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [verified, name, website]);
+
 	return (
 		<>
+			<FieldBlock label="Your fund / investor" hint="Search the directory — or add yours and we’ll verify it">
+				<VerifyButton role="investor" label="Find or add your fund" />
+			</FieldBlock>
 			<div className="scout-form-grid">
-				<Field label="Fund / investor name"><Input {...text(t, patch, 'fundName')} placeholder="e.g. Northline Ventures" /></Field>
-				<Field label="Website"><Input {...text(t, patch, 'website')} placeholder="fund.com" /></Field>
+				<Field label="Fund / investor name"><Input {...text(t, patch, 'fundName')} placeholder="e.g. Northline Ventures" disabled={verified} /></Field>
+				<Field label="Website"><Input {...text(t, patch, 'website')} placeholder="fund.com" disabled={verified} /></Field>
 				<Field label="Country"><LocationSelect value={t.country} onChange={(v) => patch({ country: v })} /></Field>
 				<Field label="City"><Input {...text(t, patch, 'city')} placeholder="City" /></Field>
 			</div>
