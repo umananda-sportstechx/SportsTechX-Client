@@ -1,0 +1,47 @@
+/*
+ * Walk the Pitch pre-signup preview (app/preview/) — stands in for the real
+ * Navbar, which needs a real account (search, Get Verified, the account
+ * menu). Same stacking/height as .atlas-navbar so the layout reads the same
+ * with either one in the slot.
+ */
+.atlas .wt-preview-bar {
+	flex-shrink: 0;
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 52px;
+	padding: 0 56px;
+	background: var(--a-page);
+	border-bottom: 1px solid var(--a-border);
+}
+.atlas .wt-preview-bar__tag {
+	font-family: var(--a-mono);
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--a-muted);
+}
+.atlas .wt-preview-bar__cta {
+	display: inline-flex;
+	align-items: center;
+	height: 32px;
+	padding: 0 16px;
+	border-radius: var(--a-radius-pill);
+	background: var(--a-ink);
+	color: var(--a-page);
+	font-family: var(--a-mono);
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-decoration: none;
+}
+.atlas .wt-preview-bar__cta:hover { filter: brightness(1.1); }
+
+@media (max-width: 760px) {
+	.atlas .wt-preview-bar { padding: 0 16px; min-height: 46px; }
+	.atlas .wt-preview-bar__tag { display: none; }
+}

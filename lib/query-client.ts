@@ -7,6 +7,7 @@ import { logoutState } from './logout-state';
 import { openCreditExhausted, InsufficientCreditsError } from './credit-events';
 import { openTierRequired, TierRequiredError } from './tier-events';
 import { isPublicPath } from './public-paths';
+import { isPreviewMode } from './preview-mode';
 import type { Tier } from './access';
 
 // ─── Auth header cache ───────────────────────────────────────────────────────
@@ -24,6 +25,12 @@ export function clearAuthCache(): void {
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (logoutState.isLoggingOut()) return {};
+  // The pre-signup preview (app/preview/, lib/preview-mode.ts) has no session
+  // to attach — every /api/* call there is answered by the sandbox
+  // interceptor regardless of headers. Skip straight past the Supabase
+  // refresh attempt below: for a visitor with no session at all it has
+  // nothing to refresh, so every request stalled on it until it gave up.
+  if (isPreviewMode()) return {};
 
   const now = Date.now();
   if (cachedAuth && now < cachedAuth.expiresAt - AUTH_CACHE_BUFFER_MS) {
@@ -82,8 +89,17 @@ const AUTH_PATHS = new Set([
  * call useUserProfile() on every route, so a visitor arriving at the marketing
  * page with an expired cookie got a 401 and was hard-navigated to /login — the
  * page is public and must not do that, whatever is in the cookie jar.
+ *
+ * `isPreviewMode()` is checked directly, not just `/preview` being in
+ * PUBLIC_PATHS: a visitor testing Walk the Pitch in a browser that also has a
+ * real (even stale) session elsewhere on this origin has `hasValidSession()`
+ * true, and hard-navigating THAT away from a sandboxed page over a 401 that
+ * was never a real auth failure is exactly the loop this function exists to
+ * prevent — the flag is the authoritative "are we in the preview tree" signal
+ * the pathname check is only standing in for.
  */
 function noRedirectHere(): boolean {
+  if (isPreviewMode()) return true;
   if (typeof window === 'undefined') return false;
   const { pathname } = window.location;
   return AUTH_PATHS.has(pathname) || isPublicPath(pathname);
