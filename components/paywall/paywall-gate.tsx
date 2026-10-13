@@ -1,123 +1,126 @@
 'use client';
 
 import { useState } from 'react';
+import useSWR from 'swr';
 import { Check, Loader2 } from 'lucide-react';
-import { getUserType, type UserType } from '@/hooks/use-user-profile';
-import { useUserProfile } from '@/hooks/use-user-profile';
+import { getUserType, useUserProfile, type UserType } from '@/hooks/use-user-profile';
 import { apiRequest } from '@/lib/query-client';
+import { qk } from '@/lib/query-keys';
+import { Button, Loading } from '@/components/atlas';
+import './paywall-gate.css';
 
 /**
- * Post-login plan paywall (Hub Rebrand). Shown once — until `paywall_shown_at`
- * is stamped. NO Stripe: choosing a plan sets the tier + persona directly via
- * POST /api/profiles/plan. Styled in the Atlas mockup palette (navy accent,
- * ink text, cream surface) regardless of app theme, per the wireframes.
+ * Post-login plan chooser, shown once (until `paywall_shown_at` is stamped).
+ *
+ * Choosing Explore sets the tier directly (no payment); a paid plan hands off to
+ * Stripe Checkout WITHOUT stamping, so a cancel never burns the one-time wall —
+ * `/billing/success` stamps it once payment confirms.
+ *
+ * Plans (name, price, interval, features) come live from `GET /api/billing/plans`
+ * — the same source the in-app Plans page uses — so the price is always correct
+ * (e.g. Raise's 6-month interval) rather than a hard-coded string. Styled on the
+ * Atlas tokens so it matches the dashboard in light and dark.
  */
+interface PlanRow {
+	slug: string;
+	name: string;
+	tagline: string | null;
+	tier: string;
+	billing_interval: string | null;
+	price_amount: number;
+	currency_code: string;
+	stripe_price_id: string | null;
+	feature_highlights: string[];
+	sort_order: number;
+}
 
-// Atlas identity palette (from the mockup SVGs).
-const INK = '#1F1E1C', MUTED = '#6B6A64', FAINT = '#9B9A93', BORDER = '#E4E2DB', NAVY = '#1B4C78', SURFACE = '#FFFFFF', PAGE = '#F4F2EC';
-
-type Plan = UserType;
-interface PlanDef { key: Plan; name: string; price: string; tagline: string; features: string[]; highlight?: boolean }
-const PLANS: PlanDef[] = [
-	{ key: 'explore', name: 'Explore', price: '€0', tagline: 'Explore the ecosystem', features: ['Browse the public directory', 'Events & newsletter', 'Programs & the sector framework'] },
-	{ key: 'raise', name: 'Raise', price: '€600', tagline: 'Raise capital like a pro', features: ['Atlas Raise fundraising workspace', 'Companies, investors & deals directories', 'Investor database + matching', 'AI pitch-deck analysis', 'Advanced filters, exports & market reports'], highlight: true },
-	{ key: 'scout', name: 'Scout', price: '€2,500', tagline: 'Sourcing & dealflow intelligence', features: ['Everything in Raise', 'Dealflow & M&A intelligence', 'Full contacts + export', 'Deep-dive analytics'] },
-];
+const money = (cents: number, ccy: string) =>
+	new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase(), maximumFractionDigits: 0 }).format((cents ?? 0) / 100);
+const intervalLabel = (bi: string | null) =>
+	bi === 'yearly' ? 'per year' : bi === 'semiannual' ? 'per 6 months' : bi === 'monthly' ? 'per month' : '';
 
 export function PaywallGate() {
 	const { data: profile, mutate } = useUserProfile();
-	const [busy, setBusy] = useState<Plan | 'dismiss' | null>(null);
+	const plans = useSWR<{ data: PlanRow[] }>(qk.billing.plans());
+	const [busy, setBusy] = useState<string | 'dismiss' | null>(null);
 	const [err, setErr] = useState('');
 
 	// Show once: until the wall has been stamped. (Undefined while loading → hidden.)
 	if (!profile || profile.paywall_shown_at) return null;
 
-	const choose = async (plan: Plan | null) => {
-		setBusy(plan ?? 'dismiss');
+	const choose = async (tier: UserType | null, slug?: string) => {
+		setBusy(slug ?? tier ?? 'dismiss');
 		setErr('');
 		try {
 			// Free / dismiss: set the tier directly and close the wall (no payment).
-			if (!plan || plan === 'explore') {
-				await apiRequest('POST', '/api/profiles/plan', plan ? { plan } : {});
+			if (!tier || tier === 'explore') {
+				await apiRequest('POST', '/api/profiles/plan', tier ? { plan: tier } : {});
 				await mutate();
 				return;
 			}
-			// Paid plans: hand off to Stripe Checkout WITHOUT stamping the wall — a
-			// cancel/failure must not burn the one-time paywall. The success page
-			// stamps paywall_shown_at once payment is confirmed.
-			const res = await apiRequest('POST', '/api/billing/checkout', { plan });
+			const res = await apiRequest('POST', '/api/billing/checkout', { plan: slug ?? tier });
 			if (!res.ok) throw new Error('checkout failed');
 			const body = (await res.json()) as { url?: string | null };
 			if (body.url) { window.location.assign(body.url); return; }
 			throw new Error('no checkout url');
 		} catch {
-			// This used to fall through silently: the button un-pressed itself and
-			// nothing else happened. That was survivable when the wall was a
-			// curiosity shown to the wrong people; it is the first thing a new
-			// account does now, so a dead button is a dead signup.
 			setErr('We couldn’t start checkout. Please try again, or pick the free plan to carry on.');
 		} finally { setBusy(null); }
 	};
 
-	// getUserType validates rather than casts, so a profile holding a retired
-	// label highlights the base tier instead of nothing at all.
 	const current = getUserType(profile);
+	const rows = [...(plans.data?.data ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+
 	return (
-		<div style={{ position: 'fixed', inset: 0, zIndex: 200, background: PAGE, color: INK, overflowY: 'auto', fontFamily: 'Helvetica, Arial, sans-serif' }}>
-			<div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(32px, 6vh, 72px) 24px' }}>
-				<div style={{ textAlign: 'center', marginBottom: 40 }}>
-					<div style={{ fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase', color: NAVY, marginBottom: 12 }}>SportsTechX</div>
-					<h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-0.01em', margin: '0 0 10px', color: INK }}>Choose your plan</h1>
-					<p style={{ fontSize: 15, color: MUTED, margin: 0 }}>Pick the plan that fits how you use SportsTechX. You can change this later.</p>
-				</div>
+		<div className="atlas pg">
+			<div className="pg__inner">
+				<header className="pg__head">
+					<div className="atlas-eyebrow">SportsTechX</div>
+					<h1 className="pg__title">Choose your plan</h1>
+					<p className="pg__sub">Pick the plan that fits how you use SportsTechX. You can change it later.</p>
+				</header>
 
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, alignItems: 'stretch' }}>
-					{PLANS.map((p) => {
-						const isCurrent = current === p.key;
-						return (
-							<div key={p.key} style={{
-								background: SURFACE, border: `1px solid ${p.highlight ? NAVY : BORDER}`, borderRadius: 14,
-								padding: 24, display: 'flex', flexDirection: 'column',
-								boxShadow: p.highlight ? '0 8px 30px rgba(27,76,120,0.14)' : 'none', position: 'relative',
-							}}>
-								{p.highlight && <div style={{ position: 'absolute', top: -11, left: 24, background: NAVY, color: '#fff', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', padding: '3px 10px', borderRadius: 20 }}>Recommended</div>}
-								<div style={{ fontSize: 18, fontWeight: 700, color: INK }}>{p.name}</div>
-								<div style={{ fontSize: 12, color: FAINT, margin: '2px 0 14px' }}>{p.tagline}</div>
-								<div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 18 }}>
-									<span style={{ fontSize: 30, fontWeight: 700, color: INK }}>{p.price}</span>
-									{p.price.startsWith('€') && p.key !== 'explore' && <span style={{ fontSize: 13, color: MUTED }}>/year</span>}
+				{plans.isLoading ? <Loading /> : (
+					<div className="pg__grid">
+						{rows.map((p) => {
+							const isCurrent = current === p.tier;
+							const paid = p.tier !== 'explore';
+							const highlight = p.tier === 'raise';
+							return (
+								<div key={p.slug} className={`pg-card${highlight ? ' pg-card--hl' : ''}`}>
+									{highlight && <div className="pg-card__badge">Recommended</div>}
+									<div className="pg-card__name">{p.name}</div>
+									{p.tagline && <div className="pg-card__tagline">{p.tagline}</div>}
+									<div className="pg-card__price">
+										<span className="pg-card__amount">{p.price_amount === 0 ? 'Free' : money(p.price_amount, p.currency_code)}</span>
+										{paid && <span className="pg-card__interval">{intervalLabel(p.billing_interval)}</span>}
+									</div>
+									<ul className="pg-card__features">
+										{p.feature_highlights.map((f) => (
+											<li key={f}><Check size={15} aria-hidden="true" />{f}</li>
+										))}
+									</ul>
+									<Button
+										className="pg-card__cta"
+										variant={highlight ? 'primary' : 'outline'}
+										disabled={busy !== null || isCurrent}
+										onClick={() => void choose(p.tier as UserType, p.slug)}
+									>
+										{busy === (p.slug ?? p.tier) ? <Loader2 className="animate-spin" size={15} />
+											: isCurrent ? 'Current plan'
+												: p.tier === 'explore' ? 'Continue on Explore'
+													: `Choose ${p.name}`}
+									</Button>
 								</div>
-								<ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'grid', gap: 9, flex: 1 }}>
-									{p.features.map((f) => (
-										<li key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: MUTED, lineHeight: 1.4 }}>
-											<Check size={15} color={NAVY} style={{ flexShrink: 0, marginTop: 1 }} /> {f}
-										</li>
-									))}
-								</ul>
-								<button
-									onClick={() => void choose(p.key)}
-									disabled={busy !== null || isCurrent}
-									style={{
-										height: 42, borderRadius: 8, border: p.highlight ? 'none' : `1px solid ${BORDER}`,
-										background: isCurrent ? PAGE : p.highlight ? NAVY : SURFACE,
-										color: isCurrent ? MUTED : p.highlight ? '#fff' : INK,
-										fontSize: 14, fontWeight: 600, cursor: isCurrent ? 'default' : 'pointer',
-										display: 'grid', placeItems: 'center',
-									}}>
-									{busy === p.key ? <Loader2 className="animate-spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'explore' ? 'Continue on Explore' : `Choose ${p.name}`}
-								</button>
-							</div>
-						);
-					})}
-				</div>
-
-				{err && (
-					<p role="alert" style={{ textAlign: 'center', marginTop: 18, fontSize: 13, color: 'var(--a-danger, #c33)' }}>{err}</p>
+							);
+						})}
+					</div>
 				)}
 
-				<div style={{ textAlign: 'center', marginTop: 28 }}>
-					<button onClick={() => void choose(null)} disabled={busy !== null}
-						style={{ background: 'none', border: 0, color: MUTED, fontSize: 13, textDecoration: 'underline', cursor: 'pointer' }}>
+				{err && <p role="alert" className="pg__err">{err}</p>}
+
+				<div className="pg__later">
+					<button type="button" onClick={() => void choose(null)} disabled={busy !== null}>
 						{busy === 'dismiss' ? 'Saving…' : 'Maybe later — keep my current plan'}
 					</button>
 				</div>
