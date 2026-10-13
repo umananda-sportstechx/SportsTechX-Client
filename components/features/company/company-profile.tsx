@@ -109,6 +109,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 						entityId={c.id}
 						target={{ role: 'founder', id: c.id, name: c.name, website: c.website ?? undefined }}
 						label="Is this your company?"
+						hideWhenVerifiedElsewhere
 					/>
 					{/* Renders only once their claim on this company is verified. */}
 					<SuggestCorrection companyId={c.id} companyName={c.name} />
