@@ -46,6 +46,9 @@ export function useDealFlow(tab: DealTab) {
 
 export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	const { data, isLoading, error } = useDealFlow(tab);
+	// Valuation filter — purely client-side over the already-fetched page (≤50).
+	const [maxVal, setMaxVal] = useState('');
+	const [valCcy, setValCcy] = useState('EUR');
 
 	// Every Deal Flow route 403s without a `scout_profiles` row, and most Scout
 	// accounts do not have one — so this is the common path, not an edge case.
@@ -64,9 +67,17 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	}
 	if (error) return <Empty>We couldn&rsquo;t load deal flow just now. Please try again.</Empty>;
 
-	const featured = deals.find((d) => d.is_featured);
-	const verified = deals.filter((d) => d.source === 'verified_raise');
-	const circle = deals.filter((d) => d.source === 'circle');
+	// Only constrain deals that have a disclosed amount in the chosen currency;
+	// undisclosed, unpriced or other-currency deals always pass (not comparable).
+	const max = Number(maxVal);
+	const valActive = !!maxVal && Number.isFinite(max) && max > 0;
+	const passesVal = (d: DealRow) => {
+		if (!valActive || !d.valuation_amount || (d.currency_code ?? 'EUR') !== valCcy) return true;
+		return Number(d.valuation_amount) <= max;
+	};
+	const featured = deals.find((d) => d.is_featured && passesVal(d));
+	const verified = deals.filter((d) => d.source === 'verified_raise' && passesVal(d));
+	const circle = deals.filter((d) => d.source === 'circle' && passesVal(d));
 
 	const showFeatured = tab === 'all' || tab === 'featured';
 	const showVerified = tab === 'all' || tab === 'verified';
@@ -82,6 +93,15 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	return (
 		<div className="scout-df">
 			{showCircle && <MySubmissions />}
+
+			{!nothingLive && (
+				<div className="scout-df__filter">
+					<span className="scout-df__filter-label">Max valuation</span>
+					<div style={{ width: 96 }}><Select value={valCcy} onChange={(e) => setValCcy(e.target.value)} options={[['EUR', 'EUR'], ['USD', 'USD']]} /></div>
+					<div style={{ width: 170 }}><Input type="number" min="0" value={maxVal} onChange={(e) => setMaxVal(e.target.value)} placeholder={`e.g. ${valCcy === 'USD' ? '$' : '€'}10000000`} /></div>
+					{valActive && <button type="button" className="scout-df__filter-clear" onClick={() => setMaxVal('')}>Clear</button>}
+				</div>
+			)}
 
 			{nothingLive && (tab === 'all' || tab === 'featured') && (
 				<Empty>
