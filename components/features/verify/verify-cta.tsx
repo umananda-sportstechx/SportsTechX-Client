@@ -89,14 +89,20 @@ export function useVerifyState(entityId?: string): { state: VerifyState; isLoadi
  * `role` is optional: left out, it is inferred from the viewer's tier rather
  * than every call site repeating the same rule.
  */
-export function VerifyButton({ role = null, target = null, entityId, label }: {
+export function VerifyButton({ role = null, target = null, entityId, label, hideWhenVerifiedElsewhere = false }: {
 	role?: ClaimRole | null;
 	target?: ClaimTarget | null;
 	/** Scopes the pending/verified state to one entity, by id. */
 	entityId?: string;
 	label?: string;
+	/** On an entity-scoped CTA (e.g. "Is this your company?"), hide the prompt
+	 *  entirely when the viewer already holds a verified claim on something else
+	 *  — they're clearly a known user, so don't nudge them to claim this one. */
+	hideWhenVerifiedElsewhere?: boolean;
 }) {
 	const { state, claim } = useVerifyState(entityId);
+	// Global claim status (same SWR row, deduped) — "verified on anything".
+	const anyVerified = useVerifyState().state === 'verified';
 	const { data: profile } = useUserProfile();
 	// An explicit role always wins — a company profile page knows it is a
 	// founder claim regardless of who is looking at it. Only when nobody has
@@ -126,6 +132,10 @@ export function VerifyButton({ role = null, target = null, entityId, label }: {
 			</Button>
 		);
 	}
+
+	// Already a known, verified user elsewhere — don't prompt them to claim this
+	// specific entity (they can still do it from the Get-verified entry).
+	if (hideWhenVerifiedElsewhere && state === 'none' && anyVerified) return null;
 
 	return (
 		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, undefined, allowed)}>
