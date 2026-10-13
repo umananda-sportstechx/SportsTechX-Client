@@ -25,7 +25,7 @@ const base: DealRow = {
 	company_hq: 'Berlin, Germany', company_description: 'Does things.', sector: 'Activity & Performance',
 	round_type: 'Seed', instrument: 'priced_equity', currency_code: 'EUR',
 	target_amount: '8000000', committed_amount: '5100000', ticket_min: null, ticket_max: null,
-	valuation: '€38m pre-money', target_close_date: '2026-12-01',
+	valuation: '€38m pre-money', valuation_amount: '38000000', valuation_basis: 'pre_money', valuation_undisclosed: false, target_close_date: '2026-12-01',
 	lead_status: 'confirmed', lead_investor: 'Big Fund',
 	submitter_name: 'Some Fund', submitter_anonymous: false, member_perspective: 'Strong team.',
 	member_relationship: 'existing_investor', member_commitment: '250000',
