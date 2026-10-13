@@ -27,6 +27,10 @@ export interface ClaimTarget {
    *  the modal opens in edit mode and submits a data-change-request (which
    *  leaves the live record untouched) instead of creating a new claim. */
   verified?: boolean;
+  /** The viewer's own claim id for this entity. When set, the modal loads that
+   *  claim's submitted data (GET /api/claims/:id/form) back into the form so an
+   *  edit starts from the real values, not a blank form. */
+  claimId?: string;
 }
 
 export interface OpenClaimDetail {

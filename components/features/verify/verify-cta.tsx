@@ -50,6 +50,7 @@ function claimToTarget(c: ClaimRow, verified: boolean): ClaimTarget {
 		name: c.target_name_snapshot ?? '',
 		website: c.target_website_snapshot,
 		verified,
+		claimId: c.id,
 	};
 }
 
