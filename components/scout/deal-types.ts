@@ -44,6 +44,10 @@ export interface DealRow {
 	ticket_min: string | null;
 	ticket_max: string | null;
 	valuation: string | null;
+	/** Structured valuation (in `currency_code`) for comparing/filtering. */
+	valuation_amount: string | null;
+	valuation_basis: string | null;
+	valuation_undisclosed: boolean | null;
 	target_close_date: string | null;
 	lead_status: string | null;
 	/** Withheld with the company name — a lead investor identifies the round. */
