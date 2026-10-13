@@ -176,7 +176,7 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY }: {
 				</>}
 				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-					<Button onClick={() => router.push(`${DECK}/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
+					<Button data-tour="deck-open" onClick={() => router.push(`${DECK}/${latest.id}`)}>View full analysis <ArrowUpRight /></Button>
 					<Button variant="outline" onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={13} /> : 'Analyse revised deck'}</Button>
 				</div>
 			</Card>

@@ -104,7 +104,7 @@ export function Recommended() {
 					<Empty>You&apos;ve dismissed every match. Undo above, or widen your thesis.</Empty>
 				) : (
 					<div className="scout-cards">
-						{rows.map((c) => (
+						{rows.map((c, i) => (
 							<article key={c.id} className="atlas-card scout-co-card">
 								<div className="scout-co-card__top">
 									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={44} radius={8} />
@@ -121,7 +121,7 @@ export function Recommended() {
 										{c.latest_round ? ` · ${c.latest_round}` : ''}
 									</span>
 								</div>
-								<div className="scout-why">
+								<div className="scout-why" data-tour={i === 0 ? 'scout-why-match' : undefined}>
 									<div className="atlas-eyebrow">Why it matches</div>
 									<div className="scout-checks">
 										{CHIPS.map(([label, key]) => (
@@ -137,7 +137,7 @@ export function Recommended() {
 										<span className="atlas-action__icon"><X /></span>Not relevant
 									</button>
 									{c.website && <Action icon={<Globe />} href={c.website} external>Website</Action>}
-									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)}>
+									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)} data-tour={i === 0 ? 'scout-open-company' : undefined}>
 										<span className="atlas-action__icon"><ArrowUpRight /></span>View company
 									</Link>
 								</div>

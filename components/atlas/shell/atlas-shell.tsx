@@ -45,15 +45,18 @@ export interface AtlasShellProps {
 	overlay?: ReactNode;
 	/** Extra sidebar content above the bottom nav (e.g. Explore's upgrade cards). Hidden when the rail is collapsed. */
 	railExtra?: ReactNode;
+	/** Force the rail collapsed (e.g. during Walk the Pitch, for room beside the coach panel) without touching the user's own saved preference. */
+	forceCollapsed?: boolean;
 	children: ReactNode;
 }
 
-export function AtlasShell({ product, productColor, homePath, nav, bottomNav, topbar, overlay, railExtra, children }: AtlasShellProps) {
+export function AtlasShell({ product, productColor, homePath, nav, bottomNav, topbar, overlay, railExtra, forceCollapsed, children }: AtlasShellProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const railKey = `stx:${product.toLowerCase()}-rail-collapsed`;
 	const sectionsKey = `stx:${product.toLowerCase()}-nav-closed`;
-	const collapsed = useSyncExternalStore(subscribe, () => readStored(railKey) === '1', () => false);
+	const storedCollapsed = useSyncExternalStore(subscribe, () => readStored(railKey) === '1', () => false);
+	const collapsed = forceCollapsed || storedCollapsed;
 	// Closed sections, stored as a JSON array of titles (default: all open).
 	const closedRaw = useSyncExternalStore(subscribe, () => readStored(sectionsKey) ?? '[]', () => '[]');
 	const closed = parseList(closedRaw);
@@ -110,7 +113,9 @@ export function AtlasShell({ product, productColor, homePath, nav, bottomNav, to
 			<aside className={`atlas-rail ${open ? 'open' : ''}`}>
 				<div className="atlas-rail-head">
 					<Link href={homePath} className="atlas-brand" aria-label={homeLabel}><AtlasLogo height={31} product={product} productColor={productColor} /></Link>
-					<button className="atlas-rail-toggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => writeStored(railKey, collapsed ? '0' : '1')}><MenuIcon /></button>
+					{!forceCollapsed && (
+						<button className="atlas-rail-toggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => writeStored(railKey, collapsed ? '0' : '1')}><MenuIcon /></button>
+					)}
 					<button className="atlas-rail-close" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} strokeWidth={1.5} /></button>
 				</div>
 				<nav className="atlas-nav">{nav.map(renderEntry)}</nav>

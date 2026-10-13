@@ -82,7 +82,7 @@ export function useUserProfile() {
 
 /**
  * The tier the UI should treat the viewer as. Same as getRealUserType, except
- * inside a "Try Sandbox" session, where an Explore user is shown the Raise or
+ * inside Walk the Pitch practice, where an Explore user is shown the Raise or
  * Scout product (display only — the server still sees Explore; see lib/sandbox).
  */
 export function getUserType(profile: Profile | null | undefined): UserType {

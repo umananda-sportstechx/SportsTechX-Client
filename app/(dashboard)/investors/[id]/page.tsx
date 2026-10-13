@@ -141,7 +141,7 @@ function AddButton({ investorId, onAdded }: { investorId: string; onAdded: () =>
 		catch (e) { toast.error((e as Error).message); }
 		finally { setBusy(false); }
 	};
-	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="animate-spin" size={14} /> : 'Add to watchlist'}</Button>;
+	return <Button data-tour="raise-add-to-pipeline" disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="animate-spin" size={14} /> : 'Add to watchlist'}</Button>;
 }
 
 function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => void }) {

@@ -4,9 +4,12 @@ import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
-import { SandboxBanner } from '@/components/features/sandbox/sandbox-banner';
+import { PracticeBar } from '@/components/features/walkthrough/practice-bar';
+import { usePracticeAccess } from '@/components/features/walkthrough/use-practice-access';
 import { RouteGate } from '@/components/auth/route-gate';
 import { Navbar } from './navbar';
+// Walk the Pitch coach: only Explore users in practice ever load it.
+const WalkthroughCoach = dynamic(() => import('@/components/features/walkthrough/walkthrough-coach').then((m) => m.WalkthroughCoach), { ssr: false });
 // Raise-only, so a static import here shipped the co-pilot to Explore and
 // Scout users who can never open it.
 const RaiseChat = dynamic(() => import('@/components/raise/chat/raise-chat').then((m) => m.RaiseChat), { ssr: false });
@@ -56,6 +59,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
 	useEffect(() => { trackPage(pathname); }, [pathname]);
 	const { ready, tier, nav, bottomNav, homePath } = useNav();
+	// Walk the Pitch: the guided tour's coach, only in its `tour` phase.
+	const { inPractice, practice } = usePracticeAccess();
+	const coach = inPractice && practice.phase === 'tour' ? <WalkthroughCoach /> : null;
+	const chat = !pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : null;
 
 	return (
 		<>
@@ -68,18 +75,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				// Breadcrumbs, search, Get Verified and the account menu. Account and
 				// the theme toggle used to sit at the foot of the rail; they live in
 				// the navbar's menu now, so there is one home for account actions.
-				topbar={<><SandboxBanner /><Navbar /></>}
+				topbar={<><PracticeBar /><Navbar /></>}
 				// Explore's sidebar carries the Raise / Scout upgrade cards. Held back
 				// until the tier is actually known — `getUserType(undefined)` is
 				// 'explore', so without this a paying user is shown an upgrade pitch
 				// for a beat on every cold load.
 				railExtra={ready && tier === 'explore' ? <UpgradeCards /> : undefined}
+				// Give the coach panel / practice bar room: collapse the rail for the
+				// whole practice session (tour and view-only), without touching the
+				// user's own saved rail preference for when they're not in practice.
+				forceCollapsed={inPractice}
 				// The co-pilot FAB, on every tier. It used to be hidden from Explore
 				// because the API refused them; now credits are the only limit, so a
 				// free user gets the assistant too and is told when they run out. The
 				// full chat page is itself the co-pilot, so don't stack a drawer on
 				// top of it there.
-				overlay={!pathname.startsWith(hrefOf('chat')) ? <RaiseChat /> : undefined}
+				overlay={chat || coach ? <>{chat}{coach}</> : undefined}
 			>
 				<RouteGate>{children}</RouteGate>
 			</AtlasShell>

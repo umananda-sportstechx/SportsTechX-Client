@@ -4,19 +4,17 @@
  * benchmarks and the Deal Flow opt-in — answered from a workspace kept in the
  * browser (see store.ts).
  *
- * The sandbox starts exactly like a brand-new Raise customer: NO raise row, so
- * every route answers as the server does for that state (NO_RAISE 404s,
- * `{ raise: null }`, the setup-only Home). The real setup wizard
- * (components/raise/raise-setup.tsx) then creates the raise via PATCH /api/raise
- * and fills it step by step, like production.
+ * "Walk the Pitch" plays a READY-MADE founder: the sample company Fanloop, a
+ * Berlin fan-engagement startup raising a €1.5m seed with €300k committed. The
+ * first request builds that workspace (raise set up, criteria filled, watchlist,
+ * market and matches in place), so the tour (tours/raise-tour.ts) opens on a
+ * live-looking raise instead of the setup wizard.
  *
- * As soon as the raise row exists (server semantics: pipeline, market and
- * matches resolve from then on) a sample watchlist of REAL investors (public
- * /api/investors, filtered to the founder's sector) is seeded. When setup is
- * completed, an untouched sample watchlist is re-seeded so its amounts follow
- * the target/committed amounts the founder entered. Market competitors are real
- * companies from the founder's sector. "Fanloop" values are only fallbacks for
- * fields the founder left empty.
+ * The watchlist and matches use REAL investors (public /api/investors, filtered
+ * to the sample company's sector) and the market's competitors are real
+ * companies from that sector; fixed sample names are only fallbacks when the
+ * public data can't be reached. Writes (add to watchlist, stage moves, settings
+ * edits) are kept in this browser.
  *
  * Response shapes mirror server/src/modules/raise/* and recommendations/*
  * (money as strings, YYYY-MM-DD for date columns, ISO for timestamps).
@@ -54,38 +52,37 @@ interface PipeRow {
 }
 interface Workspace {
 	v: number;
-	raise: RaiseRow | null;
-	criteria: CriteriaRow | null;
+	raise: RaiseRow;
+	criteria: CriteriaRow;
 	pipeline: PipeRow[];
 	activity: Record<string, PipelineActivity[]>;
-	/** False until the founder adds/edits a watchlist row; an untouched sample is re-seeded at setup completion. */
-	pipelineEdited: boolean;
-	marketUpdatedAt: string | null;
+	marketUpdatedAt: string;
 }
 
 const STATE_KEY = 'raiseWorkspace';
-/** Bump to discard workspaces saved by older builds of this file. */
-const VERSION = 2;
+/** Bump to discard workspaces saved by older builds of this file. v3: ready-made Fanloop raise. */
+const VERSION = 3;
 const RAISE_ID = 'sbx-raise';
 const PIPELINE_SEED_COUNT = 8;
 const MATCH_CAP = 10;
 const COMPETITOR_COUNT = 9;
 const INVESTOR_FETCH = PIPELINE_SEED_COUNT + MATCH_CAP;
 
-/** Fallbacks for anything the founder leaves empty (the core's sample deck is "Fanloop"). */
-const FALLBACK = {
-	company: 'Fanloop', sector: ['Fans', 'Fan Engagement'], target: 1_500_000,
+/** The sample company (the core's sample deck is Fanloop's too). */
+const SAMPLE = {
+	company: 'Fanloop', city: 'Berlin', country: 'Germany',
+	target: 1_500_000, committed: 300_000,
+	/** Taxonomy names to look for, leaf first; the whole list is the fallback path. */
+	sector: ['Fans', 'Fan Engagement'],
+	/** Used when /api/sectors has no fan-engagement sector (or can't be reached). */
+	sectorIdFallback: 'sbx-sector-fan-engagement',
 } as const;
-
-const EMPTY: Workspace = { v: VERSION, raise: null, criteria: null, pipeline: [], activity: {}, pipelineEdited: false, marketUpdatedAt: null };
 
 const dateOnly = (n: number) => daysFromNow(n).slice(0, 10);
 const money = (v: unknown): string | null => (v == null || v === '' || Number.isNaN(Number(v)) ? null : String(Number(v)));
 const roundTo = (n: number, step: number) => Math.max(step, Math.round(n / step) * step);
 const notFound = (message: string) => json({ error: { code: 'NOT_FOUND', message } }, 404);
 const badRequest = (message: string) => json({ error: { code: 'VALIDATION_ERROR', message } }, 400);
-/** Server: raise.controller.ts:72/82, raise-pipeline.controller.ts:30, raise-market.controller.ts:26. */
-const noRaise = () => json({ error: { code: 'NO_RAISE', message: 'Set up your raise first.' } }, 404);
 
 // ─── Public reference data (real backend), cached per page load ─────────────
 
@@ -108,16 +105,22 @@ function once<T>(key: string, load: () => Promise<T>): Promise<T> {
 	return cache.get(key) as Promise<T>;
 }
 
-/** Investors with the most deals — in the founder's sector first, topped up from the whole directory. */
+/** Investors with the most deals — in the sample company's sector first, topped up from the whole directory. */
 const loadInvestors = (sectorId: string | null) => once(`inv:${sectorId ?? ''}`, async (): Promise<InvestorRef[]> => {
 	const base = `/api/investors?limit=${INVESTOR_FETCH}&page=1&sort=-deals`;
 	const inSector = sectorId ? (await getJson<{ data?: InvestorRef[] }>(`${base}&sector_id=${sectorId}`))?.data ?? [] : [];
 	const all = inSector.length >= INVESTOR_FETCH ? [] : (await getJson<{ data?: InvestorRef[] }>(base))?.data ?? [];
 	const seen = new Set<string>();
-	return [...inSector, ...all].filter((i) => !seen.has(i.id) && seen.add(i.id)).slice(0, INVESTOR_FETCH).map(slimInvestor);
+	const combined = [...inSector, ...all].filter((i) => !seen.has(i.id) && seen.add(i.id)).slice(0, INVESTOR_FETCH).map(slimInvestor);
+	return combined.length ? combined : FALLBACK_INVESTORS;
 });
 
-const loadSectors = () => once('sectors', async () => (await getJson<SectorRef[]>('/api/sectors')) ?? []);
+// Accept a bare list or a `{data}` envelope; anything else means "no taxonomy" (fallback sector) rather than a crash.
+const loadSectors = () => once('sectors', async () => {
+	const body = await getJson<SectorRef[] | { data?: SectorRef[] }>('/api/sectors');
+	const list = Array.isArray(body) ? body : body?.data;
+	return Array.isArray(list) ? list.filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string') : [];
+});
 
 const loadCompetitors = (sectorId: string) => once(`co:${sectorId}`, async () => {
 	const page = await getJson<{ data?: CompanyRef[]; total?: number }>(`/api/companies?sector_id=${sectorId}&sort=-total_funding&limit=${COMPETITOR_COUNT}&page=1`);
@@ -128,14 +131,15 @@ const loadCompetitors = (sectorId: string) => once(`co:${sectorId}`, async () =>
 	return { list: list.length ? list : FALLBACK_COMPETITORS, tracked: page?.total ?? 214 };
 });
 
-/** Root → … → leaf names for a sector: the founder's own `company_category` first, else the taxonomy. */
-async function sectorPath(raise: RaiseRow): Promise<string[]> {
-	if (Array.isArray(raise.company_category) && raise.company_category.length) return raise.company_category;
+/** The real fan-engagement sector (id + root → leaf names), or the fallback when the taxonomy has none. */
+async function sampleSector(): Promise<{ id: string; path: string[] }> {
 	const list = await loadSectors();
 	const byId = new Map(list.map((s) => [s.id, s]));
+	const leaf = list.find((s) => /fan\s*engagement/i.test(s.name)) ?? list.find((s) => /\bfans?\b/i.test(s.name));
+	if (!leaf) return { id: SAMPLE.sectorIdFallback, path: [...SAMPLE.sector] };
 	const path: string[] = [];
-	for (let s = byId.get(raise.company_sector_id ?? ''); s; s = s.parent_id ? byId.get(s.parent_id) : undefined) path.unshift(s.name);
-	return path.length ? path : [...FALLBACK.sector];
+	for (let s: SectorRef | undefined = leaf; s; s = s.parent_id ? byId.get(s.parent_id) : undefined) path.unshift(s.name);
+	return { id: leaf.id, path };
 }
 
 const FALLBACK_COMPETITORS: CompanyRef[] = [
@@ -148,20 +152,55 @@ const FALLBACK_COMPETITORS: CompanyRef[] = [
 
 const FALLBACK_INVESTOR_NAMES = ['Northline Ventures', 'Fieldhouse Capital', 'Halftime Partners', 'Kinetic Sports Fund', 'Brightside Angels', 'Overlap VC', 'Stoppage Time Capital', 'Grandstand Ventures'];
 
-// ─── Workspace state ────────────────────────────────────────────────────────
+/** Same reasoning as FALLBACK_COMPETITORS: `/api/investors` is real-backend
+ *  reference data with no local route (lib/sandbox/interceptor.ts never
+ *  reaches it for an anonymous preview visitor — see app/preview/), so
+ *  without this, the "investors who fit" step has nothing to show. */
+const FALLBACK_INVESTORS: InvestorRef[] = [
+	['Northline Ventures', 'United Kingdom', 'Seed · Series A', 14],
+	['Fieldhouse Capital', 'Germany', 'Seed', 9],
+	['Halftime Partners', 'France', 'Seed · Series A', 11],
+	['Kinetic Sports Fund', 'Netherlands', 'Series A', 7],
+	['Brightside Angels', 'Spain', 'Pre-seed · Seed', 22],
+	['Overlap VC', 'Sweden', 'Seed', 6],
+	['Stoppage Time Capital', 'Italy', 'Seed · Series A', 8],
+	['Grandstand Ventures', 'Belgium', 'Seed', 5],
+].map(([name, hq_country, category, deals_count], i) => ({
+	id: `sbx-investor-${i + 1}`, name: String(name), slug: null, website: null, logo_url: null,
+	hq_country: String(hq_country), category: String(category),
+	description: `Backs early-stage sports tech, with a focus on fan engagement and recurring-revenue platforms.`,
+	deals_count: Number(deals_count),
+}));
 
-function workspace(ctx: SandboxCtx): Workspace {
-	const cur = ctx.state[STATE_KEY] as Workspace | undefined;
-	return cur?.v === VERSION ? cur : EMPTY;
-}
+// ─── The ready-made Fanloop raise ───────────────────────────────────────────
 
-function commit(ctx: SandboxCtx, ws: Workspace): Workspace {
-	ctx.state[STATE_KEY] = ws;
-	ctx.save();
-	return ws;
-}
+/** A fully set-up raise_profiles row for the sample company. */
+const sampleRaise = (sector: { id: string; path: string[] }): RaiseRow => ({
+	id: RAISE_ID, profile_id: 'sandbox',
+	company_id: null, company_name: SAMPLE.company, company_website: null,
+	hq_country: SAMPLE.country, hq_city: SAMPLE.city,
+	company_description: 'Fanloop turns match-day moments into a loyalty loop: clubs reward fans for showing up, watching and sharing, and learn who their most valuable supporters are.',
+	company_category: sector.path, company_sector_id: sector.id,
+	company_stage: 'seed', revenue_status: 'generating', fundraising_process: 'approaching', round_type: 'seed',
+	target_amount: String(SAMPLE.target), committed_amount: String(SAMPLE.committed), currency_code: 'EUR',
+	target_close_date: dateOnly(75), valuation: null, structure: 'equity', lead_investor_status: 'in_discussion',
+	prior_capital_raised: '400000', last_round_date: dateOnly(-420), annual_revenue: '480000', revenue_growth_pct: '200',
+	paying_customers: 14, monthly_burn: '65000', runway_months: 9,
+	strongest_traction: '14 clubs live across Germany and Austria; ARR up 3x in the last 12 months.',
+	pitch_deck_status: 'have', financial_model_status: 'ready', data_room_status: 'in_progress', has_target_list: true,
+	status: 'active', stage: null, setup_completed_at: daysFromNow(-21), dealflow_opt_in: false, dealflow_status: null,
+	created_at: daysFromNow(-60), updated_at: daysFromNow(-2),
+});
 
-// ─── Sample watchlist, adapted to the founder's raise ───────────────────────
+const sampleCriteria = (): CriteriaRow => ({
+	raise_id: RAISE_ID,
+	investor_types: ['VC', 'Angel', 'Strategic'], geographies: ['Europe', 'UK'],
+	cheque_min: '100000', cheque_max: '750000', lead_preference: 'both', strategic_ok: true,
+	excluded_investor_ids: [], desired_expertise: ['Commercial partnerships', 'Sports rights'],
+	biggest_concern: 'Finding a lead who understands sports media.',
+});
+
+// ─── Sample watchlist ───────────────────────────────────────────────────────
 
 interface SeedTemplate {
 	stage: PipelineStage; contact: string | null; amountShare: number | 'committed' | null; lastContact: number | null;
@@ -178,12 +217,10 @@ const SEED: SeedTemplate[] = [
 	{ stage: 'target', contact: null, amountShare: null, lastContact: null, nextStep: null, due: null, notes: 'Strong sector fit; check where they are in their fund cycle.', addedDay: -8, lastMoveDay: -8 },
 ];
 
-function seedAmount(t: SeedTemplate, raise: RaiseRow): string | null {
+function seedAmount(t: SeedTemplate): string | null {
 	if (t.amountShare == null) return null;
-	const target = Number(raise.target_amount) || FALLBACK.target;
-	const committed = Number(raise.committed_amount);
-	if (t.amountShare === 'committed') return String(committed > 0 ? committed : roundTo(target * 0.2, 25_000));
-	return String(roundTo(target * t.amountShare, 25_000));
+	if (t.amountShare === 'committed') return String(SAMPLE.committed);
+	return String(roundTo(SAMPLE.target * t.amountShare, 25_000));
 }
 
 /** created → each stage in order up to the current one (+ a commitment), newest first. */
@@ -198,13 +235,12 @@ function seedActivity(t: SeedTemplate, amount: string | null): PipelineActivity[
 	return out.reverse();
 }
 
-async function seedPipeline(ws: Workspace, raise: RaiseRow): Promise<Workspace> {
-	const investors = await loadInvestors(raise.company_sector_id);
+function seedPipeline(investors: InvestorRef[]): Pick<Workspace, 'pipeline' | 'activity'> {
 	const activity: Record<string, PipelineActivity[]> = {};
 	const pipeline = SEED.map((t, i): PipeRow => {
 		const inv = investors[i];
 		const id = `sbx-pipe-${i + 1}`;
-		const amount = seedAmount(t, raise);
+		const amount = seedAmount(t);
 		activity[id] = seedActivity(t, amount);
 		return {
 			id, raise_id: RAISE_ID,
@@ -217,24 +253,39 @@ async function seedPipeline(ws: Workspace, raise: RaiseRow): Promise<Workspace> 
 			is_archived: false, added_at: daysFromNow(t.addedDay), updated_at: daysFromNow(t.lastMoveDay),
 		};
 	});
-	return { ...ws, pipeline, activity, pipelineEdited: false };
+	return { pipeline, activity };
 }
 
-// ─── Raise profile + criteria writes (mirror raise.repository.ts upsert) ────
+// ─── Workspace state ────────────────────────────────────────────────────────
 
-/** A fresh raise_profiles row: every column null except the DB defaults. */
-const newRaiseRow = (): RaiseRow => ({
-	id: RAISE_ID, profile_id: 'sandbox',
-	company_id: null, company_name: null, company_website: null, hq_country: null, hq_city: null,
-	company_description: null, company_category: null, company_sector_id: null, company_stage: null, revenue_status: null,
-	fundraising_process: null, round_type: null, target_amount: null, committed_amount: '0', currency_code: 'EUR',
-	target_close_date: null, valuation: null, structure: null, lead_investor_status: null,
-	prior_capital_raised: null, last_round_date: null, annual_revenue: null, revenue_growth_pct: null,
-	paying_customers: null, monthly_burn: null, runway_months: null, strongest_traction: null,
-	pitch_deck_status: null, financial_model_status: null, data_room_status: null, has_target_list: null,
-	status: 'active', stage: null, setup_completed_at: null, dealflow_opt_in: false, dealflow_status: null,
-	created_at: daysFromNow(0), updated_at: daysFromNow(0),
-});
+let sample: Promise<Workspace> | null = null;
+/** Built once per page load: concurrent first requests (Home fires several) share it. */
+function buildSample(): Promise<Workspace> {
+	sample ??= (async () => {
+		const sector = await sampleSector();
+		const investors = await loadInvestors(sector.id);
+		return {
+			v: VERSION, raise: sampleRaise(sector), criteria: sampleCriteria(),
+			...seedPipeline(investors), marketUpdatedAt: daysFromNow(-1),
+		};
+	})();
+	return sample;
+}
+
+/** The saved workspace, or the ready-made Fanloop one on first use (or after a VERSION bump). */
+async function workspace(ctx: SandboxCtx): Promise<Workspace> {
+	const cur = ctx.state[STATE_KEY] as Workspace | undefined;
+	if (cur?.v === VERSION) return cur;
+	return commit(ctx, await buildSample());
+}
+
+function commit(ctx: SandboxCtx, ws: Workspace): Workspace {
+	ctx.state[STATE_KEY] = ws;
+	ctx.save();
+	return ws;
+}
+
+// ─── Raise profile + criteria writes (Settings; mirror raise.repository.ts) ─
 
 const RAISE_MONEY: (keyof RaiseUpsert)[] = ['target_amount', 'committed_amount', 'prior_capital_raised', 'annual_revenue', 'revenue_growth_pct', 'monthly_burn'];
 const RAISE_INT: (keyof RaiseUpsert)[] = ['paying_customers', 'runway_months'];
@@ -252,36 +303,21 @@ function coerce(k: keyof RaiseUpsert, v: unknown): unknown {
 	return v ?? null;
 }
 
-/**
- * POST/PATCH /api/raise: create on first save, else patch only the provided
- * keys; `setup_completed: true` stamps `setup_completed_at` once, never clears it.
- * The sample watchlist is seeded when the raise is created, and re-seeded at
- * setup completion if the founder has not touched it (so amounts follow theirs).
- */
+/** POST/PATCH /api/raise: patch only the provided keys (the sample raise is already set up). */
 async function upsertRaise(ctx: SandboxCtx) {
-	const ws = workspace(ctx);
+	const ws = await workspace(ctx);
 	const body = (ctx.body ?? {}) as RaiseUpsert;
-	const isNew = !ws.raise;
-	const base = ws.raise ?? newRaiseRow();
 	const patch = Object.fromEntries(RAISE_KEYS.filter((k) => k in body).map((k) => [k, coerce(k, body[k])]));
-	const completing = body.setup_completed === true && !base.setup_completed_at;
-	const raise: RaiseRow = {
-		...base, ...patch,
-		setup_completed_at: completing ? daysFromNow(0) : base.setup_completed_at,
-		updated_at: daysFromNow(0),
-	};
-	const next = { ...ws, raise };
-	const reseed = isNew || (completing && !ws.pipelineEdited);
-	return commit(ctx, reseed ? await seedPipeline(next, raise) : next).raise;
+	const raise: RaiseRow = { ...ws.raise, ...patch, updated_at: daysFromNow(0) };
+	return commit(ctx, { ...ws, raise }).raise;
 }
 
 const CRITERIA_MONEY: (keyof RaiseCriteria)[] = ['cheque_min', 'cheque_max'];
 const CRITERIA_KEYS: (keyof RaiseCriteria)[] = ['investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference', 'strategic_ok', 'excluded_investor_ids', 'desired_expertise', 'biggest_concern'];
 
 /** PUT semantics, like raise.repository.ts putCriteria: every column is written (absent → null). */
-function putCriteria(ctx: SandboxCtx) {
-	const ws = workspace(ctx);
-	if (!ws.raise) return noRaise();
+async function putCriteria(ctx: SandboxCtx) {
+	const ws = await workspace(ctx);
 	const body = (ctx.body ?? {}) as RaiseCriteria;
 	const next = Object.fromEntries(CRITERIA_KEYS.map((k) => [k, CRITERIA_MONEY.includes(k) ? money(body[k]) : body[k] ?? null]));
 	const criteria = { ...next, raise_id: RAISE_ID } as CriteriaRow;
@@ -309,7 +345,6 @@ function pipelineStats(rows: PipeRow[]) {
 
 function deriveStage(raise: RaiseRow, s: ReturnType<typeof pipelineStats>): string {
 	if (raise.status === 'funded' || raise.status === 'paused' || raise.status === 'closed') return raise.status;
-	if (!raise.setup_completed_at) return 'setting_up';
 	if (s.term_or_committed > 0) return 'closing';
 	if (s.due_diligence_plus > 0) return 'due_diligence';
 	if (s.in_conversation_plus > 0) return 'in_conversations';
@@ -326,47 +361,43 @@ function momentum(ws: Workspace): string {
 /** The core's sample deck (core-routes.ts) is always listed and analysed (score 71). */
 const DECK = { score: 71, status: 'done' } as const;
 
-const strategySteps = (setupDone: boolean, deckAnalysed: boolean, total: number) => [
-	{ label: 'Raise profile completed', done: setupDone },
-	{ label: 'Pitch deck analysed', done: deckAnalysed },
+const strategySteps = (total: number) => [
+	{ label: 'Raise profile completed', done: true },
+	{ label: 'Pitch deck analysed', done: true },
 	{ label: 'Five investors added', done: total >= 5 },
 ];
 
-/** raise-home.service.ts:30-38 — the no-raise read-model, verbatim. */
-const NO_RAISE_HOME = {
-	needs_setup: true, raise: null,
-	snapshot: { deck: null, pipeline_count: 0, active_conversations: 0 },
-	attention: [{ id: 'setup', title: 'Set up your raise', why: 'Atlas builds your plan, finds investors and tells you what to do next.', cta_label: 'Set up my raise', cta_href: '/home' }],
-	strategy: { status: 'locked', scheduled_at: null, next_eligible_at: null, steps: strategySteps(false, false, 0) },
-};
+type AttentionCard = { id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number };
+
+/** Attention cards in the server's priority order; Home shows the first three (overdue leads for the sample). */
+function attentionFor(raise: RaiseRow, s: ReturnType<typeof pipelineStats>): AttentionCard[] {
+	const out: AttentionCard[] = [];
+	if (s.overdue > 0) out.push({ id: 'overdue', title: `Follow up with ${s.overdue} overdue investor${s.overdue > 1 ? 's' : ''}`, why: 'These conversations have a next step that is past due.', cta_label: 'Review overdue', cta_href: '/pipeline?filter=overdue', count: s.overdue });
+	if (s.total < 5) out.push({ id: 'add-first', title: 'Add your first investors to the pipeline', why: 'Build a target list of at least five relevant investors to get moving.', cta_label: 'Find investors', cta_href: '/investors' });
+	if (s.no_next_step > 0) out.push({ id: 'next-steps', title: 'Add next steps to your active investors', why: 'Some active conversations have no next action — they will stall.', cta_label: 'Review investors', cta_href: '/pipeline?filter=no_next_step', count: s.no_next_step });
+	if (s.committed_no_amount > 0) out.push({ id: 'amounts', title: 'Record committed investment amounts', why: 'A committed investor has no amount entered yet.', cta_label: 'Add amounts', cta_href: '/pipeline?filter=committed', count: s.committed_no_amount });
+	if (raise.status === 'active' && !raise.dealflow_opt_in && raise.dealflow_status == null) {
+		out.push({ id: 'dealflow', title: 'Share your round with the Investor Circle', why: 'Opt in and STX verifies your round, then shows it to vetted investors in Atlas Scout. Off by default, withdrawable any time.', cta_label: 'See how it works', cta_href: '/settings' });
+	}
+	if (s.total >= 5) out.push({ id: 'strategy', title: 'Book your strategy session', why: 'You have unlocked a session with STX leadership to pressure-test the raise.', cta_label: 'Book call', cta_href: '/strategy' });
+	return out;
+}
 
 function buildHome(ws: Workspace) {
 	const { raise } = ws;
-	if (!raise) return NO_RAISE_HOME;
 	const s = pipelineStats(ws.pipeline);
-	const setupDone = !!raise.setup_completed_at;
-	const attention: Array<{ id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number }> = [];
-	if (!setupDone) attention.push({ id: 'setup', title: 'Complete your raise setup', why: 'Finish setup so Atlas can build your plan.', cta_label: 'Complete setup', cta_href: '/home' });
-	if (s.overdue > 0) attention.push({ id: 'overdue', title: `Follow up with ${s.overdue} overdue investor${s.overdue > 1 ? 's' : ''}`, why: 'These conversations have a next step that is past due.', cta_label: 'Review overdue', cta_href: '/pipeline?filter=overdue', count: s.overdue });
-	if (s.total < 5) attention.push({ id: 'add-first', title: 'Add your first investors to the pipeline', why: 'Build a target list of at least five relevant investors to get moving.', cta_label: 'Find investors', cta_href: '/investors' });
-	if (s.no_next_step > 0) attention.push({ id: 'next-steps', title: 'Add next steps to your active investors', why: 'Some active conversations have no next action — they will stall.', cta_label: 'Review investors', cta_href: '/pipeline?filter=no_next_step', count: s.no_next_step });
-	if (s.committed_no_amount > 0) attention.push({ id: 'amounts', title: 'Record committed investment amounts', why: 'A committed investor has no amount entered yet.', cta_label: 'Add amounts', cta_href: '/pipeline?filter=committed', count: s.committed_no_amount });
-	if (setupDone && raise.status === 'active' && !raise.dealflow_opt_in && raise.dealflow_status == null) {
-		attention.push({ id: 'dealflow', title: 'Share your round with the Investor Circle', why: 'Opt in and STX verifies your round, then shows it to vetted investors in Atlas Scout. Off by default, withdrawable any time.', cta_label: 'See how it works', cta_href: '/settings' });
-	}
-	if (setupDone && s.total >= 5) attention.push({ id: 'strategy', title: 'Book your strategy session', why: 'You have unlocked a session with STX leadership to pressure-test the raise.', cta_label: 'Book call', cta_href: '/strategy' });
 	return {
-		needs_setup: !setupDone,
+		needs_setup: false,
 		raise: {
 			round_type: raise.round_type, target_amount: raise.target_amount, committed_amount: raise.committed_amount,
 			currency_code: raise.currency_code, target_close_date: raise.target_close_date, status: raise.status,
-			stage: deriveStage(raise, s), momentum: setupDone ? momentum(ws) : null,
+			stage: deriveStage(raise, s), momentum: momentum(ws),
 		},
 		snapshot: { deck: DECK, pipeline_count: s.total, active_conversations: s.active_conversations },
-		attention: attention.slice(0, 3),
+		attention: attentionFor(raise, s).slice(0, 3),
 		strategy: {
-			status: setupDone && s.total >= 5 ? 'available' : 'locked', scheduled_at: null, next_eligible_at: null,
-			steps: strategySteps(setupDone, true, s.total),
+			status: s.total >= 5 ? 'available' : 'locked', scheduled_at: null, next_eligible_at: null,
+			steps: strategySteps(s.total),
 		},
 	};
 }
@@ -393,9 +424,31 @@ async function investorRef(raise: RaiseRow, id: string): Promise<InvestorRef | n
 	return fetched?.id ? slimInvestor(fetched) : null;
 }
 
+/**
+ * `GET /api/investors/:id` has no local route — list + profile used to share
+ * the same public /api/investors passthrough, which a logged-in sandbox user
+ * could still reach for real. An anonymous preview visitor can't reach it at
+ * all (lib/sandbox/interceptor.ts), so without this the profile page (step 5,
+ * "Check the fit, then add") never loads. Fields types/api.ts's `Investor`
+ * doesn't carry sample values for (socials, employee count, exits…) are null —
+ * nothing on the page reads them as anything but optional.
+ */
+function expandInvestor(i: InvestorRef): Record<string, unknown> {
+	return {
+		id: i.id, name: i.name, website: i.website, slug: i.slug, description: i.description,
+		status: 'active', category: i.category, year_launched: null, location_id: null, social_profile_id: null,
+		is_verified: true, actively_investing: true, keywords: null, num_employees: null, logo_url: i.logo_url,
+		total_funding: null, latest_funding: null, latest_funding_amount: null, last_raised_at: null,
+		annual_revenue: null, num_exits: null, num_investments: i.deals_count, analyst_notes: null,
+		added_by_profile_id: null, created_at: daysFromNow(-900), updated_at: daysFromNow(-30),
+		deals_count: i.deals_count, hq_city: null, hq_country: i.hq_country,
+		hq_region: null, twitter_url: null, instagram_url: null, facebook_url: null, linkedin_url: null,
+		youtube_url: null, contact_email: null,
+	};
+}
+
 async function addToPipeline(ctx: SandboxCtx) {
-	const ws = workspace(ctx);
-	if (!ws.raise) return noRaise();
+	const ws = await workspace(ctx);
 	const body = (ctx.body ?? {}) as PipelineAdd;
 	if (!body.investor_id && !body.custom_name?.trim()) return badRequest('investor_id or custom_name required');
 	const dup = body.investor_id ? ws.pipeline.find((r) => r.investor_id === body.investor_id) : undefined;
@@ -413,15 +466,14 @@ async function addToPipeline(ctx: SandboxCtx) {
 		notes: body.notes ?? null, is_archived: false, added_at: now, updated_at: now,
 	};
 	const activity = { ...ws.activity, [row.id]: [{ type: 'created', payload: { stage }, occurred_at: now }] };
-	commit(ctx, { ...ws, pipeline: [row, ...ws.pipeline], activity, pipelineEdited: true });
+	commit(ctx, { ...ws, pipeline: [row, ...ws.pipeline], activity });
 	return row;
 }
 
 const UPDATABLE: (keyof PipelineUpdate)[] = ['stage', 'contact_name', 'potential_amount', 'last_contact_at', 'next_step', 'next_step_due', 'notes', 'is_archived'];
 
-function updatePipeline(ctx: SandboxCtx) {
-	const ws = workspace(ctx);
-	if (!ws.raise) return noRaise();
+async function updatePipeline(ctx: SandboxCtx) {
+	const ws = await workspace(ctx);
 	const before = ws.pipeline.find((r) => r.id === ctx.params.id);
 	if (!before) return notFound('pipeline entry not found');
 	const body = (ctx.body ?? {}) as PipelineUpdate;
@@ -439,25 +491,29 @@ function updatePipeline(ctx: SandboxCtx) {
 		...ws,
 		pipeline: ws.pipeline.map((r) => (r.id === row.id ? row : r)),
 		activity: { ...ws.activity, [row.id]: [...events, ...(ws.activity[row.id] ?? [])] },
-		pipelineEdited: true,
 	});
 	return row;
 }
 
-// ─── Market, matches, benchmarks (adapted to the founder's raise) ───────────
+// ─── Market, matches, benchmarks ────────────────────────────────────────────
 
 const fmtUsd = (n: number) => (!n ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixed(1)}b raised` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}m raised` : `$${(n / 1e3).toFixed(0)}k raised`);
 
-/** raise-market.service.ts:31 — no sector → `{ unavailable, reason: 'no_sector' }`. */
+/** Root → … → leaf names: the raise's own `company_category`, else the taxonomy. */
+function sectorPath(raise: RaiseRow): string[] {
+	return Array.isArray(raise.company_category) && raise.company_category.length ? raise.company_category : [...SAMPLE.sector];
+}
+
+/** raise-market.service.ts:31 — no sector → `{ unavailable, reason: 'no_sector' }` (only after a Settings edit clears it). */
 async function buildMarket(ctx: SandboxCtx, force: boolean) {
-	const ws = workspace(ctx);
+	const ws = await workspace(ctx);
 	const { raise } = ws;
-	if (!raise) return noRaise();
 	if (!raise.company_sector_id) return { unavailable: true, reason: 'no_sector' };
 
-	const [path, competitors] = await Promise.all([sectorPath(raise), loadCompetitors(raise.company_sector_id)]);
-	const updatedAt = force || !ws.marketUpdatedAt ? commit(ctx, { ...ws, marketUpdatedAt: daysFromNow(0) }).marketUpdatedAt : ws.marketUpdatedAt;
-	const sector = path.at(-1) ?? FALLBACK.sector[1];
+	const competitors = await loadCompetitors(raise.company_sector_id);
+	const path = sectorPath(raise);
+	const updatedAt = force ? commit(ctx, { ...ws, marketUpdatedAt: daysFromNow(0) }).marketUpdatedAt : ws.marketUpdatedAt;
+	const sector = path.at(-1) ?? SAMPLE.sector[1];
 	const home = raise.hq_country || 'your home market';
 	const topFunding = competitors.list.reduce((sum, c) => sum + c.total_funding_usd, 0);
 	const tracked = Math.max(competitors.tracked, competitors.list.length);
@@ -466,7 +522,7 @@ async function buildMarket(ctx: SandboxCtx, force: boolean) {
 		raise_id: RAISE_ID,
 		tam: '6800000000', sam: '540000000', cagr: '11.8',
 		classification: path.join(' → '),
-		insight_md: `Buyers in ${sector} are moving budget from one-off projects to recurring software tied to their own customer data. Funding in the category is concentrated in a few later-stage players, which leaves room for a ${raise.round_type ? String(raise.round_type).replace(/_/g, '-') : 'seed'}-stage company that proves ROI in ${home} before expanding.`,
+		insight_md: `Clubs and leagues in ${sector} are moving budget from one-off campaigns to recurring software tied to their own fan data. Funding in the category sits with a few later-stage players, which leaves room for a seed-stage company that proves ROI in ${home} before expanding.`,
 		methodology: {
 			approach: `TAM sized bottom-up from the number of potential customers for ${sector} products across Europe × average annual contract value; SAM narrowed to ${home} and neighbouring markets reachable within 24 months. Funding, competitor counts and CAGR come from SportsTechX data.`,
 			grounded: { sector, total_funding_usd: Math.round(topFunding * 1.6), funded_companies: funded, companies_tracked: tracked, deals: Math.round(funded * 1.7), funding_cagr_pct: 14.2 },
@@ -484,14 +540,15 @@ async function buildMarket(ctx: SandboxCtx, force: boolean) {
 }
 
 const EUROPE = /germany|austria|switzerland|uk|united kingdom|france|spain|italy|netherlands|belgium|sweden|denmark|norway|finland|ireland|portugal|luxembourg|poland/i;
-/** investor-matching.service.ts:95/315 — no raise or no sector → no company to match. */
+/** investor-matching.service.ts:95/315 — no sector → no company to match. */
 const NO_MATCH = { company: null, reason: 'no_company_claim', results: [] };
 
+/** Matches, with investors not yet on the watchlist first (so the top match can be added). */
 async function buildMatches(ws: Workspace, url: URL) {
 	const { raise } = ws;
-	if (!raise?.company_sector_id) return NO_MATCH;
+	if (!raise.company_sector_id) return NO_MATCH;
 	const limit = Math.min(Number(url.searchParams.get('limit')) || 12, MATCH_CAP);
-	const excluded = new Set(ws.criteria?.excluded_investor_ids ?? []);
+	const excluded = new Set(ws.criteria.excluded_investor_ids ?? []);
 	const inPipeline = new Set(ws.pipeline.map((r) => r.investor_id));
 	const pool = (await loadInvestors(raise.company_sector_id)).filter((i) => !excluded.has(i.id));
 	const ordered = [...pool.filter((i) => !inPipeline.has(i.id)), ...pool.filter((i) => inPipeline.has(i.id))];
@@ -513,7 +570,7 @@ async function buildMatches(ws: Workspace, url: URL) {
 			score: 84 - i * 4, match_reasons: reasons,
 		};
 	});
-	return { company: { id: raise.company_id, name: raise.company_name ?? 'Your company' }, results };
+	return { company: { id: raise.company_id, name: raise.company_name ?? SAMPLE.company }, results };
 }
 
 /** benchmarks.service.ts:45 — no company → empty result. */
@@ -521,16 +578,16 @@ const NO_BENCHMARKS = { company: null, reason: 'no_company_claim', cohort: { sec
 
 async function buildBenchmarks(ws: Workspace) {
 	const { raise } = ws;
-	if (!raise?.company_sector_id) return NO_BENCHMARKS;
-	const [path, competitors] = await Promise.all([sectorPath(raise), loadCompetitors(raise.company_sector_id)]);
+	if (!raise.company_sector_id) return NO_BENCHMARKS;
+	const competitors = await loadCompetitors(raise.company_sector_id);
 	const raised = Number(raise.prior_capital_raised) || 0;
 	const peers = competitors.list.slice(0, 6).map((c, i) => ({
 		id: c.id, name: c.name, slug: c.slug, total_raised: c.total_funding_usd,
 		last_round: dateOnly(-120 - i * 75), country: c.hq_country,
 	}));
 	return {
-		company: { id: raise.company_id ?? 'sbx-company', name: raise.company_name ?? FALLBACK.company },
-		cohort: { sector: path.at(-1) ?? null, n: Math.max(competitors.tracked, peers.length) },
+		company: { id: raise.company_id ?? 'sbx-company', name: raise.company_name ?? SAMPLE.company },
+		cohort: { sector: sectorPath(raise).at(-1) ?? null, n: Math.max(competitors.tracked, peers.length) },
 		metrics: [
 			{ key: 'total_raised', label: 'Total raised', unit: 'usd', value: raised, median: 1_250_000, percentile: raised >= 1_250_000 ? 62 : 38 },
 			{ key: 'rounds', label: 'Funding rounds', unit: 'count', value: raised > 0 ? 1 : 0, median: 2, percentile: raised > 0 ? 41 : 12 },
@@ -545,20 +602,27 @@ async function buildBenchmarks(ws: Workspace) {
 
 const DEALFLOW_MSG = 'Sharing your round with the Investor Circle is part of Atlas Raise. In the sandbox you can see how it works.';
 
-/** Run a read handler only once the raise exists (NO_RAISE 404 otherwise). */
-const withRaise = <T>(fn: (ws: Workspace & { raise: RaiseRow }, ctx: SandboxCtx) => T) => (ctx: SandboxCtx) => {
-	const ws = workspace(ctx);
-	return ws.raise ? fn(ws as Workspace & { raise: RaiseRow }, ctx) : noRaise();
-};
+/** Run a handler against the (lazily built) workspace. */
+const withWs = <T>(fn: (ws: Workspace, ctx: SandboxCtx) => T) => async (ctx: SandboxCtx) => fn(await workspace(ctx), ctx);
 
 export const raiseSandboxRoutes: SandboxRoute[] = [
-	// Raise profile + criteria (setup wizard, Settings, Investors → criteria summary).
-	// raise.controller.ts:27-32 answers 200 `{ raise: null, criteria: null }` before setup.
-	['GET', '/api/raise', (ctx) => { const ws = workspace(ctx); return { raise: ws.raise, criteria: ws.raise ? ws.criteria : null }; }],
+	// Investor profile (step 5, "Check the fit, then add"). See expandInvestor's doc.
+	['GET', '/api/investors/:id', withWs(async (ws, ctx) => {
+		const inv = await investorRef(ws.raise, ctx.params.id);
+		return inv ? expandInvestor(inv) : notFound('investor not found');
+	})],
+	['GET', '/api/investors/:id/thesis', () => ({
+		thesis: { amount_min_usd: '250000', amount_max_usd: '2000000' },
+		round_types: [{ name: 'Seed' }, { name: 'Series A' }],
+		geo: [{ scope_type: 'continent', scope_value: 'Europe' }],
+	})],
+
+	// Raise profile + criteria (Settings, Investors → criteria summary).
+	['GET', '/api/raise', withWs((ws) => ({ raise: ws.raise, criteria: ws.criteria }))],
 	['POST', '/api/raise', upsertRaise],
 	['PATCH', '/api/raise', upsertRaise],
-	['GET', '/api/raise/home', (ctx) => buildHome(workspace(ctx))],
-	['GET', '/api/raise/criteria', withRaise((ws) => ws.criteria)],
+	['GET', '/api/raise/home', withWs(buildHome)],
+	['GET', '/api/raise/criteria', withWs((ws) => ws.criteria)],
 	['PUT', '/api/raise/criteria', putCriteria],
 	['POST', '/api/raise/strategy/book', () => gated('raise', 'Strategy sessions with SportsTechX leadership are part of Atlas Raise. Upgrade to book your quarterly call.')],
 
@@ -566,25 +630,21 @@ export const raiseSandboxRoutes: SandboxRoute[] = [
 	['GET', '/api/raise/market', (ctx) => buildMarket(ctx, ctx.url.searchParams.get('force') === '1')],
 
 	// Watchlist (pipeline): stateful, so moves / adds / edits persist.
-	['GET', '/api/raise/pipeline', withRaise((ws, ctx) => ({ data: listPipeline(ws, ctx.url) }))],
+	['GET', '/api/raise/pipeline', withWs((ws, ctx) => ({ data: listPipeline(ws, ctx.url) }))],
 	['POST', '/api/raise/pipeline', addToPipeline],
 	['PATCH', '/api/raise/pipeline/:id', updatePipeline],
-	['GET', '/api/raise/pipeline/:id/activity', withRaise((ws, ctx) => (
+	['GET', '/api/raise/pipeline/:id/activity', withWs((ws, ctx) => (
 		ws.pipeline.some((r) => r.id === ctx.params.id) ? { data: ws.activity[ctx.params.id] ?? [] } : notFound('pipeline entry not found')
 	))],
 
 	// Deal Flow opt-in (Settings): readable, writes are an upgrade.
-	// scout-dealflow.controller.ts:306 answers `has_raise: false` (not 404) without a raise.
-	['GET', '/api/raise/dealflow/opt-in', (ctx) => {
-		const { raise } = workspace(ctx);
-		return raise
-			? { opted_in: raise.dealflow_opt_in, status: raise.dealflow_status, review_notes: null, submitted_at: null, has_raise: true }
-			: { opted_in: false, status: null, review_notes: null, submitted_at: null, has_raise: false };
-	}],
+	['GET', '/api/raise/dealflow/opt-in', withWs(({ raise }) => (
+		{ opted_in: raise.dealflow_opt_in, status: raise.dealflow_status, review_notes: null, submitted_at: null, has_raise: true }
+	))],
 	['POST', '/api/raise/dealflow/opt-in', () => gated('raise', DEALFLOW_MSG)],
 	['DELETE', '/api/raise/dealflow/opt-in', () => gated('raise', DEALFLOW_MSG)],
 
 	// Founder recommendations (raise-gated on the server).
-	['GET', '/api/recommendations/investors', (ctx) => buildMatches(workspace(ctx), ctx.url)],
-	['GET', '/api/recommendations/benchmarks', (ctx) => buildBenchmarks(workspace(ctx))],
+	['GET', '/api/recommendations/investors', withWs((ws, ctx) => buildMatches(ws, ctx.url))],
+	['GET', '/api/recommendations/benchmarks', withWs(buildBenchmarks)],
 ];

@@ -1,20 +1,22 @@
 /**
- * Sandbox ("Try Sandbox For Free") — Scout-only endpoints answered locally.
+ * Sandbox ("Walk the Pitch") — Scout-only endpoints answered locally.
  *
- * The sandbox user starts as a brand-new Scout customer with NO
- * `scout_profiles` row, and goes through the real thesis wizard
- * (components/scout/onboarding.tsx). Every route answers as the server does in
- * that state (server/src/modules/scout/**), then unlocks on the same events:
+ * The practice run ("Walk the Pitch") starts as a READY-MADE sample investor:
+ * Jordan Ellis, partner at the fictional Kestrel Field Ventures, with a fully
+ * set-up, verified Scout workspace and a seed–Series A European sports-tech
+ * thesis built from REAL taxonomy rows (sector / sport / round-type ids are
+ * production ids, see server/scripts/local-db/seed-data). Home, Recommended
+ * and Deal Flow therefore work from the first request.
  *
- *   - no row:   GET /api/scout → null; GET /thesis → empty thesis; GET /home →
- *               needs_setup + onboarding card; GET /recommended and deal-flow
- *               writes → 403 SCOUT_NOT_SET_UP. Deal-flow reads already work
- *               (the server uses `scoutIdOrNull` there).
- *   - row:      created by the wizard's first PATCH /api/scout (or PUT
- *               /thesis). Recommended (scored against THEIR thesis), mine and
- *               drafting unlock.
- *   - complete: the wizard's last step sends `setup_completed: true`, stamping
- *               `setup_completed_at` once; home stops showing "Finish setting up".
+ * Every route still answers as the server does for the state it holds
+ * (server/src/modules/scout/**), so edits behave like the real product:
+ *
+ *   - no row:   only reachable if a stored state says so. GET /api/scout → null;
+ *               GET /home → needs_setup; GET /recommended and deal-flow writes →
+ *               403 SCOUT_NOT_SET_UP.
+ *   - row:      the sample's, or one re-created by PATCH /api/scout or PUT
+ *               /thesis. Recommended is scored against the stored thesis.
+ *   - complete: `setup_completed_at` is stamped on the sample; PATCH never clears it.
  *
  * Consumers: use-thesis.ts / onboarding.tsx / thesis-settings.tsx (profile,
  * thesis), scout-home.tsx (home), recommended.tsx, deal-flow.tsx,
@@ -38,9 +40,12 @@ const RECOMMENDED_CAP = 10;
 const COMPANY_SAMPLE_PATH = '/api/companies?limit=12&page=1';
 const NEW_MATCH_WINDOW_MS = 7 * 864e5;
 
-/** Bump to discard earlier sandbox state (v1 was pre-seeded as a fictional fund). */
-const STATE_KEY = 'scoutV2';
-const LEGACY_KEYS = ['scoutProfile', 'scoutThesis', 'scoutDrafts', 'scoutCompanies'];
+/**
+ * Bump to discard earlier sandbox state. v2 started as a brand-new customer
+ * with no workspace; v3 starts as the ready-made Kestrel Field Ventures sample.
+ */
+const STATE_KEY = 'scoutV3';
+const LEGACY_KEYS = ['scoutProfile', 'scoutThesis', 'scoutDrafts', 'scoutCompanies', 'scoutV2'];
 
 /** `ScoutProfileRow` on the server; the client reads the `ScoutProfile` subset. */
 interface ScoutProfileRow extends ScoutProfile {
@@ -69,7 +74,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 
 function readState(ctx: SandboxCtx): ScoutState {
 	const s = ctx.state[STATE_KEY];
-	if (!isRecord(s)) return { profile: null, thesis: null, drafts: [] };
+	if (!isRecord(s)) return sampleState();
 	return {
 		profile: isRecord(s.profile) ? (s.profile as unknown as ScoutProfileRow) : null,
 		thesis: isRecord(s.thesis) ? (s.thesis as unknown as ServerThesis) : null,
@@ -96,6 +101,46 @@ const EMPTY_THESIS: ServerThesis = {
 	sectors: [], sports: [], round_types: [], geo: [], business_models: [],
 	cheque_min: null, cheque_max: null, traction_floor: null, invest_style: null, exclusions: null,
 };
+
+// ─── Sample identity: Kestrel Field Ventures ─────────────────────────────────
+
+/** Fixed ids so the sample row reads the same on every request. */
+const SAMPLE_PROFILE_ID = '5c0e7a10-3f4b-4d2a-9b6e-1a2b3c4d5e01';
+/** Set = verified (`verification` on /home reads `investor_id`). Fictional fund, not a directory row. */
+const SAMPLE_INVESTOR_ID = '5c0e7a10-3f4b-4d2a-9b6e-1a2b3c4d5e02';
+
+/** Real taxonomy rows (production ids), so recommendations score against the live sector tree. */
+const SAMPLE_THESIS: ServerThesis = {
+	sectors: [
+		{ id: 'a4f1d65b-33ec-482a-a9de-e46c01dd2836', name: 'Fan Engagement' },
+		{ id: '8dddaed5-95f3-4d96-9569-fc5878db810a', name: 'Recovery & Injury Prevention' },
+		{ id: '55d31fcd-8802-4f3f-9183-3545aea50a7c', name: 'Tracking & Analytics' },
+	],
+	sports: [{ id: 'f15b372b-4b3b-42cb-869c-a40db20d0fca', name: 'Football / Soccer' }],
+	round_types: [
+		{ id: 'd5cfe586-f001-402a-8d7b-35862d047053', name: 'Series A' },
+		{ id: 'f5ed8eeb-33d5-4e55-bc47-064248942cce', name: 'Seed Round' },
+	],
+	geo: [{ scope_type: 'continent', scope_value: 'Europe' }],
+	business_models: ['b2b'],
+	cheque_min: 250_000,
+	cheque_max: 1_500_000,
+	traction_floor: 'Early revenue',
+	invest_style: 'either',
+	exclusions: 'Betting & prediction',
+};
+
+/** The state a fresh practice run starts in: set up, verified, thesis saved. */
+function sampleState(): ScoutState {
+	const profile: ScoutProfileRow = {
+		id: SAMPLE_PROFILE_ID, profile_id: 'sandbox', claim_id: null, investor_id: SAMPLE_INVESTOR_ID,
+		full_name: 'Jordan Ellis', role_title: 'Partner', linkedin_url: null, photo_url: null,
+		fund_name: 'Kestrel Field Ventures', investor_type: 'venture_capital',
+		fund_website: 'https://kestrelfield.example', location_id: null, aum: '€25–100m',
+		setup_completed_at: daysFromNow(-21), created_at: daysFromNow(-21), updated_at: daysFromNow(-2),
+	};
+	return { profile, thesis: SAMPLE_THESIS, drafts: [] };
+}
 
 const HOME_PROMPTS = [
 	'Find companies matching my thesis',
@@ -248,7 +293,7 @@ interface Recommendation {
 }
 
 /** Used only when the public companies list cannot be read. */
-const FALLBACK_COMPANIES: CompanyLite[] = [
+export const FALLBACK_COMPANIES: CompanyLite[] = [
 	['Pitchside Metrics', 'Computer-vision match analytics for semi-pro football clubs.', 'Tracking & Analytics', 'Leeds', 'United Kingdom', '1800000'],
 	['Racketry', 'Court booking and league software for padel clubs.', 'Booking & Discovery', 'Valencia', 'Spain', '650000'],
 	['Fanfold', 'Loyalty and ticketing wallet for mid-tier European clubs.', 'Fan Engagement', 'Hamburg', 'Germany', '2400000'],
@@ -402,16 +447,35 @@ async function newMatchCount(ctx: SandboxCtx): Promise<number> {
 	}
 }
 
+/**
+ * Companies across the user's watchlists. Read through the app's own
+ * `/api/user-watchlists`, which the sandbox's core routes answer with the sample
+ * watchlists, so the count matches the Watchlists page. 0 on failure.
+ */
+async function watchlistCompanyCount(ctx: SandboxCtx): Promise<number> {
+	try {
+		const res = await fetch(new URL('/api/user-watchlists', ctx.url.origin));
+		if (!res.ok) return 0;
+		const body: unknown = await res.json();
+		const lists = isRecord(body) && Array.isArray(body.data) ? body.data : [];
+		return lists.reduce((n: number, l) => n + (isRecord(l) && typeof l.company_count === 'number' ? l.company_count : 0), 0);
+	} catch {
+		return 0;
+	}
+}
+
 /** `ScoutHomeService.build` + `attention()` (scout-home.service.ts:49-171) for a row that exists. */
 async function home(ctx: SandboxCtx) {
 	const { profile, thesis } = readState(ctx);
 	if (!profile) return HOME_NO_ROW;
 	const t = thesis ?? EMPTY_THESIS;
 	const dimensions = t.sectors.length + t.sports.length + t.round_types.length + t.geo.length;
-	const newMatches = await newMatchCount(ctx);
+	// Sandbox choice: when the live feed has no fundraising signal this week,
+	// fall back to the thesis matches so the "new matches" card (the tour's
+	// first step) is always there.
+	const [signalMatches, watchlistCompanies] = await Promise.all([newMatchCount(ctx), watchlistCompanyCount(ctx)]);
+	const newMatches = signalMatches || (dimensions > 0 ? (await recommendations(ctx, t)).length : 0);
 	const verification = profile.investor_id ? 'verified' : profile.claim_id ? 'pending' : 'unverified';
-	// Watchlists are not Scout-only data, so the sandbox reports none.
-	const watchlistCompanies = 0;
 	const attention = [
 		...(!profile.setup_completed_at ? [{
 			id: 'finish-setup', title: 'Finish setting up',
@@ -471,10 +535,13 @@ const DEAL_BASE: Omit<DealRow, 'id' | 'source' | 'company_name' | 'company_descr
 	disclosed: false, interest_status: null,
 };
 
+/** The featured listing (Stridewise); the guided tour opens it. */
+export const SANDBOX_FEATURED_DEAL_ID = 'd1f0a3b2-4c5d-4e6f-8a7b-9c0d1e2f3a01';
+
 /** Fictional live listings. Money is `::text` on the server, so strings here. */
 const SAMPLE_DEALS: DealRow[] = [
 	{
-		...DEAL_BASE, id: 'd1f0a3b2-4c5d-4e6f-8a7b-9c0d1e2f3a01', source: 'verified_raise', is_featured: true,
+		...DEAL_BASE, id: SANDBOX_FEATURED_DEAL_ID, source: 'verified_raise', is_featured: true,
 		company_name: 'Stridewise', company_website: 'stridewise.example',
 		company_hq: 'Copenhagen, Denmark', sector: 'Tracking & Analytics',
 		company_description: 'Gait analysis for runners from a phone camera, sold to running clubs and physio chains on a per-seat subscription.',

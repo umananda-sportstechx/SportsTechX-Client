@@ -45,7 +45,7 @@ export function WatchlistBoard({ id }: { id: string }) {
 											<Link href={companyHref(c.slug ?? c.id)} className="scout-board__name">{c.name}</Link>
 										</div>
 										<div className="scout-board__meta">{[c.primary_sector, c.hq_country].filter(Boolean).join(' · ')}</div>
-										<select className="scout-board__select" aria-label={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(e) => move(c.id, e.target.value as BoardStage)}>
+										<select className="scout-board__select" data-tour={c.id === companies[0]?.id ? 'scout-board-stage' : undefined} aria-label={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(e) => move(c.id, e.target.value as BoardStage)}>
 											{BOARD_STAGES.map((x) => <option key={x} value={x}>{x}</option>)}
 										</select>
 									</article>

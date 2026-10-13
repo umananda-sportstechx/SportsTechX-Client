@@ -12,6 +12,7 @@ import { openClaim } from '@/lib/claim-events';
 import { qk } from '@/lib/query-keys';
 import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 import { hrefOf } from '@/lib/routes';
+import { previewHref } from '@/lib/preview-mode';
 import { listText, thesisTags, useThesis } from './use-thesis';
 
 /**
@@ -124,8 +125,9 @@ export function ScoutHome() {
 							// on `cta_href` — the hrefs are the thing being retired.
 							{...(SETUP_CARD_WIZARD[c.id]
 								? { onAction: SETUP_CARD_WIZARD[c.id] === 'raise' ? openRaiseSetup : openScoutThesis }
-								: { href: c.cta_href })}
+								: { href: previewHref(c.cta_href) })}
 							actionLabel={c.cta_label}
+							data-tour={c.id === 'new-matches' ? 'scout-matches-card' : undefined}
 						/>
 					))}
 					{/* Two standing entry points the read-model does not emit. */}

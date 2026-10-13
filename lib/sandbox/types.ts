@@ -1,7 +1,7 @@
 /**
- * Sandbox ("Try Sandbox For Free") — shared types for the request interceptor.
+ * Walk the Pitch practice — shared types for the request interceptor.
  *
- * In sandbox mode the browser's fetch is wrapped: requests whose path matches a
+ * In practice the browser's fetch is wrapped: requests whose path matches a
  * SandboxRoute are answered locally (sample data, gated actions), everything
  * else (public data) goes to the real backend. See lib/sandbox/README.md.
  */

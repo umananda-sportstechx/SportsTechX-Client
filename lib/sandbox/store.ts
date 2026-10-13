@@ -4,74 +4,98 @@ import { useSyncExternalStore } from 'react';
 import type { SandboxProduct } from './types';
 
 /**
- * Sandbox state ("Try Sandbox For Free"), kept in this browser only.
+ * "Walk the Pitch" practice state, kept in this browser only.
  *
  * Front-end only by design: the flag changes what the UI shows and which
  * requests are answered locally — it grants nothing on the server, where the
- * user stays on Explore. A 7-day window starts at first entry per product.
+ * user stays on Explore. No time limit; a walkthrough can be replayed any time.
+ *
+ * Two phases per run:
+ *   - `tour`  — the guided steps (lib/sandbox/tours/*), writes work on sample data;
+ *   - `view`  — after the tour (or a skip): the same workspace, view-only.
  */
-export const SANDBOX_DAYS = 7;
-const KEY = 'stx:sandbox:v1';
-const EVENT = 'stx:sandbox';
-const DAY_MS = 864e5;
+export type PracticePhase = 'tour' | 'view';
 
-interface Stored {
-	/** Product currently open in the sandbox, or null when outside it. */
+export interface PracticeState {
+	/** Product open in practice right now, or null when outside it. */
 	active: SandboxProduct | null;
-	/** First entry per product (ms), for the 7-day window. */
-	startedAt: Partial<Record<SandboxProduct, number>>;
-	/** Products whose first-time setup wizard has already been opened. */
-	setupPrompted?: Partial<Record<SandboxProduct, boolean>>;
+	phase: PracticePhase;
+	/** Current tour step (index into the tour's steps; === steps.length is the finale). */
+	step: number;
 }
 
-const EMPTY: Stored = { active: null, startedAt: {} };
+const KEY = 'stx:sandbox:v2';
+/** The retired 7-day "Try Sandbox" record; dropped on the next write. */
+const LEGACY_KEY = 'stx:sandbox:v1';
+const EVENT = 'stx:sandbox';
 
-function read(): Stored {
-	if (typeof window === 'undefined') return EMPTY;
+const EMPTY: PracticeState = { active: null, phase: 'tour', step: 0 };
+
+function parse(raw: string | null): PracticeState {
+	if (!raw) return EMPTY;
 	try {
-		const raw = localStorage.getItem(KEY);
-		return raw ? { ...EMPTY, ...(JSON.parse(raw) as Stored) } : EMPTY;
+		const v = JSON.parse(raw) as Partial<PracticeState>;
+		const active = v.active === 'raise' || v.active === 'scout' ? v.active : null;
+		const phase: PracticePhase = v.phase === 'view' ? 'view' : 'tour';
+		const step = Number.isInteger(v.step) && (v.step as number) >= 0 ? (v.step as number) : 0;
+		return { active, phase, step };
 	} catch { return EMPTY; }
 }
-function write(next: Stored) {
-	try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+
+function rawState(): string | null {
+	if (typeof window === 'undefined') return null;
+	try { return localStorage.getItem(KEY); } catch { return null; }
+}
+
+const read = (): PracticeState => parse(rawState());
+
+function write(next: PracticeState) {
+	try {
+		localStorage.setItem(KEY, JSON.stringify(next));
+		localStorage.removeItem(LEGACY_KEY);
+	} catch { /* storage unavailable */ }
 	window.dispatchEvent(new Event(EVENT));
 }
 
-/** Ms left in a product's 7-day window (full window if never started). */
-export function sandboxTimeLeft(product: SandboxProduct, s: Stored = read()): number {
-	const start = s.startedAt[product];
-	return start ? Math.max(0, start + SANDBOX_DAYS * DAY_MS - Date.now()) : SANDBOX_DAYS * DAY_MS;
-}
-export const sandboxExpired = (product: SandboxProduct, s: Stored = read()) => sandboxTimeLeft(product, s) === 0;
-
-/** The product open in the sandbox right now, or null (also null once its window has run out). */
+/** The product open in practice right now, or null. Kept under its old name — many callers. */
 export function activeSandbox(): SandboxProduct | null {
-	const s = read();
-	return s.active && !sandboxExpired(s.active, s) ? s.active : null;
+	return read().active;
 }
 
-/** Enter a product's sandbox. Returns false if its 7 days are used up. */
-export function startSandbox(product: SandboxProduct): boolean {
+/** The practice phase, or null outside practice. */
+export function practicePhase(): PracticePhase | null {
 	const s = read();
-	if (sandboxExpired(product, s)) return false;
-	write({ ...s, active: product, startedAt: { ...s.startedAt, [product]: s.startedAt[product] ?? Date.now() } });
-	return true;
+	return s.active ? s.phase : null;
 }
 
-/**
- * True exactly once per product: the first time the sandbox opens, so the app
- * can raise the same setup wizard a new paying customer sees.
- */
-export function takeSetupPrompt(product: SandboxProduct): boolean {
-	const s = read();
-	if (s.setupPrompted?.[product]) return false;
-	write({ ...s, setupPrompted: { ...s.setupPrompted, [product]: true } });
-	return true;
+/** Enter a product's walkthrough at its first step, on a fresh sample workspace. */
+export function startWalkthrough(product: SandboxProduct) {
+	resetSandboxData(product);
+	write({ active: product, phase: 'tour', step: 0 });
 }
 
-export function exitSandbox() {
-	write({ ...read(), active: null });
+export function setTourStep(step: number) {
+	const s = read();
+	if (!s.active) return;
+	write({ ...s, step: Math.max(0, Math.floor(step)) });
+}
+
+/** Tour over (finished or skipped): stay in the workspace, view-only. */
+export function finishTour() {
+	const s = read();
+	if (!s.active) return;
+	write({ ...s, phase: 'view', step: 0 });
+}
+
+/** Run the active product's tour again from step 1, on a fresh sample workspace. */
+export function replayTour() {
+	const s = read();
+	if (!s.active) return;
+	startWalkthrough(s.active);
+}
+
+export function exitPractice() {
+	write(EMPTY);
 }
 
 function subscribe(cb: () => void) {
@@ -80,21 +104,23 @@ function subscribe(cb: () => void) {
 	return () => { window.removeEventListener(EVENT, cb); window.removeEventListener('storage', cb); };
 }
 
-/** React view of the sandbox: the active product and days left for any product. */
-export function useSandbox() {
-	const raw = useSyncExternalStore(subscribe, () => { try { return localStorage.getItem(KEY) ?? ''; } catch { return ''; } }, () => '');
-	void raw; // re-render trigger; values below read fresh state
-	const s = read();
-	const active = s.active && !sandboxExpired(s.active, s) ? s.active : null;
-	const daysLeft = (p: SandboxProduct) => Math.ceil(sandboxTimeLeft(p, s) / DAY_MS);
-	return { active, daysLeft, expired: (p: SandboxProduct) => sandboxExpired(p, s) };
+/** React view of practice: `{ active, phase, step }`. Re-renders on any change (also from other tabs). */
+export function useSandbox(): PracticeState {
+	const raw = useSyncExternalStore(subscribe, () => rawState() ?? '', () => '');
+	return parse(raw || null);
 }
 
-/** Per-product sandbox data (pipeline moves, thesis edits…) for the request handlers. */
+/** Alias of useSandbox, for code that talks about "practice". */
+export const usePractice = useSandbox;
+
+/** Per-product sample data (pipeline moves, thesis edits, watchlists…) for the request handlers. */
 const DATA_KEY = (p: SandboxProduct) => `stx:sandbox:data:${p}`;
 export function readSandboxData(p: SandboxProduct): Record<string, unknown> {
 	try { return JSON.parse(localStorage.getItem(DATA_KEY(p)) ?? '{}') as Record<string, unknown>; } catch { return {}; }
 }
 export function writeSandboxData(p: SandboxProduct, data: Record<string, unknown>) {
 	try { localStorage.setItem(DATA_KEY(p), JSON.stringify(data)); } catch { /* storage unavailable */ }
+}
+function resetSandboxData(p: SandboxProduct) {
+	try { localStorage.removeItem(DATA_KEY(p)); } catch { /* storage unavailable */ }
 }

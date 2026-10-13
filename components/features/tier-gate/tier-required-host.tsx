@@ -62,8 +62,9 @@ export function TierRequiredHost() {
 		>
 			{/* Falls back to the server's own sentence when the tier can't be
 			    named — better a plain message than a confidently wrong pitch. */}
-			{/* In a "Try Sandbox" session the sandbox's own sentence says exactly
-			    what is locked, so it wins over the generic product blurb. */}
+			{/* In Walk the Pitch practice the sandbox's own sentence says exactly
+			    what is locked (or that practice is view-only), so it wins over the
+			    generic product blurb. */}
 			{(activeSandbox() && detail.message) || (product?.blurb ?? detail.message ?? 'Your current plan does not include this.')}
 		</Modal>
 	);

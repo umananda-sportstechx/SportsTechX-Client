@@ -1,0 +1,140 @@
+/*
+ * Walk the Pitch: coach panel, spotlight, practice bar, entry buttons.
+ * Atlas tokens only. The coach, spotlight and bar render inside the shell's
+ * `.atlas` scope; `.wt-try` can also appear outside it (post-signup plan
+ * chooser), hence the var() fallbacks on that one rule set.
+ */
+
+/* ── Spotlight: glowing ring on the target, everything else dimmed ────────── */
+.atlas .wt-spotlight {
+	position: fixed; z-index: 140; pointer-events: none;
+	border-radius: var(--a-radius-sm);
+	box-shadow:
+		0 0 0 2px var(--a-primary),
+		0 0 0 6px color-mix(in srgb, var(--a-primary) 14%, transparent),
+		0 0 24px 2px color-mix(in srgb, var(--a-primary) 35%, transparent),
+		0 0 0 9999px color-mix(in srgb, var(--a-page) 45%, transparent);
+	transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+	animation: wt-pulse 1.8s ease-in-out infinite;
+}
+@keyframes wt-pulse {
+	0%, 100% { outline: 2px solid transparent; }
+	50% { outline: 2px solid color-mix(in srgb, var(--a-primary) 55%, transparent); outline-offset: 4px; }
+}
+
+/* ── Pointer: a drawn line from the panel's edge out to the target ────────── */
+.atlas .wt-pointer { position: fixed; inset: 0; z-index: 141; pointer-events: none; }
+.atlas .wt-pointer__line {
+	fill: none; stroke: var(--a-primary); stroke-width: 2.5; stroke-dasharray: 7 6; stroke-linecap: round;
+	animation: wt-pointer-flow 0.9s linear infinite;
+}
+.atlas .wt-pointer__head { fill: var(--a-primary); }
+@keyframes wt-pointer-flow { to { stroke-dashoffset: -26; } }
+
+/* ── Coach panel: a persistent full-height column, docked right on desktop ──
+   (bottom sheet on tablet/phone). The real app keeps running beside it — see
+   the `wt-coach-open` push rules below — so nothing is hidden behind it. */
+.atlas .wt-coach {
+	position: fixed; z-index: 150; inset: 0 0 0 auto; width: var(--wt-panel-w);
+	display: flex; flex-direction: column; gap: 14px; padding: 26px 26px 18px; overflow-y: auto;
+	background: var(--a-primary); color: var(--a-primary-ink);
+}
+.atlas .wt-coach--left { right: auto; left: 0; }
+.atlas .wt-coach__eyebrow {
+	display: inline-flex; align-items: center; gap: 6px;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+	color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent);
+}
+.atlas .wt-coach__body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.atlas .wt-coach__progress {
+	display: flex; align-items: center; gap: 10px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+	color: color-mix(in srgb, var(--a-primary-ink) 55%, transparent);
+}
+.atlas .wt-coach__track { flex: 1; height: 3px; border-radius: var(--a-radius-pill); background: color-mix(in srgb, var(--a-primary-ink) 20%, transparent); overflow: hidden; }
+.atlas .wt-coach__track > span { display: block; height: 100%; background: var(--a-primary-ink); transition: width 0.2s ease; }
+.atlas .wt-coach__title { margin: 0; font-family: var(--a-font); font-size: 19px; font-weight: 700; line-height: 1.25; color: var(--a-primary-ink); }
+.atlas .wt-coach__title--big { font-size: 27px; line-height: 1.15; letter-spacing: -0.01em; }
+.atlas .wt-coach__text { margin: 0; font-family: var(--a-body); font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--a-primary-ink) 78%, transparent); }
+.atlas .wt-coach__text--lead { font-size: 16px; }
+.atlas .wt-coach__cue {
+	display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; margin: 0; padding: 7px 14px;
+	border-radius: var(--a-radius-pill); background: color-mix(in srgb, var(--a-primary-ink) 14%, transparent);
+	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--a-primary-ink);
+}
+.atlas .wt-coach__note { margin: 0; font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent); }
+.atlas .wt-coach__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.atlas .wt-coach__actions > :first-child { margin-right: auto; }
+.atlas .wt-coach__stack { display: grid; gap: 8px; margin-top: 4px; }
+.atlas .wt-coach__stack .atlas-btn { justify-content: center; }
+.atlas .wt-coach .atlas-btn--ghost { color: var(--a-primary-ink); }
+.atlas .wt-coach .atlas-btn--outline { border-color: color-mix(in srgb, var(--a-primary-ink) 35%, transparent); color: var(--a-primary-ink); }
+.atlas .wt-coach .atlas-btn--primary { background: var(--a-primary-ink); color: var(--a-primary); }
+.atlas .wt-coach__help {
+	align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; padding-top: 14px; width: 100%;
+	border-top: 1px solid color-mix(in srgb, var(--a-primary-ink) 18%, transparent);
+	font-family: var(--a-body); font-size: 12px; color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent); text-decoration: none;
+}
+.atlas .wt-coach__help:hover { color: var(--a-primary-ink); }
+.atlas .wt-kbd {
+	display: inline-block; min-width: 20px; padding: 2px 6px; margin: 0 1px; border-radius: var(--a-radius-xs);
+	border: 1px solid color-mix(in srgb, var(--a-primary-ink) 35%, transparent); background: color-mix(in srgb, var(--a-primary-ink) 10%, transparent);
+	font-family: var(--a-mono); font-size: 11px; line-height: 17px; text-align: center; color: var(--a-primary-ink);
+}
+
+/* Give the real app room beside the full-height panel instead of hiding behind it. */
+:root { --wt-panel-w: 360px; }
+body.wt-coach-open .atlas-shell { transition: margin 0.2s ease; }
+body.wt-coach-open--right .atlas-shell { margin-right: var(--wt-panel-w); }
+body.wt-coach-open--left .atlas-shell { margin-left: var(--wt-panel-w); }
+
+@media (max-width: 1024px) {
+	:root { --wt-panel-w: auto; }
+	body.wt-coach-open--right .atlas-shell, body.wt-coach-open--left .atlas-shell { margin: 0; }
+	.atlas .wt-coach, .atlas .wt-coach--left {
+		inset: auto 0 0 0; height: auto; max-height: 60vh;
+		border-radius: var(--a-radius) var(--a-radius) 0 0; padding: 18px 18px 14px;
+	}
+	.atlas .wt-coach__body { justify-content: flex-start; }
+	.atlas .wt-coach__title--big { font-size: 22px; }
+	.atlas .wt-pointer { display: none; }
+}
+
+/* ── Practice bar (above the navbar while in practice) ────────────────────── */
+.atlas .wt-bar {
+	display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 20px;
+	background: var(--a-primary); color: var(--a-primary-ink);
+	font-family: var(--a-body); font-size: 12.5px; line-height: 1.4;
+}
+.atlas .wt-bar__tag {
+	display: inline-flex; align-items: center; gap: 6px;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .wt-bar__text { flex: 1; min-width: 160px; color: color-mix(in srgb, var(--a-primary-ink) 75%, transparent); }
+.atlas .wt-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.atlas .wt-bar__btn {
+	display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: var(--a-radius-pill); cursor: pointer;
+	border: 1px solid color-mix(in srgb, var(--a-primary-ink) 40%, transparent); background: transparent; color: var(--a-primary-ink);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.atlas .wt-bar__btn--solid { border-color: transparent; background: var(--a-primary-ink); color: var(--a-primary); }
+@media (max-width: 640px) { .atlas .wt-bar { padding: 8px 16px; } .atlas .wt-bar__text { display: none; } }
+
+/* ── Entry: "Walk the pitch →" pill (Plans page, plan chooser) ────────────── */
+.wt-try {
+	display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 34px; padding: 0 14px;
+	border-radius: var(--a-radius-pill, 35px); border: 1px dashed var(--a-border-strong, rgba(0,0,0,.25)); background: transparent; cursor: pointer;
+	font-family: var(--a-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-ink, #000);
+}
+.wt-try:hover:not(:disabled) { border-style: solid; border-color: var(--a-ink, #000); }
+.wt-try:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Explore Home: first-visit chooser ────────────────────────────────────── */
+.atlas .wt-choices { display: grid; gap: 10px; margin-top: 16px; }
+.atlas .wt-choice {
+	display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 14px 16px; text-align: left; cursor: pointer;
+	border-radius: var(--a-radius-sm); border: 1px solid var(--a-border); background: var(--a-field); color: var(--a-ink);
+	transition: border-color 0.15s;
+}
+.atlas .wt-choice:hover, .atlas .wt-choice:focus-visible { border-color: var(--a-ink); }
+.atlas .wt-choice__title { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: var(--a-font); font-size: 15px; font-weight: 700; }
+.atlas .wt-choice__body { font-family: var(--a-body); font-size: 12px; line-height: 1.5; color: var(--a-muted); }

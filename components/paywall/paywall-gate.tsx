@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { getRealUserType as getUserType, type UserType } from '@/hooks/use-user-profile';
-import { TrySandboxButton } from '@/components/features/sandbox/try-sandbox-button';
+import { WalkthroughButton } from '@/components/features/walkthrough/walkthrough-button';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { apiRequest } from '@/lib/query-client';
 
@@ -107,9 +107,9 @@ export function PaywallGate() {
 									}}>
 									{busy === p.key ? <Loader2 className="animate-spin" size={15} /> : isCurrent ? 'Current plan' : p.key === 'explore' ? 'Continue on Explore' : `Choose ${p.name}`}
 								</button>
-								{/* Try the paid workspace first: closes the chooser on Explore, then opens the sandbox. */}
+								{/* Walk through the paid workspace first: settles the account on Explore, then starts the tour. */}
 								{(p.key === 'raise' || p.key === 'scout') && (
-									<TrySandboxButton product={p.key} beforeStart={() => choose('explore')} style={{ marginTop: 10 }} />
+									<WalkthroughButton product={p.key} source="plan-chooser" beforeStart={() => choose('explore')} style={{ marginTop: 10 }} />
 								)}
 							</div>
 						);

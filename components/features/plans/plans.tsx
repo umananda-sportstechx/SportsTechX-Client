@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Check, Loader2, Minus } from 'lucide-react';
 import { Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
-import { TrySandboxButton } from '@/components/features/sandbox/try-sandbox-button';
+import { WalkthroughButton } from '@/components/features/walkthrough/walkthrough-button';
 import { apiRequest } from '@/lib/query-client';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { qk } from '@/lib/query-keys';
@@ -182,8 +182,8 @@ export function Plans() {
 												<Button size="sm" variant={tier === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void checkout(tier)}>
 													{busy === tier ? <Loader2 className="animate-spin" size={13} /> : `Get ${copy?.name ?? tier}`}
 												</Button>
-												{/* Free users can try the paid workspace first (lib/sandbox). */}
-												{current === 'explore' && <TrySandboxButton product={tier} />}
+												{/* Free users can walk through the paid workspace first (lib/sandbox). */}
+												{current === 'explore' && <WalkthroughButton product={tier} source="plans" />}
 											</>
 										)}
 							</div>

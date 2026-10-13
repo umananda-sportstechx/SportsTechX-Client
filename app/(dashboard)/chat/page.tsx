@@ -93,8 +93,8 @@ export default function RaiseChatPage() {
 						/>
 						{!hasThread && (
 							<div className="raise-chatpage-suggest">
-								{(isScout ? SCOUT_SUGGESTIONS : tier === 'raise' ? RAISE_SUGGESTIONS : EXPLORE_SUGGESTIONS).map((s) => (
-									<button key={s} type="button" className="atlas-composer-chip" onClick={() => void send(s)}>{s}</button>
+								{(isScout ? SCOUT_SUGGESTIONS : tier === 'raise' ? RAISE_SUGGESTIONS : EXPLORE_SUGGESTIONS).map((s, i) => (
+									<button key={s} type="button" className="atlas-composer-chip" data-tour={i === 0 ? 'chat-suggestion' : undefined} onClick={() => void send(s)}>{s}</button>
 								))}
 							</div>
 						)}

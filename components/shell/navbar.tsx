@@ -5,7 +5,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { ChevronRight, LogOut, Search, Settings, CreditCard, Loader2 } from 'lucide-react';
-import { cx, useDismiss, Logo } from '@/components/atlas';
+import { cx, menuEdgeRef, useDismiss, Logo } from '@/components/atlas';
 import { crumbsFor, type Crumb } from './breadcrumbs';
 import { initialsOf } from '@/components/atlas/shell/atlas-shell';
 import { ThemeToggle } from '@/components/atlas/shell/theme-toggle';
@@ -153,7 +153,7 @@ function NavSearch({ tier }: { tier: Tier }) {
 			</button>
 
 			{open && (
-				<div className="atlas-menu atlas-navsearch__menu" role="dialog" aria-label="Search Atlas">
+				<div ref={menuEdgeRef} className="atlas-menu atlas-navsearch__menu" role="dialog" aria-label="Search Atlas">
 					<div className="atlas-navsearch__field">
 						<Search size={11} aria-hidden="true" />
 						<input
@@ -225,7 +225,7 @@ function AccountMenu({ tier, accountPath }: { tier: Tier; accountPath: string })
 			</button>
 
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-account-menu" role="dialog" aria-label="Account">
+				<div ref={menuEdgeRef} className="atlas-menu atlas-menu--end atlas-account-menu" role="dialog" aria-label="Account">
 					<div className="atlas-menu__head">
 						<span className="atlas-ellipsis">{name || profile?.email || 'Signed in'}</span>
 					</div>
