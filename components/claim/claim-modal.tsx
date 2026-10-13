@@ -178,12 +178,35 @@ export function ClaimModal({
         deckPath = await uploadPitchDeck(form.deckFile, profile.id);
       }
       const targetId = selItem?.id ?? null;
-      const [url, dto] = role === 'founder'
-        ? ['/api/claims/company', buildCompanyDto(form, ref, targetId, deckPath)] as const
+      const changes = role === 'founder'
+        ? buildCompanyDto(form, ref, targetId, deckPath)
         : role === 'investor'
-          ? ['/api/claims/investor', buildInvestorDto(form, ref, targetId)] as const
-          : ['/api/claims/ecosystem-entity', buildEntityDto(form, targetId)] as const;
-      await apiRequest('POST', url, dto);
+          ? buildInvestorDto(form, ref, targetId)
+          : buildEntityDto(form, targetId);
+
+      if (target?.verified && targetId) {
+        // Editing an entity the viewer has *already verified*: this is not a
+        // new claim. It goes to the data-change-request queue so the published
+        // record stays live and untouched until an admin confirms the edit —
+        // and the newest edit replaces any still-pending one (server-side law).
+        await apiRequest('POST', '/api/data-change-requests', {
+          entity_type: role === 'founder' ? 'company' : role === 'investor' ? 'investor' : 'ecosystem',
+          target_company_id: role === 'founder' ? targetId : null,
+          target_investor_id: role === 'investor' ? targetId : null,
+          target_ecosystem_entity_id: role === 'operator' ? targetId : null,
+          target_name_snapshot: form.name || selItem?.name || null,
+          target_website_snapshot: form.website || null,
+          field_change: 'Profile update',
+          change_type: 'edit',
+          context: { kind: 'claim_edit', role, changes },
+          user_email: form.email || null,
+        });
+      } else {
+        const url = role === 'founder' ? '/api/claims/company'
+          : role === 'investor' ? '/api/claims/investor'
+            : '/api/claims/ecosystem-entity';
+        await apiRequest('POST', url, changes);
+      }
       await mutate(qk.claims.mine());
       setStep('done');
       onSubmitted?.();
@@ -741,7 +764,7 @@ export function ClaimModal({
               <div className="cm-done">
                 <div className="cm-done-badge"><Check size={30} /></div>
                 <h3 className="cm-done-h">{selMode === 'add' ? "We've got your details" : "You're in review"}</h3>
-                <p className="cm-done-p">Thanks{form.first ? `, ${form.first}` : ''}. We&apos;ve received your {selMode === 'add' ? 'submission' : `request to claim ${form.name}`}. Here&apos;s what happens next.</p>
+                <p className="cm-done-p">Thanks{form.first ? `, ${form.first}` : ''}. We&apos;ve received your {selMode === 'add' ? 'submission' : target?.verified ? `changes to ${form.name}` : `request to claim ${form.name}`}. Here&apos;s what happens next.</p>
                 <div className="cm-timeline">
                   <div className="cm-tl-row lit"><span className="cm-tl-ico"><Check size={15} /></span><span className="cm-tl-text"><span className="cm-tl-h">Submitted <span className="cm-tl-when">· just now</span></span><span className="cm-tl-p">Sent a confirmation to {form.email || 'your email'}.</span></span></div>
                   <div className="cm-tl-row"><span className="cm-tl-ico">2</span><span className="cm-tl-text"><span className="cm-tl-h">We verify the details <span className="cm-tl-when">· within 24–48h</span></span><span className="cm-tl-p">Our team confirms your role and your {R.noun} data. We may email you if anything needs a second look.</span></span></div>

@@ -1,8 +1,9 @@
 'use client';
 
 import { cloneElement, isValidElement, useId } from 'react';
-import type { ReactElement, ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ChangeEvent, ReactElement, ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './cx';
+import { Combobox } from './combobox';
 
 /** Form fields — mono uppercase labels, rounded inputs. Add `className="atlas-input--search"` for a pill search box. */
 
@@ -29,14 +30,24 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea {...props} className={cx('atlas-textarea', props.className)} />;
 }
 
-export function Select({ options, placeholder, ...props }: SelectHTMLAttributes<HTMLSelectElement> & {
-	options: [string, string][]; placeholder?: string;
-}) {
+export function Select({ options, placeholder, value, onChange, disabled, id, className, 'aria-label': ariaLabel }:
+	SelectHTMLAttributes<HTMLSelectElement> & { options: [string, string][]; placeholder?: string }) {
+	// Custom combobox, not a native <select> — same controlled contract, so the
+	// call sites (all reading `e.target.value`) are untouched: we hand onChange a
+	// minimal synthetic event. A provided placeholder becomes a selectable empty
+	// option, exactly as the native empty <option> was, so "All …" stays reachable.
+	const opts = placeholder !== undefined ? ([['', placeholder], ...options] as [string, string][]) : options;
 	return (
-		<select {...props} className={cx('atlas-select', props.className)}>
-			{placeholder !== undefined && <option value="">{placeholder}</option>}
-			{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-		</select>
+		<Combobox
+			options={opts}
+			placeholder={placeholder ?? 'Select…'}
+			value={value == null ? '' : String(value)}
+			disabled={disabled}
+			id={id}
+			ariaLabel={ariaLabel}
+			className={cx('atlas-select', className)}
+			onChange={(v) => onChange?.({ target: { value: v }, currentTarget: { value: v } } as unknown as ChangeEvent<HTMLSelectElement>)}
+		/>
 	);
 }
 

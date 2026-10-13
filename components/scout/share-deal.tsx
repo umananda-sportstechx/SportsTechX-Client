@@ -14,6 +14,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
+import { openClaim } from '@/lib/claim-events';
 
 /**
  * From the Circle → Share a deal: company, round, your involvement, review,
@@ -114,7 +115,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 				</p>
 				<div className="scout-intro__actions">
 					<Button href={hrefOf('deal-flow-circle')} variant="outline">Back to From the Circle</Button>
-					<Button href={hrefOf('verify')}>Get verified</Button>
+					<Button onClick={() => openClaim(null, 'investor')}>Get verified</Button>
 				</div>
 			</Card>
 		);
