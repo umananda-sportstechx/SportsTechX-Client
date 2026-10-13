@@ -10,7 +10,6 @@ import { hrefOf } from '@/lib/routes';
 import { TIER_EVENT, type TierRequiredDetail } from '@/lib/tier-events';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { PRODUCT } from './tier-gate';
-import { activeSandbox } from '@/lib/sandbox/store';
 
 /**
  * Global "your plan doesn't include this" modal. Mounted once
@@ -62,10 +61,7 @@ export function TierRequiredHost() {
 		>
 			{/* Falls back to the server's own sentence when the tier can't be
 			    named — better a plain message than a confidently wrong pitch. */}
-			{/* In Walk the Pitch practice the sandbox's own sentence says exactly
-			    what is locked (or that practice is view-only), so it wins over the
-			    generic product blurb. */}
-			{(activeSandbox() && detail.message) || (product?.blurb ?? detail.message ?? 'Your current plan does not include this.')}
+			{product?.blurb ?? detail.message ?? 'Your current plan does not include this.'}
 		</Modal>
 	);
 }

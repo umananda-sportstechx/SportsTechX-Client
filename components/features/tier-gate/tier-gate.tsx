@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import type { Tier } from '@/lib/access';
 import { hrefOf } from '@/lib/routes';
-import { WalkthroughButton } from '@/components/features/walkthrough/walkthrough-button';
 import './tier-gate.css';
 
 /**
@@ -76,8 +75,6 @@ export function TierGate({ tier, feature }: {
 				<div className="tier-gate__cta">
 					<Link href={hrefOf('billing')} className="atlas-btn atlas-btn--primary">Get {p.name}</Link>
 					<Link href={LANDING} className="atlas-btn atlas-btn--outline">Talk to the team</Link>
-					{/* Guided practice run of this product on sample data (lib/sandbox); Explore users only. */}
-					<WalkthroughButton product={tier} source="tier-gate" label="Walk the pitch first" className="atlas-btn atlas-btn--ghost" />
 				</div>
 			</section>
 			<section className="atlas-card tier-gate__about">

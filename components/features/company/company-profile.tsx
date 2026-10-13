@@ -100,7 +100,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 					</div>
 				</div>
 				<div className="atlas-co__actions">
-					<SaveToWatchlist companyId={c.id} companyName={c.name} data-tour="company-save-watchlist" />
+					<SaveToWatchlist companyId={c.id} companyName={c.name} />
 					{/* The highest-intent moment: they are looking at data about
 						    themselves that may be wrong. Pre-filling the target skips
 						    the search step the modal would otherwise open with. */}

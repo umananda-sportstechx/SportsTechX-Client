@@ -9,7 +9,6 @@ import { Empty, Loading, Logo, cx } from '@/components/atlas';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
-import { TierRequiredError } from '@/lib/tier-events';
 import { hrefOf } from '@/lib/routes';
 import {
 	INTEREST_LABEL, canOpenDocs, closeLabel, companyLabel, instrumentLabel, leadLabel, money,
@@ -110,9 +109,7 @@ export function DealDetail({ id }: { id: string }) {
 			toast.success('Request sent');
 			setOpen(false); setNote('');
 			void mutate();
-		} catch (e) {
-			// The upgrade modal already explains a locked action (e.g. practice mode).
-			if (e instanceof TierRequiredError) return;
+		} catch {
 			toast.error("Couldn't send your request. Please try again.");
 		} finally { setBusy(false); }
 	};
@@ -143,7 +140,6 @@ export function DealDetail({ id }: { id: string }) {
 					<button
 						type="button"
 						className={cx('scout-df-pill', !d.interest_status && 'scout-df-pill--primary')}
-						data-tour="scout-request-intro"
 						disabled={!!d.interest_status}
 						onClick={() => setOpen(true)}
 					>
@@ -223,7 +219,7 @@ export function DealDetail({ id }: { id: string }) {
 						</label>
 						<div className="scout-dd-modal__actions">
 							<button type="button" className="scout-df-pill" onClick={() => setOpen(false)}>Cancel</button>
-							<button type="button" className="scout-df-pill scout-df-pill--primary" data-tour="scout-intro-send" disabled={busy} onClick={() => void requestIntro()}>
+							<button type="button" className="scout-df-pill scout-df-pill--primary" disabled={busy} onClick={() => void requestIntro()}>
 								{busy ? 'Sending…' : 'Send request'}
 							</button>
 						</div>
@@ -264,8 +260,7 @@ function Documents({ d }: { d: DealRow }) {
 			if (!res.ok) throw new Error(String(res.status));
 			const { url } = (await res.json()) as { url: string };
 			window.open(url, '_blank', 'noopener,noreferrer');
-		} catch (e) {
-			if (e instanceof TierRequiredError) return;
+		} catch {
 			toast.error('That document isn’t available to you yet.');
 		} finally { setBusy(null); }
 	};
