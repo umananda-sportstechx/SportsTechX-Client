@@ -5,6 +5,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Button, Empty, Field, Input, Loading, Progress, Select } from '@/components/atlas';
+import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
@@ -239,7 +240,7 @@ function LiveEdit({ m, onSaved }: { m: MyDealRow; onSaved: () => void }) {
 				<Select value={lead} onChange={(e) => setLead(e.target.value)} options={Object.entries(LEAD_LABEL)} placeholder="No change" />
 			</Field>
 			<Field label="Target close date">
-				<Input type="date" value={close} onChange={(e) => setClose(e.target.value)} />
+				<DatePicker value={close} onChange={setClose} />
 			</Field>
 			<div style={{ display: 'flex', gap: 8 }}>
 				<Button size="sm" disabled={busy} onClick={() => void save()}>{busy ? 'Saving…' : 'Save'}</Button>

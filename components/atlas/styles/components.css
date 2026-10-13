@@ -163,6 +163,37 @@
 .atlas-combo-opt.is-active { background: var(--a-inset); }
 .atlas-combo-opt.is-selected { font-weight: 600; }
 .atlas-combo-empty { padding: 14px 12px; font-family: var(--a-body); font-size: 13px; color: var(--a-muted); text-align: center; }
+
+/* ── Date picker (custom calendar, replaces native <input type=date>) ───────*/
+.atlas-date {
+  background-image: none !important;
+  display: inline-flex; align-items: center; gap: 8px;
+  text-align: left; padding-left: 14px; padding-right: 12px; cursor: pointer;
+}
+.atlas-date__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas-date--placeholder .atlas-date__label { color: var(--a-faint); }
+.atlas-date__ico { flex-shrink: 0; color: var(--a-muted); }
+.atlas-datepanel {
+  position: fixed; z-index: 2000; padding: 10px;
+  background: var(--a-surface); border: 1px solid var(--a-border-strong); border-radius: 10px;
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--a-ink) 16%, transparent);
+}
+.atlas-datepanel__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.atlas-datepanel__month { font-family: var(--a-font); font-size: 13px; font-weight: 600; color: var(--a-ink); }
+.atlas-datepanel__nav { display: grid; place-items: center; width: 28px; height: 28px; border: 0; background: none; cursor: pointer; border-radius: 7px; color: var(--a-muted); }
+.atlas-datepanel__nav:hover { background: var(--a-inset); color: var(--a-ink); }
+.atlas-datepanel__dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.atlas-datepanel__dow span { text-align: center; font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--a-faint); padding: 2px 0; }
+.atlas-datepanel__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.atlas-datepanel__grid > span { height: 32px; }
+.atlas-dateday { height: 32px; border: 0; background: none; cursor: pointer; border-radius: 7px; font-family: var(--a-body); font-size: 12.5px; color: var(--a-ink); }
+.atlas-dateday:hover:not(:disabled), .atlas-dateday.is-focus { background: var(--a-inset); }
+.atlas-dateday.is-today { box-shadow: inset 0 0 0 1px var(--a-border-strong); }
+.atlas-dateday.is-selected { background: var(--a-primary); color: var(--a-primary-ink); }
+.atlas-dateday.is-selected:hover { background: var(--a-primary); }
+.atlas-dateday:disabled { opacity: 0.35; cursor: default; }
+.atlas-datepanel__clear { margin-top: 8px; width: 100%; border: 0; background: none; cursor: pointer; font-family: var(--a-body); font-size: 12px; color: var(--a-muted); padding: 6px; border-radius: 7px; }
+.atlas-datepanel__clear:hover { background: var(--a-inset); color: var(--a-ink); }
 /* Pill dropdown (Figma "Sort Button": ⌄ JULY). */
 .atlas-select--pill {
   height: 29px; border-radius: var(--a-radius-pill); padding: 0 14px 0 30px;
