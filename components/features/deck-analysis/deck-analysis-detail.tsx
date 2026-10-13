@@ -247,7 +247,7 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 							<FlaggedCol title="Diligence questions" items={scorecard.diligence_questions ?? []} tone="muted" icon={<HelpCircle size={13} />} />
 							<Col title={copy.strengths} items={scorecard.strengths} />
 						</> : <>
-							<Col title={copy.recommendations} items={scorecard.suggestions.map((s) => s.suggestion)} />
+							<Col title={copy.recommendations} items={scorecard.suggestions.map((s) => s.suggestion)} firstTour="deck-top-fix" />
 							<Col title={copy.strengths} items={scorecard.strengths} />
 							<Col title={copy.concerns} items={scorecard.risks} />
 						</>}
@@ -301,12 +301,12 @@ function Area({ label, score, shows, missing, defaultOpen, last }: { label: stri
 	);
 }
 
-function Col({ title, items }: { title: string; items: string[] }) {
+function Col({ title, items, firstTour }: { title: string; items: string[]; firstTour?: string }) {
 	return (
 		<div>
 			<div className="atlas-eyebrow">{title}</div>
 			<div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)' }}>
-				{items.length ? items.map((t, i) => <span key={i}>{t}</span>) : <span style={{ color: 'var(--a-faint)' }}>—</span>}
+				{items.length ? items.map((t, i) => <span key={i} data-tour={i === 0 ? firstTour : undefined}>{t}</span>) : <span style={{ color: 'var(--a-faint)' }}>—</span>}
 			</div>
 		</div>
 	);

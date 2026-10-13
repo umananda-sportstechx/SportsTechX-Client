@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import { cx } from '../ui/cx';
+import { menuEdgeRef } from './menu-edge';
 import { useDismiss } from './use-dismiss';
 
 export interface SwitcherList { id: string; name: string; /** Small right-aligned note, e.g. a count. */ meta?: string }
@@ -38,7 +39,7 @@ export function ListSwitcher({ lists, value, onChange, noun = 'list', onCreate, 
 				<ChevronDown /> <span className="atlas-switcher__current">{current?.name ?? `Select ${noun}`}</span>
 			</button>
 			{open && (
-				<div className="atlas-menu atlas-switcher__menu" role="dialog" aria-label={`Switch ${noun}`}>
+				<div ref={menuEdgeRef} className="atlas-menu atlas-switcher__menu" role="dialog" aria-label={`Switch ${noun}`}>
 					<div className="atlas-menu__head"><span>Your {noun}s</span></div>
 					<div className="atlas-switcher__search">
 						<Search size={11} aria-hidden="true" />

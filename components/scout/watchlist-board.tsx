@@ -46,7 +46,10 @@ export function WatchlistBoard({ id }: { id: string }) {
 											<Link href={companyHref(c.slug ?? c.id)} className="scout-board__name">{c.name}</Link>
 										</div>
 										<div className="scout-board__meta">{[c.primary_sector, c.hq_country].filter(Boolean).join(' · ')}</div>
-										<Combobox className="scout-board__select" ariaLabel={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(v) => move(c.id, v as BoardStage)} options={BOARD_STAGES.map((x) => [x, x] as [string, string])} />
+										{/* Wrapper carries the tour anchor: Combobox takes no data-* props. */}
+										<span style={{ display: 'inline-block' }} data-tour={c.id === companies[0]?.id ? 'scout-board-stage' : undefined}>
+											<Combobox className="scout-board__select" ariaLabel={`Stage for ${c.name}`} value={stageOf(c.id)} onChange={(v) => move(c.id, v as BoardStage)} options={BOARD_STAGES.map((x) => [x, x] as [string, string])} />
+										</span>
 									</article>
 								))}
 							</section>

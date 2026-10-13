@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Search, Plus, X, ChevronLeft, SlidersHorizontal, Lock } from 'lucide-react';
 import { cx } from '../ui/cx';
+import { menuEdgeRef } from './menu-edge';
 import { useDismiss } from './use-dismiss';
 import { useSearchSignal } from '@/hooks/use-search-signal';
 
@@ -84,7 +85,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 						</button>
 					</span>
 					{menu?.at === f.key && f.kind === 'select' && (
-						<div className="atlas-menu" role="dialog" aria-label={f.label}>
+						<div ref={menuEdgeRef} className="atlas-menu" role="dialog" aria-label={f.label}>
 							<OptionsView f={f} onDone={() => setMenu(null)} />
 						</div>
 					)}
@@ -96,7 +97,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 					<Plus /> Add filter
 				</button>
 				{menu?.at === 'add' && (
-					<div className={cx('atlas-menu', menu.view === 'root' && groups.length > 1 && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
+					<div ref={menuEdgeRef} className={cx('atlas-menu', menu.view === 'root' && groups.length > 1 && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
 						{menu.view === 'root' ? (
 							<div className="atlas-menu__groups">
 								{groups.map((g) => (
@@ -142,7 +143,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 							<SlidersHorizontal /> Sort by
 						</button>
 						{menu?.at === 'sort' && (
-							<div className="atlas-menu atlas-menu--end" role="dialog" aria-label="Sort by">
+							<div ref={menuEdgeRef} className="atlas-menu atlas-menu--end" role="dialog" aria-label="Sort by">
 								<div className="atlas-menu__list">
 									{sort.options.map(([v, l]) => (
 										<button key={v} type="button" className={cx('atlas-menu__item', v === sort.value && 'on')} aria-pressed={v === sort.value}

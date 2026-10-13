@@ -109,7 +109,7 @@ export function Recommended() {
 					<Empty>You&apos;ve dismissed every match. Undo above, or widen your thesis.</Empty>
 				) : (
 					<div className="atlas-rec-list">
-						{rows.map((c) => (
+						{rows.map((c, i) => (
 							<article key={c.id} className="atlas-rec">
 								<div className="atlas-rec__top">
 									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={72} radius={9} />
@@ -154,7 +154,7 @@ export function Recommended() {
 								<div className="atlas-rec__actions">
 									<button type="button" className="atlas-rec__dismiss" onClick={() => setDismissed([...dismissed, c.id])}>Not relevant</button>
 									<SaveToWatchlist companyId={c.id} companyName={c.name} />
-									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)}>
+									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)} data-tour={i === 0 ? 'scout-open-company' : undefined}>
 										<span className="atlas-action__icon"><ArrowUpRight /></span>View company
 									</Link>
 								</div>

@@ -25,6 +25,7 @@ export { Stat, Progress } from './ui/stat';
 // Patterns
 export { FilterBar } from './patterns/filter-bar';
 export { useDismiss } from './patterns/use-dismiss';
+export { menuEdgeRef } from './patterns/menu-edge';
 export type { FilterDef, FilterGroup } from './patterns/filter-bar';
 export { Logo, Flag, countryToIso } from './patterns/entity-logo';
 export { StagedLoader } from './patterns/staged-loader';

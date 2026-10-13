@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { Check, Loader2 } from 'lucide-react';
-import { getUserType, useUserProfile, type UserType } from '@/hooks/use-user-profile';
+// The plan chooser shows the account's real plan, never a Walk the Pitch practice tier.
+import { getRealUserType as getUserType, useUserProfile, type UserType } from '@/hooks/use-user-profile';
+import { WalkthroughButton } from '@/components/features/walkthrough/walkthrough-button';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { Button, Loading } from '@/components/atlas';
@@ -120,6 +122,10 @@ export function PaywallGate() {
 												: p.tier === 'explore' ? 'Continue on Explore'
 													: `Choose ${p.name}`}
 									</Button>
+									{/* Walk through the paid workspace first: settles the account on Explore, then starts the tour. */}
+									{(p.tier === 'raise' || p.tier === 'scout') && (
+										<WalkthroughButton product={p.tier} source="plan-chooser" beforeStart={() => choose('explore')} style={{ marginTop: 10 }} />
+									)}
 								</div>
 							);
 						})}
