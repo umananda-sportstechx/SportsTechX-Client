@@ -139,6 +139,9 @@ export const ROUTES: RouteDef[] = [
 		path: '/account',
 	},
 	{ id: 'billing', icon: 'nav-subscription', name: 'Subscription', path: '/billing' },
+	// STX credits (AI + exports) — its own page, every tier, so Explore can top
+	// up too. Reached from the account tab strip and the out-of-credits modal.
+	{ id: 'credits', icon: 'nav-subscription', name: 'Credits', path: '/credits' },
 	// Deliberately untiered. Claiming your company or fund is how the
 	// directory stays accurate, so a free user must be able to do it — the
 	// API never gated it and the UI used to have no door at all.
