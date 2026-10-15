@@ -146,7 +146,7 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	};
 
 	return (
-		<Screen width={900}>
+		<Screen>
 			<PageHead title="Account" sub={sub} />
 			<AccountTabs />
 
