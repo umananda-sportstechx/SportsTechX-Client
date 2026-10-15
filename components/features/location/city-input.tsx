@@ -2,22 +2,26 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useSWR from 'swr';
 import { Input, cx } from '@/components/atlas';
-import { useLocationFacetOptions } from '@/hooks/use-catalog-options';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 
 /**
- * City field with a proper Atlas-styled autocomplete — a free-text input (so a
- * city not in our data can still be typed) with a portalled suggestion panel
- * that reuses the combobox's look, so it matches the Country dropdown beside it.
+ * City field with a debounced, Atlas-styled autocomplete.
  *
- * The panel is portalled to <body> with fixed positioning (and flips above when
- * there's no room below), so it is never clipped by the setup modal's overflow —
- * the native `<datalist>` this replaces rendered as a clunky grey OS control.
+ * Suggestions come from `GET /api/locations/search?q=` — the ranked location
+ * typeahead (reference.repository.searchLocations): real places from the
+ * `locations` table, ordered by how many catalog records sit there (major
+ * cities first), de-duplicated on (city, state, country). Each hit carries its
+ * country, shown beside the city so same-named places are distinguishable. The
+ * query is debounced (250ms, min 2 chars) so it fires on a pause, not a keystroke.
  *
- * Suggestions come from `GET /api/locations/facets` (the cities already in our
- * data). They are NOT yet country-scoped: that list has no country mapping, so
- * narrowing to the chosen country needs a country→cities dataset (a data task).
+ * It stays free text — typing a city that isn't in the data is allowed. The
+ * panel is portalled to <body> (fixed, flips up when cramped) so it is never
+ * clipped by the setup modal's overflow, matching the Country dropdown's look.
  */
+interface LocHit { city: string | null; state: string | null; country: string | null }
+
 export function CityInput({ value, onChange, id, disabled, className, placeholder = 'City' }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -26,28 +30,27 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 	className?: string;
 	placeholder?: string;
 }) {
-	const loc = useLocationFacetOptions();
 	const [open, setOpen] = useState(false);
 	const [active, setActive] = useState(0);
 	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
-	const q = value.trim().toLowerCase();
-	// Up to 8 suggestions, prefix matches before substring matches. Capped so a
-	// flat list of thousands of cities never renders in full.
+	const debounced = useDebouncedValue(value.trim(), 250);
+	const { data } = useSWR<LocHit[]>(debounced.length >= 2 ? ['/api/locations/search', { q: debounced }] : null);
+
 	const matches = useMemo(() => {
-		if (!q) return [] as string[];
-		const starts: string[] = [], contains: string[] = [];
-		for (const [c] of loc.city) {
-			const lc = c.toLowerCase();
-			if (lc === q) continue;
-			if (lc.startsWith(q)) starts.push(c);
-			else if (contains.length < 8 && lc.includes(q)) contains.push(c);
-			if (starts.length >= 8) break;
+		const seen = new Set<string>(), out: { city: string; country: string | null }[] = [];
+		for (const r of data ?? []) {
+			if (!r.city) continue;
+			const k = `${r.city.toLowerCase()}|${(r.country ?? '').toLowerCase()}`;
+			if (seen.has(k)) continue;
+			seen.add(k);
+			out.push({ city: r.city, country: r.country });
+			if (out.length >= 8) break;
 		}
-		return [...starts, ...contains].slice(0, 8);
-	}, [q, loc.city]);
+		return out;
+	}, [data]);
 
 	const showPanel = open && !disabled && matches.length > 0;
 
@@ -87,7 +90,7 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 		if (!showPanel) return;
 		if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(matches.length - 1, i + 1)); }
 		else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
-		else if (e.key === 'Enter') { const c = matches[active]; if (c) { e.preventDefault(); pick(c); } }
+		else if (e.key === 'Enter') { const m = matches[active]; if (m) { e.preventDefault(); pick(m.city); } }
 		else if (e.key === 'Escape') { setOpen(false); }
 	};
 
@@ -113,18 +116,19 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 						role="listbox"
 					>
 						<div className="atlas-combo-list">
-							{matches.map((c, i) => (
+							{matches.map((m, i) => (
 								<button
-									key={c}
+									key={`${m.city}|${m.country ?? ''}`}
 									type="button"
 									role="option"
 									aria-selected={i === active}
 									className={cx('atlas-combo-opt', i === active && 'is-active')}
 									onMouseEnter={() => setActive(i)}
 									// mousedown, not click: fire before the input blurs and closes the panel.
-									onMouseDown={(e) => { e.preventDefault(); pick(c); }}
+									onMouseDown={(e) => { e.preventDefault(); pick(m.city); }}
 								>
-									<span>{c}</span>
+									<span>{m.city}</span>
+									{m.country && <span style={{ marginLeft: 'auto', color: 'var(--a-muted)', fontSize: 12 }}>{m.country}</span>}
 								</button>
 							))}
 						</div>
