@@ -12,7 +12,7 @@ import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, lockedFiltersNote } from '@/components/atlas';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
-import { SINCE_YEARS, DEALS_BUCKETS } from '@/lib/catalog-options';
+import { SINCE_YEARS, DEALS_BUCKETS, canonicalCountry } from '@/lib/catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import { hrefOf } from '@/lib/routes';
 
@@ -270,7 +270,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 					{inv.category && <div className="atlas-entity-card__eyebrow">{inv.category}</div>}
 					<div className="atlas-entity-card__name">{inv.name}</div>
 					{inv.hq_country && (
-						<div className="atlas-entity-card__meta"><Flag cc={inv.hq_country} size={11} /><span>{inv.hq_country}</span></div>
+						<div className="atlas-entity-card__meta"><Flag cc={inv.hq_country} size={11} /><span>{canonicalCountry(inv.hq_country)}</span></div>
 					)}
 				</div>
 			</div>

@@ -24,6 +24,10 @@ export const COUNTRY_OPTIONS: [string, string][] = [
 	['Saudi Arabia', 'Saudi Arabia'],
 ];
 
+// Canonical country-name folding lives in ./countries (the comprehensive list).
+// Re-exported here so the catalogs share the one definition.
+export { canonicalCountry } from './countries';
+
 /** Bucket options that map to a `*_min` numeric filter. */
 export const FUNDING_BUCKETS: [string, string][] = [['1000000', '$1M+'], ['10000000', '$10M+'], ['50000000', '$50M+'], ['100000000', '$100M+']];
 export const DEALS_BUCKETS: [string, string][] = [['1', '1+ deals'], ['3', '3+ deals'], ['5', '5+ deals'], ['10', '10+ deals']];
