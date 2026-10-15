@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useLocationFacetOptions } from '@/hooks/use-catalog-options';
+import { COUNTRY_SELECT_OPTIONS } from '@/lib/countries';
 import { Combobox, type ComboGroup } from '@/components/atlas/ui/combobox';
 
 /**
@@ -33,7 +34,10 @@ export function LocationSelect({ value, onChange, id, disabled, className = 'atl
 			.filter(([v]) => (seen.has(v) ? false : seen.add(v)))
 			.sort((a, b) => a[1].localeCompare(b[1]));
 	}, [loc.continent, loc.region]);
-	const countries = loc.country;
+	// Countries come from the curated canonical list (lib/countries), not the raw
+	// facets — a user from any country can pick theirs, and the stored value is one
+	// clean name ("United States"), never "USA"/junk. Regions still come from data.
+	const countries = COUNTRY_SELECT_OPTIONS;
 
 	// A saved value the facets don't contain (older free text) — keep it listed
 	// so switching this field to a dropdown never silently clears it.
