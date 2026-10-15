@@ -1,7 +1,7 @@
 'use client';
 
 import { AccountTabs } from './account-tabs';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { mutate } from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -55,6 +55,10 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	const { data: profile } = useUserProfile();
 	const [busy, setBusy] = useState(false);
 	const { logout, signingOut } = useLogout();
+	// Avatar upload: mint a signed URL, push the file straight to the public
+	// bucket, then persist the public URL on the profile. See uploadAvatar below.
+	const [avatarBusy, setAvatarBusy] = useState(false);
+	const fileRef = useRef<HTMLInputElement>(null);
 	// In-platform password change: open the form, re-auth with the current
 	// password, then update. No email round-trip.
 	const [pwOpen, setPwOpen] = useState(false);
@@ -110,6 +114,37 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 		finally { setBusy(false); }
 	};
 
+	// Signed-URL upload: POST mints a one-time token for the public bucket, the
+	// browser pushes the file to it, then PATCH stores the public URL. Mirrors
+	// the report-PDF upload pattern; no image bytes touch our API.
+	const uploadAvatar = async (file: File) => {
+		if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) { toast.error('Use a PNG, JPEG, WebP or GIF image.'); return; }
+		if (file.size > 3 * 1024 * 1024) { toast.error('Image must be under 3 MB.'); return; }
+		setAvatarBusy(true);
+		try {
+			const res = await apiRequest('POST', '/api/me/avatar-upload-url', { content_type: file.type });
+			if (!res.ok) throw new Error(String(res.status));
+			const { bucket, path, token, avatar_url } = await res.json() as { bucket: string; path: string; token: string; avatar_url: string };
+			const up = await getSupabaseBrowser().storage.from(bucket).uploadToSignedUrl(path, token, file, { contentType: file.type });
+			if (up.error) throw up.error;
+			const save = await apiRequest('PATCH', '/api/me', { avatar_url });
+			if (!save.ok) throw new Error(String(save.status));
+			await mutate(qk.profile());
+			toast.success('Photo updated.');
+		} catch (e) { toast.error((e as Error).message ?? 'Could not upload photo'); }
+		finally { setAvatarBusy(false); }
+	};
+	const removeAvatar = async () => {
+		setAvatarBusy(true);
+		try {
+			const res = await apiRequest('PATCH', '/api/me', { avatar_url: null });
+			if (!res.ok) throw new Error(String(res.status));
+			await mutate(qk.profile());
+			toast.success('Photo removed.');
+		} catch (e) { toast.error((e as Error).message ?? 'Could not remove photo'); }
+		finally { setAvatarBusy(false); }
+	};
+
 	return (
 		<Screen>
 			<PageHead title="Account" sub={sub} />
@@ -119,10 +154,23 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 				<Card>
 					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Profile</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-						<div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 'var(--a-radius-sm)', background: 'var(--a-primary)', display: 'grid', placeItems: 'center', fontSize: 16, fontFamily: 'var(--a-mono)', color: 'var(--a-primary-ink)' }}>{initial}</div>
+						<div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 'var(--a-radius-sm)', overflow: 'hidden', background: 'var(--a-primary)', display: 'grid', placeItems: 'center', fontSize: 16, fontFamily: 'var(--a-mono)', color: 'var(--a-primary-ink)' }}>
+							{profile?.avatar_url
+								// eslint-disable-next-line @next/next/no-img-element
+								? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+								: initial}
+						</div>
 						<div style={{ minWidth: 0 }}>
 							<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{name || '—'}</div>
 							<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)', marginTop: 4 }}>{profile?.account_type === 'founder' ? 'Founder' : profile?.account_type === 'investor' ? 'Investor' : profile?.account_type ?? ''}{profile?.company_name ? `, ${profile.company_name}` : ''}</div>
+							<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+								<input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }}
+									onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadAvatar(f); e.target.value = ''; }} />
+								<Button variant="outline" size="sm" disabled={avatarBusy} onClick={() => fileRef.current?.click()}>
+									{avatarBusy ? <Loader2 size={13} className="animate-spin" /> : null}{profile?.avatar_url ? 'Change photo' : 'Upload photo'}
+								</Button>
+								{profile?.avatar_url && <Button variant="outline" size="sm" disabled={avatarBusy} onClick={() => void removeAvatar()}>Remove</Button>}
+							</div>
 						</div>
 					</div>
 					<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
