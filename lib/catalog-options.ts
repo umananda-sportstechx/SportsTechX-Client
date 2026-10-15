@@ -24,6 +24,18 @@ export const COUNTRY_OPTIONS: [string, string][] = [
 	['Saudi Arabia', 'Saudi Arabia'],
 ];
 
+/**
+ * Map any spelling a country appears under in the data to its canonical display
+ * name (the label in COUNTRY_OPTIONS), so the UI shows one uniform "United
+ * States" whether a row stored "USA", "United States", etc. Values we don't
+ * recognise pass through unchanged.
+ */
+const COUNTRY_CANONICAL: Record<string, string> = Object.fromEntries(
+	COUNTRY_OPTIONS.flatMap(([csv, label]) => csv.split(',').map((v) => [v.trim().toLowerCase(), label])),
+);
+export const canonicalCountry = (raw: string | null | undefined): string =>
+	raw ? COUNTRY_CANONICAL[raw.trim().toLowerCase()] ?? raw : '';
+
 /** Bucket options that map to a `*_min` numeric filter. */
 export const FUNDING_BUCKETS: [string, string][] = [['1000000', '$1M+'], ['10000000', '$10M+'], ['50000000', '$50M+'], ['100000000', '$100M+']];
 export const DEALS_BUCKETS: [string, string][] = [['1', '1+ deals'], ['3', '3+ deals'], ['5', '5+ deals'], ['10', '10+ deals']];
