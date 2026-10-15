@@ -11,6 +11,7 @@ import { Screen, PageHead, Card, Field, Input, Select, ReadOnly, Button, Loading
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { AccountTabs } from '@/components/features/account/account-tabs';
 import { LocationSelect } from '@/components/features/location/location-select';
+import { CityInput } from '@/components/features/location/city-input';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 import { DealflowOptIn } from '@/components/raise/dealflow-opt-in';
 
@@ -111,7 +112,7 @@ export default function RaiseSettingsPage() {
 					{linked && <div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-ink-2)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', padding: '10px 14px', background: 'var(--a-navy-soft)' }}>Your company is linked to the Atlas database. Its public details are read-only here — use Get verified to request changes.</div>}
 					<Grid n={2}><Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field><Field label="Website"><Input value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field></Grid>
 					<Grid n={3}>
-						<Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field>
+						<Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} disabled={coLock('hq_city')} /></Field>
 						<Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field>
 						<Field label="Current stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 					</Grid>
