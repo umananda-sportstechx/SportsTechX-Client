@@ -35,8 +35,9 @@ export function AccountTabs() {
 	// Explore has no subscription to manage — it is the free tier, and its
 	// upgrade surface is the product-access card on the Account tab.
 	if (tier !== 'explore') tabs.push({ id: 'billing', label: 'Subscription' });
-
-	if (tabs.length === 1) return null;
+	// Credits (AI + exports) are a separate purchase from a plan, and every
+	// tier can buy them — including Explore, which has no Subscription tab.
+	tabs.push({ id: 'credits', label: 'Credits' });
 
 	return (
 		<nav className="atlas-acct-tabs" aria-label="Account sections">

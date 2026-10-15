@@ -12,8 +12,8 @@ import { hrefOf } from '@/lib/routes';
 /**
  * Global "out of STX credits" modal. Mounted once (app/providers.tsx); opens
  * when anything hits a 402 INSUFFICIENT_CREDITS (the API layer dispatches
- * `stx:credits-exhausted`). The CTA goes to /billing, which hosts both plan
- * upgrades and one-off credit packs.
+ * `stx:credits-exhausted`). The CTA goes to /credits, where any tier can top
+ * up (Explore included); plan upgrades live separately on /billing.
  *
  * In the chatbot the exhaustion is shown inline instead (the chat owns its own
  * error surface), so this modal is for everywhere else.
@@ -54,7 +54,7 @@ export function CreditExhaustionHost() {
 			footer={
 				<>
 					<Button variant="ghost" onClick={() => setOpen(false)}>Maybe later</Button>
-					<Button onClick={() => { setOpen(false); router.push(hrefOf('billing')); }}>
+					<Button onClick={() => { setOpen(false); router.push(hrefOf('credits')); }}>
 						<Sparkles size={14} /> Get more credits
 					</Button>
 				</>

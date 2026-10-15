@@ -2,12 +2,10 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import useSWRInfinite from 'swr/infinite';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
-import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
@@ -42,8 +40,6 @@ const PLAN: Record<string, { label: string; price: string }> = {
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
 interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
 interface SubRow { stripe_subscription_id: string; subscription_status: string; is_active: boolean; is_trial: boolean; plan_name: string | null; user_type: string; subscription_current_period_end: string | null; subscription_cancel_at: string | null; updated_at: string }
-interface Pack { id: string; name: string; credit_amount: number; price_amount: number; currency_code: string }
-interface LedgerRow { id: string; transaction_type: string; amount: number; description: string | null; display_name: string | null; occurred_at: string }
 
 const fmtMoney = (cents: number, ccy: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase() }).format((cents ?? 0) / 100);
 const fmtDate = (unixSec: number) => new Date(unixSec * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -66,10 +62,6 @@ export default function BillingPage() {
 	const sub = useSWR<Sub | null>(['/api/billing/subscription']);
 	const allSubs = useSWR<SubRow[]>(['/api/billing/subscriptions']);
 	const invoices = useSWR<Invoice[]>(['/api/billing/invoices']);
-	const packs = useSWR<{ data: Pack[] }>(['/api/billing/credit-packs']);
-	const ledger = useSWRInfinite<{ data: LedgerRow[]; nextCursor: string | null }>(
-		(index, prev) => (prev && !prev.nextCursor) ? null : qk.credits.ledger('all', index === 0 ? undefined : (prev?.nextCursor ?? undefined), 25),
-	);
 	const { balance: bal } = useCreditBalance();
 	const [busy, setBusy] = useState<string | null>(null);
 
@@ -90,24 +82,8 @@ export default function BillingPage() {
 		}
 	};
 
-	const buyPack = async (packId: string) => {
-		setBusy(packId);
-		try {
-			const res = await apiRequest('POST', '/api/billing/credit-packs/checkout', { pack_id: packId });
-			const body = (await res.json()) as { url?: string };
-			if (body.url) { window.location.assign(body.url); return; }
-			throw new Error('no url');
-		} catch {
-			toast.error("Couldn't start checkout. Please try again.");
-			setBusy(null);
-		}
-	};
-
 	const rows = invoices.data ?? [];
 	const pastSubs = (allSubs.data ?? []).filter((s) => !s.is_active);
-	const packList = packs.data?.data ?? [];
-	const ledgerRows = ledger.data?.flatMap((p) => p.data) ?? [];
-	const ledgerHasMore = !!ledger.data?.[ledger.data.length - 1]?.nextCursor;
 
 	return (
 		<Screen width={900}>
@@ -149,46 +125,14 @@ export default function BillingPage() {
 			</Card>
 
 			<Card style={{ marginBottom: 8 }}>
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-					<div style={CARD_TITLE}>AI credits</div>
-					{bal && <div style={{ fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)' }}>{bal.total_available.toLocaleString()} available{bal.monthly_grant ? ` · ${bal.monthly_balance.toLocaleString()}/${bal.monthly_grant.toLocaleString()} monthly` : ''}{bal.topup_balance ? ` · ${bal.topup_balance.toLocaleString()} top-up` : ''}</div>}
-				</div>
-				<p style={{ ...BODY, margin: '8px 0 16px' }}>Credits power the AI co-pilot. Monthly credits renew each month; top-ups never expire.</p>
-				{packList.length === 0 ? <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No credit packs available right now.</div> : (
-					<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-						{packList.map((pk) => (
-							<Button key={pk.id} size="sm" variant="outline" disabled={busy !== null} onClick={() => void buyPack(pk.id)}>
-								{busy === pk.id ? <Loader2 className="animate-spin" size={13} /> : `${pk.credit_amount.toLocaleString()} credits — ${fmtMoney(pk.price_amount, pk.currency_code)}`}
-							</Button>
-						))}
+				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+					<div>
+						<div style={CARD_TITLE}>STX credits</div>
+						<p style={{ ...BODY, margin: '6px 0 0' }}>{bal ? `${bal.total_available.toLocaleString()} available` : 'AI features and exports'} — buy credits and see your history on the Credits page.</p>
 					</div>
-				)}
+					<Button variant="outline" size="sm" onClick={() => router.push(hrefOf('credits'))}>Manage credits</Button>
+				</div>
 			</Card>
-
-			<div className="atlas-eyebrow" style={SECTION}>AI credit history</div>
-			{ledger.isLoading ? <Loading />
-				: ledger.error ? <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>Couldn&apos;t load credit history.</div></Card>
-					: ledgerRows.length === 0 ? <Card><div style={{ fontSize: 13, color: 'var(--a-faint)' }}>No AI credit activity yet.</div></Card>
-						: (
-							<Card style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
-								{ledgerRows.map((r, i) => (
-									<div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 23px', borderTop: i ? '1px solid var(--a-border)' : 'none' }}>
-										<div>
-											<div style={ROW_TITLE}>{r.display_name ?? r.description ?? r.transaction_type.replace(/_/g, ' ')}</div>
-											<div style={META}>{fmtISO(r.occurred_at)}</div>
-										</div>
-										<div style={{ fontFamily: 'var(--a-mono)', fontSize: 12, color: r.amount >= 0 ? 'var(--a-ok)' : 'var(--a-muted)' }}>{r.amount >= 0 ? '+' : ''}{r.amount.toLocaleString()}</div>
-									</div>
-								))}
-								{ledgerHasMore && (
-									<div style={{ padding: '14px 23px', borderTop: '1px solid var(--a-border)', textAlign: 'center' }}>
-										<Button variant="outline" size="sm" disabled={ledger.isValidating} onClick={() => void ledger.setSize(ledger.size + 1)}>
-											{ledger.isValidating ? <Loader2 className="animate-spin" size={13} /> : 'Load more'}
-										</Button>
-									</div>
-								)}
-							</Card>
-						)}
 
 			{pastSubs.length > 0 && (
 				<>
