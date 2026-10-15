@@ -650,7 +650,7 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">AUM <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.aum} onChange={(e) => set('aum', e.target.value)} placeholder="e.g. 230M" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">AUM in USD <span className="cm-opt">(optional)</span></label><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.aum} onChange={(e) => set('aum', e.target.value)} placeholder="e.g. 20000000" /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Focus <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.focus} onChange={(e) => set('focus', e.target.value)} placeholder="e.g. Seed–Series A" /></div>
                     </div>
 
