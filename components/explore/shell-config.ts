@@ -17,6 +17,6 @@ export const EXPLORE_COLOR = 'var(--a-pink)';
  * (the sidebar cards, Account's product access tiles and onboarding), and one
  * of them should not be able to drift from the others again.
  */
-import { hrefOf } from '@/lib/routes';
+import { PLANS_PATH } from '@/lib/routes';
 
-export const PLANS_HREF = hrefOf('plans');
+export const PLANS_HREF = PLANS_PATH;
