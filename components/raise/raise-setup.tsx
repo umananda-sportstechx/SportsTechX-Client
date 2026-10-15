@@ -12,6 +12,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { LocationSelect } from '@/components/features/location/location-select';
+import { CityInput } from '@/components/features/location/city-input';
 import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 
@@ -29,6 +30,10 @@ const STEPS = ['Company', 'Your raise', 'History & traction', 'What’s ready', 
 // Required fields per step (Notion "Required: Yes"). Validated client-side so setup
 // can't complete with gaps (e.g. an empty Category → no sector → dead Market). Also
 // drives resume-at-first-incomplete-step. Module-level: static, no component deps.
+// Preset target-geography options for the multi-select (continents + the regions
+// the investor data actually uses). "Global" is the catch-all.
+const GEO_OPTIONS = ['North America', 'Europe', 'United Kingdom', 'Middle East', 'Africa', 'Asia', 'South Asia', 'Southeast Asia', 'East Asia', 'Latin America', 'Oceania', 'Global'];
+
 const REQUIRED: { key: string; label: string; kind?: 'array' | 'bool' }[][] = [
 	[{ key: 'company_name', label: 'Company name' }, { key: 'company_website', label: 'Website' }, { key: 'hq_country', label: 'Country' }, { key: 'hq_city', label: 'City' }, { key: 'company_description', label: 'What the company does' }, { key: 'company_sector_id', label: 'Category' }, { key: 'company_stage', label: 'Stage' }, { key: 'revenue_status', label: 'Revenue status' }],
 	[{ key: 'fundraising_process', label: 'Fundraising process' }, { key: 'round_type', label: 'Round' }, { key: 'target_amount', label: 'Amount raising' }, { key: 'committed_amount', label: 'Already committed' }, { key: 'target_close_date', label: 'Target close date' }, { key: 'lead_investor_status', label: 'Lead investor' }, { key: 'structure', label: 'Structure' }],
@@ -258,7 +263,7 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 						)}
 						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field>
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field>
-						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><Input value={s(form.hq_city)} onChange={(e) => set('hq_city', e.target.value)} disabled={coLock('hq_city')} /></Field></Grid>
+						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} disabled={coLock('hq_city')} /></Field></Grid>
 						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
 						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
 						{linked && <div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: -6 }}>Company details come from the Atlas profile. Verify your company to request changes.</div>}
@@ -307,7 +312,7 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 
 					{step === 4 && <>
 						<Multi label="Which investor types are you targeting?" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
-						<Field label="Target geographies"><Input placeholder="Europe, UK" value={Array.isArray(crit.geographies) ? (crit.geographies as string[]).join(', ') : ''} onChange={(e) => setC('geographies', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></Field>
+						<Multi label="Target geographies" v={crit.geographies} on={(x) => setC('geographies', x)} opts={GEO_OPTIONS} />
 						<Grid><Field label="Cheque size — minimum"><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field><Field label="Cheque size — maximum"><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field></Grid>
 						<Grid>
 							<Field label="Lead, followers or both?"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Lead'], ['followers', 'Followers'], ['both', 'Both']]} /></Field>
