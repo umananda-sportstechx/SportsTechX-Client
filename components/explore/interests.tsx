@@ -46,8 +46,10 @@ interface StoredInterests { sectors: Ref[]; sports: Ref[]; geos: string[]; goals
 
 type Group = { label: string; options: [value: string, label: string][]; backed: boolean };
 
-/** Chip options per group: taxonomy-backed ones carry ids, local ones carry their own text. */
-export function useInterestOptions(): Record<keyof Interests, Group> {
+/** Chip options per group: taxonomy-backed ones carry ids, local ones carry their own text.
+ *  `subTop` maps each sub-sector id to its top pillar id, so the Sub-sectors group
+ *  can cascade — showing only the children of the sectors the user picked. */
+export function useInterestOptions(): Record<keyof Interests, Group> & { subTop: Map<string, string> } {
 	const { data: sectorData } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
 	const { data: sportData } = useSWR<Ref[] | { data: Ref[] }>(qk.reference.sports(), { dedupingInterval: 60 * 60_000 });
 	const sectorList = useMemo<SectorRef[]>(() => (Array.isArray(sectorData) ? sectorData : (sectorData?.data ?? [])), [sectorData]);
@@ -58,12 +60,22 @@ export function useInterestOptions(): Record<keyof Interests, Group> {
 		const pair = (r: { id: string; name: string | null }): [string, string] => [r.id, r.name ?? ''];
 		const byLabel = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1]);
 		const topIds = new Set(tiers.tops.map((s) => s.id));
+		// Each sub-sector's top pillar, by walking parent_id — lets the UI show only
+		// the sub-sectors under a chosen sector.
+		const byId = new Map(sectorList.map((s) => [s.id, s]));
+		const topAncestor = (s: SectorRef): string => {
+			let cur = s, d = 0;
+			while (cur.parent_id && d < 6) { const p = byId.get(cur.parent_id); if (!p) break; cur = p; d++; }
+			return cur.id;
+		};
+		const subTop = new Map(sectorList.filter((s) => !topIds.has(s.id)).map((s) => [s.id, topAncestor(s)] as [string, string]));
 		return {
 			sectors: { label: 'Sectors', backed: true, options: tiers.tops.map(pair).sort(byLabel) },
 			subs: { label: 'Sub-sectors', backed: true, options: sectorList.filter((s) => !topIds.has(s.id)).map(pair).sort(byLabel) },
 			sports: { label: 'Sports', backed: true, options: sportList.map(pair).sort(byLabel) },
 			geos: { label: FIXED_OPTIONS.geos.label, backed: true, options: FIXED_OPTIONS.geos.options.map((o) => [o, o] as [string, string]) },
 			goals: { label: FIXED_OPTIONS.goals.label, backed: true, options: FIXED_OPTIONS.goals.options.map((o) => [o, o] as [string, string]) },
+			subTop,
 		};
 	}, [tiers, sectorList, sportList]);
 }
@@ -129,25 +141,49 @@ export function InterestFields({ value, onChange, keys }: {
 	keys: (keyof Interests)[];
 }) {
 	const opts = useInterestOptions();
-	const toggle = (k: keyof Interests, o: string) =>
+	const { subTop } = opts;
+	const toggle = (k: keyof Interests, o: string) => {
+		// Deselecting a sector drops the sub-sectors that hung off it, so a stale
+		// child can't stay saved after its parent is gone.
+		if (k === 'sectors') {
+			const nextSectors = value.sectors.includes(o) ? value.sectors.filter((x) => x !== o) : [...value.sectors, o];
+			const allowed = new Set(nextSectors);
+			const nextSubs = value.subs.filter((id) => { const t = subTop.get(id); return !!t && allowed.has(t); });
+			onChange({ ...value, sectors: nextSectors, subs: nextSubs });
+			return;
+		}
 		onChange({ ...value, [k]: value[k].includes(o) ? value[k].filter((x) => x !== o) : [...value[k], o] });
+	};
+	// Sub-sectors cascade from the chosen sectors: show only children of a picked
+	// pillar, so the list isn't a flat dump of every sub-sector in the taxonomy.
+	const optionsFor = (k: keyof Interests): [string, string][] =>
+		k === 'subs'
+			? opts.subs.options.filter(([v]) => { const t = subTop.get(v); return !!t && value.sectors.includes(t); })
+			: opts[k].options;
 	return (
 		<div className="explore-interests">
-			{keys.map((k) => (
-				<div key={k} className="explore-interests__group">
-					<div className="explore-interests__label">
-						{opts[k].label}
+			{keys.map((k) => {
+				const options = optionsFor(k);
+				return (
+					<div key={k} className="explore-interests__group">
+						<div className="explore-interests__label">
+							{opts[k].label}
+						</div>
+						<div className="explore-chips">
+							{opts[k].options.length === 0
+								? <span className="explore-muted">Loading…</span>
+								: k === 'subs' && value.sectors.length === 0
+									? <span className="explore-muted">Pick a sector first to see its sub-sectors.</span>
+									: options.length === 0
+										? <span className="explore-muted">No sub-sectors for the selected sector{value.sectors.length > 1 ? 's' : ''}.</span>
+										: options.map(([v, label]) => {
+											const on = value[k].includes(v);
+											return <button key={v} type="button" className={cx('explore-chip', on && 'on')} aria-pressed={on} onClick={() => toggle(k, v)}>{label}</button>;
+										})}
+						</div>
 					</div>
-					<div className="explore-chips">
-						{opts[k].options.length === 0
-							? <span className="explore-muted">Loading…</span>
-							: opts[k].options.map(([v, label]) => {
-								const on = value[k].includes(v);
-								return <button key={v} type="button" className={cx('explore-chip', on && 'on')} aria-pressed={on} onClick={() => toggle(k, v)}>{label}</button>;
-							})}
-					</div>
-				</div>
-			))}
+				);
+			})}
 		</div>
 	);
 }

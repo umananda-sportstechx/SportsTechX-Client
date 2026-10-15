@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Field, Input } from '@/components/atlas';
 import { LocationSelect } from '@/components/features/location/location-select';
+import { CityInput } from '@/components/features/location/city-input';
 import { useVerifyState } from '@/components/features/verify/verify-cta';
 import { FundPicker } from './fund-picker';
 import { ChipSet, AddButton, PickerDialog, toggleIn, withSelected } from './thesis-fields';
@@ -56,10 +57,12 @@ export function FundFields({ t, patch }: Props) {
 			<div className="scout-form-grid">
 				<Field label="Website"><Input {...text(t, patch, 'website')} placeholder="fund.com" disabled={linked} /></Field>
 				<Field label="Country"><LocationSelect value={t.country} onChange={(v) => patch({ country: v })} /></Field>
-				<Field label="City"><Input {...text(t, patch, 'city')} placeholder="City" /></Field>
+				<Field label="City"><CityInput value={String(t.city ?? '')} onChange={(v) => patch({ city: v })} /></Field>
 			</div>
 			<FieldBlock label="Investor type"><ChipSet options={THESIS_OPTIONS.investorType} value={t.investorType} onToggle={(o) => patch({ investorType: o })} /></FieldBlock>
-			<FieldBlock label="Fund size / AUM"><ChipSet options={THESIS_OPTIONS.aum} value={t.aum} onToggle={(o) => patch({ aum: o })} /></FieldBlock>
+			<FieldBlock label="Fund size / AUM (USD)" hint="Full amount in USD, numbers only — e.g. 20000000">
+				<Input type="number" min={0} inputMode="numeric" value={String(t.aum ?? '')} onChange={(e) => patch({ aum: e.target.value })} placeholder="e.g. 20000000" />
+			</FieldBlock>
 		</>
 	);
 }
