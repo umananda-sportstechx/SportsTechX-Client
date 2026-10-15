@@ -10,7 +10,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useNav } from '@/hooks/use-nav';
 import { flattenNav } from '@/components/atlas/shell/nav';
 import { qk } from '@/lib/query-keys';
-import { companyHref, hrefOf } from '@/lib/routes';
+import { companyHref, hrefOf, PLANS_PATH } from '@/lib/routes';
 import type { Tier } from '@/lib/access';
 import './command-palette.css';
 
@@ -86,7 +86,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 		if (tier === 'raise') extra.push({ label: 'Raise settings', href: hrefOf('raise-settings'), group: 'Account', icon: 'nav-thesis' });
 		if (tier === 'scout') extra.push({ label: 'Thesis settings', href: hrefOf('thesis'), group: 'Account', icon: 'nav-thesis' });
 		if (tier !== 'explore') extra.push({ label: 'Subscription', href: hrefOf('billing'), group: 'Account', icon: 'nav-subscription' });
-		else extra.push({ label: 'Compare plans', href: hrefOf('plans'), group: 'Account', icon: 'nav-subscription' });
+		else extra.push({ label: 'Compare plans', href: PLANS_PATH, group: 'Account', icon: 'nav-subscription' });
 
 		const seen = new Set<string>();
 		return [...fromNav, ...extra].filter((p) => {

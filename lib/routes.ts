@@ -146,9 +146,9 @@ export const ROUTES: RouteDef[] = [
 	// directory stays accurate, so a free user must be able to do it — the
 	// API never gated it and the UI used to have no door at all.
 	{ id: 'verify', icon: 'nav-onboarding', name: 'Get verified', path: '/verify' },
-	// Reachable from the sidebar upgrade cards, the tier gate and billing, but
-	// never listed in a sidebar — it is a destination, not a section.
-	{ id: 'plans', icon: 'nav-subscription', name: 'Plans', path: '/plans' },
+	// Plans moved to a PUBLIC, chrome-less route (app/plans) so it can be viewed
+	// signed-out and shown in onboarding without the shell. It is therefore NOT a
+	// ROUTES entry any more (those are all edge-gated); link to it via PLANS_PATH.
 	{
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
@@ -188,6 +188,9 @@ export const ROUTES: RouteDef[] = [
 ];
 
 export const ROUTE_BY_ID = new Map(ROUTES.map((r) => [r.id, r]));
+
+/** The public pricing page. Not a gated ROUTES entry — link to it directly. */
+export const PLANS_PATH = '/plans';
 
 /** A sidebar group. `title: null` renders its items at the top, ungrouped. */
 export interface NavGroup {

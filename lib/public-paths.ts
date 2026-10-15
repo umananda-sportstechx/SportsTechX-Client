@@ -45,6 +45,7 @@ export const PUBLIC_PATHS = [
   '/confirm',
   '/privacy-policy',
   '/terms-of-service',
+  '/plans', // public pricing page (app/plans) — viewable signed in or out
   '/w', // /w/[token] — public read-only shared watchlist pages
 ] as const;
 
@@ -87,9 +88,9 @@ export function isPublicPath(pathname: string): boolean {
  */
 export const PRIVATE_PREFIXES = [
   // Dashboard routes — mirrors `ROUTES` in lib/routes.ts (nav.check enforces it).
-  '/account', '/analytics', '/billing', '/chat', '/companies', '/deal-flow',
+  '/account', '/analytics', '/billing', '/chat', '/companies', '/credits', '/deal-flow',
   '/deck', '/events', '/framework', '/home', '/interests',
-  '/investors', '/my-market', '/newsletter', '/pipeline', '/plans', '/programs',
+  '/investors', '/my-market', '/newsletter', '/pipeline', '/programs',
   '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
   // Not in ROUTES: the onboarding tree, the integration docs, and the

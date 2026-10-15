@@ -3,8 +3,8 @@
 import { Screen } from '@/components/atlas';
 import { Plans } from '@/components/features/plans/plans';
 
-/** Plans — every tier side by side, with the viewer's own marked. */
-export default function Page() {
+/** Public pricing — every tier side by side. CTAs route to signup when logged out. */
+export default function PlansPage() {
 	return (
 		<Screen>
 			<Plans />

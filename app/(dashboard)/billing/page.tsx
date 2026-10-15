@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
-import { hrefOf } from '@/lib/routes';
+import { hrefOf, PLANS_PATH } from '@/lib/routes';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { AccountTabs } from '@/components/features/account/account-tabs';
@@ -119,7 +119,7 @@ export default function BillingPage() {
 					{/* One plan picker, not two. These cards duplicated the tier list with
 						    hardcoded prices, so a price change in the admin left them lying.
 						    The plans page reads `subscription_plans` and the live matrix. */}
-					<Button size="sm" onClick={() => router.push(hrefOf('plans'))}>See plans</Button>
+					<Button size="sm" onClick={() => router.push(PLANS_PATH)}>See plans</Button>
 					</>
 				)}
 			</Card>
