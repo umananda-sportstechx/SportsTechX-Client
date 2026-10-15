@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import type { AccountType } from '@/hooks/use-user-profile';
+import { type AccountType, useUserProfile } from '@/hooks/use-user-profile';
 import type { ClaimRole } from '@/lib/claim-events';
 import { patchOnboarding } from '@/lib/onboarding';
 import { AuthBrand } from '@/components/auth/auth-shell';
 import { PersonaStep } from '@/components/onboarding/persona-step';
-import { PaywallGate } from '@/components/paywall/paywall-gate';
+import { Plans } from '@/components/features/plans/plans';
 
 // Loaded only once a persona branches into the claim flow. A static import here
 // put ~750 lines into this route's bundle for a modal two of the three paths
@@ -18,21 +18,22 @@ import { PaywallGate } from '@/components/paywall/paywall-gate';
 const ClaimModal = dynamic(() => import('@/components/claim/claim-modal').then((m) => m.ClaimModal), { ssr: false });
 
 /**
- * What a new account sees after confirming its email: the plan chooser, then
- * the persona picker.
+ * What a new account sees after confirming its email: the plan step, then the
+ * persona picker.
  *
- * `PaywallGate` is a fixed overlay that self-suppresses once `paywall_shown_at`
- * is stamped, so it covers this page until the visitor picks a plan and then
- * uncovers the persona step underneath. Choosing Explore stamps and stays;
+ * The plan step is the shared `Plans` page in onboarding mode — the same UI as
+ * /plans, not a separate chooser. It shows until `paywall_shown_at` is stamped:
+ * choosing Explore (or "maybe later") stamps and advances to the persona step;
  * choosing Raise or Scout leaves for Stripe and comes back via
  * `/billing/success`, which waits for the webhook before stamping anything.
  *
- * It sits on this route rather than in the app shell on purpose — as an overlay
- * over the dashboard it would have ambushed every pre-existing unstamped
- * account, including people already paying.
+ * It sits on this route (no app shell) on purpose — as an overlay over the
+ * dashboard it would have ambushed every pre-existing unstamped account,
+ * including people already paying.
  */
 export default function OnboardingPage() {
 	const router = useRouter();
+	const { data: profile, mutate: refreshProfile } = useUserProfile();
 	const [busy, setBusy] = useState(false);
 	const [claimRole, setClaimRole] = useState<ClaimRole | null>(null);
 
@@ -80,11 +81,21 @@ export default function OnboardingPage() {
 		);
 	}
 
+	// Plan step first — the shared Plans page, until the one-time paywall is
+	// stamped. Choosing Explore / "maybe later" stamps it and this falls through
+	// to the persona step on the next render; a paid plan leaves for Stripe.
+	if (profile && !profile.paywall_shown_at) {
+		return (
+			<div className="onb-screen">
+				<div className="onb-plans">
+					<Plans onboarding={{ onDone: () => { void refreshProfile(); } }} />
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="onb-screen">
-			{/* Covers this page until a plan is chosen, then uncovers the persona
-			    step below. Renders nothing once `paywall_shown_at` is stamped. */}
-			<PaywallGate />
 			<div className="onb-screen__inner">
 				<div className="onb-head">
 					<AuthBrand />

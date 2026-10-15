@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { hrefOf } from '@/lib/routes';
+import { PLANS_PATH } from '@/lib/routes';
 
 /**
  * Sidebar upgrade cards ("Atlas Raise · Upgrade", "Atlas Scout · Upgrade").
@@ -20,7 +20,7 @@ const CARDS = [
 ] as const;
 
 export function UpgradeCards() {
-	const href = hrefOf('plans');
+	const href = PLANS_PATH;
 	return (
 		<>
 			{CARDS.map((c) => (

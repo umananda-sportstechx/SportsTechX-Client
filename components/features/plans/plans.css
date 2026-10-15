@@ -45,3 +45,21 @@
 .atlas .plans-card__points { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; }
 .atlas .plans-card__points li { position: relative; padding-left: 16px; font-size: 12px; line-height: 1.5; color: var(--a-muted); }
 .atlas .plans-card__points li::before { content: '✓'; position: absolute; left: 0; color: var(--a-navy); }
+
+/* The recommended (Raise) card gets a subtle accent ring so the grid has an
+   obvious default pick — same intent the old onboarding chooser had. */
+.atlas .plans-card--rec { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-primary) 55%, transparent); }
+
+/* Onboarding/public extras. */
+.atlas .plans-err { margin: 0 0 20px; font-size: 13px; color: var(--a-danger, #d4514f); }
+.atlas .plans-later { text-align: center; margin: 4px 0 28px; }
+.atlas .plans-later button {
+	background: none; border: 0; padding: 6px; cursor: pointer;
+	font-family: var(--a-body); font-size: 13px; color: var(--a-muted); text-decoration: underline; text-underline-offset: 3px;
+}
+.atlas .plans-later button:hover { color: var(--a-ink); }
+.atlas .plans-later button:disabled { opacity: 0.6; cursor: default; }
+
+/* Public, chrome-less pricing page surface (app/plans). */
+.atlas.plans-public { min-height: 100dvh; background: var(--a-page); padding: 48px 20px 64px; }
+.atlas.plans-public .atlas-screen { margin: 0 auto; }

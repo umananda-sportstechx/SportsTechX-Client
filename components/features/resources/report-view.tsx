@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { ArrowUpLeft, ArrowUpRight, Check, Download, FileText, Lock } from 'lucide-react';
 import { Action, Empty, Loading, cx } from '@/components/atlas';
 import { qk } from '@/lib/query-keys';
-import { hrefOf } from '@/lib/routes';
+import { hrefOf, PLANS_PATH } from '@/lib/routes';
 import { downloadReport, viewReport } from '@/lib/report-pdf';
 import type { ReportListItem } from '@/types/api';
 import { fmtLongDate } from './resource-library';
@@ -122,7 +122,7 @@ export function ReportView({ slug }: { slug: string }) {
 					{premiumHidden && (
 						<p className="atlas-rv__upsell">
 							<Lock size={12} strokeWidth={1.75} aria-hidden="true" />
-							A Premium edition with the full dataset is available on paid plans. <Link href={hrefOf('plans')}>Compare plans</Link>
+							A Premium edition with the full dataset is available on paid plans. <Link href={PLANS_PATH}>Compare plans</Link>
 						</p>
 					)}
 				</div>
