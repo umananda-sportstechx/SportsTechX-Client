@@ -8,6 +8,9 @@
 
 .atlas .onb-screen { min-height: 100dvh; display: grid; place-items: center; padding: 48px 24px; background: var(--a-page); }
 .atlas .onb-screen__inner { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 26px; }
+/* The plan step renders the full Plans page, so it needs far more width than the
+   560px persona card — the onb-screen grid centres it. */
+.atlas .onb-plans { width: 100%; max-width: 1120px; }
 .atlas .onb-head { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
 .atlas .onb-head__title { margin: 0; font-family: var(--a-font); font-size: 26px; font-weight: 700; line-height: 1.2; color: var(--a-ink); }
 .atlas .onb-head__sub { margin: 0; font-family: var(--a-body); font-size: 13px; line-height: 1.55; color: var(--a-muted); max-width: 420px; }
