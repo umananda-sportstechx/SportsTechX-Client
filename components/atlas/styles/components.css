@@ -622,7 +622,10 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
   transition: border-color 0.15s, background-image 0.2s;
 }
 .atlas-post--featured {
-  padding: 16px 24px 16px 16px; max-width: 980px;
+  /* Span the container (same width as the post grid below) so the hero isn't a
+     narrow block floating left with dead space on its right. Body text still
+     caps its own line length via .atlas-post__desc. */
+  padding: 16px 24px 16px 16px; width: 100%;
   background-image: linear-gradient(165deg, transparent 55%, color-mix(in srgb, var(--a-pink) 16%, transparent) 100%);
 }
 .atlas-post--card {
