@@ -66,7 +66,7 @@ export default function CreditsPage() {
 	};
 
 	return (
-		<Screen width={900}>
+		<Screen>
 			<PageHead title="Credits" />
 			<AccountTabs />
 

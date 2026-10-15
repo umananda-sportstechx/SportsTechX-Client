@@ -86,7 +86,7 @@ export default function BillingPage() {
 	const pastSubs = (allSubs.data ?? []).filter((s) => !s.is_active);
 
 	return (
-		<Screen width={900}>
+		<Screen>
 			<PageHead title="Subscription" />
 			<AccountTabs />
 
