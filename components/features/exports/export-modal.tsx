@@ -58,10 +58,10 @@ export function ExportModal({ entity, search, filters, onClose }: {
 		() => (cols.data?.columns ?? []).filter((c) => !c.related),
 		[cols.data],
 	);
-	// Derived, not an effect: `picked` stays null until the user touches a box,
-	// and until then the selection simply IS the default (every column).
-	const defaults = useMemo(() => columns.map((c) => c.key), [columns]);
-	const selected = picked ?? defaults;
+	// Derived, not an effect: nothing is selected until the user ticks a box.
+	// Export is opt-in per column — the user picks exactly what they want out,
+	// so opening the modal never silently arms a charge for every column.
+	const selected = picked ?? [];
 	// Priced against the actual selection, so the number tracks the checkboxes —
 	// but debounced, because the count endpoint runs a COUNT(*) over the whole
 	// filtered table and someone ticking ten boxes should not fire ten of them.

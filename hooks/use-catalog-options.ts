@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import { useSectorTiers, expandSectorSelection, type SectorRef } from '@/hooks/use-sector-tiers';
+import { canonicalCountry, isKnownCountry, isJunkFacet } from '@/lib/countries';
 
 /**
  * Filter options backed by reference data (sectors, locations, tech tags,
@@ -78,12 +79,44 @@ export function useSectorTierData(): SectorTierData {
 /** City / continent / region options from the shared location facets endpoint. */
 export function useLocationFacetOptions() {
 	const { data } = useSWR<LocationFacets>(qk.reference.locationFacets(), { dedupingInterval: 60 * 60_000 });
-	return useMemo(() => ({
-		city: (data?.cities ?? []).map((c) => [c, c] as [string, string]),
-		country: (data?.countries ?? []).map((c) => [c, c] as [string, string]),
-		continent: (data?.continents ?? []).map((c) => [c, c] as [string, string]),
-		region: (data?.regions ?? []).map((r) => [r, r] as [string, string]),
-	}), [data]);
+	return useMemo(() => {
+		// Facets are raw free text from `locations`: drop the "#N/A"/"NA" and empty
+		// placeholders, de-duplicate, and sort — so every data-driven filter is clean.
+		const clean = (vals: string[] | undefined): [string, string][] => {
+			const seen = new Set<string>();
+			const out: [string, string][] = [];
+			for (const raw of vals ?? []) {
+				if (isJunkFacet(raw)) continue;
+				const v = raw.trim();
+				const k = v.toLowerCase();
+				if (seen.has(k)) continue;
+				seen.add(k);
+				out.push([v, v]);
+			}
+			return out.sort((a, b) => a[1].localeCompare(b[1]));
+		};
+		// Country is special: fold every spelling to one canonical option whose
+		// VALUE is a CSV of all the stored variants, so the single "United States"
+		// row still matches "USA"/"United States"/… (the backend filter splits CSV).
+		// Unrecognised junk ("gfgdfr") is dropped.
+		const groups = new Map<string, { label: string; values: string[] }>();
+		for (const raw of data?.countries ?? []) {
+			if (!isKnownCountry(raw)) continue;
+			const label = canonicalCountry(raw);
+			const key = label.toLowerCase();
+			if (!groups.has(key)) groups.set(key, { label, values: [] });
+			groups.get(key)!.values.push(raw.trim());
+		}
+		const country = [...groups.values()]
+			.map((g) => [g.values.join(','), g.label] as [string, string])
+			.sort((a, b) => a[1].localeCompare(b[1]));
+		return {
+			city: clean(data?.cities),
+			country,
+			continent: clean(data?.continents),
+			region: clean(data?.regions),
+		};
+	}, [data]);
 }
 
 /** Tech-tag options as [slug, name] (filter by tech_tag_slug). */
