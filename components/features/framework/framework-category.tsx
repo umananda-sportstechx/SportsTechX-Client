@@ -5,48 +5,39 @@ import useSWR from 'swr';
 import type { CSSProperties } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, RotateCcw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { Loading, Empty } from '@/components/atlas';
+import { Loading, Empty, Logo } from '@/components/atlas';
 import { useFramework, useCategoryCount } from './use-framework';
 import './framework.css';
 
-/**
- * Framework category view (Figma "Intelligence Framework Category View"):
- * pillar badge + category title, description, then sub-categories, included
- * technologies, example use cases and example companies, and a CTA into the
- * company database filtered to this category.
- */
+interface ExCo { id: string; name: string; slug: string; website: string | null; hq_country: string | null; total_funding: number | null }
+
 export function FrameworkCategory({ slug, backHref, categoryHref, exploreHref }: {
 	slug: string;
-	/** Where RETURN goes (the framework overview). */
 	backHref: string;
-	/** Another category's URL (for prev / next). */
 	categoryHref: (slug: string) => string;
-	/** Company database filtered to this category. */
 	exploreHref: (pillarSlug: string, categorySlug: string) => string;
 }) {
 	const { pillars, isLoading } = useFramework();
 	const pillar = pillars.find((p) => p.categories.some((c) => c.slug === slug));
 	const c = pillar?.categories.find((x) => x.slug === slug);
-	// Prev / next walk every category across all pillars in order, as the
-	// Figma "Browseable content card" does — not just within one pillar.
 	const flat = pillars.flatMap((p) => p.categories);
 	const idx = flat.findIndex((x) => x.slug === slug);
 	const prev = idx > 0 ? flat[idx - 1] : null;
 	const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : null;
 	const count = useCategoryCount(c?.filter);
-	const examples = useSWR<{ data: Array<{ id: string; name: string }> }>(
-		c?.filter ? qk.companies.list({ sector_slug: c.filter, sort: '-total_funding', page: 1, limit: 4 }) : null,
+	const examples = useSWR<{ data: ExCo[] }>(
+		c?.filter ? qk.companies.list({ sector_slug: c.filter, sort: '-total_funding', page: 1, limit: 6 }) : null,
 	);
 
 	if (isLoading && !c) return <Loading />;
-	if (!pillar || !c) return <Empty>That category doesn’t exist. <Link href={backHref}>Back to the framework</Link></Empty>;
+	if (!pillar || !c) return <Empty>That category doesn&apos;t exist. <Link href={backHref}>Back to the framework</Link></Empty>;
 
-	const columns: { title: string; items: string[] }[] = [
+	const textCols: { title: string; items: string[] }[] = [
 		{ title: 'Sub-categories', items: c.subCategories },
 		{ title: 'Included technologies', items: c.copy?.technologies ?? [] },
 		{ title: 'Example use cases', items: c.copy?.useCases ?? [] },
-		{ title: 'Example companies', items: (examples.data?.data ?? []).map((x) => x.name) },
 	];
+	const cos = examples.data?.data ?? [];
 
 	return (
 		<section className="atlas-fw-detail" style={{ '--fw-color': pillar.copy.color, '--fw-ink': pillar.copy.tagInk } as CSSProperties}>
@@ -68,15 +59,34 @@ export function FrameworkCategory({ slug, backHref, categoryHref, exploreHref }:
 			{c.copy && <p className="atlas-fw-detail__desc">{c.copy.description}</p>}
 			<hr className="atlas-fw-detail__rule" />
 			<div className="atlas-fw-columns">
-				{columns.map((col) => (
+				{textCols.map((col) => (
 					<div key={col.title}>
 						<h3 className="atlas-fw-col__title">{col.title}</h3>
 						{col.items.length > 0
 							? <ul className="atlas-fw-col__list">{col.items.map((i) => <li key={i}>{i}</li>)}</ul>
-							: <p className="atlas-fw-col__empty">{col.title === 'Example companies' && examples.isLoading ? 'Loading…' : '—'}</p>}
+							: <p className="atlas-fw-col__empty">—</p>}
 					</div>
 				))}
 			</div>
+
+			{(cos.length > 0 || examples.isLoading) && (
+				<>
+					<h3 className="atlas-fw-col__title" style={{ marginTop: 40 }}>Top companies in this category</h3>
+					<div className="atlas-fw-companies">
+						{examples.isLoading && cos.length === 0 && <p className="atlas-fw-col__empty">Loading…</p>}
+						{cos.map((co) => (
+							<Link key={co.id} href={`/companies/${co.slug}`} className="atlas-fw-co">
+								<Logo co={{ name: co.name, website: co.website }} size={36} radius={7} />
+								<div className="atlas-fw-co__info">
+									<span className="atlas-fw-co__name">{co.name}</span>
+									{co.hq_country && <span className="atlas-fw-co__meta">{co.hq_country}</span>}
+								</div>
+							</Link>
+						))}
+					</div>
+				</>
+			)}
+
 			<hr className="atlas-fw-detail__rule atlas-fw-detail__rule--full" />
 			<Link href={exploreHref(pillar.slug, c.slug)} className="atlas-btn atlas-btn--primary">
 				Explore {count == null ? '' : `${count.toLocaleString()} `}companies in this category <ArrowUpRight />
