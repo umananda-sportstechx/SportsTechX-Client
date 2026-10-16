@@ -83,16 +83,30 @@ export default function CreditsPage() {
 
 			<Card style={{ marginBottom: 8 }}>
 				<div style={{ ...CARD_TITLE, marginBottom: 6 }}>Buy credits</div>
-				<p style={{ ...BODY, margin: '0 0 16px' }}>Top-ups never expire. Monthly plan credits renew each month; top-ups stack on whatever is left.</p>
+				<p style={{ ...BODY, margin: '0 0 20px' }}>Top-ups never expire. Monthly plan credits renew each month; top-ups stack on whatever is left.</p>
 				{packs.isLoading ? <Loading />
 					: packList.length === 0 ? <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No credit packs available right now.</div>
 						: (
-							<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-								{packList.map((pk) => (
-									<Button key={pk.id} size="sm" variant="outline" disabled={busy !== null} onClick={() => void buyPack(pk.id)}>
-										{busy === pk.id ? <Loader2 className="animate-spin" size={13} /> : `${pk.credit_amount.toLocaleString()} credits — ${fmtMoney(pk.price_amount, pk.currency_code)}`}
-									</Button>
-								))}
+							<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+								{packList.map((pk) => {
+									const perCredit = pk.price_amount / pk.credit_amount;
+									return (
+										<button key={pk.id} type="button" disabled={busy !== null} onClick={() => void buyPack(pk.id)}
+											style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 16px', background: 'var(--a-field)', border: '1px solid var(--a-border-strong)', borderRadius: 'var(--a-radius)', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy && busy !== pk.id ? 0.5 : 1, transition: 'border-color .15s, background .15s' }}
+											onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--a-ink)'; e.currentTarget.style.background = 'var(--a-inset)'; }}
+											onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--a-border-strong)'; e.currentTarget.style.background = 'var(--a-field)'; }}
+										>
+											{busy === pk.id
+												? <Loader2 className="animate-spin" size={20} style={{ color: 'var(--a-ink)' }} />
+												: <>
+													<div style={{ fontFamily: 'var(--a-font)', fontSize: 22, fontWeight: 600, color: 'var(--a-ink)', lineHeight: 1 }}>{pk.credit_amount.toLocaleString()}</div>
+													<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>credits</div>
+													<div style={{ fontFamily: 'var(--a-font)', fontSize: 15, fontWeight: 600, color: 'var(--a-ink)', marginTop: 4 }}>{fmtMoney(pk.price_amount, pk.currency_code)}</div>
+													<div style={{ fontFamily: 'var(--a-mono)', fontSize: 9, color: 'var(--a-muted)', letterSpacing: '0.04em' }}>{fmtMoney(Math.round(perCredit), pk.currency_code)} / credit</div>
+												</>}
+										</button>
+									);
+								})}
 							</div>
 						)}
 			</Card>

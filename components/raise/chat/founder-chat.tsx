@@ -29,7 +29,7 @@ export const FOUNDER_GREETING =
 	"I'm your fundraising co-pilot. Ask me to research investors, size your market, sanity-check your raise, or find your way around the workspace — e.g. “find seed investors in Germany” or “what does the Market page do?”";
 
 export const FOUNDER_INSUFFICIENT_CREDITS =
-	"_You're out of AI credits._ [Top up or upgrade](/billing) to keep chatting.";
+	"_You're out of AI credits._ [Top up or upgrade](/credits) to keep chatting.";
 
 export const SCOUT_GREETING =
 	"I'm your deal-flow co-pilot. Ask me to screen companies against your thesis, dig into a funding round or an investor, or find your way around the workspace — e.g. “find companies matching my thesis” or “who funded sports betting in Europe this year?”";
@@ -45,7 +45,7 @@ export const EXPLORE_GREETING =
 
 /** Explore has no plan to top up *from*, so the nudge is to the plans page. */
 export const EXPLORE_INSUFFICIENT_CREDITS =
-	"_You've used your free AI credits._ [Get more credits or upgrade](/plans) to keep going.";
+	"_You've used your free AI credits._ [Get more credits or upgrade](/credits) to keep going.";
 
 /** Per-tier chat copy, so the three surfaces pick the same way. */
 export function chatCopy(tier: Tier): { greeting: string; insufficient: string; placeholder: string; fabLabel: string } {
