@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, RotateCcw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { Loading, Empty, Logo } from '@/components/atlas';
+import { companyHref } from '@/lib/routes';
 import { useFramework, useCategoryCount } from './use-framework';
 import './framework.css';
 
@@ -75,7 +76,7 @@ export function FrameworkCategory({ slug, backHref, categoryHref, exploreHref }:
 					<div className="atlas-fw-companies">
 						{examples.isLoading && cos.length === 0 && <p className="atlas-fw-col__empty">Loading…</p>}
 						{cos.map((co) => (
-							<Link key={co.id} href={`/companies/${co.slug}`} className="atlas-fw-co">
+							<Link key={co.id} href={companyHref(co.slug)} className="atlas-fw-co">
 								<Logo co={{ name: co.name, website: co.website }} size={36} radius={7} />
 								<div className="atlas-fw-co__info">
 									<span className="atlas-fw-co__name">{co.name}</span>

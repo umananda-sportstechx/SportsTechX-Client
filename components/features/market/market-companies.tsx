@@ -173,11 +173,11 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 								<div className="atlas-table" role="table">
 									<div className="atlas-table__head">
 										<span className="atlas-table__name">Company</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Sector</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 150 }}>Sector</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 130 }}>Location</span>
 										<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Founded</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Sport</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 60 }}>Model</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 90 }}>Sport</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 55 }}>Model</span>
 										<span className="atlas-table__col" style={{ width: 90 }}>Funding</span>
 									</div>
 									{rows.map((c) => {
@@ -189,14 +189,13 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 												<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} radius={5} />
 												<div className="atlas-table__name-main">
 													<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
-													{c.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{c.description}</div>}
 												</div>
 											</div>
-											<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{c.primary_sector ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{hq || '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 150 }}>{c.primary_sector ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 130 }}>{hq || '—'}</span>
 											<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{c.founded_year ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{c.primary_sport ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{c.business_model ? c.business_model.toUpperCase() : '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 90 }}>{c.primary_sport ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 55 }}>{c.business_model ? c.business_model.toUpperCase() : '—'}</span>
 											<span className="atlas-table__col" style={{ width: 90 }}>{funding}</span>
 										</>;
 										return href
