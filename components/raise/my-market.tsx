@@ -8,7 +8,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { Card, Tabs, Button, Loading, Empty, Logo, Flag } from '@/components/atlas';
-import { hrefOf } from '@/lib/routes';
+import { companyHref, hrefOf } from '@/lib/routes';
 
 /**
  * Market → My market. The founder's OWN market: LLM-estimated TAM/SAM plus
@@ -119,7 +119,7 @@ export function MyMarket() {
 					{competitors.length === 0 ? <Empty>No competitors mapped yet.</Empty> : (
 						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
 							{competitors.map((c) => (
-								<div key={c.id} className="atlas-card atlas-entity-card" style={{ minHeight: 120 }}>
+								<Link key={c.id} href={companyHref(c.id)} className="atlas-card atlas-entity-card" style={{ minHeight: 120, textDecoration: 'none', color: 'inherit' }}>
 									<div className="atlas-entity-card__head" style={{ marginBottom: 12 }}>
 										<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={62} radius={9} />
 										<div style={{ minWidth: 0, paddingTop: 11 }}>
@@ -128,7 +128,7 @@ export function MyMarket() {
 										</div>
 									</div>
 									<div className="atlas-entity-card__actions" style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)' }}>{c.funding}</div>
-								</div>
+								</Link>
 							))}
 						</div>
 					)}
@@ -143,7 +143,7 @@ function Kpi({ label, value, note }: { label: string; value: string; note?: stri
 		<div className="atlas-kpi">
 			<div className="atlas-kpi__label">{label}</div>
 			<div className="atlas-kpi__value">{value}</div>
-			<div className="atlas-kpi__note">{note}</div>
+			{note && <div className="atlas-kpi__note">{note}</div>}
 		</div>
 	);
 }

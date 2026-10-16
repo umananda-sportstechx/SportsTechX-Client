@@ -4,9 +4,11 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
+import Link from 'next/link';
 import { Card, Loading, Badge, PieDonut, PieLegend, type PieSegment, paletteAt } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { MONTHS } from '@/lib/catalog-options';
+import { companyHref } from '@/lib/routes';
 import { fmtUsd, fmtCount } from './format';
 import './market.css';
 
@@ -175,7 +177,7 @@ export function MarketRoundup() {
 									{deals.data!.data.map((d, i) => (
 										<div className="atlas-table__row" key={d.id}>
 											<span className="atlas-table__rank">{i + 1}</span>
-											<span className="atlas-table__name"><span className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{d.company_name ?? '—'}</span></span>
+											<span className="atlas-table__name">{d.company_id ? <Link href={companyHref(d.company_slug ?? d.company_id)} className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{d.company_name ?? '—'}</Link> : <span className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{d.company_name ?? '—'}</span>}</span>
 											<span className="atlas-table__col hide-sm" style={{ width: 150 }}>{[d.hq_city, d.hq_country].filter(Boolean).join(', ') || '—'}</span>
 											<span className="atlas-table__col hide-sm" style={{ width: 150 }}>{d.round_type_name ?? '—'}</span>
 											<span className="atlas-table__amount" style={{ width: 90 }}>{fmtUsd(d.amount_usd == null ? null : Number(d.amount_usd))}</span>
