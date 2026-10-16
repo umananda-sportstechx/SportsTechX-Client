@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { ArrowUpRight, Check, Minus } from 'lucide-react';
 import { Empty, Loading, Logo, ViewToggle, type ViewMode, cx } from '@/components/atlas';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
-import { usePlaceholderState } from '@/hooks/use-placeholder-state';
+import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { companyHref, hrefOf } from '@/lib/routes';
 import { fmtUsd } from '@/components/features/market/format';
@@ -25,9 +25,9 @@ import './recommended.css';
  * matched, and the chips claim exactly that"*. So each chip is backed by its
  * own boolean, not inferred from a total.
  *
- * "Not relevant" stays browser-local. The brief wants passed companies kept so
- * they are not re-recommended, but no endpoint records a pass yet — dismissing
- * server-side would be inventing a contract.
+ * "Not relevant" dismissals are persisted server-side via
+ * `POST /api/scout/recommended/:companyId/dismiss` and excluded from the
+ * recommended query.
  */
 interface Recommendation {
 	id: string;
@@ -70,12 +70,21 @@ export function Recommended() {
 	// is the one Discover surface that stays gated — but "set yours up" is the
 	// answer, not an error. Browsing and Signals work without one.
 	const needsThesis = (error as { code?: string } | undefined)?.code === 'SCOUT_NOT_SET_UP';
-	const [dismissed, setDismissed] = usePlaceholderState<string[]>('dismissed-recs', []);
+	const [lastDismissed, setLastDismissed] = useState<{ id: string; name: string } | null>(null);
 
-	const all = data?.data ?? [];
-	const rows = all.filter((c) => !dismissed.includes(c.id));
-	const lastId = dismissed[dismissed.length - 1];
-	const lastName = all.find((c) => c.id === lastId)?.name;
+	const rows = data?.data ?? [];
+
+	const dismiss = async (id: string, name: string) => {
+		setLastDismissed({ id, name });
+		await apiRequest('POST', `/api/scout/recommended/${id}/dismiss`);
+		void mutate((k: unknown) => Array.isArray(k) && typeof k[0] === 'string' && k[0].startsWith('/api/scout/recommended'));
+	};
+	const undoDismiss = async () => {
+		if (!lastDismissed) return;
+		await apiRequest('DELETE', `/api/scout/recommended/${lastDismissed.id}/dismiss`);
+		setLastDismissed(null);
+		void mutate((k: unknown) => Array.isArray(k) && typeof k[0] === 'string' && k[0].startsWith('/api/scout/recommended'));
+	};
 
 	return (
 		<>
@@ -90,10 +99,10 @@ export function Recommended() {
 				</div>
 			</div>
 
-			{lastId && (
+			{lastDismissed && (
 				<div className="scout-undo">
-					<span>{lastName ?? 'Company'} marked not relevant{dismissed.length > 1 ? ` (+${dismissed.length - 1} more)` : ''}.</span>
-					<button type="button" className="scout-link" onClick={() => setDismissed(dismissed.slice(0, -1))}>Undo</button>
+					<span>{lastDismissed.name} marked not relevant.</span>
+					<button type="button" className="scout-link" onClick={() => void undoDismiss()}>Undo</button>
 				</div>
 			)}
 
@@ -105,13 +114,11 @@ export function Recommended() {
 					</Empty>
 				)
 				: error ? <Empty>Couldn&apos;t load your recommendations. Please try again.</Empty>
-				: all.length === 0 ? (
+				: rows.length === 0 ? (
 					<Empty>
 						No companies match your thesis yet. <Link href={hrefOf('thesis')} className="scout-link">Widen it</Link> — a narrow
 						thesis can match nothing at all.
 					</Empty>
-				) : rows.length === 0 ? (
-					<Empty>You&apos;ve dismissed every match. Undo above, or widen your thesis.</Empty>
 				) : (
 					view === 'cards' ? (
 					<div className="atlas-rec-list">
@@ -156,7 +163,7 @@ export function Recommended() {
 								</div>
 
 								<div className="atlas-rec__actions">
-									<button type="button" className="atlas-rec__dismiss" onClick={() => setDismissed([...dismissed, c.id])}>Not relevant</button>
+									<button type="button" className="atlas-rec__dismiss" onClick={() => void dismiss(c.id, c.name)}>Not relevant</button>
 									<SaveToWatchlist companyId={c.id} companyName={c.name} />
 									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)}>
 										<span className="atlas-action__icon"><ArrowUpRight /></span>View company
