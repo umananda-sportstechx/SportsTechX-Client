@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PencilLine } from 'lucide-react';
-import { Button, Field, Input, Textarea } from '@/components/atlas';
+import { Button, Field, Input, Select, Textarea } from '@/components/atlas';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
 import { Modal } from '@/components/atlas/patterns/modal';
@@ -31,6 +31,25 @@ const LABELS: Record<keyof CorrectionData, string> = {
 	business_model: 'Business model',
 	other: 'Other notes',
 };
+
+const FIELD_MAP: Record<string, string> = {
+	website: 'Website',
+	description: 'Description',
+	hq_city: 'City',
+	hq_country: 'Country',
+	founded_year: 'Founded',
+	sector: 'Sector',
+	business_model: 'Business_Model',
+	other: 'other',
+};
+
+const BM_OPTIONS: [string, string][] = [
+	['B2B', 'B2B'],
+	['B2C', 'B2C'],
+	['B2B2C', 'B2B2C'],
+	['D2C', 'D2C'],
+	['B2G', 'B2G'],
+];
 
 export function SuggestCorrection({ companyId, companyName, current }: {
 	companyId: string;
@@ -61,7 +80,10 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 
 	const changed = Object.entries(values).filter(([k, v]) => {
 		if (k === 'other') return !!v?.trim();
-		return v?.trim() !== (current[k as keyof CorrectionData] ?? '').trim();
+		const a = (v ?? '').trim();
+		const b = (current[k as keyof CorrectionData] ?? '').trim();
+		if (k === 'business_model') return a.toLowerCase() !== b.toLowerCase();
+		return a !== b;
 	});
 
 	const submit = async () => {
@@ -73,7 +95,7 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 					entity_type: 'company',
 					target_company_id: companyId,
 					target_name_snapshot: companyName,
-					field_change: field,
+					field_change: FIELD_MAP[field] ?? field,
 					old_value: (current[field as keyof CorrectionData] ?? '').trim() || null,
 					requested_value: (proposed ?? '').trim(),
 				});
@@ -95,6 +117,7 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 				onOpenChange={setOpen}
 				icon={<PencilLine size={14} />}
 				title={`Correct ${companyName}`}
+				width={640}
 				footer={
 					<>
 						<Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
@@ -107,30 +130,43 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 				<p style={{ fontSize: 12, color: 'var(--a-muted)', margin: '0 0 16px' }}>
 					Edit any field below. Only changed fields are submitted for review.
 				</p>
-				<Field label={LABELS.website}>
-					<Input type="url" value={values.website ?? ''} onChange={(e) => set('website', e.target.value)} placeholder="https://example.com" />
-				</Field>
-				<Field label={LABELS.description}>
-					<Textarea value={values.description ?? ''} onChange={(e) => set('description', e.target.value)} rows={3} placeholder="Company description" />
-				</Field>
-				<Field label={LABELS.hq_country}>
-					<LocationSelect value={values.hq_country ?? ''} onChange={(v) => set('hq_country', v)} placeholder="Select country" />
-				</Field>
-				<Field label={LABELS.hq_city}>
-					<CityInput value={values.hq_city ?? ''} onChange={(v) => set('hq_city', v)} placeholder="City name" />
-				</Field>
-				<Field label={LABELS.founded_year}>
-					<Input type="number" min={1900} max={2030} inputMode="numeric" value={values.founded_year ?? ''} onChange={(e) => set('founded_year', e.target.value)} placeholder="e.g. 2021" />
-				</Field>
-				<Field label={LABELS.sector}>
-					<Input value={values.sector ?? ''} onChange={(e) => set('sector', e.target.value)} placeholder="Category" />
-				</Field>
-				<Field label={LABELS.business_model}>
-					<Input value={values.business_model ?? ''} onChange={(e) => set('business_model', e.target.value)} placeholder="e.g. B2B, B2C, B2B2C" />
-				</Field>
-				<Field label={LABELS.other}>
-					<Textarea value={values.other ?? ''} onChange={(e) => set('other', e.target.value)} rows={2} placeholder="Anything else that needs updating" />
-				</Field>
+				<div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', paddingRight: 4 }}>
+					<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+						<Field label={LABELS.website}>
+							<Input type="url" value={values.website ?? ''} onChange={(e) => set('website', e.target.value)} placeholder="https://example.com" />
+						</Field>
+						<Field label={LABELS.founded_year}>
+							<Input type="number" min={1900} max={2030} inputMode="numeric" value={values.founded_year ?? ''} onChange={(e) => set('founded_year', e.target.value)} placeholder="e.g. 2021" />
+						</Field>
+						<div style={{ gridColumn: '1 / -1' }}>
+							<Field label={LABELS.description}>
+								<Textarea value={values.description ?? ''} onChange={(e) => set('description', e.target.value)} rows={2} placeholder="Company description" />
+							</Field>
+						</div>
+						<Field label={LABELS.hq_country}>
+							<LocationSelect value={values.hq_country ?? ''} onChange={(v) => set('hq_country', v)} placeholder="Select country" />
+						</Field>
+						<Field label={LABELS.hq_city}>
+							<CityInput value={values.hq_city ?? ''} onChange={(v) => set('hq_city', v)} placeholder="City name" />
+						</Field>
+						<Field label={LABELS.sector}>
+							<Input value={values.sector ?? ''} onChange={(e) => set('sector', e.target.value)} placeholder="Category" />
+						</Field>
+						<Field label={LABELS.business_model}>
+							<Select
+								options={BM_OPTIONS}
+								placeholder="Select model"
+								value={values.business_model?.toUpperCase() ?? ''}
+								onChange={(e) => set('business_model', (e.target as HTMLSelectElement).value)}
+							/>
+						</Field>
+						<div style={{ gridColumn: '1 / -1' }}>
+							<Field label={LABELS.other}>
+								<Textarea value={values.other ?? ''} onChange={(e) => set('other', e.target.value)} rows={2} placeholder="Anything else that needs updating" />
+							</Field>
+						</div>
+					</div>
+				</div>
 				<p style={{ fontSize: 11, color: 'var(--a-faint)', margin: '8px 0 0' }}>
 					Changes appear on Atlas once the team has reviewed them.
 				</p>

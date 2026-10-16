@@ -40,6 +40,10 @@ export function Modal({ open, onOpenChange, icon, title, children, footer, width
 				<DialogPrimitive.Content
 					className="atlas"
 					aria-describedby={undefined}
+					onInteractOutside={(e) => {
+						const t = e.target as HTMLElement;
+						if (t.closest('.atlas-combo-panel')) e.preventDefault();
+					}}
 					style={{
 						position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
 						width: `min(92vw, ${width}px)`, background: 'var(--a-surface)',
