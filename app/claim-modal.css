@@ -305,8 +305,8 @@
 .cm-bigcheck { display: flex; align-items: flex-start; gap: 12px; padding: 14px; margin-bottom: 4px; background: var(--a-surface); border: 1px solid var(--a-card-border); border-radius: var(--a-radius); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .cm-bigcheck.on { border-color: var(--a-border-strong); background: var(--a-inset); }
 .cm-bigcheck input { width: 18px; height: 18px; accent-color: var(--a-primary); margin-top: 1px; flex-shrink: 0; cursor: pointer; }
-.cm-bigcheck-h { font-family: var(--a-body); font-weight: 500; font-size: 14px; }
-.cm-bigcheck-p { font-family: var(--a-body); font-size: 12px; color: var(--a-muted); margin-top: 3px; line-height: 1.45; }
+.cm-bigcheck-h { display: block; font-family: var(--a-body); font-weight: 500; font-size: 14px; }
+.cm-bigcheck-p { display: block; font-family: var(--a-body); font-size: 12px; color: var(--a-muted); margin-top: 3px; line-height: 1.45; }
 .cm-nest { border-left: 2px solid var(--a-border-strong); padding-left: 16px; margin: 14px 0 0 8px; }
 
 /* ── Repeatable rows (funding history, portfolio, M&A) ─────────────────────*/
