@@ -6,7 +6,7 @@ import { ArrowUpRight, Calendar, LayoutGrid, List, ChevronLeft, ChevronRight } f
 import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, CardGrid, lockedFiltersNote } from '@/components/atlas';
+import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, CardGrid, ViewToggle as AtlasViewToggle, type ViewMode, lockedFiltersNote } from '@/components/atlas';
 import { ResultCapNote } from '../market/result-cap-note';
 import { MONTHS } from '@/lib/catalog-options';
 import { useSportOptions, useLocationFacetOptions, useCountryOptions } from '@/hooks/use-catalog-options';
@@ -41,6 +41,7 @@ type EventView = 'calendar' | 'table' | 'cards';
 
 /** Programs catalogue (accelerators, incubators…): filter toolbar + card grid + pager. */
 export function ProgramsList() {
+	const [view, setView] = useState<ViewMode>('cards');
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState('');
@@ -104,12 +105,41 @@ export function ProgramsList() {
 				canClear={anyFilter}
 				onClear={() => { setQ(''); setCategory(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setEntriesOpen(false); reset(); }}
 				count={`${(res.data?.total ?? 0).toLocaleString()} program${(res.data?.total ?? 0) === 1 ? '' : 's'}`}
-				actions={<ExportButton entity="programs" search={dq} params={params} />}
+				actions={<><AtlasViewToggle value={view} onChange={setView} /><ExportButton entity="programs" search={dq} params={params} /></>}
 			/>
 			<Divider />
 			{res.isLoading && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No programs match your filters.</Empty>
-					: <CardGrid>{rows.map((e) => <EcoCard key={e.id} e={e} />)}</CardGrid>}
+				: view === 'cards'
+					? <CardGrid>{rows.map((e) => <EcoCard key={e.id} e={e} />)}</CardGrid>
+					: (
+					<div className="atlas-table" role="table">
+						<div className="atlas-table__head">
+							<span className="atlas-table__name">Program</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 70 }}>Website</span>
+						</div>
+						{rows.map((e) => {
+							const loc = [e.hq_city, e.hq_country].filter(Boolean).join(', ');
+							const href = extUrl(e.website);
+							return (
+								<div key={e.id} className="atlas-table__row" style={href ? { cursor: 'pointer' } : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined}>
+									<div className="atlas-table__name">
+										<Logo co={{ name: e.name, website: e.website }} size={28} radius={5} />
+										<div className="atlas-table__name-main">
+											<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{e.name}</div>
+											{e.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{e.description}</div>}
+										</div>
+									</div>
+									<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{e.category ?? '—'}</span>
+									<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{e.hq_country ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Flag cc={e.hq_country} size={11} />{loc}</span> : loc || '—'}</span>
+									<span className="atlas-table__col" style={{ width: 70 }}>{href ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--a-navy)' }} onClick={(ev) => ev.stopPropagation()}><ArrowUpRight size={13} /></a> : '—'}</span>
+								</div>
+							);
+						})}
+					</div>
+					)}
 			<Pager page={page} totalPages={res.data?.totalPages ?? 1} onPage={setPage} />
 		</>
 	);
