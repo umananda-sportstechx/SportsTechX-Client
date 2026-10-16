@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
+import Link from 'next/link';
 import { Card, Loading, Logo, ComboBarLine, PieDonut, HBarDrilldown, type ComboPoint, type PieSegment, type HBarRow, Seg, barAt, BAR_ACCENT } from '@/components/atlas';
+import { companyHref } from '@/lib/routes';
 import { fmtUsd, fmtUsdB, fmtCount } from './format';
 
 type Series = 'funding' | 'ma' | 'total';
@@ -174,7 +176,7 @@ export function MarketAnalysis() {
 						<div className="atlas-table">
 							{series === 'funding'
 								? (topFunded.data ?? []).map((c, i) => (
-									<div className="atlas-table__row" key={c.company_id}>
+									<Link className="atlas-table__row" key={c.company_id} href={companyHref(c.slug ?? c.company_id)}>
 										<span className="atlas-table__rank">{i + 1}</span>
 										<div className="atlas-table__name">
 											<Logo co={{ name: c.name, website: null, custom_logo_url: c.custom_logo_url }} size={28} />
@@ -182,7 +184,7 @@ export function MarketAnalysis() {
 										</div>
 										<span className="atlas-table__col hide-sm">{fmtCount(c.deal_count)} rounds</span>
 										<span className="atlas-table__amount">{fmtUsd(c.total_raised)}</span>
-									</div>
+									</Link>
 								))
 								: (topAcq.data ?? []).map((a, i) => (
 									<div className="atlas-table__row" key={`${a.acquirer_name}-${i}`}>
