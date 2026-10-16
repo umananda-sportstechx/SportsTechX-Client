@@ -58,8 +58,8 @@ export default function BillingPage() {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const plan = getUserType(profile);
-	const plans = useSWR<PlanRow[]>(['/api/billing/plans']);
-	const matchedPlan = (plans.data ?? []).find((r) => r.tier === plan);
+	const plans = useSWR<{ data: PlanRow[] }>(['/api/billing/plans']);
+	const matchedPlan = (plans.data?.data ?? []).find((r) => r.tier === plan);
 	const p = { label: matchedPlan?.name ?? TIER_LABEL[plan] ?? plan, price: matchedPlan ? fmtPrice(matchedPlan) : (plan === 'explore' ? '€0' : '') };
 	const sub = useSWR<Sub | null>(['/api/billing/subscription']);
 	const allSubs = useSWR<SubRow[]>(['/api/billing/subscriptions']);
