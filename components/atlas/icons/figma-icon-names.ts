@@ -12,6 +12,7 @@ export const FIGMA_ICON_NAMES = [
 	'nav-home',
 	'nav-interests',
 	'nav-list',
+	'nav-market',
 	'nav-newsletter',
 	'nav-onboarding',
 	'nav-recommended',
