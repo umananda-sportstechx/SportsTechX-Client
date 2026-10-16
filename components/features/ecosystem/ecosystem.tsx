@@ -8,8 +8,8 @@ import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, CardGrid, lockedFiltersNote } from '@/components/atlas';
 import { ResultCapNote } from '../market/result-cap-note';
-import { COUNTRY_OPTIONS, MONTHS } from '@/lib/catalog-options';
-import { useSportOptions, useLocationFacetOptions } from '@/hooks/use-catalog-options';
+import { MONTHS } from '@/lib/catalog-options';
+import { useSportOptions, useLocationFacetOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 
 /**
@@ -47,6 +47,7 @@ export function ProgramsList() {
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
+	const countryOptions = useCountryOptions();
 	const loc = useLocationFacetOptions();
 	const adv = useFeatureAccess('advanced_filters');
 	// Filter defs for the toolbar — each change resets to page 1, as before.
@@ -85,7 +86,7 @@ export function ProgramsList() {
 						tog('entriesOpen', 'Entries open', entriesOpen, setEntriesOpen),
 					] },
 					{ label: 'Geography & location', filters: [
-						sel('country', 'Country', country, COUNTRY_OPTIONS, setCountry),
+						sel('country', 'Country', country, countryOptions, setCountry),
 						...(adv.hasAccess ? [
 							sel('continent', 'Continent', continent, loc.continent, setContinent),
 							sel('region', 'Region', region, loc.region, setRegion),
@@ -126,6 +127,7 @@ export function EventsList() {
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
+	const countryOptions = useCountryOptions();
 	const loc = useLocationFacetOptions();
 	const adv = useFeatureAccess('advanced_filters');
 	// Filter defs for the toolbar — each change resets to page 1, as before.
@@ -166,7 +168,7 @@ export function EventsList() {
 						tog('upcoming', 'Upcoming only', upcoming, setUpcoming),
 					] },
 					{ label: 'Geography & location', filters: [
-						sel('country', 'Country', country, COUNTRY_OPTIONS, setCountry),
+						sel('country', 'Country', country, countryOptions, setCountry),
 						...(adv.hasAccess ? [
 							sel('continent', 'Continent', continent, loc.continent, setContinent),
 							sel('region', 'Region', region, loc.region, setRegion),
