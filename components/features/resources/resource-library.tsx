@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowUpRight, Download, FileText, Newspaper } from 'lucide-react';
 import { Action, Empty, FeaturedPost, FilterBar, Loading, PostCard, type FilterDef } from '@/components/atlas';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import type { Resource } from './resource-contract';
 import './resources.css';
 
@@ -47,14 +48,15 @@ export function ResourceLibrary({ items, kind, intro, featuredLabel, libraryTitl
 	const [sort, setSort] = useState('new');
 	const tags = useMemo(() => [...new Set(rest.flatMap((r) => r.tags))].sort().map((t) => [t, t] as [string, string]), [rest]);
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef => ({ kind: 'select', key, label, value, options, onChange: set });
+	const dq = useDebouncedValue(q, 200);
 
 	const rows = useMemo(() => {
-		const term = q.trim().toLowerCase();
+		const term = dq.trim().toLowerCase();
 		const out = rest.filter((r) => (!term || `${r.title} ${r.desc}`.toLowerCase().includes(term)) && (!tag || r.tags.includes(tag)) && (!access || r.access === access));
 		if (sort === 'old') return [...out].reverse();
 		if (sort === 'az') return [...out].sort((a, b) => a.title.localeCompare(b.title));
 		return out;
-	}, [rest, q, tag, access, sort]);
+	}, [rest, dq, tag, access, sort]);
 
 	const MetaIcon = kind === 'report' ? FileText : Newspaper;
 	const actionsFor = (r: Resource) => (
