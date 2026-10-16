@@ -152,17 +152,17 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 						) : (
 							<div className="atlas-co__deals" role="table" aria-label="Funding rounds">
 								<div className="atlas-co__deal atlas-co__deal--head" role="row">
-									<span role="columnheader">Announced</span>
-									<span role="columnheader">Round</span>
-									<span role="columnheader">Raised</span>
-									<span role="columnheader">Investors</span>
+									<span role="columnheader">Date</span>
+									<span role="columnheader">Funding Type</span>
+									<span role="columnheader">Money Raised</span>
+									<span role="columnheader">Lead Investor</span>
 								</div>
 								{dealRows.map((d) => (
 									<div key={d.id} className="atlas-co__deal" role="row">
 										<span role="cell">{fmtDate(d.announced_date)}</span>
 										<span role="cell">{d.round_type_name ?? 'Round'}</span>
 										<span className="atlas-co__amt" role="cell">{d.amount_usd == null ? '—' : fmtUsd(Number(d.amount_usd))}</span>
-										<span className="atlas-co__investors" role="cell">{(d.investors?.length ? d.investors : d.lead_investor ? [d.lead_investor] : []).join(', ') || 'Undisclosed'}</span>
+										<span className="atlas-co__investors" role="cell">{(d.lead_investor ? [d.lead_investor] : d.investors?.length ? d.investors : []).join(', ') || 'Undisclosed'}</span>
 									</div>
 								))}
 							</div>
