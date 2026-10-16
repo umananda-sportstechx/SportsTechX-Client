@@ -99,9 +99,10 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
 							<span className="atlas-table__name">Company</span>
-							<span className="atlas-table__col" style={{ width: 100 }}>Type</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Sector</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 90 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 100 }}>Round</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Sector</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
 							<span className="atlas-table__col" style={{ width: 80 }}>When</span>
 						</div>
 						{rows.map((s) => {
@@ -116,9 +117,10 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 											<div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{s.headline}</div>
 										</div>
 									</div>
-									<span className="atlas-table__col" style={{ width: 100 }}>{TYPE_LABEL[s.signal_type] ?? s.signal_type}</span>
-									<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{s.sector ?? '—'}</span>
-									<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{place(s.hq_city, s.hq_country) || '—'}</span>
+									<span className="atlas-table__col" style={{ width: 90 }}>{TYPE_LABEL[s.signal_type] ?? s.signal_type}</span>
+									<span className="atlas-table__col hide-sm" style={{ width: 100 }}>{s.last_round_type ?? '—'}</span>
+									<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{s.sector ?? '—'}</span>
+									<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{place(s.hq_city, s.hq_country) || '—'}</span>
 									<span className="atlas-table__col" style={{ width: 80 }}>{ago(s.occurred_at)}</span>
 								</Link>
 							);

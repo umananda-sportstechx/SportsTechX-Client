@@ -169,10 +169,11 @@ export function Recommended() {
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
 							<span className="atlas-table__name">Company</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Sector</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
-							<span className="atlas-table__col" style={{ width: 100 }}>Funding</span>
-							<span className="atlas-table__col" style={{ width: 80 }}>Match</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Sector</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 90 }}>Funding</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Round</span>
+							<span className="atlas-table__col" style={{ width: 70 }}>Match</span>
 						</div>
 						{rows.map((c) => (
 							<Link key={c.id} className="atlas-table__row" href={companyHref(c.slug ?? c.id)}>
@@ -183,10 +184,11 @@ export function Recommended() {
 										{c.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{c.description}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{c.sector ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{place(c) || '—'}</span>
-								<span className="atlas-table__col" style={{ width: 100 }}>{c.total_funding_usd != null ? fmtUsd(Number(c.total_funding_usd)) : '—'}</span>
-								<span className="atlas-table__col" style={{ width: 80 }}>{c.match_count}/{CHIPS.length}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{c.sector ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{place(c) || '—'}</span>
+								<span className="atlas-table__col" style={{ width: 90 }}>{c.total_funding_usd != null ? fmtUsd(Number(c.total_funding_usd)) : '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{c.latest_round ?? '—'}</span>
+								<span className="atlas-table__col" style={{ width: 70 }}>{c.match_count}/{CHIPS.length}</span>
 							</Link>
 						))}
 					</div>
