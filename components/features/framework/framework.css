@@ -57,7 +57,7 @@
 }
 .atlas .atlas-fw-detail__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .atlas .atlas-fw-detail__title-row { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-.atlas .atlas-fw-detail .atlas-fw-badge { height: 29px; }
+.atlas .atlas-fw-detail .atlas-fw-badge { height: 34px; }
 .atlas .atlas-fw-detail__title { margin: 0; font-family: var(--a-font); font-size: 22px; font-weight: 700; color: var(--a-ink); }
 .atlas .atlas-fw-detail__desc { max-width: 632px; margin: 30px 0 0; font-family: var(--a-body); font-size: 12px; line-height: 21px; color: var(--a-muted); }
 .atlas .atlas-fw-detail__rule { max-width: 680px; margin: 30px 0 46px; border: none; border-top: 1px solid var(--a-border); }
@@ -70,10 +70,10 @@
 .atlas .atlas-fw-col__empty { margin: 0; font-size: 12px; color: var(--a-faint); }
 
 /* Category view: prev / next browse buttons beside Return (Figma "Browseable
-   content card"). Round outline buttons, matching the 29px control height. */
+   content card"). Round outline buttons, matching the 34px control height. */
 .atlas .atlas-fw-detail__nav { display: flex; align-items: center; gap: 8px; }
 .atlas .atlas-fw-navbtn {
-	display: inline-grid; place-items: center; width: 32px; height: 29px; flex-shrink: 0;
+	display: inline-grid; place-items: center; width: 32px; height: 34px; flex-shrink: 0;
 	border-radius: var(--a-radius-pill); border: 1px solid var(--a-border-strong);
 	background: var(--a-field); color: var(--a-ink); text-decoration: none;
 	transition: background 0.12s, color 0.12s, border-color 0.12s;
