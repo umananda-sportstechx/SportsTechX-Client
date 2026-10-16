@@ -86,8 +86,12 @@ export function buildNav(tier: Tier, isAdmin: boolean, lists: NavWatchlist[] = [
 
 		if (group.bottom) { bottomNav.push(...items); continue; }
 		if (group.title === null) { nav.push(...items); continue; }
-		const sectionItems = group.title === 'Watchlists' && watchlistIcon
-			? withWatchlists(items, tier, lists, watchlistIcon)
+		// Splice the viewer's saved lists into whichever section holds the
+		// "All watchlists" anchor — Raise's dedicated Watchlists section, or
+		// Scout's Discover section (which now owns the single watchlist link).
+		const hasWatchlistAnchor = !!watchlistIcon && items.some((i) => i.path === pathOf('watchlists', tier));
+		const sectionItems = hasWatchlistAnchor
+			? withWatchlists(items, tier, lists, watchlistIcon!)
 			: items;
 		// A heading over a single link reads as a mistake — it is Scout's
 		// "Watchlists" before the user has saved any list (then the section is
