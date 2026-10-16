@@ -13,6 +13,8 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { Flag } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { LocationSelect } from '@/components/features/location/location-select';
+import { CityInput } from '@/components/features/location/city-input';
+import { DatePicker } from '@/components/atlas/ui/date-picker';
 // One sheet now. This used to also pull in `company-detail.css`, purely because
 // it rendered `VerifiedBadge` from the legacy atoms and that badge's `.vb`
 // class lives over there — so the modal dragged a second, unrelated stylesheet
@@ -419,7 +421,7 @@ export function ClaimModal({
                     <div className="cm-field cm-half"><label className="cm-label">Last name <span className="cm-req">*</span></label><input className="cm-input" value={form.last} onChange={(e) => set('last', e.target.value)} placeholder="Your last name" /></div>
                   </div>
                   <div className="cm-row2">
-                    <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-req">*</span></label><input className="cm-input" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Your city" /></div>
+                    <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-req">*</span></label><CityInput className="cm-input" value={form.city} onChange={(v) => set('city', v)} placeholder="Your city" /></div>
                     <div className="cm-field cm-half"><label className="cm-label">Country <span className="cm-req">*</span></label><LocationSelect className="cm-select" value={form.country} onChange={(v) => set('country', v)} placeholder="Select your country" /></div>
                   </div>
                 </div>
@@ -429,7 +431,7 @@ export function ClaimModal({
                     <div className="cm-field cm-half"><label className="cm-label">Company email <span className="cm-req">*</span></label><input className="cm-input" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="your.name@company.com" /></div>
                     <div className="cm-field cm-half"><label className="cm-label">Position <span className="cm-req">*</span></label><input className="cm-input" value={form.position} onChange={(e) => set('position', e.target.value)} placeholder="e.g. CEO, Partner, Founder" /></div>
                   </div>
-                  <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">LinkedIn profile URL</label><input className="cm-input" value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} placeholder="https://linkedin.com/in/yourprofile" /></div>
+                  <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">LinkedIn profile URL</label><input className="cm-input" type="url" value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} placeholder="https://linkedin.com/in/yourprofile" /></div>
                 </div>
               </div>
             )}
@@ -444,7 +446,7 @@ export function ClaimModal({
                 </div>
                 <div className="cm-field"><label className="cm-label">Work email <span className="cm-req">*</span></label><input className="cm-input" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@organisation.com" /><div className="cm-hint">A work email at your {R.noun}&apos;s domain speeds up approval.</div></div>
                 <div className="cm-field"><label className="cm-label">Position <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.position} onChange={(e) => set('position', e.target.value)} placeholder="e.g. Programme Director" /></div>
-                <div className="cm-field"><label className="cm-label">LinkedIn profile <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} placeholder="linkedin.com/in/you" /></div>
+                <div className="cm-field"><label className="cm-label">LinkedIn profile <span className="cm-opt">(optional)</span></label><input className="cm-input" type="url" value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} placeholder="linkedin.com/in/you" /></div>
               </div>
             )}
 
@@ -473,12 +475,12 @@ export function ClaimModal({
                       <div className={`cm-counter ${form.description.length >= 150 ? 'over' : ''}`}>{form.description.length}/150 characters</div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Sector</label><input className="cm-input" value={form.sector} onChange={(e) => set('sector', e.target.value)} placeholder="e.g. Fans & Content" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Sector</label><Combobox className="cm-select" value={form.sector} onChange={(v) => set('sector', v)} placeholder="Select sector…" options={optE('Select…', THESIS_SECTORS)} /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Business model</label><Combobox className="cm-select" value={form.businessModel} onChange={(v) => set('businessModel', v)} options={opt(BIZ_MODELS)} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Founded year</label><input className="cm-input" value={form.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">City</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="London" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
@@ -488,14 +490,14 @@ export function ClaimModal({
 
                     <div className="cm-sub">Contact &amp; social</div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Twitter</label><input className="cm-input" value={form.twitter} onChange={(e) => set('twitter', e.target.value)} placeholder="https://twitter.com/company" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Instagram</label><input className="cm-input" value={form.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="https://instagram.com/company" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Twitter</label><input className="cm-input" type="url" value={form.twitter} onChange={(e) => set('twitter', e.target.value)} placeholder="https://twitter.com/company" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Instagram</label><input className="cm-input" type="url" value={form.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="https://instagram.com/company" /></div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Facebook</label><input className="cm-input" value={form.facebook} onChange={(e) => set('facebook', e.target.value)} placeholder="https://facebook.com/company" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" value={form.linkedin_co} onChange={(e) => set('linkedin_co', e.target.value)} placeholder="https://linkedin.com/company/…" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Facebook</label><input className="cm-input" type="url" value={form.facebook} onChange={(e) => set('facebook', e.target.value)} placeholder="https://facebook.com/company" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" type="url" value={form.linkedin_co} onChange={(e) => set('linkedin_co', e.target.value)} placeholder="https://linkedin.com/company/…" /></div>
                     </div>
-                    <div className="cm-field"><label className="cm-label">Company email</label><input className="cm-input" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder="contact@company.com" /></div>
+                    <div className="cm-field"><label className="cm-label">Company email</label><input className="cm-input" type="email" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder="contact@company.com" /></div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '4px 0 12px' }}>
                       <div className="cm-sub" style={{ margin: 0 }}>Primary contact</div>
@@ -507,9 +509,9 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Position</label><input className="cm-input" value={form.contactPosition} onChange={(e) => set('contactPosition', e.target.value)} placeholder="Founder & CEO" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Contact email</label><input className="cm-input" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="adam@company.com" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Contact email</label><input className="cm-input" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="adam@company.com" /></div>
                     </div>
-                    <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">Personal LinkedIn profile</label><input className="cm-input" value={form.contactLinkedin} onChange={(e) => set('contactLinkedin', e.target.value)} placeholder="https://linkedin.com/in/…" /></div>
+                    <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">Personal LinkedIn profile</label><input className="cm-input" type="url" value={form.contactLinkedin} onChange={(e) => set('contactLinkedin', e.target.value)} placeholder="https://linkedin.com/in/…" /></div>
                   </div>
                 )}
 
@@ -529,10 +531,10 @@ export function ClaimModal({
                             <div className="cm-row3">
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Round type</label><Combobox className="cm-select" value={r.roundType} onChange={(v) => upd('roundType', v)} placeholder="Select…" options={optE('Select…', FUND_ROUND_NAMES)} /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Amount (USD)</label><input className="cm-input" value={r.amount} onChange={(e) => upd('amount', e.target.value.replace(/[^\d]/g, ''))} placeholder="1000000" inputMode="numeric" /></div>
-                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><input className="cm-input" value={r.date} onChange={(e) => upd('date', e.target.value)} placeholder="2024-07-10" /></div>
+                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><DatePicker className="cm-input" value={r.date} onChange={(v) => upd('date', v)} /></div>
                             </div>
                             <div className="cm-field" style={{ marginBottom: 12 }}><label className="cm-label">Investors</label><input className="cm-input" value={r.investors} onChange={(e) => upd('investors', e.target.value)} placeholder="Comma-separated" /></div>
-                            <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Source <span className="cm-opt">(optional)</span></label><input className="cm-input" value={r.source} onChange={(e) => upd('source', e.target.value)} placeholder="https://…" /></div>
+                            <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Source <span className="cm-opt">(optional)</span></label><input className="cm-input" type="url" value={r.source} onChange={(e) => upd('source', e.target.value)} placeholder="https://…" /></div>
                           </div>
                         );
                       })}
@@ -556,7 +558,7 @@ export function ClaimModal({
                             <div className="cm-row3">
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Deal type</label><Combobox className="cm-select" value={m.dealType} onChange={(v) => upd('dealType', v)} options={opt(DEAL_TYPES)} /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Counterparty</label><input className="cm-input" value={m.counterparty} onChange={(e) => upd('counterparty', e.target.value)} placeholder="Company name" /></div>
-                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><input className="cm-input" value={m.date} onChange={(e) => upd('date', e.target.value)} placeholder="2024" /></div>
+                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><DatePicker className="cm-input" value={m.date} onChange={(v) => upd('date', v)} /></div>
                             </div>
                             <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Amount (USD) <span className="cm-opt">(optional)</span></label><input className="cm-input" value={m.amount} onChange={(e) => upd('amount', e.target.value.replace(/[^\d]/g, ''))} placeholder="Undisclosed" inputMode="numeric" /></div>
                           </div>
@@ -580,7 +582,7 @@ export function ClaimModal({
                 <div className="cm-field"><label className="cm-label">One-line description</label><input className="cm-input" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What you do, in a sentence" /></div>
                 <div className="cm-sub">Profile</div>
                 <div className="cm-row2">
-                  <div className="cm-field cm-half"><label className="cm-label">Location</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="London" /></div>
+                  <div className="cm-field cm-half"><label className="cm-label">Location</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" /></div>
                   <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                 </div>
                 <div className="cm-field"><label className="cm-label">Type</label><Combobox className="cm-select" value={form.opType} onChange={(v) => set('opType', v)} options={opt(OP_TYPES)} /></div>
@@ -608,7 +610,7 @@ export function ClaimModal({
                         {FUND_ROUND_NAMES.map((n) => <label key={n} className="cm-check"><input type="checkbox" checked={form.roundNames.includes(n)} onChange={() => toggleIn('roundNames', n)} /> {n}</label>)}
                       </div>
                     </div>
-                    <div className="cm-field"><label className="cm-label">Valuation</label><input className="cm-input" value={form.valuation} onChange={(e) => set('valuation', e.target.value)} placeholder="e.g. $5M pre-money" /><div className="cm-hint">Optional: pre-money or post-money valuation.</div></div>
+                    <div className="cm-field"><label className="cm-label">Valuation (USD)</label><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.valuation} onChange={(e) => set('valuation', e.target.value)} placeholder="e.g. 5000000" /><div className="cm-hint">Optional: numeric value of your pre-money or post-money valuation.</div></div>
                     <div className="cm-field" style={{ marginBottom: 0 }}>
                       <label className="cm-label">Pitch deck <span className="cm-opt">(PDF / PPT / PPTX)</span></label>
                       <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0] ?? null; setForm((s) => ({ ...s, deckFile: f, deckName: f?.name ?? null })); }} />
@@ -646,12 +648,12 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">Year launched</label><input className="cm-input" value={form.yearLaunched} onChange={(e) => set('yearLaunched', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2018" inputMode="numeric" /></div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">City</label><input className="cm-input" value={form.coCity} onChange={(e) => set('coCity', e.target.value)} placeholder="Boston" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="Boston" /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">AUM in USD <span className="cm-opt">(optional)</span></label><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.aum} onChange={(e) => set('aum', e.target.value)} placeholder="e.g. 20000000" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Focus <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.focus} onChange={(e) => set('focus', e.target.value)} placeholder="e.g. Seed–Series A" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Focus <span className="cm-opt">(optional)</span></label><Combobox className="cm-select" value={form.focus} onChange={(v) => set('focus', v)} placeholder="Select stage focus…" options={optE('Select…', FUNDING_STAGES)} /></div>
                     </div>
 
                     <div className="cm-edithead" style={{ marginTop: 6 }}>
@@ -677,10 +679,10 @@ export function ClaimModal({
 
                     <div className="cm-sub">Social media</div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">Twitter</label><input className="cm-input" value={form.twitter} onChange={(e) => set('twitter', e.target.value)} placeholder="https://twitter.com/…" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" value={form.linkedin_co} onChange={(e) => set('linkedin_co', e.target.value)} placeholder="https://linkedin.com/company/…" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Twitter</label><input className="cm-input" type="url" value={form.twitter} onChange={(e) => set('twitter', e.target.value)} placeholder="https://twitter.com/…" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" type="url" value={form.linkedin_co} onChange={(e) => set('linkedin_co', e.target.value)} placeholder="https://linkedin.com/company/…" /></div>
                     </div>
-                    <div className="cm-field"><label className="cm-label">Email</label><input className="cm-input" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder="info@firm.com" /></div>
+                    <div className="cm-field"><label className="cm-label">Email</label><input className="cm-input" type="email" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder="info@firm.com" /></div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '4px 0 12px' }}>
                       <div className="cm-sub" style={{ margin: 0 }}>Point of contact</div>
@@ -691,8 +693,8 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">Position</label><input className="cm-input" value={form.contactPosition} onChange={(e) => set('contactPosition', e.target.value)} placeholder="President" /></div>
                     </div>
                     <div className="cm-row2" style={{ marginBottom: 0 }}>
-                      <div className="cm-field cm-half"><label className="cm-label">Contact email</label><input className="cm-input" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="brad@firm.com" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" value={form.contactLinkedin} onChange={(e) => set('contactLinkedin', e.target.value)} placeholder="https://linkedin.com/in/…" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Contact email</label><input className="cm-input" type="email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="brad@firm.com" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">LinkedIn</label><input className="cm-input" type="url" value={form.contactLinkedin} onChange={(e) => set('contactLinkedin', e.target.value)} placeholder="https://linkedin.com/in/…" /></div>
                     </div>
                   </div>
                 )}
@@ -761,7 +763,7 @@ export function ClaimModal({
                 </label>
                 <div className="cm-row2" style={{ marginTop: 14 }}>
                   <div className="cm-field cm-half"><label className="cm-label">Next intake / edition</label><input className="cm-input" value={form.intake} onChange={(e) => set('intake', e.target.value)} placeholder="e.g. Cohort 12 · Spring '26" /></div>
-                  <div className="cm-field cm-half"><label className="cm-label">Key date / deadline</label><input className="cm-input" value={form.keyDate} onChange={(e) => set('keyDate', e.target.value)} placeholder="e.g. 30 Jun 2026" /></div>
+                  <div className="cm-field cm-half"><label className="cm-label">Key date / deadline</label><DatePicker className="cm-input" value={form.keyDate} onChange={(v) => set('keyDate', v)} /></div>
                 </div>
                 <div className="cm-field" style={{ marginBottom: 0 }}><label className="cm-label">What you offer <span className="cm-opt">(optional)</span></label><input className="cm-input" value={form.offer} onChange={(e) => set('offer', e.target.value)} placeholder="e.g. $100K + 14-week program, equity-free" /></div>
               </div>
