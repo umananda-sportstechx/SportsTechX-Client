@@ -9,6 +9,7 @@ import { qk } from '@/lib/query-keys';
 import type { CompanyListItem as Company } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, ViewToggle, type ViewMode, lockedFiltersNote } from '@/components/atlas';
+import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { ExportButton } from '@/components/features/exports/export-button';
 import { FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
@@ -189,8 +190,9 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 										const inner = <>
 											<div className="atlas-table__name">
 												<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={30} radius={6} />
-												<div className="atlas-table__name-main">
-													<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
+												<div className="atlas-table__name-main" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+													<span className="atlas-ellipsis" style={{ fontWeight: 600, minWidth: 0 }}>{c.name}</span>
+													{c.is_verified && <VerifiedBadge size={13} />}
 												</div>
 											</div>
 											<span className="atlas-table__col hide-sm" style={{ width: 160 }}>{c.primary_sector ?? DASH}</span>
@@ -226,7 +228,10 @@ function CompanyRow({ c, href, onOpen }: { c: Company; href?: string; onOpen: ()
 			<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={72} radius={9} />
 			<div className="mkt-co-body">
 				<div className="mkt-co-head">
-					{href ? <Link href={href} className="mkt-co-name mkt-co-name--link">{c.name}</Link> : <span className="mkt-co-name">{c.name}</span>}
+					<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+						{href ? <Link href={href} className="mkt-co-name mkt-co-name--link">{c.name}</Link> : <span className="mkt-co-name">{c.name}</span>}
+						{c.is_verified && <VerifiedBadge size={15} />}
+					</span>
 					<span className="mkt-co-meta">
 						{c.hq_country && <Flag cc={c.hq_country} size={11} />}
 						{hq}{hq && c.founded_year ? ' · ' : ''}{c.founded_year ? `Founded ${c.founded_year}` : ''}
