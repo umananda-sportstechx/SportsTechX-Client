@@ -105,13 +105,10 @@ function leafOf(pathname: string, base: string): string | null {
  */
 function useLeafTitle(pathname: string): string | null {
 	const chatId = leafOf(pathname, hrefOf('chat'));
-	const reportSlug = leafOf(pathname, hrefOf('reports'));
 	const companySlug = leafOf(pathname, hrefOf('companies'));
 	const { data: convos } = useSWR<ConversationListItem[]>(chatId ? qk.chat.conversations() : null);
-	const { data: report } = useSWR<{ title?: string }>(reportSlug ? qk.reports.detail(reportSlug) : null);
 	const { data: company } = useSWR<{ name?: string }>(companySlug ? qk.companies.detail(companySlug) : null);
 	if (chatId) return convos?.find((c) => c.id === chatId)?.title ?? 'Conversation';
-	if (reportSlug) return report?.title ?? null;
 	if (companySlug) return company?.name ?? null;
 	return null;
 }
