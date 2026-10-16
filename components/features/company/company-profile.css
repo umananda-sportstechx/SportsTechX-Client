@@ -28,25 +28,31 @@
 .atlas .atlas-co__h2 { margin: 0; font-family: var(--a-font); font-size: 20px; font-weight: 700; color: var(--a-ink); }
 
 /* Funding history */
-.atlas .atlas-co__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 22px 30px 18px; border-bottom: 1px solid var(--a-border); }
+/* No divider under the title — the bordered header band below is the separator. */
+.atlas .atlas-co__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 22px 30px 14px; }
 .atlas .atlas-co__aside { font-family: var(--a-body); font-size: 14px; color: var(--a-muted); }
+
+/* Crunchbase-style rounds table: a bordered header band, then roomy divided rows.
+   Header and rows share one grid so the columns line up. */
+.atlas .atlas-co__deals { padding: 0 20px 10px; }
 .atlas .atlas-co__deal {
-	display: grid; grid-template-columns: 130px 160px 130px minmax(0, 1fr); gap: 12px; align-items: start;
-	padding: 16px 30px; border-top: 1px solid var(--a-border); font-family: var(--a-body); font-size: 15px; color: var(--a-muted);
+	display: grid; grid-template-columns: 140px 180px 130px minmax(0, 1fr); gap: 16px; align-items: start;
+	padding: 16px 14px; border-top: 1px solid var(--a-border); font-family: var(--a-body); font-size: 15px; color: var(--a-muted);
 }
-.atlas .atlas-co__deal:first-of-type { border-top: none; }
-/* Crunchbase-style column header row: mono uppercase labels over the rounds. */
 .atlas .atlas-co__deal--head {
-	padding-top: 0; padding-bottom: 10px; border-top: none;
-	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-faint);
+	border: 1px solid var(--a-border); border-radius: var(--a-radius-sm); background: var(--a-inset);
+	padding: 13px 14px; margin-bottom: 2px;
+	font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--a-ink);
 }
+/* First real row sits just under the band with no extra divider. */
 .atlas .atlas-co__deal--head + .atlas-co__deal { border-top: none; }
-.atlas .atlas-co__amt { font-weight: 600; color: var(--a-ink); font-variant-numeric: tabular-nums; }
+.atlas .atlas-co__amt { font-weight: 700; color: var(--a-ink); font-variant-numeric: tabular-nums; }
 /* Investor names must show in full (feedback: truncated even when zoomed out),
    so the cell wraps instead of clipping to one ellipsised line. */
 .atlas .atlas-co__investors { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
 @media (max-width: 760px) {
-	.atlas .atlas-co__deal { grid-template-columns: 1fr 1fr; padding: 14px 20px; }
+	.atlas .atlas-co__deals { padding: 0 14px 10px; }
+	.atlas .atlas-co__deal { grid-template-columns: 1fr 1fr; padding: 14px 10px; }
 	.atlas .atlas-co__investors { grid-column: 1 / -1; }
 	.atlas .atlas-co__deal--head { display: none; }
 }
