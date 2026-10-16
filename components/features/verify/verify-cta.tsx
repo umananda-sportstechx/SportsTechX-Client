@@ -134,6 +134,9 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 		);
 	}
 
+	// Entity already verified by another user — no CTA for anyone.
+	if (target?.verified) return null;
+
 	// Already a known, verified user elsewhere — don't prompt them to claim this
 	// specific entity (they can still do it from the Get-verified entry).
 	if (hideWhenVerifiedElsewhere && state === 'none' && anyVerified) return null;
