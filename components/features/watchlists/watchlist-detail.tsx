@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowUpLeft, ArrowUpRight, X } from 'lucide-react';
-import { Action, Empty, Loading, Logo } from '@/components/atlas';
+import { Action, Empty, Loading, Logo, ViewToggle, type ViewMode } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import { hrefOf } from '@/lib/routes';
 import { useCompanyWatchlists, useWatchlistCompanies, removeFromWatchlist } from './use-company-watchlists';
@@ -14,6 +14,7 @@ import './watchlists.css';
 export function WatchlistDetail({ id, backHref, companyHref }: { id: string; backHref: string; companyHref: (idOrSlug: string) => string }) {
 	const { lists, isLoading: listsLoading } = useCompanyWatchlists();
 	const { companies, isLoading } = useWatchlistCompanies(id);
+	const [view, setView] = useState<ViewMode>('cards');
 	const [busy, setBusy] = useState<string | null>(null);
 	const list = lists.find((l) => l.id === id);
 
@@ -32,11 +33,14 @@ export function WatchlistDetail({ id, backHref, companyHref }: { id: string; bac
 					<h2 className="atlas-h2">{list.name}</h2>
 					<div className="atlas-eyebrow" style={{ marginTop: 8 }}>{companies.length} compan{companies.length === 1 ? 'y' : 'ies'}</div>
 				</div>
-				<Action icon={<ArrowUpLeft />} href={backHref}>All watchlists</Action>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+					<ViewToggle value={view} onChange={setView} />
+					<Action icon={<ArrowUpLeft />} href={backHref}>All watchlists</Action>
+				</div>
 			</div>
 			{isLoading ? <Loading /> : companies.length === 0 ? (
 				<Empty>No companies yet. <Link href={hrefOf('companies')} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Browse companies</Link> and use &quot;Add to watchlist&quot;.</Empty>
-			) : (
+			) : view === 'cards' ? (
 				<div className="atlas-rowlist">
 					{companies.map((c) => {
 						const href = companyHref(c.slug ?? c.id);
@@ -55,6 +59,38 @@ export function WatchlistDetail({ id, backHref, companyHref }: { id: string; bac
 									<Action icon={<X />} disabled={busy === c.id} onClick={() => void remove(c.id, c.name)}>Remove</Action>
 								</div>
 							</div>
+						);
+					})}
+				</div>
+			) : (
+				<div className="atlas-table" role="table">
+					<div className="atlas-table__head">
+						<span className="atlas-table__name">Company</span>
+						<span className="atlas-table__col hide-sm" style={{ width: 150 }}>Sector</span>
+						<span className="atlas-table__col hide-sm" style={{ width: 130 }}>Location</span>
+						<span className="atlas-table__col" style={{ width: 90 }}>Funding</span>
+						<span className="atlas-table__col" style={{ width: 70 }}>Remove</span>
+					</div>
+					{companies.map((c) => {
+						const href = companyHref(c.slug ?? c.id);
+						const hq = [c.hq_city, c.hq_country].filter(Boolean).join(', ');
+						const raised = fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd));
+						return (
+							<Link key={c.id} className="atlas-table__row" href={href}>
+								<div className="atlas-table__name">
+									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} radius={5} />
+									<div className="atlas-table__name-main">
+										<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
+									</div>
+								</div>
+								<span className="atlas-table__col hide-sm" style={{ width: 150 }}>{c.primary_sector ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 130 }}>{hq || '—'}</span>
+								<span className="atlas-table__col" style={{ width: 90 }}>{raised}</span>
+								<span className="atlas-table__col" style={{ width: 70 }}>
+									<button type="button" disabled={busy === c.id} onClick={(e) => { e.preventDefault(); void remove(c.id, c.name); }}
+										style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-muted)', padding: 4 }}><X size={14} /></button>
+								</span>
+							</Link>
 						);
 					})}
 				</div>
