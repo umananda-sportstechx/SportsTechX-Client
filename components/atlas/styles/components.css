@@ -74,7 +74,7 @@
 
 /* ── Segmented switch (Figma "Select UX bar": FUNDING | M&A | TOTAL) ────── */
 .atlas-seg {
-  display: inline-flex; align-items: stretch; height: 29px;
+  display: inline-flex; align-items: stretch; height: 34px;
   border: 1px solid var(--a-border-strong); border-radius: var(--a-radius-pill);
   background: var(--a-field); overflow: hidden;
 }
@@ -196,7 +196,7 @@
 .atlas-datepanel__clear:hover { background: var(--a-inset); color: var(--a-ink); }
 /* Pill dropdown (Figma "Sort Button": ⌄ JULY). */
 .atlas-select--pill {
-  height: 29px; border-radius: var(--a-radius-pill); padding: 0 14px 0 30px;
+  height: 34px; border-radius: var(--a-radius-pill); padding: 0 14px 0 30px;
   font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   appearance: none; -webkit-appearance: none; cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%23000' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -273,7 +273,7 @@ span.atlas-fbar__pill-main { cursor: default; }
 }
 .atlas-fbar__pill-x:hover { color: var(--a-ink); }
 .atlas-fbar__clear {
-  display: inline-flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; padding: 0 6px;
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; background: none; border: none; cursor: pointer; padding: 0 6px;
   font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--a-ink) 45%, transparent);
 }
 .atlas-fbar__clear:hover { color: var(--a-ink); }
@@ -363,7 +363,7 @@ span.atlas-fbar__pill-main { cursor: default; }
 .atlas-entity-card:hover { background-image: var(--a-glow-pink); }
 .atlas-entity-card__head { display: flex; gap: 16px; margin-bottom: 16px; }
 .atlas-entity-card__eyebrow { font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 7px; }
-.atlas-entity-card__name { font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); }
+.atlas-entity-card__name { font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .atlas-entity-card__meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 10px; color: var(--a-faint); }
 .atlas-entity-card__desc {
   font-size: 11px; line-height: 1.4; color: var(--a-muted); margin: 0 3px 14px;
@@ -707,7 +707,7 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 /* ── Filter pills (mockup `pill(active)`) ─────────────────────────────────── */
 .atlas-pilltabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .atlas-pilltab {
-  display: inline-flex; align-items: center; height: 29px; padding: 0 13px;
+  display: inline-flex; align-items: center; height: 34px; padding: 0 13px;
   border: 0; border-radius: var(--a-radius-pill); cursor: pointer; white-space: nowrap;
   background: var(--a-field); color: var(--a-ink); box-shadow: inset 0 0 0 1px var(--a-border-strong);
   font-family: var(--a-mono); font-size: 10.5px; line-height: 1; letter-spacing: 0.1em; text-transform: uppercase;

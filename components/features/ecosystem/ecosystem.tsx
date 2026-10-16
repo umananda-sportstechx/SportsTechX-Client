@@ -35,6 +35,7 @@ const MODE_LABEL: Record<string, string> = { in_person: 'In person', virtual: 'V
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const fmtShortDate = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const extUrl = (u: string | null | undefined) => u ? (/^https?:\/\//i.test(u) ? u : `https://${u}`) : undefined;
 
 type EventView = 'calendar' | 'table' | 'cards';
 
@@ -409,7 +410,7 @@ function CalendarGrid({ year, month, events }: { year: number; month: number; ev
 
 function CalendarEvent({ event }: { event: Eco }) {
 	const modeLabel = event.mode ? MODE_LABEL[event.mode] : null;
-	const href = event.website;
+	const href = extUrl(event.website);
 	const Tag = href ? 'a' : 'div';
 	const linkProps = href ? { href, target: '_blank', rel: 'noopener noreferrer' } : {};
 	return (
@@ -457,7 +458,7 @@ function EventsTable({ rows }: { rows: Eco[] }) {
 								</td>
 								<td>{loc ? <span className="ecal-table__loc"><Flag cc={e.hq_country!} size={12} /> {loc}</span> : '—'}</td>
 								<td>{e.mode ? <span className={`ecal-table__mode ecal-table__mode--${e.mode}`}>{MODE_LABEL[e.mode] ?? e.mode}</span> : '—'}</td>
-								<td>{e.website ? <a href={e.website} target="_blank" rel="noopener noreferrer" className="ecal-table__link"><ArrowUpRight size={13} /> Visit</a> : '—'}</td>
+								<td>{e.website ? <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="ecal-table__link"><ArrowUpRight size={13} /> Visit</a> : '—'}</td>
 							</tr>
 						);
 					})}
@@ -493,7 +494,7 @@ function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
 			{e.description && <div className="atlas-entity-card__desc">{e.description}</div>}
 			{e.website && (
 				<div className="atlas-entity-card__actions">
-					<Action icon={<ArrowUpRight />} href={e.website} external>Visit website</Action>
+					<Action icon={<ArrowUpRight />} href={extUrl(e.website)} external>Visit website</Action>
 				</div>
 			)}
 		</div>

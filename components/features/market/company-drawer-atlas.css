@@ -112,7 +112,7 @@
 
 /* Dashed "open full profile" CTA → outline pill */
 .atlas .co-drawer .co-drawer-cta {
-	height: 29px; padding: 0 15px; border-radius: var(--a-radius-pill);
+	height: 34px; padding: 0 15px; border-radius: var(--a-radius-pill);
 	border: 1px solid var(--a-border-strong); background: var(--a-field); color: var(--a-ink);
 	font-family: var(--a-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase;
 }
@@ -129,7 +129,7 @@
 /* ── Footer + legacy .btn → kit buttons ── */
 .atlas .co-drawer-foot { background: transparent; padding: 16px 23px; gap: 10px; border-top: 1px solid var(--a-border); }
 .atlas .co-drawer-overlay .btn {
-	height: 29px; padding: 0 15px; gap: 7px; border-radius: var(--a-radius-pill);
+	height: 34px; padding: 0 15px; gap: 7px; border-radius: var(--a-radius-pill);
 	font-family: var(--a-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase;
 	background: var(--a-primary); color: var(--a-primary-ink); border: 1px solid var(--a-border);
 	text-decoration: none;
