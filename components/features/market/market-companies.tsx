@@ -27,6 +27,8 @@ import './market.css';
 const PAGE_SIZE = 24;
 const BUSINESS_MODELS: [string, string][] = [['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C'], ['d2c', 'D2C'], ['b2g', 'B2G'], ['other', 'Other']];
 const COMPANY_SORTS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-total_funding', 'Most funded']];
+// A faint em-dash for empty cells, so real values stand out against the many gaps.
+const DASH = <span className="atlas-dash">—</span>;
 
 /**
  * Market → Companies. The full sports-tech company database — the same search +
@@ -173,12 +175,12 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 								<div className="atlas-table" role="table">
 									<div className="atlas-table__head">
 										<span className="atlas-table__name">Company</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 150 }}>Sector</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 130 }}>Location</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 160 }}>Sector</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 140 }}>Location</span>
 										<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Founded</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 90 }}>Sport</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 55 }}>Model</span>
-										<span className="atlas-table__col" style={{ width: 90 }}>Funding</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 100 }}>Sport</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 66 }}>Model</span>
+										<span className="atlas-table__col" style={{ width: 96, textAlign: 'right' }}>Funding</span>
 									</div>
 									{rows.map((c) => {
 										const href = companyHref?.(c.slug ?? c.id);
@@ -186,17 +188,17 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 										const funding = fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd));
 										const inner = <>
 											<div className="atlas-table__name">
-												<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} radius={5} />
+												<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={30} radius={6} />
 												<div className="atlas-table__name-main">
 													<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
 												</div>
 											</div>
-											<span className="atlas-table__col hide-sm" style={{ width: 150 }}>{c.primary_sector ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 130 }}>{hq || '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{c.founded_year ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 90 }}>{c.primary_sport ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 55 }}>{c.business_model ? c.business_model.toUpperCase() : '—'}</span>
-											<span className="atlas-table__col" style={{ width: 90 }}>{funding}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 160 }}>{c.primary_sector ?? DASH}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 140 }}>{hq || DASH}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{c.founded_year ?? DASH}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 100 }}>{c.primary_sport ?? DASH}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 66 }}>{c.business_model ? <span className="atlas-chip-sm">{c.business_model.toUpperCase()}</span> : DASH}</span>
+											<span className="atlas-table__col" style={{ width: 96, textAlign: 'right', fontWeight: funding === '—' ? 400 : 600, color: funding === '—' ? undefined : 'var(--a-ink)' }}>{funding === '—' ? DASH : funding}</span>
 										</>;
 										return href
 											? <Link key={c.id} className="atlas-table__row" href={href}>{inner}</Link>
