@@ -122,7 +122,7 @@ export function Recommended() {
 										<div className="atlas-rec__facts">
 											{c.sector && <span className="atlas-rec__chip">{c.sector}</span>}
 											<span className="atlas-rec__raised">
-												{fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd))} raised
+												{c.total_funding_usd != null ? `${fmtUsd(Number(c.total_funding_usd))} raised` : 'Undisclosed'}
 												{c.latest_round ? ` · ${c.latest_round}` : ''}
 											</span>
 										</div>

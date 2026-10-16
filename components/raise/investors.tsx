@@ -253,7 +253,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 				<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
 					{inv.category && <div className="atlas-entity-card__eyebrow">{inv.category}</div>}
-					<div className="atlas-entity-card__name">{inv.name}</div>
+					<Link href={`${hrefOf('investors')}/${inv.id}`} className="atlas-entity-card__name" style={{ textDecoration: 'none', color: 'inherit' }}>{inv.name}</Link>
 					{inv.hq_country && (
 						<div className="atlas-entity-card__meta"><Flag cc={inv.hq_country} size={11} /><span>{canonicalCountry(inv.hq_country)}</span></div>
 					)}

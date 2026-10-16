@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowUpRight } from 'lucide-react';
-import { Empty, Loading, PillTabs, Select } from '@/components/atlas';
+import { Empty, Loading, Logo, PillTabs, Select } from '@/components/atlas';
 import { qk } from '@/lib/query-keys';
 import { useSectorTierData, useLocationFacetOptions } from '@/hooks/use-catalog-options';
 import { ago, place } from '@/components/features/market/format';
@@ -30,15 +30,10 @@ import './signals.css';
 const FILTERS: { key: 'All' | SignalType; label: string }[] = [
 	{ key: 'All', label: 'All' },
 	{ key: 'funding', label: 'Funding' },
-	{ key: 'growth', label: 'Growth' },
-	{ key: 'partnership', label: 'Partnerships' },
-	{ key: 'leadership', label: 'Leadership' },
-	{ key: 'product', label: 'Product' },
 	{ key: 'fundraising', label: 'Fundraising' },
 ];
 const TYPE_LABEL: Record<string, string> = {
-	funding: 'Funding', growth: 'Growth', partnership: 'Partnership', leadership: 'Leadership',
-	product: 'Product', fundraising: 'Fundraising',
+	funding: 'Funding', fundraising: 'Fundraising',
 };
 
 export function Signals({ companiesHref }: { companiesHref: string }) {
@@ -98,6 +93,7 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 							return (
 								<article key={s.id} className="atlas-sig">
 									<div className="atlas-sig__top">
+										<Logo co={{ name, website: s.company_website ?? null, custom_logo_url: s.company_custom_logo_url ?? null }} size={24} radius={4} />
 										<Link href={href} className="atlas-sig__name">{name}</Link>
 										<span className="atlas-sig__type">{TYPE_LABEL[s.signal_type] ?? s.signal_type}</span>
 										<span className="atlas-sig__when">· {ago(s.occurred_at)}</span>
