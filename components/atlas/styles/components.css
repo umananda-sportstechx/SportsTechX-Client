@@ -418,6 +418,10 @@ span.atlas-fbar__pill-main { cursor: default; }
 
 /* ── Ranked table (Figma "Funding rounds" / "Largest acquisitions") ── */
 .atlas .atlas-table { display: flex; flex-direction: column; margin: 0 -23px; overflow-x: auto; }
+/* A chart card has zero padding and clips overflow, so the -23px full-bleed
+   over-pulls and content lands flush on the border. Drop the bleed there — the
+   rows' own 23px padding then gives the first/last columns proper breathing room. */
+.atlas .atlas-chart-card .atlas-table { margin: 0; }
 .atlas .atlas-table__head, .atlas .atlas-table__row { display: flex; align-items: center; gap: 18px; padding: 14px 23px; }
 .atlas .atlas-table__head {
 	border-top: 1px solid var(--a-border); border-bottom: 1px solid var(--a-border);
