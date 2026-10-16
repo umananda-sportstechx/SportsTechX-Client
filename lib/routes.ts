@@ -235,9 +235,11 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 	],
 	scout: [
 		{ title: null, items: ['home', 'chat'] },
-		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
+		// Scout has a single watchlist link (no pipeline), so a standalone
+		// "Watchlists" section collapsed to one headerless item. Fold it into
+		// Discover instead — saved lists still splice in before "All watchlists".
+		{ title: 'Discover', items: ['companies', 'recommended', 'signals', 'watchlists'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'recently-funded'] },
-		{ title: 'Watchlists', items: ['watchlists'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 	],
