@@ -363,7 +363,7 @@ span.atlas-fbar__pill-main { cursor: default; }
 .atlas-entity-card:hover { background-image: var(--a-glow-pink); }
 .atlas-entity-card__head { display: flex; gap: 16px; margin-bottom: 16px; }
 .atlas-entity-card__eyebrow { font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 7px; }
-.atlas-entity-card__name { font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas-entity-card__name { display: block; font-family: var(--a-font); font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--a-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .atlas-entity-card__meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 10px; color: var(--a-faint); }
 .atlas-entity-card__desc {
   font-size: 11px; line-height: 1.4; color: var(--a-muted); margin: 0 3px 14px;
