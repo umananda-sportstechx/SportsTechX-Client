@@ -374,6 +374,17 @@ span.atlas-fbar__pill-main { cursor: default; }
   margin: auto 3px 0; padding-top: 16px; border-top: 1px solid var(--a-border);
 }
 .atlas-entity-card:hover .atlas-action__icon { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-primary); }
+.atlas-entity-card__foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: auto 3px 0; padding-top: 14px; border-top: 1px solid var(--a-border);
+}
+.atlas-entity-card__date { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted); }
+.atlas-entity-card__link {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  color: var(--a-muted); border: 1px solid var(--a-border-strong); background: var(--a-field);
+  text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.atlas-entity-card__link:hover { color: var(--a-primary-ink); background: var(--a-primary); border-color: var(--a-primary); }
 
 /* ── Row list (hairline-separated rows in one card) ─────────────────────── */
 .atlas-rowlist {

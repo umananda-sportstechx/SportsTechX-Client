@@ -476,27 +476,27 @@ function Divider() {
 
 function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
 	const loc = [e.hq_city, e.hq_country].filter(Boolean).join(', ');
-	const meta = isEvent
-		? [e.start_date ? fmtDate(e.start_date) : null, e.mode ? (MODE_LABEL[e.mode] ?? e.mode) : null].filter(Boolean).join(' · ')
-		: e.category;
+	const dateLine = isEvent && e.start_date ? fmtDate(e.start_date) : null;
+	const modeLine = isEvent && e.mode ? (MODE_LABEL[e.mode] ?? e.mode) : null;
+	const eyebrow = isEvent ? modeLine : e.category;
 	return (
 		<div className="atlas-card atlas-entity-card">
 			<div className="atlas-entity-card__head">
 				<Logo co={{ name: e.name, website: e.website }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
-					{meta && <div className="atlas-entity-card__eyebrow">{meta}</div>}
-					<div className="atlas-entity-card__name">{e.name}</div>
+					{eyebrow && <div className="atlas-entity-card__eyebrow">{eyebrow}</div>}
+					<div className="atlas-entity-card__name" title={e.name}>{e.name}</div>
 					{e.hq_country && (
 						<div className="atlas-entity-card__meta"><Flag cc={e.hq_country} size={11} /><span>{loc}</span></div>
 					)}
 				</div>
 			</div>
 			{e.description && <div className="atlas-entity-card__desc">{e.description}</div>}
-			{e.website && (
-				<div className="atlas-entity-card__actions">
-					<Action icon={<ArrowUpRight />} href={extUrl(e.website)} external>Visit website</Action>
-				</div>
-			)}
+			<div className="atlas-entity-card__foot">
+				{dateLine && <span className="atlas-entity-card__date">{dateLine}</span>}
+				{!dateLine && !isEvent && <span />}
+				{e.website && <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="atlas-entity-card__link" title="Visit website"><ArrowUpRight size={15} /></a>}
+			</div>
 		</div>
 	);
 }
