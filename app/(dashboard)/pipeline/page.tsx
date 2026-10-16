@@ -9,7 +9,7 @@ import { qk } from '@/lib/query-keys';
 import type { PipelineActivity as Activity, PipelineStage, PipelineUpdate } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Button, Eyebrow, Field, Flag, Input, ListSwitcher, Loading, Logo, SectionHeader, Select, Textarea } from '@/components/atlas';
+import { Button, Eyebrow, Field, Flag, Input, Loading, Logo, SectionHeader, Select, Textarea } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 
 /**
@@ -40,11 +40,7 @@ const nameOf = (p: Pipe) => p.investor_name ?? p.custom_name ?? 'Investor';
 const money = (v: string | null) => (v == null ? null : `€${Number(v).toLocaleString()}`);
 const overdue = (d: string | null) => !!d && new Date(d) < new Date(new Date().toDateString());
 
-/** Placeholder watchlists until multiple lists exist in the backend. */
-const WATCHLISTS = [{ id: 'main', name: 'Main watchlist' }];
-
 export default function RaisePipelinePage() {
-	const [watchlist, setWatchlist] = useState('main');
 	const initialFilter = useSearchParams().get('filter') ?? '';
 	const [filter, setFilter] = useState(initialFilter);
 	const [open, setOpen] = useState<Pipe | null>(null);
@@ -81,12 +77,7 @@ export default function RaisePipelinePage() {
 		<div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 			<div style={{ padding: `${PAD_TOP} ${PAD_X} 18px` }}>
 				<SectionHeader
-					actions={<>
-						{/* Placeholder: one watchlist today (the investor board). Multiple named
-						    watchlists need backend support — swap WATCHLISTS for real data then. */}
-						<ListSwitcher noun="watchlist" lists={WATCHLISTS.map((w) => ({ ...w, meta: String(rows.length) }))} value={watchlist} onChange={setWatchlist} createPlaceholder />
-						<Button onClick={() => setAdding(true)}><Plus size={13} /> Add investor</Button>
-					</>}
+					actions={<Button onClick={() => setAdding(true)}><Plus size={13} /> Add investor</Button>}
 				/>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 					<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -107,11 +98,11 @@ export default function RaisePipelinePage() {
 								onDragLeave={() => setDragOver((cur) => (cur === s ? null : cur))}
 								onDrop={(e) => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData('text/plain'); if (id) void moveCard(id, s); }}
 								className="atlas-card"
-								style={{ flex: '0 0 248px', minWidth: 248, display: 'flex', flexDirection: 'column', padding: '14px 12px 12px', borderColor: dragOver === s ? 'var(--a-border-strong)' : undefined }}>
-								<div style={{ fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0 4px 12px', marginBottom: 10, borderBottom: '1px solid var(--a-border)', display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--a-ink)' }}>
+								style={{ flex: '0 0 248px', minWidth: 248, display: 'flex', flexDirection: 'column', padding: 0, borderColor: dragOver === s ? 'var(--a-border-strong)' : undefined }}>
+								<div style={{ position: 'sticky', top: 0, zIndex: 1, fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '14px 16px 12px', borderBottom: '1px solid var(--a-border)', display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--a-ink)', background: 'var(--a-surface)', borderRadius: 'var(--a-radius) var(--a-radius) 0 0' }}>
 									<span>{label}</span><span style={{ color: 'var(--a-faint)' }}>{byStage[s]?.length ?? 0}</span>
 								</div>
-								<div style={{ display: 'grid', gap: 8, gridAutoRows: 'min-content', minHeight: 60, flex: 1, borderRadius: 'var(--a-radius-sm)', background: dragOver === s ? 'var(--a-navy-soft)' : 'transparent', outline: dragOver === s ? '1px dashed var(--a-navy)' : 'none', padding: dragOver === s ? 6 : 0, transition: 'background 0.1s' }}>
+								<div style={{ display: 'grid', gap: 8, gridAutoRows: 'min-content', minHeight: 60, flex: 1, padding: 12, borderRadius: 'var(--a-radius-sm)', background: dragOver === s ? 'var(--a-navy-soft)' : 'transparent', outline: dragOver === s ? '1px dashed var(--a-navy)' : 'none', transition: 'background 0.1s' }}>
 									{(byStage[s] ?? []).length === 0 && dragOver !== s
 										? <div style={{ border: '1px dashed var(--a-border-strong)', borderRadius: 'var(--a-radius-sm)', padding: '14px 10px', textAlign: 'center', fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>No investors yet</div>
 										: (byStage[s] ?? []).map((p) => (
