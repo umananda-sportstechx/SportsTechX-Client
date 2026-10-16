@@ -31,13 +31,25 @@
 .atlas .atlas-co__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 22px 30px 18px; border-bottom: 1px solid var(--a-border); }
 .atlas .atlas-co__aside { font-family: var(--a-body); font-size: 14px; color: var(--a-muted); }
 .atlas .atlas-co__deal {
-	display: grid; grid-template-columns: 140px 170px 140px minmax(0, 1fr); gap: 12px; align-items: center;
-	padding: 18px 30px; border-top: 1px solid var(--a-border); font-family: var(--a-body); font-size: 15px; color: var(--a-muted);
+	display: grid; grid-template-columns: 130px 160px 130px minmax(0, 1fr); gap: 12px; align-items: start;
+	padding: 16px 30px; border-top: 1px solid var(--a-border); font-family: var(--a-body); font-size: 15px; color: var(--a-muted);
 }
 .atlas .atlas-co__deal:first-of-type { border-top: none; }
-.atlas .atlas-co__amt { font-weight: 600; color: var(--a-ink); }
-.atlas .atlas-co__investors { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 760px) { .atlas .atlas-co__deal { grid-template-columns: 1fr 1fr; padding: 14px 20px; } .atlas .atlas-co__investors { grid-column: 1 / -1; } }
+/* Crunchbase-style column header row: mono uppercase labels over the rounds. */
+.atlas .atlas-co__deal--head {
+	padding-top: 0; padding-bottom: 10px; border-top: none;
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-faint);
+}
+.atlas .atlas-co__deal--head + .atlas-co__deal { border-top: none; }
+.atlas .atlas-co__amt { font-weight: 600; color: var(--a-ink); font-variant-numeric: tabular-nums; }
+/* Investor names must show in full (feedback: truncated even when zoomed out),
+   so the cell wraps instead of clipping to one ellipsised line. */
+.atlas .atlas-co__investors { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+@media (max-width: 760px) {
+	.atlas .atlas-co__deal { grid-template-columns: 1fr 1fr; padding: 14px 20px; }
+	.atlas .atlas-co__investors { grid-column: 1 / -1; }
+	.atlas .atlas-co__deal--head { display: none; }
+}
 .atlas .atlas-co__empty { margin: 0; padding: 18px 30px 22px; font-size: 13px; color: var(--a-faint); }
 
 /* Right rail cards */
