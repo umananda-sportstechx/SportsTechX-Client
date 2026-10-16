@@ -96,7 +96,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 					<Plus /> Add filter
 				</button>
 				{menu?.at === 'add' && (
-					<div className={cx('atlas-menu', menu.view === 'root' && groups.length > 1 && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
+					<div className={cx('atlas-menu', (groups.length > 1 || menu.view !== 'root') && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
 						{menu.view === 'root' ? (
 							<div className="atlas-menu__groups">
 								{groups.map((g) => (

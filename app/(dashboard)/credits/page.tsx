@@ -87,21 +87,21 @@ export default function CreditsPage() {
 				{packs.isLoading ? <Loading />
 					: packList.length === 0 ? <div style={{ fontSize: 12, color: 'var(--a-faint)' }}>No credit packs available right now.</div>
 						: (
-							<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+							<div style={{ display: 'flex', gap: 12 }}>
 								{packList.map((pk) => {
 									const perCredit = pk.price_amount / pk.credit_amount;
 									return (
 										<button key={pk.id} type="button" disabled={busy !== null} onClick={() => void buyPack(pk.id)}
-											style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 16px', background: 'var(--a-field)', border: '1px solid var(--a-border-strong)', borderRadius: 'var(--a-radius)', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy && busy !== pk.id ? 0.5 : 1, transition: 'border-color .15s, background .15s' }}
-											onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--a-ink)'; e.currentTarget.style.background = 'var(--a-inset)'; }}
-											onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--a-border-strong)'; e.currentTarget.style.background = 'var(--a-field)'; }}
+											style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '24px 16px', background: 'linear-gradient(160deg, rgba(59,130,246,0.08) 0%, rgba(139,92,246,0.06) 100%)', border: '1px solid var(--a-border-strong)', borderRadius: 'var(--a-radius)', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy && busy !== pk.id ? 0.5 : 1, transition: 'border-color .15s, background .15s' }}
+											onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--a-ink)'; e.currentTarget.style.background = 'linear-gradient(160deg, rgba(59,130,246,0.14) 0%, rgba(139,92,246,0.10) 100%)'; }}
+											onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--a-border-strong)'; e.currentTarget.style.background = 'linear-gradient(160deg, rgba(59,130,246,0.08) 0%, rgba(139,92,246,0.06) 100%)'; }}
 										>
 											{busy === pk.id
 												? <Loader2 className="animate-spin" size={20} style={{ color: 'var(--a-ink)' }} />
 												: <>
-													<div style={{ fontFamily: 'var(--a-font)', fontSize: 22, fontWeight: 600, color: 'var(--a-ink)', lineHeight: 1 }}>{pk.credit_amount.toLocaleString()}</div>
+													<div style={{ fontFamily: 'var(--a-font)', fontSize: 24, fontWeight: 600, color: 'var(--a-ink)', lineHeight: 1 }}>{pk.credit_amount.toLocaleString()}</div>
 													<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-faint)' }}>credits</div>
-													<div style={{ fontFamily: 'var(--a-font)', fontSize: 15, fontWeight: 600, color: 'var(--a-ink)', marginTop: 4 }}>{fmtMoney(pk.price_amount, pk.currency_code)}</div>
+													<div style={{ fontFamily: 'var(--a-font)', fontSize: 16, fontWeight: 600, color: 'var(--a-ink)', marginTop: 4 }}>{fmtMoney(pk.price_amount, pk.currency_code)}</div>
 													<div style={{ fontFamily: 'var(--a-mono)', fontSize: 9, color: 'var(--a-muted)', letterSpacing: '0.04em' }}>{fmtMoney(Math.round(perCredit), pk.currency_code)} / credit</div>
 												</>}
 										</button>

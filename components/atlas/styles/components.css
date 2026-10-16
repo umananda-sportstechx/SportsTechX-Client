@@ -283,13 +283,13 @@ span.atlas-fbar__pill-main { cursor: default; }
 /* Black popover menu (Figma filter dropdowns). Inverts in dark mode via the primary tokens. */
 .atlas-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
-  min-width: 190px; max-width: min(92vw, 360px);
+  min-width: 190px; max-width: min(92vw, 440px);
   background: var(--a-primary); color: var(--a-primary-ink);
   border-radius: var(--a-radius); padding: 14px 14px 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 .atlas-menu--end { left: auto; right: 0; }
-.atlas-menu--wide { min-width: min(92vw, 316px); }
+.atlas-menu--wide { min-width: min(92vw, 380px); }
 .atlas-menu__groups { display: grid; gap: 18px 26px; }
 .atlas-menu--wide .atlas-menu__groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .atlas-menu__label {
@@ -309,7 +309,7 @@ span.atlas-fbar__pill-main { cursor: default; }
   border-radius: var(--a-radius-pill);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-primary-ink) 22%, transparent);
   font-family: var(--a-mono); font-size: 10px; line-height: 1.2; letter-spacing: 0.1em;
-  text-transform: uppercase; color: inherit; white-space: nowrap;
+  text-transform: uppercase; color: inherit;
   transition: background 0.12s, box-shadow 0.12s;
 }
 .atlas-menu__item:hover, .atlas-menu__item:focus-visible {
