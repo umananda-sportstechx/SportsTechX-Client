@@ -100,7 +100,7 @@ export default function RaisePipelinePage() {
 
 			{isLoading ? <Loading /> : (
 				<div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: `0 ${PAD_X} 20px` }}>
-					<div style={{ display: 'flex', gap: 14, minWidth: 'max-content', height: '100%' }}>
+					<div style={{ display: 'flex', gap: 14, minWidth: 'max-content', minHeight: '100%' }}>
 						{STAGES.map(([s, label]) => (
 							<div key={s}
 								onDragOver={(e) => { e.preventDefault(); if (dragOver !== s) setDragOver(s); }}
