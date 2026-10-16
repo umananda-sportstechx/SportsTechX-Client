@@ -1,4 +1,4 @@
-import { Anton, Azeret_Mono, Newsreader, Space_Mono } from 'next/font/google';
+import { lpDisplay, lpMono, lpMonoCta, lpSerif } from './fonts';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { IntroHero } from '@/components/landing/intro-hero';
 import { TrustedBy } from '@/components/landing/trusted-by';
@@ -24,15 +24,6 @@ import '@/components/landing/landing.css';
  * they fall through to Anton, the closest free match. Eyebrows/buttons/nav use
  * Azeret Mono (exact, from the design); body reuses the app's Inter.
  */
-const display = Anton({ weight: '400', subsets: ['latin'], variable: '--lp-display', display: 'swap' });
-/* Space Mono is the design's mono for eyebrows, switchers and roles. Azeret Mono
-   is NOT a substitute for it — the design uses Azeret in exactly one place, the
-   intro-hero CTAs, so it keeps its own variable. */
-const mono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'], variable: '--lp-mono', display: 'swap' });
-const monoCta = Azeret_Mono({ subsets: ['latin'], variable: '--lp-mono-cta', display: 'swap' });
-/* Fallback behind Kepler Std until it is added to the Adobe kit (see landing.css). */
-const serif = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--lp-serif-fb', display: 'swap' });
-
 /* Placeholder copy, reproduced from the design as-is. */
 const GALLERY_DESC =
 	'Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
@@ -44,7 +35,7 @@ export default async function LandingPage() {
 	const cms = await siteContent();
 
 	return (
-		<div className={`lp ${display.variable} ${mono.variable} ${monoCta.variable} ${serif.variable}`}>
+		<div className={`lp ${lpDisplay.variable} ${lpMono.variable} ${lpMonoCta.variable} ${lpSerif.variable}`}>
 			{/* The panel is a SIBLING before the shell, not a child: the shell is
 			    transformed while the drawer is out, so a panel inside it would
 			    slide along with the page instead of being revealed by it. The nav
