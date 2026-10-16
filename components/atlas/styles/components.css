@@ -23,7 +23,7 @@
 /* ── Button (Figma "Inspect Button" / filter pills) ─────────────────────── */
 .atlas-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 29px; padding: 0 15px;
+  height: 34px; padding: 0 15px;
   border-radius: var(--a-radius-pill);
   font-family: var(--a-mono); font-size: 11px; font-weight: 400; line-height: 1;
   letter-spacing: 0.1em; text-transform: uppercase;
@@ -206,7 +206,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%23fff' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 /* Pill search field (Figma "Search Field"). */
-.atlas-input--search { border-radius: var(--a-radius-pill); height: 32px; font-size: 13px; background: var(--a-inset); }
+.atlas-input--search { border-radius: var(--a-radius-pill); height: 38px; font-size: 13px; background: var(--a-inset); }
 
 /* ── Badge / tag (Figma "Suggestion tag") ───────────────────────────────── */
 .atlas-badge {
@@ -253,10 +253,10 @@
 .atlas-fbar__search { position: relative; flex: 1 1 380px; max-width: 480px; min-width: 220px; }
 .atlas-fbar__search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--a-muted); pointer-events: none; }
 .atlas-fbar__search .atlas-input { padding-left: 34px; }
-.atlas-fbar .atlas-btn { height: 32px; }
+.atlas-fbar .atlas-btn { height: 38px; }
 .atlas-fbar__anchor { position: relative; }
 .atlas-fbar__pill {
-  display: inline-flex; align-items: center; height: 32px; max-width: 280px;
+  display: inline-flex; align-items: center; height: 38px; max-width: 280px;
   border: 1px solid var(--a-border-strong); border-radius: var(--a-radius-pill); background: var(--a-field);
 }
 .atlas-fbar__pill-main {
