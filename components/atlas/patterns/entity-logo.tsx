@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { countryToIso, isoToCountry } from '@/lib/countries';
 
 /**
  * Country flags + brand logos for the Atlas founder workspace. Ported from the
@@ -8,9 +9,13 @@ import { useState } from 'react';
  * tokens) — no dependency on the legacy design-system.css `.flag`/`.co-logo`
  * classes. Same free, no-token CDNs as before: flagcdn.com for flags, Google
  * Favicons for logos, with graceful fallbacks so a cell is never empty.
+ *
+ * Name→ISO resolution lives in `lib/countries` (the single source), so every
+ * flag is keyed off the same ~195-country map and the same junk guard.
  */
+export { countryToIso } from '@/lib/countries';
 
-// ── Country maps ────────────────────────────────────────────────────────────
+// A few hand-picked gradients for the image-load fallback; others default grey.
 const FLAG_COLORS: Record<string, [string, string, string]> = {
 	US: ['#B22234', '#FFF', '#3C3B6E'], CA: ['#FF0000', '#FFF', '#FF0000'],
 	GB: ['#012169', '#FFF', '#C8102E'], DE: ['#000', '#DD0000', '#FFCE00'],
@@ -30,48 +35,6 @@ const FLAG_COLORS: Record<string, [string, string, string]> = {
 	HK: ['#DE2408', '#FFF', '#DE2408'], LU: ['#ED2939', '#FFF', '#00A1DE'],
 	AD: ['#10069F', '#FFCD00', '#D50032'], KW: ['#007A3D', '#FFF', '#CE1126'],
 };
-
-const CC_TO_COUNTRY: Record<string, string> = {
-	US: 'United States', CA: 'Canada', GB: 'United Kingdom', DE: 'Germany',
-	FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands', SE: 'Sweden',
-	PT: 'Portugal', CH: 'Switzerland', BE: 'Belgium', AT: 'Austria',
-	PL: 'Poland', IN: 'India', CN: 'China', JP: 'Japan', KR: 'South Korea',
-	SG: 'Singapore', AU: 'Australia', NZ: 'New Zealand', BR: 'Brazil',
-	AR: 'Argentina', MX: 'Mexico', SA: 'Saudi Arabia', AE: 'United Arab Emirates',
-	EG: 'Egypt', ZA: 'South Africa', KE: 'Kenya', BA: 'Bosnia and Herzegovina',
-	HK: 'Hong Kong', LU: 'Luxembourg', AD: 'Andorra', KW: 'Kuwait',
-	IL: 'Israel', IE: 'Ireland', FI: 'Finland', NO: 'Norway', DK: 'Denmark',
-	ID: 'Indonesia', VN: 'Vietnam', TH: 'Thailand', MY: 'Malaysia',
-	PH: 'Philippines', TR: 'Turkey', GR: 'Greece', CZ: 'Czechia',
-	HU: 'Hungary', RO: 'Romania', UA: 'Ukraine', RU: 'Russia',
-	CL: 'Chile', CO: 'Colombia', PE: 'Peru', NG: 'Nigeria', GH: 'Ghana',
-	MA: 'Morocco', QA: 'Qatar', BH: 'Bahrain', OM: 'Oman', JO: 'Jordan',
-	PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
-	MT: 'Malta', CY: 'Cyprus', EE: 'Estonia', LV: 'Latvia', LT: 'Lithuania',
-	SI: 'Slovenia', SK: 'Slovakia', HR: 'Croatia', BG: 'Bulgaria', RS: 'Serbia',
-	IS: 'Iceland', LI: 'Liechtenstein', MC: 'Monaco', EC: 'Ecuador', UY: 'Uruguay', CR: 'Costa Rica',
-};
-
-const COUNTRY_TO_ISO: Record<string, string> = {
-	...Object.fromEntries(Object.entries(CC_TO_COUNTRY).map(([code, n]) => [n.toLowerCase(), code])),
-	usa: 'US', 'u.s.': 'US', 'u.s.a.': 'US', 'united states of america': 'US',
-	uk: 'GB', 'great britain': 'GB', england: 'GB', scotland: 'GB', wales: 'GB',
-	uae: 'AE', 'the netherlands': 'NL', holland: 'NL', 'czech republic': 'CZ',
-	'south korea': 'KR', korea: 'KR', 'republic of korea': 'KR', russia: 'RU',
-	'viet nam': 'VN', 'hong kong': 'HK', 'türkiye': 'TR', turkiye: 'TR',
-};
-
-/** Resolve an ISO-2 code from either a 2-letter code or a country name. '' if unknown. */
-export function countryToIso(input?: string | null): string {
-	if (!input) return '';
-	const s = input.trim();
-	if (!s) return '';
-	if (s.length === 2) {
-		const up = s.toUpperCase();
-		return up === 'UK' ? 'GB' : up; // common non-ISO code flagcdn rejects
-	}
-	return COUNTRY_TO_ISO[s.toLowerCase()] ?? '';
-}
 
 /** Pull a bare hostname from a website URL (drops protocol, path, www). */
 function extractDomain(website: string | null | undefined): string | null {
@@ -100,7 +63,7 @@ export function Flag({ cc, size = 18, name }: { cc?: string | null; size?: numbe
 	const [failed, setFailed] = useState(false);
 	if (!iso) return null;
 	const code = iso.toLowerCase();
-	const label = name ?? CC_TO_COUNTRY[iso] ?? cc ?? '';
+	const label = name ?? (isoToCountry(iso) || cc || '');
 	const colors = FLAG_COLORS[iso] ?? ['#888', '#bbb', '#888'];
 	return (
 		<span
