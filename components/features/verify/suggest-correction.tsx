@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { PencilLine } from 'lucide-react';
 import { Button, Field, Input, Select, Textarea } from '@/components/atlas';
+import { LocationSelect } from '@/components/features/location/location-select';
+import { CityInput } from '@/components/features/location/city-input';
 // Not re-exported from the barrel; the other two modal hosts import it this way.
 import { Modal } from '@/components/atlas/patterns/modal';
 import { apiRequest } from '@/lib/query-client';
@@ -43,6 +45,9 @@ export function SuggestCorrection({ companyId, companyName }: {
 	const [current, setCurrent] = useState('');
 	const [proposed, setProposed] = useState('');
 	const [busy, setBusy] = useState(false);
+
+	// Reset values when field changes so stale text from a different type doesn't persist.
+	useEffect(() => { setProposed(''); setCurrent(''); }, [field]);
 
 	// Unverified viewers get the claim button instead; offering an edit form
 	// that the API will refuse is worse than not offering it.
@@ -94,9 +99,31 @@ export function SuggestCorrection({ companyId, companyName }: {
 				<Field label="Current value (optional)">
 					<Input value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="What it says now" />
 				</Field>
-				<Field label="Correct value">
-					<Textarea value={proposed} onChange={(e) => setProposed(e.target.value)} rows={3} placeholder="What it should say" />
-				</Field>
+				{field === 'hq_country' ? (
+					<Field label="Correct value">
+						<LocationSelect value={proposed} onChange={(v) => setProposed(v)} placeholder="Select country" />
+					</Field>
+				) : field === 'hq_city' ? (
+					<Field label="Correct value">
+						<CityInput value={proposed} onChange={(v) => setProposed(v)} placeholder="City name" />
+					</Field>
+				) : field === 'website' ? (
+					<Field label="Correct value">
+						<Input type="url" value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="https://example.com" />
+					</Field>
+				) : field === 'founded_year' ? (
+					<Field label="Correct value">
+						<Input type="number" min={1900} max={2030} inputMode="numeric" value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="e.g. 2021" />
+					</Field>
+				) : field === 'sector' ? (
+					<Field label="Correct value">
+						<Input value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="Suggested category" />
+					</Field>
+				) : (
+					<Field label="Correct value">
+						<Textarea value={proposed} onChange={(e) => setProposed(e.target.value)} rows={3} placeholder="What it should say" />
+					</Field>
+				)}
 				<p style={{ fontSize: 12, color: 'var(--a-faint)', margin: '4px 0 0' }}>
 					Changes appear on Atlas once the team has reviewed them.
 				</p>

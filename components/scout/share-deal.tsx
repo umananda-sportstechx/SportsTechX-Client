@@ -211,7 +211,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 						    never returned to another Scout. */}
 						<Field label="Founder contact name · Optional"><Input {...txt('founderName')} placeholder="Who should we contact?" /></Field>
 						<Field label="Founder contact email"><Input type="email" {...txt('founderEmail')} placeholder="founder@company.com" /></Field>
-						<Field label="Founder contact phone · Optional"><Input {...txt('founderPhone')} placeholder="Optional" /></Field>
+						<Field label="Founder contact phone · Optional"><Input type="tel" {...txt('founderPhone')} placeholder="Optional" /></Field>
 					</div>
 				)}
 				{step === 1 && (

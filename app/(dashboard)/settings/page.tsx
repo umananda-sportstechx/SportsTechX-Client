@@ -21,6 +21,7 @@ import { DealflowOptIn } from '@/components/raise/dealflow-opt-in';
  * stage is read-only. Saves via PATCH /api/raise and PUT /api/raise/criteria.
  */
 type Rec = Record<string, unknown>;
+const GEO_OPTIONS = ['North America', 'Europe', 'United Kingdom', 'Middle East', 'Africa', 'Asia', 'South Asia', 'Southeast Asia', 'East Asia', 'Latin America', 'Oceania', 'Global'];
 
 export default function RaiseSettingsPage() {
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
@@ -131,7 +132,7 @@ export default function RaiseSettingsPage() {
 					</Grid>
 					<Grid n={3}>
 						<ReadOnly label="Amount committed" value={form.committed_amount != null ? String(form.committed_amount) : '—'} note="From your raise profile" />
-						<Field label="Valuation"><Input placeholder="Not provided" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
+						<Field label="Valuation"><Input type="number" min={0} inputMode="numeric" placeholder="Not provided" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
 						<Field label="Previous capital raised"><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field>
 					</Grid>
 					<Field label="Fundraising structure"><Select placeholder="Select…" value={s(form.structure)} onChange={(e) => set('structure', e.target.value)} options={[['equity', 'Priced equity round'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} /></Field>
@@ -140,7 +141,7 @@ export default function RaiseSettingsPage() {
 				<Section title="Investor criteria">
 					<Grid n={2}>
 						<Multi label="Investor types" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
-						<Field label="Geographies"><Input placeholder="Europe, UK" value={Array.isArray(crit.geographies) ? (crit.geographies as string[]).join(', ') : ''} onChange={(e) => setC('geographies', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></Field>
+						<Multi label="Geographies" v={crit.geographies} on={(x) => setC('geographies', x)} opts={GEO_OPTIONS} />
 					</Grid>
 					<Grid n={3}>
 						<Field label="Cheque min"><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field>
