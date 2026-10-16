@@ -700,8 +700,6 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
   margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--a-border);
 }
 .atlas-post__actions--card { margin-top: auto; padding-top: 14px; gap: 10px 18px; }
-.atlas-post--card .atlas-post__tags + .atlas-post__actions--card,
-.atlas-post--card .atlas-post__desc + .atlas-post__actions--card { margin-top: 16px; }
 /* Default card at rest: the action icon is the outline variant; the card's
    hover fills it, which is the "+ hover highlight" half of the component. */
 .atlas-post--card .atlas-action__icon { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
