@@ -18,7 +18,7 @@ import type { ReactNode } from 'react';
  * into that order. The credits modal it replaces was inline too, so this is no
  * worse and is one place instead of two.
  */
-export function Modal({ open, onOpenChange, icon, title, children, footer, width = 440 }: {
+export function Modal({ open, onOpenChange, icon, title, children, footer, width = 440, nonModal = false }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Small tinted glyph above the title. */
@@ -28,9 +28,16 @@ export function Modal({ open, onOpenChange, icon, title, children, footer, width
 	/** Buttons, laid out bottom-right. */
 	footer?: ReactNode;
 	width?: number;
+	/**
+	 * Drop Radix's focus trap + scroll lock. Required when the modal hosts a
+	 * portalled dropdown (Combobox/CityInput): a modal Dialog traps focus inside
+	 * its content, so the dropdown's search input can't be focused and its list
+	 * can't be scrolled. The overlay still blocks clicks to the page behind.
+	 */
+	nonModal?: boolean;
 }) {
 	return (
-		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={!nonModal}>
 			<DialogPrimitive.Portal>
 				<DialogPrimitive.Overlay
 					style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', zIndex: 200 }}
