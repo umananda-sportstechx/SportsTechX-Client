@@ -149,14 +149,24 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 						</div>
 						{deals.isLoading ? <Loading /> : dealRows.length === 0 ? (
 							<p className="atlas-co__empty">No disclosed rounds on record.</p>
-						) : dealRows.map((d) => (
-							<div key={d.id} className="atlas-co__deal">
-								<span>{fmtDate(d.announced_date)}</span>
-								<span>{d.round_type_name ?? 'Round'}</span>
-								<span className="atlas-co__amt">{d.amount_usd == null ? '—' : fmtUsd(Number(d.amount_usd))}</span>
-								<span className="atlas-co__investors">{(d.investors?.length ? d.investors : d.lead_investor ? [d.lead_investor] : []).join(', ') || 'Undisclosed'}</span>
+						) : (
+							<div className="atlas-co__deals" role="table" aria-label="Funding rounds">
+								<div className="atlas-co__deal atlas-co__deal--head" role="row">
+									<span role="columnheader">Announced</span>
+									<span role="columnheader">Round</span>
+									<span role="columnheader">Raised</span>
+									<span role="columnheader">Investors</span>
+								</div>
+								{dealRows.map((d) => (
+									<div key={d.id} className="atlas-co__deal" role="row">
+										<span role="cell">{fmtDate(d.announced_date)}</span>
+										<span role="cell">{d.round_type_name ?? 'Round'}</span>
+										<span className="atlas-co__amt" role="cell">{d.amount_usd == null ? '—' : fmtUsd(Number(d.amount_usd))}</span>
+										<span className="atlas-co__investors" role="cell">{(d.investors?.length ? d.investors : d.lead_investor ? [d.lead_investor] : []).join(', ') || 'Undisclosed'}</span>
+									</div>
+								))}
 							</div>
-						))}
+						)}
 					</section>
 				</div>
 
