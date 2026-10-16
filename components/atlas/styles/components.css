@@ -652,9 +652,9 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
   border: 1px solid var(--a-card-border); border-radius: var(--a-radius-sm);
 }
 .atlas-post__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-/* Featured cover: the whole document cover, never cropped. `contain` on the
-   page-coloured frame letterboxes a stray aspect rather than slicing the art. */
-.atlas-post__cover--tall { width: 240px; aspect-ratio: 3 / 4; align-self: flex-start; }
+/* Featured cover: wide enough for landscape thumbnails (reports, newsletters)
+   while still looking good with portrait covers via contain + letterboxing. */
+.atlas-post__cover--tall { width: 340px; aspect-ratio: 4 / 3; align-self: flex-start; }
 .atlas-post__cover--tall img { object-fit: contain; }
 /* Library card: a full-width band across the top ~half of the card. The card
    clips it to the corner radius (overflow:hidden), so no radius of its own. */
@@ -707,7 +707,7 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 .atlas-post--card .atlas-action__icon { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
 .atlas-post--card:hover .atlas-action__icon { background: var(--a-primary); color: var(--a-primary-ink); border-color: var(--a-primary); }
 
-.atlas-post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: stretch; }
+.atlas-post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: stretch; }
 .atlas-post-grid .atlas-post--card { height: 100%; }
 
 @media (max-width: 640px) {
