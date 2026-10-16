@@ -422,7 +422,7 @@ span.atlas-fbar__pill-main { cursor: default; }
 }
 .atlas .atlas-table__head > * { font-family: var(--a-mono); font-size: 11px; font-weight: 400; color: var(--a-faint); }
 .atlas .atlas-table__head .atlas-table__rank { height: auto; background: none; border: none; place-items: center start; padding-left: 4px; }
-.atlas .atlas-table__row { border-bottom: 1px solid var(--a-border); transition: background .15s; }
+.atlas .atlas-table__row { border-bottom: 1px solid var(--a-border); transition: background .15s; text-decoration: none; color: inherit; }
 .atlas .atlas-table__row:last-child { border-bottom: none; }
 .atlas .atlas-table__row:hover { background: linear-gradient(180deg, transparent, var(--a-navy-soft)); }
 .atlas .atlas-table__rank {
@@ -466,6 +466,18 @@ span.atlas-fbar__pill-main { cursor: default; }
 @media (max-width: 640px) {
 	.atlas .atlas-table__col.hide-sm { display: none; }
 }
+
+/* ── View toggle (cards / table) ── */
+.atlas .atlas-view-toggle {
+	display: inline-flex; border: 1px solid var(--a-border); border-radius: var(--a-radius); overflow: hidden;
+}
+.atlas .atlas-view-toggle__btn {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 34px; height: 34px; border: none; cursor: pointer; color: var(--a-muted);
+	background: var(--a-surface); transition: background .1s, color .1s;
+}
+.atlas .atlas-view-toggle__btn + .atlas-view-toggle__btn { border-left: 1px solid var(--a-border); }
+.atlas .atlas-view-toggle__btn.active { background: var(--a-inset); color: var(--a-ink); }
 
 /* ── Wordmark ─────────────────────────────────────────────────────────────*/
 .atlas-logo { position: relative; display: inline-flex; align-items: flex-end; color: var(--a-ink); line-height: 0; }

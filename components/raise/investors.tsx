@@ -10,7 +10,7 @@ import { qk } from '@/lib/query-keys';
 import type { InvestorListItem as Investor } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, lockedFiltersNote } from '@/components/atlas';
+import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, ViewToggle, type ViewMode, lockedFiltersNote } from '@/components/atlas';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { SINCE_YEARS, DEALS_BUCKETS, canonicalCountry } from '@/lib/catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
@@ -65,6 +65,7 @@ function useWatchlistAdd() {
 
 export function RecommendedInvestors() {
 	const { inPipeline, add } = useWatchlistAdd();
+	const [view, setView] = useState<ViewMode>('cards');
 	const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 	const matches = useSWR<MatchResult>(qk.investorMatches(24));
 	const criteria = useSWR<{ criteria: { investor_types?: string[]; geographies?: string[]; cheque_min?: string | null; cheque_max?: string | null } | null }>(qk.raise.current());
@@ -90,15 +91,44 @@ export function RecommendedInvestors() {
 					{criteriaSummary && (
 						<div className="atlas-card atlas-card--glow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', padding: '16px 23px', marginBottom: 20 }}>
 							<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{criteriaSummary}</span>
-							<Button href={hrefOf('raise-settings')} variant="outline" size="sm">Edit criteria</Button>
+							<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+								<ViewToggle value={view} onChange={setView} />
+								<Button href={hrefOf('raise-settings')} variant="outline" size="sm">Edit criteria</Button>
+							</div>
 						</div>
 					)}
+					{!criteriaSummary && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}><ViewToggle value={view} onChange={setView} /></div>}
+					{view === 'cards' ? (
 					<Grid>
 						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
 							<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
 								onDismiss={() => setDismissed((s) => new Set(s).add(m.id))} />
 						))}
 					</Grid>
+					) : (
+					<div className="atlas-table" role="table">
+						<div className="atlas-table__head">
+							<span className="atlas-table__name">Investor</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 100 }}>Status</span>
+						</div>
+						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
+							<Link key={m.id} className="atlas-table__row" href={`${hrefOf('investors')}/${m.id}`}>
+								<div className="atlas-table__name">
+									<Logo co={{ name: m.name, website: m.website, custom_logo_url: m.logo_url }} size={28} radius={5} />
+									<div className="atlas-table__name-main">
+										<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{m.name}</div>
+										{m.match_reasons?.[0] && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{m.match_reasons[0]}</div>}
+									</div>
+								</div>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{m.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{m.hq_country ? canonicalCountry(m.hq_country) : '—'}</span>
+								<span className="atlas-table__col" style={{ width: 100 }}>{inPipeline.has(m.id) ? 'In watchlist' : '—'}</span>
+							</Link>
+						))}
+					</div>
+					)}
 				</>
 	);
 }
@@ -110,6 +140,7 @@ export function AllInvestors() {
 
 /** The "All investors" tab — search + filters + sort + pagination over /api/investors. */
 function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd: (id: string) => void }) {
+	const [view, setView] = useState<ViewMode>('cards');
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState('');
@@ -223,7 +254,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 				canClear={anyFilter}
 				onClear={clearAll}
 				count={`${total.toLocaleString()} investor${total === 1 ? '' : 's'}`}
-				actions={<ExportButton entity="investors" search={dq} params={params} />}
+				actions={<><ViewToggle value={view} onChange={setView} /><ExportButton entity="investors" search={dq} params={params} /></>}
 			/>
 			<div style={{ borderTop: '1px solid var(--a-border)', margin: '6px 0 30px' }} />
 
@@ -231,7 +262,32 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 			    isLoading=false, which would show the empty state first. */}
 			{(all.isLoading || !filtersReady) && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No investors match your filters.</Empty>
-					: <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => onAdd(inv.id)} />)}</Grid>}
+				: view === 'cards'
+					? <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => onAdd(inv.id)} />)}</Grid>
+					: (
+					<div className="atlas-table" role="table">
+						<div className="atlas-table__head">
+							<span className="atlas-table__name">Investor</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 100 }}>Status</span>
+						</div>
+						{rows.map((inv) => (
+							<Link key={inv.id} className="atlas-table__row" href={`${hrefOf('investors')}/${inv.id}`}>
+								<div className="atlas-table__name">
+									<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={28} radius={5} />
+									<div className="atlas-table__name-main">
+										<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{inv.name}</div>
+										{inv.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{inv.description}</div>}
+									</div>
+								</div>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{inv.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
+								<span className="atlas-table__col" style={{ width: 100 }}>{inPipeline.has(inv.id) ? 'In watchlist' : '—'}</span>
+							</Link>
+						))}
+					</div>
+					)}
 
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 22 }}>
@@ -253,7 +309,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss }: { inv: Investor
 				<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
 					{inv.category && <div className="atlas-entity-card__eyebrow">{inv.category}</div>}
-					<div className="atlas-entity-card__name">{inv.name}</div>
+					<Link href={`${hrefOf('investors')}/${inv.id}`} className="atlas-entity-card__name" style={{ textDecoration: 'none', color: 'inherit' }}>{inv.name}</Link>
 					{inv.hq_country && (
 						<div className="atlas-entity-card__meta"><Flag cc={inv.hq_country} size={11} /><span>{canonicalCountry(inv.hq_country)}</span></div>
 					)}

@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { CompanyListItem as Company } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, lockedFiltersNote } from '@/components/atlas';
+import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, ViewToggle, type ViewMode, lockedFiltersNote } from '@/components/atlas';
 import { ExportButton } from '@/components/features/exports/export-button';
 import { FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
@@ -37,6 +37,7 @@ const COMPANY_SORTS: [string, string][] = [['-created_at', 'Newest'], ['name', '
 export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: string) => string } = {}) {
 	// Deep links (e.g. from the framework or Scout) can preselect ?q=, ?sector=<pillar>&sub=<category>.
 	const searchParams = useSearchParams();
+	const [view, setView] = useState<ViewMode>('cards');
 	const [q, setQ] = useState(() => searchParams.get('q') ?? '');
 	const dq = useDebouncedValue(q);
 	const [model, setModel] = useState('');
@@ -164,9 +165,40 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 						<div className="atlas-card atlas-chart-card" style={{ marginTop: 10 }}>
 							<div className="atlas-chart-card__head" style={{ padding: '17px 25px 16px', fontSize: 13, color: 'var(--a-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 								<span>{total.toLocaleString()} compan{total === 1 ? 'y' : 'ies'}{anyFilter ? ' match your filters' : ' · Filter to refine results'}</span>
-								<ExportButton entity="companies" search={dq} params={params} />
+								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ViewToggle value={view} onChange={setView} /><ExportButton entity="companies" search={dq} params={params} /></div>
 							</div>
-							<div className="mkt-list">{rows.map((c) => <CompanyRow key={c.id} c={c} href={companyHref?.(c.slug ?? c.id)} onOpen={() => setOpenId(c.slug ?? c.id)} />)}</div>
+							{view === 'cards'
+								? <div className="mkt-list">{rows.map((c) => <CompanyRow key={c.id} c={c} href={companyHref?.(c.slug ?? c.id)} onOpen={() => setOpenId(c.slug ?? c.id)} />)}</div>
+								: (
+								<div className="atlas-table" role="table">
+									<div className="atlas-table__head">
+										<span className="atlas-table__name">Company</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Sector</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+										<span className="atlas-table__col" style={{ width: 100 }}>Funding</span>
+									</div>
+									{rows.map((c) => {
+										const href = companyHref?.(c.slug ?? c.id);
+										const hq = [c.hq_city, c.hq_country].filter(Boolean).join(', ');
+										const funding = fmtUsd(c.total_funding_usd == null ? null : Number(c.total_funding_usd));
+										const inner = <>
+											<div className="atlas-table__name">
+												<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} radius={5} />
+												<div className="atlas-table__name-main">
+													<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
+													{c.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{c.description}</div>}
+												</div>
+											</div>
+											<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{c.primary_sector ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{hq || '—'}</span>
+											<span className="atlas-table__col" style={{ width: 100 }}>{funding}</span>
+										</>;
+										return href
+											? <Link key={c.id} className="atlas-table__row" href={href}>{inner}</Link>
+											: <div key={c.id} className="atlas-table__row" style={{ cursor: 'pointer' }} onClick={() => setOpenId(c.slug ?? c.id)}>{inner}</div>;
+									})}
+								</div>
+								)}
 						</div>
 					)}
 
