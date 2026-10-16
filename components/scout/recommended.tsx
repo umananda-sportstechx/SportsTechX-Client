@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { ArrowUpRight, Check, Minus } from 'lucide-react';
-import { Empty, Loading, Logo, cx } from '@/components/atlas';
+import { Empty, Loading, Logo, ViewToggle, type ViewMode, cx } from '@/components/atlas';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { qk } from '@/lib/query-keys';
@@ -63,6 +64,7 @@ const CHIPS: [label: string, key: MatchKey][] = [
 const place = (c: Recommendation) => [c.city, c.country].filter(Boolean).join(', ');
 
 export function Recommended() {
+	const [view, setView] = useState<ViewMode>('cards');
 	const { data, isLoading, error } = useSWR<{ data: Recommendation[] }>(qk.scout.recommended({ limit: 24 }));
 	// Recommending against a thesis that does not exist is meaningless, so this
 	// is the one Discover surface that stays gated — but "set yours up" is the
@@ -82,7 +84,10 @@ export function Recommended() {
 					<h2 className="atlas-h2">Recommended for you</h2>
 					<p className="scout-muted">Companies matching your investment thesis.</p>
 				</div>
-				<Link href={hrefOf('thesis')} className="scout-link">Edit thesis</Link>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+					<ViewToggle value={view} onChange={setView} />
+					<Link href={hrefOf('thesis')} className="scout-link">Edit thesis</Link>
+				</div>
 			</div>
 
 			{lastId && (
@@ -108,6 +113,7 @@ export function Recommended() {
 				) : rows.length === 0 ? (
 					<Empty>You&apos;ve dismissed every match. Undo above, or widen your thesis.</Empty>
 				) : (
+					view === 'cards' ? (
 					<div className="atlas-rec-list">
 						{rows.map((c) => (
 							<article key={c.id} className="atlas-rec">
@@ -129,8 +135,6 @@ export function Recommended() {
 									</div>
 								</div>
 
-								{/* Indented under the identity, as in the mockup, so the reason
-								    reads as belonging to this company rather than the list. */}
 								<div className="atlas-rec__why">
 									<div className="atlas-rec__whyhead">
 										<span className="atlas-rec__whylabel">Why it matches</span>
@@ -161,6 +165,32 @@ export function Recommended() {
 							</article>
 						))}
 					</div>
+					) : (
+					<div className="atlas-table" role="table">
+						<div className="atlas-table__head">
+							<span className="atlas-table__name">Company</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Sector</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 100 }}>Funding</span>
+							<span className="atlas-table__col" style={{ width: 80 }}>Match</span>
+						</div>
+						{rows.map((c) => (
+							<Link key={c.id} className="atlas-table__row" href={companyHref(c.slug ?? c.id)}>
+								<div className="atlas-table__name">
+									<Logo co={{ name: c.name, website: c.website, custom_logo_url: c.custom_logo_url }} size={28} radius={5} />
+									<div className="atlas-table__name-main">
+										<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{c.name}</div>
+										{c.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{c.description}</div>}
+									</div>
+								</div>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{c.sector ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{place(c) || '—'}</span>
+								<span className="atlas-table__col" style={{ width: 100 }}>{c.total_funding_usd != null ? fmtUsd(Number(c.total_funding_usd)) : '—'}</span>
+								<span className="atlas-table__col" style={{ width: 80 }}>{c.match_count}/{CHIPS.length}</span>
+							</Link>
+						))}
+					</div>
+					)
 				)}
 		</>
 	);
