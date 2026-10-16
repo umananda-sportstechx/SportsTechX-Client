@@ -42,7 +42,6 @@ export const DEFAULT_THESIS: Thesis = {
 
 export const THESIS_OPTIONS = {
 	investorType: ['Venture capital', 'Angel investor', 'Corporate VC', 'Family office', 'Accelerator / studio', 'Growth / PE'],
-	aum: ['Under €25m', '€25–100m', '€100–250m', '€250m–1bn', '€1bn+', 'Not applicable'],
 	// Values must match the `funding_round_types` taxonomy names exactly — the
 	// thesis saves by name, and non-matches are silently dropped.
 	stages: ['Pre Seed Round', 'Seed Round', 'Series A', 'Series B', 'Late Stage Venture'],

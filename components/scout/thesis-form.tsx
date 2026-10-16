@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Field, Input } from '@/components/atlas';
+import { Field, Input, Select } from '@/components/atlas';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
 import { useVerifyState } from '@/components/features/verify/verify-cta';
@@ -26,8 +26,8 @@ export function ProfileFields({ t, patch }: Props) {
 		<div className="scout-form-grid">
 			<Field label="Full name"><Input {...text(t, patch, 'name')} placeholder="Your name" /></Field>
 			<Field label="Work email"><Input type="email" {...text(t, patch, 'email')} placeholder="you@fund.com" /></Field>
-			<Field label="Role"><Input {...text(t, patch, 'role')} placeholder="e.g. Partner" /></Field>
-			<Field label="LinkedIn profile URL"><Input {...text(t, patch, 'linkedin')} placeholder="linkedin.com/in/…" /></Field>
+			<Field label="Role"><Select value={String(t.role ?? '')} onChange={(e) => patch({ role: e.target.value })} options={[['', 'Select…'], ['Partner', 'Partner'], ['Managing Partner', 'Managing Partner'], ['Managing Director', 'Managing Director'], ['Principal', 'Principal'], ['Vice President', 'Vice President'], ['Associate', 'Associate'], ['Analyst', 'Analyst'], ['Venture Partner', 'Venture Partner'], ['Director', 'Director'], ['General Partner', 'General Partner']]} /></Field>
+			<Field label="LinkedIn profile URL"><Input type="url" {...text(t, patch, 'linkedin')} placeholder="https://linkedin.com/in/…" /></Field>
 		</div>
 	);
 }
@@ -55,7 +55,7 @@ export function FundFields({ t, patch }: Props) {
 		<>
 			<FundPicker t={t} patch={patch} />
 			<div className="scout-form-grid">
-				<Field label="Website"><Input {...text(t, patch, 'website')} placeholder="fund.com" disabled={linked} /></Field>
+				<Field label="Website"><Input type="url" {...text(t, patch, 'website')} placeholder="https://fund.com" disabled={linked} /></Field>
 				<Field label="Country"><LocationSelect value={t.country} onChange={(v) => patch({ country: v })} /></Field>
 				<Field label="City"><CityInput value={String(t.city ?? '')} onChange={(v) => patch({ city: v })} /></Field>
 			</div>
@@ -72,8 +72,8 @@ export function StageFields({ t, patch }: Props) {
 		<>
 			<FieldBlock label="Stages" hint="Select all that apply"><ChipSet options={THESIS_OPTIONS.stages} value={t.stages} onToggle={(o) => patch({ stages: toggleIn(t.stages, o) })} /></FieldBlock>
 			<div className="scout-form-grid">
-				<Field label="Typical cheque — minimum"><Input {...text(t, patch, 'chequeMin')} placeholder="e.g. €250k" /></Field>
-				<Field label="Typical cheque — maximum"><Input {...text(t, patch, 'chequeMax')} placeholder="e.g. €2m" /></Field>
+				<Field label="Typical cheque — minimum (EUR)"><Input type="number" min={0} inputMode="numeric" value={String(t.chequeMin ?? '')} onChange={(e) => patch({ chequeMin: e.target.value })} placeholder="e.g. 250000" /></Field>
+				<Field label="Typical cheque — maximum (EUR)"><Input type="number" min={0} inputMode="numeric" value={String(t.chequeMax ?? '')} onChange={(e) => patch({ chequeMax: e.target.value })} placeholder="e.g. 2000000" /></Field>
 			</div>
 			<FieldBlock label="Do you lead rounds?"><ChipSet options={[...THESIS_OPTIONS.invStyle]} value={t.invStyle} onToggle={(o) => patch({ invStyle: o as Thesis['invStyle'] })} /></FieldBlock>
 		</>

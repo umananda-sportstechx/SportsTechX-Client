@@ -285,7 +285,7 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 							<Field label="Lead investor?"><Select placeholder="Select…" value={s(form.lead_investor_status)} onChange={(e) => set('lead_investor_status', e.target.value)} options={[['yes', 'Yes'], ['no', 'No'], ['in_discussion', 'In discussion']]} /></Field>
 							<Field label="Structure"><Select placeholder="Select…" value={s(form.structure)} onChange={(e) => set('structure', e.target.value)} options={[['equity', 'Equity'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} /></Field>
 						</Grid>
-						<Field label="Target valuation (optional)"><Input placeholder="e.g. €5M pre-money" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
+						<Field label="Target valuation (optional)"><Input type="number" min={0} inputMode="numeric" placeholder="e.g. 5000000" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
 					</>}
 
 					{step === 2 && <>

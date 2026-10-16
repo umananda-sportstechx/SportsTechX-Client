@@ -160,7 +160,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 			<div style={{ display: 'grid', gap: 14 }}>
 				<Field label="Stage"><Select value={f.stage} onChange={(e) => set('stage', e.target.value)} options={STAGES} /></Field>
 				<Field label="Contact"><Input value={f.contact_name ?? ''} onChange={(e) => set('contact_name', e.target.value)} /></Field>
-				<Field label="Potential amount (€)"><Input type="number" min={0} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
+				<Field label="Potential amount"><Input type="number" min={0} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
 				<Field label="Next step"><Input value={f.next_step ?? ''} onChange={(e) => set('next_step', e.target.value)} /></Field>
 				<Field label="Next step due"><DatePicker value={f.next_step_due ?? ''} onChange={(v) => set('next_step_due', v)} /></Field>
 				<Field label="Notes"><Textarea value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
