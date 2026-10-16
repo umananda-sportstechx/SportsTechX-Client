@@ -95,10 +95,10 @@
 .atlas .atlas-drilldown .hb-caret svg { transition: transform .15s; }
 .atlas .atlas-drilldown .hb-row.open > .hb-head .hb-caret svg,
 .atlas .atlas-drilldown .hb-child.open > .hb-head .hb-caret svg { transform: rotate(180deg); }
-/* Top-level caret = black pill (Figma "Inspect Button" 39×24). */
 .atlas .atlas-drilldown .hb-row > .hb-head .hb-caret {
-	width: 39px; height: 24px; border-radius: var(--a-radius-pill);
+	width: 28px; height: 28px; border-radius: 50%;
 	background: var(--a-primary); color: var(--a-primary-ink); border: 0.5px solid var(--a-border);
+	transition: background .15s, color .15s, border-color .15s;
 }
 .atlas .atlas-drilldown .hb-row:not(.open) > .hb-head .hb-caret { background: var(--a-field); color: var(--a-ink); border-color: var(--a-border-strong); }
 .atlas .atlas-drilldown .hb-label { flex: 1; min-width: 0; font-family: var(--a-body); font-size: 13px; font-weight: 500; color: var(--a-ink); }
