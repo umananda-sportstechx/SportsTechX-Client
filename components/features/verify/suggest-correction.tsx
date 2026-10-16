@@ -1,82 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { PencilLine } from 'lucide-react';
-import { Button, Field, Input, Select, Textarea } from '@/components/atlas';
+import { Button, Field, Input, Textarea } from '@/components/atlas';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
-// Not re-exported from the barrel; the other two modal hosts import it this way.
 import { Modal } from '@/components/atlas/patterns/modal';
 import { apiRequest } from '@/lib/query-client';
 import { useVerifyState } from './verify-cta';
 
-/**
- * "Suggest a correction" — the ongoing edit path, after verification.
- *
- * Distinct from the corrections bundled into a claim submission: that is a
- * one-time snapshot taken while proving who you are. This is the standing
- * ability to fix a field whenever the record drifts, which is the half of the
- * flow that had endpoints (`POST /api/data-change-requests`) and no UI.
- *
- * Only rendered once the viewer holds a **verified** claim on this entity. The
- * server enforces the same rule and answers `NOT_VERIFIED_FOR_ENTITY`
- * otherwise — this just avoids offering a button that cannot work.
- */
-const FIELDS: [value: string, label: string][] = [
-	['website', 'Website'],
-	['description', 'Description'],
-	['hq_city', 'City'],
-	['hq_country', 'Country'],
-	['founded_year', 'Founded year'],
-	['sector', 'Category'],
-	['team', 'Team'],
-	['funding', 'Funding history'],
-	['other', 'Something else'],
-];
+export interface CorrectionData {
+	website: string;
+	description: string;
+	hq_city: string;
+	hq_country: string;
+	founded_year: string;
+	sector: string;
+	business_model: string;
+	other: string;
+}
 
-export function SuggestCorrection({ companyId, companyName }: {
+const LABELS: Record<keyof CorrectionData, string> = {
+	website: 'Website',
+	description: 'Description',
+	hq_city: 'City',
+	hq_country: 'Country',
+	founded_year: 'Founded year',
+	sector: 'Category',
+	business_model: 'Business model',
+	other: 'Other notes',
+};
+
+export function SuggestCorrection({ companyId, companyName, current }: {
 	companyId: string;
 	companyName: string;
+	current: Partial<CorrectionData>;
 }) {
 	const { state } = useVerifyState(companyId);
 	const [open, setOpen] = useState(false);
-	const [field, setField] = useState('website');
-	const [current, setCurrent] = useState('');
-	const [proposed, setProposed] = useState('');
+	const [values, setValues] = useState<Partial<CorrectionData>>({});
 	const [busy, setBusy] = useState(false);
 
-	// Reset values when field changes so stale text from a different type doesn't persist.
-	useEffect(() => { setProposed(''); setCurrent(''); }, [field]);
-
-	// Unverified viewers get the claim button instead; offering an edit form
-	// that the API will refuse is worse than not offering it.
 	if (state !== 'verified') return null;
 
+	const set = (k: keyof CorrectionData, v: string) => setValues((prev) => ({ ...prev, [k]: v }));
+	const init = () => {
+		setValues({
+			website: current.website ?? '',
+			description: current.description ?? '',
+			hq_city: current.hq_city ?? '',
+			hq_country: current.hq_country ?? '',
+			founded_year: current.founded_year ?? '',
+			sector: current.sector ?? '',
+			business_model: current.business_model ?? '',
+			other: '',
+		});
+		setOpen(true);
+	};
+
+	const changed = Object.entries(values).filter(([k, v]) => {
+		if (k === 'other') return !!v?.trim();
+		return v?.trim() !== (current[k as keyof CorrectionData] ?? '').trim();
+	});
+
 	const submit = async () => {
-		if (!proposed.trim()) { toast.error('Add the corrected value.'); return; }
+		if (changed.length === 0) { toast.error('No changes to submit.'); return; }
 		setBusy(true);
 		try {
-			const res = await apiRequest('POST', '/api/data-change-requests', {
-				entity_type: 'company',
-				target_company_id: companyId,
-				target_name_snapshot: companyName,
-				field_change: field,
-				old_value: current.trim() || null,
-				requested_value: proposed.trim(),
-			});
-			if (!res.ok) throw new Error(String(res.status));
-			toast.success('Sent. The SportsTechX team will review it.');
+			for (const [field, proposed] of changed) {
+				await apiRequest('POST', '/api/data-change-requests', {
+					entity_type: 'company',
+					target_company_id: companyId,
+					target_name_snapshot: companyName,
+					field_change: field,
+					old_value: (current[field as keyof CorrectionData] ?? '').trim() || null,
+					requested_value: (proposed ?? '').trim(),
+				});
+			}
+			toast.success(`Sent ${changed.length} correction${changed.length > 1 ? 's' : ''}. The team will review.`);
 			setOpen(false);
-			setCurrent(''); setProposed('');
 		} catch {
-			toast.error("Couldn't send your correction. Please try again.");
+			toast.error("Couldn't send corrections. Please try again.");
 		} finally { setBusy(false); }
 	};
 
 	return (
 		<>
-			<Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+			<Button size="sm" variant="outline" onClick={init}>
 				<PencilLine size={13} aria-hidden="true" /> Suggest a correction
 			</Button>
 			<Modal
@@ -87,44 +98,40 @@ export function SuggestCorrection({ companyId, companyName }: {
 				footer={
 					<>
 						<Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-						<Button size="sm" disabled={busy} onClick={() => void submit()}>
-							{busy ? 'Sending…' : 'Send correction'}
+						<Button size="sm" disabled={busy || changed.length === 0} onClick={() => void submit()}>
+							{busy ? 'Sending...' : changed.length > 0 ? `Send ${changed.length} correction${changed.length > 1 ? 's' : ''}` : 'Send correction'}
 						</Button>
 					</>
 				}
 			>
-				<Field label="What needs changing?">
-					<Select value={field} onChange={(e) => setField(e.target.value)} options={FIELDS} />
+				<p style={{ fontSize: 12, color: 'var(--a-muted)', margin: '0 0 16px' }}>
+					Edit any field below. Only changed fields are submitted for review.
+				</p>
+				<Field label={LABELS.website}>
+					<Input type="url" value={values.website ?? ''} onChange={(e) => set('website', e.target.value)} placeholder="https://example.com" />
 				</Field>
-				<Field label="Current value (optional)">
-					<Input value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="What it says now" />
+				<Field label={LABELS.description}>
+					<Textarea value={values.description ?? ''} onChange={(e) => set('description', e.target.value)} rows={3} placeholder="Company description" />
 				</Field>
-				{field === 'hq_country' ? (
-					<Field label="Correct value">
-						<LocationSelect value={proposed} onChange={(v) => setProposed(v)} placeholder="Select country" />
-					</Field>
-				) : field === 'hq_city' ? (
-					<Field label="Correct value">
-						<CityInput value={proposed} onChange={(v) => setProposed(v)} placeholder="City name" />
-					</Field>
-				) : field === 'website' ? (
-					<Field label="Correct value">
-						<Input type="url" value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="https://example.com" />
-					</Field>
-				) : field === 'founded_year' ? (
-					<Field label="Correct value">
-						<Input type="number" min={1900} max={2030} inputMode="numeric" value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="e.g. 2021" />
-					</Field>
-				) : field === 'sector' ? (
-					<Field label="Correct value">
-						<Input value={proposed} onChange={(e) => setProposed(e.target.value)} placeholder="Suggested category" />
-					</Field>
-				) : (
-					<Field label="Correct value">
-						<Textarea value={proposed} onChange={(e) => setProposed(e.target.value)} rows={3} placeholder="What it should say" />
-					</Field>
-				)}
-				<p style={{ fontSize: 12, color: 'var(--a-faint)', margin: '4px 0 0' }}>
+				<Field label={LABELS.hq_country}>
+					<LocationSelect value={values.hq_country ?? ''} onChange={(v) => set('hq_country', v)} placeholder="Select country" />
+				</Field>
+				<Field label={LABELS.hq_city}>
+					<CityInput value={values.hq_city ?? ''} onChange={(v) => set('hq_city', v)} placeholder="City name" />
+				</Field>
+				<Field label={LABELS.founded_year}>
+					<Input type="number" min={1900} max={2030} inputMode="numeric" value={values.founded_year ?? ''} onChange={(e) => set('founded_year', e.target.value)} placeholder="e.g. 2021" />
+				</Field>
+				<Field label={LABELS.sector}>
+					<Input value={values.sector ?? ''} onChange={(e) => set('sector', e.target.value)} placeholder="Category" />
+				</Field>
+				<Field label={LABELS.business_model}>
+					<Input value={values.business_model ?? ''} onChange={(e) => set('business_model', e.target.value)} placeholder="e.g. B2B, B2C, B2B2C" />
+				</Field>
+				<Field label={LABELS.other}>
+					<Textarea value={values.other ?? ''} onChange={(e) => set('other', e.target.value)} rows={2} placeholder="Anything else that needs updating" />
+				</Field>
+				<p style={{ fontSize: 11, color: 'var(--a-faint)', margin: '8px 0 0' }}>
 					Changes appear on Atlas once the team has reviewed them.
 				</p>
 			</Modal>

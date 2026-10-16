@@ -116,7 +116,12 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 						hideWhenVerifiedElsewhere
 					/>
 					{/* Renders only once their claim on this company is verified. */}
-					<SuggestCorrection companyId={c.id} companyName={c.name} />
+					<SuggestCorrection companyId={c.id} companyName={c.name} current={{
+						website: c.website ?? '', description: c.description ?? '',
+						hq_city: c.hq_city ?? '', hq_country: c.hq_country ?? '',
+						founded_year: c.founded_year ? String(c.founded_year) : '',
+						sector: c.primary_sector ?? '', business_model: c.business_model ?? '',
+					}} />
 					{website && <Action icon={<Globe />} href={website} external>Website</Action>}
 					<Action icon={<ArrowUpLeft />} href={backHref}>Return to results</Action>
 				</div>
