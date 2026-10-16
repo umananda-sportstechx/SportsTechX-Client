@@ -57,6 +57,7 @@ export const qk = {
     team: (idOrSlug: string) => [`/api/companies/${idOrSlug}/team`] as const,
     contacts: (idOrSlug: string) => [`/api/companies/${idOrSlug}/contacts`] as const,
     similar: (idOrSlug: string) => [`/api/companies/${idOrSlug}/similar`] as const,
+    techTags: (idOrSlug: string) => [`/api/companies/${idOrSlug}/tech-tags`] as const,
   },
   investors: {
     list: (params: Record<string, unknown> = {}) => ['/api/investors', params] as const,

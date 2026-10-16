@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, type ReactNode } from 'react';
 import useSWR from 'swr';
 import { ArrowUpLeft, ArrowUpRight, Globe } from 'lucide-react';
+import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { qk } from '@/lib/query-keys';
 import type { Company, Deal } from '@/types/api';
@@ -49,6 +50,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 	// gated on `c` as well, which bought nothing and cost the page a whole
 	// serial round trip before any of the rail could load.
 	const sports = useSWR<unknown>(qk.companies.sports(idOrSlug));
+	const techTags = useSWR<unknown>(qk.companies.techTags(idOrSlug));
 	const news = useSWR<unknown>(qk.companies.news(idOrSlug));
 	const similar = useSWR<unknown>(qk.companies.similar(idOrSlug));
 	// `deals` genuinely has to wait: it keys off the resolved `c.id`, and
@@ -74,9 +76,11 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 	const rounds = c.deal_count ? `${c.deal_count} round${c.deal_count === 1 ? '' : 's'}` : null;
 	const website = c.website ? (c.website.startsWith('http') ? c.website : `https://${c.website}`) : null;
 	const sportNames = asList<Sport>(sports.data).map((s) => s.name);
+	const tagNames = asList<{ name: string }>(techTags.data).map((t) => t.name);
 	const facts: Array<[string, string]> = [
 		['Founded', c.founded_year ? String(c.founded_year) : '—'],
 		['Sports', sportNames.length ? sportNames.join(', ') : '—'],
+		['Tech', tagNames.length ? tagNames.join(', ') : '—'],
 		['Headquarters', hq || '—'],
 		['Business model', c.business_model ? (BUSINESS_MODELS[c.business_model.toLowerCase()] ?? c.business_model) : '—'],
 		['Category', path[0]?.name ?? '—'],
@@ -95,7 +99,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 				<div className="atlas-co__id">
 					<Logo co={{ name: c.name, website: c.website ?? null, custom_logo_url: c.custom_logo_url }} size={72} radius={10} />
 					<div>
-						<h1 className="atlas-co__name">{c.name}</h1>
+						<h1 className="atlas-co__name">{c.name}{c.is_verified && <span style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><VerifiedBadge size={20} /></span>}</h1>
 						<div className="atlas-co__meta">{[hq, c.founded_year ? `Founded ${c.founded_year}` : null].filter(Boolean).join(' · ')}</div>
 					</div>
 				</div>
@@ -107,7 +111,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 					<VerifyButton
 						role="founder"
 						entityId={c.id}
-						target={{ role: 'founder', id: c.id, name: c.name, website: c.website ?? undefined }}
+						target={{ role: 'founder', id: c.id, name: c.name, website: c.website ?? undefined, verified: c.is_verified }}
 						label="Is this your company?"
 						hideWhenVerifiedElsewhere
 					/>
