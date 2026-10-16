@@ -49,7 +49,7 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 				<h2 className="atlas-h2">Signals</h2>
 				<p className="atlas-sig-lede">Companies showing activity worth watching.</p>
 			</div>
-			<div className="atlas-sig-filter">
+			<div className="atlas-sig-filter atlas-sig-filter--top">
 				<PillTabs ariaLabel="Signal type" value={type} onChange={setType} options={FILTERS} />
 				<ViewToggle value={view} onChange={setView} />
 			</div>

@@ -2,6 +2,8 @@
 .atlas .atlas-sig-head { margin-bottom: 18px; }
 .atlas .atlas-sig-lede { margin: 6px 0 0; font-family: var(--a-body); font-size: 14px; line-height: 1.5; color: var(--a-muted); }
 .atlas .atlas-sig-filter { margin-bottom: 22px; }
+/* Type pills on the left, view toggle pushed to the right of the same row. */
+.atlas .atlas-sig-filter--top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .atlas .atlas-sig-list { display: grid; gap: 12px; }
 
 .atlas .atlas-sig {

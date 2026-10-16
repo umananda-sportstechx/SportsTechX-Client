@@ -78,3 +78,13 @@
 @media (max-width: 640px) {
 	.atlas .mkt-co { flex-wrap: wrap; }
 }
+
+/* Companies table polish: faint empties so real data stands out, and a small
+   pill for the business-model code. */
+.atlas .atlas-dash { color: var(--a-faint); }
+.atlas .atlas-chip-sm {
+	display: inline-block; padding: 2px 8px; border-radius: 999px;
+	border: 1px solid var(--a-border); background: var(--a-inset);
+	font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.03em;
+	font-weight: 600; color: var(--a-muted);
+}
