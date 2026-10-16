@@ -33,7 +33,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		// `allow`, which is why `buildNav` filters on `!== 'hidden'`.
 		// Pitch Deck joined Explore when the deck analyser stopped being tier-gated:
 		// credits pay for it, so the page has to be findable rather than sold.
-		top: ['Home', 'Interests', 'Pitch Deck'],
+		top: ['Home', 'Chat', 'Interests', 'Pitch Deck'],
 		sections: [
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
 			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],
@@ -41,7 +41,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		bottom: [],
 	},
 	raise: {
-		top: ['Home'],
+		top: ['Home', 'Chat'],
 		sections: [
 			['Raise', ['Pitch Deck', 'Investors', 'Programs']],
 			['Discover', ['Companies', 'Recommended', 'Signals']],
@@ -56,7 +56,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		// item until the user saves a list, and a one-item section collapses to a
 		// plain top-level item (see buildNav). The splice test below covers the
 		// section form, which reappears the moment a saved list joins it.
-		top: ['Home', 'All watchlists'],
+		top: ['Home', 'Chat', 'All watchlists'],
 		sections: [
 			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
