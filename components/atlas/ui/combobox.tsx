@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { RemoveScroll } from 'react-remove-scroll';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { cx } from './cx';
 
@@ -159,6 +160,14 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 			</button>
 			{open && pos && createPortal(
 				<div className="atlas">
+					{/* A Radix Dialog host locks page scroll via react-remove-scroll,
+					    which allows wheel/touch only inside its own content. This panel
+					    is portalled to <body>, outside that content, so its list could
+					    be clicked but not scrolled. Wrapping it in RemoveScroll makes
+					    the panel the active scroll region while open (the same stacking
+					    Radix's own Select relies on); harmless outside a dialog. The
+					    wrapper div it renders is inert — the panel is position:fixed. */}
+					<RemoveScroll removeScrollBar={false}>
 					<div
 						ref={panelRef}
 						className="atlas-combo-panel"
@@ -203,6 +212,7 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 							))}
 						</div>
 					</div>
+				</RemoveScroll>
 				</div>,
 				document.body,
 			)}
