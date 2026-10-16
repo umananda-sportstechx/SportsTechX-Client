@@ -136,6 +136,9 @@
   background: var(--a-surface); border: 1px solid var(--a-border-strong);
   border-radius: 10px; box-shadow: 0 14px 40px color-mix(in srgb, var(--a-ink) 16%, transparent);
   overflow: hidden;
+  /* A modal (Radix Dialog) sets pointer-events:none on <body>; this panel is
+     portalled to <body>, so re-enable them or it is visible but unclickable. */
+  pointer-events: auto;
 }
 .atlas-combo-search {
   display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 38px;
