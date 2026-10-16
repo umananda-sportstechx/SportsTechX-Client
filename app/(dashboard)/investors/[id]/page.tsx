@@ -98,7 +98,7 @@ export default function InvestorProfilePage() {
 				<Tile label="Stages" value={stages} />
 				<Tile label="Typical cheque size" value="Not confirmed" muted />
 				<Tile label="Geography" value={geoText} />
-				<Tile label="Website" value={inv.website ? <a href={inv.website} target="_blank" rel="noreferrer" style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Visit</a> : '—'} />
+				<Tile label="Website" value={inv.website ? <a href={/^https?:\/\//i.test(inv.website) ? inv.website : `https://${inv.website}`} target="_blank" rel="noreferrer" style={{ color: 'var(--a-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Visit</a> : '—'} />
 			</div>
 
 			{inv.description && <Section title="Overview">{inv.description}</Section>}
