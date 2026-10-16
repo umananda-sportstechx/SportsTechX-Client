@@ -2,6 +2,7 @@
 export const FIGMA_ICON_NAMES = [
 	'nav-analysis',
 	'nav-caret',
+	'nav-chat',
 	'nav-circle',
 	'nav-companies',
 	'nav-dealflow',

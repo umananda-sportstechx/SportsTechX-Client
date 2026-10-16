@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowUp, ArrowUpRight, X, Download, Plus, History } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, X, Download, Plus, History, Maximize2 } from 'lucide-react';
 import { useChat, AI_MD_CSS } from '@/components/chat/chat-core';
 import { AtlasMark } from '@/components/atlas/brand/atlas-logo';
 import {
@@ -59,6 +59,13 @@ export function RaiseChat() {
 	} = chat;
 
 	const close = () => { abort(); setOpen(false); };
+	// Move the current thread to the full chat page — same conversation if one
+	// exists, otherwise a fresh one.
+	const expand = () => {
+		abort();
+		setOpen(false);
+		router.push(conversationId ? `/chat/${conversationId}` : '/chat');
+	};
 	// A fresh conversation is just the greeting. That state gets the intro and
 	// the suggested prompts instead of one lonely paragraph at the top of an
 	// otherwise empty panel.
@@ -114,6 +121,9 @@ export function RaiseChat() {
 						)}
 						<button className="raise-chat-iconbtn" onClick={() => void toggleHistory()} aria-label="Conversation history" title="History" data-active={showHistory}>
 							<History size={14} strokeWidth={1.5} />
+						</button>
+						<button className="raise-chat-iconbtn" onClick={expand} aria-label="Open full chat page" title="Expand">
+							<Maximize2 size={14} strokeWidth={1.5} />
 						</button>
 						<button className="raise-chat-iconbtn" onClick={close} aria-label="Close co-pilot" title="Close">
 							<X size={16} strokeWidth={1.5} />
