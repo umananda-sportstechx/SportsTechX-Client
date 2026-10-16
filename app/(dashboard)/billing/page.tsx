@@ -38,7 +38,7 @@ const fmtPrice = (p: PlanRow) => {
 };
 
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
-interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null }
+interface Sub { subscription_status?: string | null; is_trial?: boolean | null; subscription_current_period_end?: string | null; subscription_cancel_at?: string | null }
 interface SubRow { stripe_subscription_id: string; subscription_status: string; is_active: boolean; is_trial: boolean; plan_name: string | null; user_type: string; subscription_current_period_end: string | null; subscription_cancel_at: string | null; updated_at: string }
 
 const fmtMoney = (cents: number, ccy: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase() }).format((cents ?? 0) / 100);
@@ -70,6 +70,20 @@ export default function BillingPage() {
 	// A live subscription exists → plan changes must go through the portal so we
 	// don't stack a second subscription. Only users without one start via Checkout.
 	const hasActiveSub = !!sub.data?.subscription_status;
+	const cancelling = !!sub.data?.subscription_cancel_at;
+
+	const cancelPlan = async () => {
+		if (!confirm('Cancel your subscription? You will keep access until the current period ends.')) return;
+		setBusy('cancel');
+		try {
+			await apiRequest('POST', '/api/billing/cancel');
+			toast.success('Subscription will cancel at the end of the billing period.');
+			void sub.mutate();
+		} catch {
+			toast.error("Couldn't cancel. Please try again or use the billing portal.");
+		}
+		setBusy(null);
+	};
 
 	const manage = async () => {
 		setBusy('portal');
@@ -99,11 +113,22 @@ export default function BillingPage() {
 						<div style={{ ...CARD_TITLE, fontSize: 18, marginTop: 12 }}>{p.label}</div>
 						<div style={{ ...PRICE, marginTop: 10 }}>{p.price}</div>
 						{sub.data?.subscription_status && (
-							<div style={{ marginTop: 14 }}><Badge tone={sub.data.subscription_status === 'active' ? 'ok' : 'neutral'}>{sub.data.is_trial ? 'Trial' : sub.data.subscription_status}</Badge></div>
+							<div style={{ marginTop: 14 }}><Badge tone={cancelling ? 'neutral' : sub.data.subscription_status === 'active' ? 'ok' : 'neutral'}>{cancelling ? 'Cancels' : sub.data.is_trial ? 'Trial' : sub.data.subscription_status}</Badge></div>
+						)}
+						{cancelling && (
+							<p style={{ ...BODY, marginTop: 10 }}>Your plan access ends on {fmtISO(sub.data?.subscription_cancel_at ?? sub.data?.subscription_current_period_end ?? null)}. You keep full access until then.</p>
 						)}
 					</div>
 					{hasActiveSub && (
-						<Button variant="outline" size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="animate-spin" size={13} /> : 'Manage billing'}</Button>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+							<Button variant="outline" size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="animate-spin" size={13} /> : 'Manage billing'}</Button>
+							{!cancelling && (
+								<button type="button" disabled={busy !== null} onClick={() => void cancelPlan()}
+									style={{ fontSize: 11, color: 'var(--a-faint)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+									{busy === 'cancel' ? 'Cancelling…' : 'Cancel subscription'}
+								</button>
+							)}
+						</div>
 					)}
 				</div>
 			</Card>
