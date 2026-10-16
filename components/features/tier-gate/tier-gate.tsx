@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import type { Tier } from '@/lib/access';
-import { hrefOf } from '@/lib/routes';
+import { PLANS_PATH } from '@/lib/routes';
 import './tier-gate.css';
 
 /**
@@ -73,7 +73,7 @@ export function TierGate({ tier, feature }: {
 				<h2 className="tier-gate__title">{p.tagline}</h2>
 				<p className="tier-gate__body">{p.blurb}</p>
 				<div className="tier-gate__cta">
-					<Link href={hrefOf('billing')} className="atlas-btn atlas-btn--primary">Get {p.name}</Link>
+					<Link href={PLANS_PATH} className="atlas-btn atlas-btn--primary">Get {p.name}</Link>
 					<Link href={LANDING} className="atlas-btn atlas-btn--outline">Talk to the team</Link>
 				</div>
 			</section>
