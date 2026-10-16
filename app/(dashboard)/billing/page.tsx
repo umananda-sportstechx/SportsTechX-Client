@@ -25,16 +25,16 @@ import { Screen, PageHead, Card, Button, Badge, Loading, Action } from '@/compon
  * screens stay under `app/billing/`, because those are the surfaces Stripe
  * redirects *into* and must stay focused.
  */
-// The retired labels stay in the lookup only so a historical `stripe_subscriptions`
-// row still renders a name instead of a raw enum value. They are not offered.
-const PLAN: Record<string, { label: string; price: string }> = {
-	explore: { label: 'Explore', price: '€0' },
-	raise: { label: 'Raise', price: '€600 / 6 months' },
-	scout: { label: 'Scout', price: '€2,500 / year' },
-	free: { label: 'Explore (legacy)', price: '—' },
-	general: { label: 'General (retired)', price: '—' },
-	growth: { label: 'Growth (retired)', price: '—' },
-	pro: { label: 'Pro (retired)', price: '—' },
+const TIER_LABEL: Record<string, string> = {
+	explore: 'Explore', raise: 'Raise', scout: 'Scout',
+	free: 'Explore (legacy)', general: 'General (retired)',
+	growth: 'Growth (retired)', pro: 'Pro (retired)',
+};
+interface PlanRow { slug: string; name: string; tier: string; billing_interval: string | null; price_amount: number; currency_code: string }
+const fmtPrice = (p: PlanRow) => {
+	const amt = new Intl.NumberFormat(undefined, { style: 'currency', currency: (p.currency_code || 'eur').toUpperCase(), maximumFractionDigits: 0 }).format(p.price_amount / 100);
+	const interval = p.billing_interval === 'yearly' ? 'per year' : p.billing_interval === 'semiannual' ? 'per 6 months' : p.billing_interval === 'monthly' ? 'per month' : '';
+	return `${amt} ${interval}`.trim();
 };
 
 interface Invoice { id: string; number: string | null; status: string | null; amount_paid: number; currency: string; created: number; hosted_invoice_url: string | null; invoice_pdf: string | null }
@@ -44,7 +44,7 @@ interface SubRow { stripe_subscription_id: string; subscription_status: string; 
 const fmtMoney = (cents: number, ccy: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase() }).format((cents ?? 0) / 100);
 const fmtDate = (unixSec: number) => new Date(unixSec * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const fmtISO = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
-const subLabel = (s: SubRow) => s.plan_name ?? PLAN[s.user_type]?.label ?? s.user_type;
+const subLabel = (s: SubRow) => s.plan_name ?? TIER_LABEL[s.user_type] ?? s.user_type;
 
 // Presentation-only styles (Atlas kit tokens).
 const CARD_TITLE: React.CSSProperties = { fontSize: 17, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)' };
@@ -58,7 +58,9 @@ export default function BillingPage() {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
 	const plan = getUserType(profile);
-	const p = PLAN[plan] ?? { label: plan, price: '' };
+	const plans = useSWR<PlanRow[]>(['/api/billing/plans']);
+	const matchedPlan = (plans.data ?? []).find((r) => r.tier === plan);
+	const p = { label: matchedPlan?.name ?? TIER_LABEL[plan] ?? plan, price: matchedPlan ? fmtPrice(matchedPlan) : (plan === 'explore' ? '€0' : '') };
 	const sub = useSWR<Sub | null>(['/api/billing/subscription']);
 	const allSubs = useSWR<SubRow[]>(['/api/billing/subscriptions']);
 	const invoices = useSWR<Invoice[]>(['/api/billing/invoices']);
