@@ -173,9 +173,12 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 								<div className="atlas-table" role="table">
 									<div className="atlas-table__head">
 										<span className="atlas-table__name">Company</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Sector</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
-										<span className="atlas-table__col" style={{ width: 100 }}>Funding</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Sector</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Founded</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Sport</span>
+										<span className="atlas-table__col hide-sm" style={{ width: 60 }}>Model</span>
+										<span className="atlas-table__col" style={{ width: 90 }}>Funding</span>
 									</div>
 									{rows.map((c) => {
 										const href = companyHref?.(c.slug ?? c.id);
@@ -189,9 +192,12 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 													{c.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{c.description}</div>}
 												</div>
 											</div>
-											<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{c.primary_sector ?? '—'}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{hq || '—'}</span>
-											<span className="atlas-table__col" style={{ width: 100 }}>{funding}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{c.primary_sector ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{hq || '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{c.founded_year ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{c.primary_sport ?? '—'}</span>
+											<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{c.business_model ? c.business_model.toUpperCase() : '—'}</span>
+											<span className="atlas-table__col" style={{ width: 90 }}>{funding}</span>
 										</>;
 										return href
 											? <Link key={c.id} className="atlas-table__row" href={href}>{inner}</Link>
