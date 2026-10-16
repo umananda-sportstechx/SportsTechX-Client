@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ArrowUpLeft, ArrowUpRight, X } from 'lucide-react';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
+import { hrefOf } from '@/lib/routes';
 import { useCompanyWatchlists, useWatchlistCompanies, removeFromWatchlist } from './use-company-watchlists';
 import './watchlists.css';
 
@@ -34,7 +35,7 @@ export function WatchlistDetail({ id, backHref, companyHref }: { id: string; bac
 				<Action icon={<ArrowUpLeft />} href={backHref}>All watchlists</Action>
 			</div>
 			{isLoading ? <Loading /> : companies.length === 0 ? (
-				<Empty>No companies yet. Open any company and use “Add to watchlist”.</Empty>
+				<Empty>No companies yet. <Link href={hrefOf('companies')} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Browse companies</Link> and use &quot;Add to watchlist&quot;.</Empty>
 			) : (
 				<div className="atlas-rowlist">
 					{companies.map((c) => {
