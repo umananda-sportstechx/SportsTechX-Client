@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { Loader2, ArrowUpRight } from 'lucide-react';
+import { Loader2, ArrowUpRight, Check } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
@@ -120,14 +120,23 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 				<div className="atlas-h2">{copy.emptyTitle}</div>
 				<p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--a-muted)', lineHeight: '19px', maxWidth: 632 }}>{copy.emptyBody}</p>
 				{copy.emptyExtra}
-				<hr className="atlas-divider" style={{ margin: '33px 0 37px' }} />
-				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, maxWidth: 880 }}>
+				<hr className="atlas-divider" style={{ margin: '26px 0 22px' }} />
+				<div className="atlas-eyebrow" style={{ marginBottom: 14 }}>What Atlas checks</div>
+				<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
 					{AREAS.map((a) => (
-						<div key={a.h}><div style={{ fontSize: 12, fontWeight: 700 }}>{a.h}</div>
-							<div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', fontSize: 12, lineHeight: '19px', color: 'var(--a-muted)' }}>{a.items.map((it) => <span key={it}>{it}</span>)}</div></div>
+						<div key={a.h} style={{ border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', background: 'var(--a-inset)', padding: '16px 16px 15px' }}>
+							<div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--a-font)', color: 'var(--a-ink)' }}>{a.h}</div>
+							<div style={{ marginTop: 13, display: 'flex', flexDirection: 'column', gap: 9 }}>
+								{a.items.map((it) => (
+									<span key={it} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--a-muted)' }}>
+										<Check size={13} style={{ color: 'var(--a-navy)', flexShrink: 0 }} aria-hidden="true" />{it}
+									</span>
+								))}
+							</div>
+						</div>
 					))}
 				</div>
-				<hr className="atlas-divider" style={{ margin: '48px 0 30px' }} />
+				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={14} /> : <>{copy.emptyCta} <ArrowUpRight /></>}</Button>
 			</Card>
 		</Screen>
