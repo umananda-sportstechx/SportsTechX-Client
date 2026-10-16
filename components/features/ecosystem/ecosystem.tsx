@@ -456,7 +456,7 @@ function EventsTable({ rows }: { rows: Eco[] }) {
 										</div>
 									</div>
 								</td>
-								<td>{loc ? <span className="ecal-table__loc"><Flag cc={e.hq_country!} size={12} /> {loc}</span> : '—'}</td>
+								<td>{e.hq_country ? <span className="ecal-table__loc"><Flag cc={e.hq_country} size={12} /> {loc}</span> : loc || '—'}</td>
 								<td>{e.mode ? <span className={`ecal-table__mode ecal-table__mode--${e.mode}`}>{MODE_LABEL[e.mode] ?? e.mode}</span> : '—'}</td>
 								<td>{e.website ? <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="ecal-table__link"><ArrowUpRight size={13} /> Visit</a> : '—'}</td>
 							</tr>
