@@ -10,8 +10,8 @@ import type { CompanyListItem as Company } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, lockedFiltersNote } from '@/components/atlas';
 import { ExportButton } from '@/components/features/exports/export-button';
-import { COUNTRY_OPTIONS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
-import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
+import { FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
+import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { fmtUsd } from './format';
 import { ResultCapNote } from './result-cap-note';
 import dynamic from 'next/dynamic';
@@ -60,6 +60,7 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	const reset = () => setPage(1);
 	const sectors = useSectorTierData();
 	const sportOptions = useSportOptions();
+	const countryOptions = useCountryOptions();
 	const loc = useLocationFacetOptions();
 	const techTags = useTechTagOptions();
 	const adv = useFeatureAccess('advanced_filters');
@@ -130,7 +131,7 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 						sel('sport', 'Sport', sport, sportOptions, setSport),
 					] },
 					{ label: 'Geography & location', filters: [
-						sel('country', 'Country', country, COUNTRY_OPTIONS, setCountry),
+						sel('country', 'Country', country, countryOptions, setCountry),
 						...(adv.hasAccess ? [
 							sel('continent', 'Continent', continent, loc.continent, setContinent),
 							sel('region', 'Region', region, loc.region, setRegion),

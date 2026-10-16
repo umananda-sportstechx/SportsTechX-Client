@@ -40,6 +40,7 @@ export const qk = {
     techTags: () => ['/api/tech-tags'] as const,
     currencies: () => ['/api/currencies'] as const,
     roundTypes: () => ['/api/round-types'] as const,
+    countries: () => ['/api/countries'] as const,
     locationFacets: () => ['/api/locations/facets'] as const,
   },
 

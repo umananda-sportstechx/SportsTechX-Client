@@ -11,7 +11,7 @@ import type { InvestorListItem as Investor } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, lockedFiltersNote } from '@/components/atlas';
-import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions } from '@/hooks/use-catalog-options';
+import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { SINCE_YEARS, DEALS_BUCKETS, canonicalCountry } from '@/lib/catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import { hrefOf } from '@/lib/routes';
@@ -46,22 +46,6 @@ const CATEGORY_OPTIONS: [string, string][] = [
 	['venture_capital', 'Venture Capital'], ['financial_services', 'Corporate VC'],
 	['private_equity', 'Private Equity'], ['family_investment_office', 'Family Office'],
 	['sovereign_wealth_fund', 'Sovereign Wealth Fund'], ['angel', 'Angel'], ['other', 'Other'],
-];
-// Country options — the OPTION VALUE is a CSV of every spelling that country
-// appears under in the data (the backend `country` filter splits CSV and matches
-// any), so one option catches all variants. Ordered by investor frequency.
-// e.g. the DB stores both "USA" and "United States"; "UK" and "United Kingdom".
-const COUNTRY_OPTIONS: [string, string][] = [
-	['USA,United States', 'United States'],
-	['UK,United Kingdom', 'United Kingdom'],
-	['India', 'India'], ['Singapore', 'Singapore'], ['France', 'France'],
-	['Australia', 'Australia'], ['Germany', 'Germany'], ['Hong Kong', 'Hong Kong'],
-	['Canada', 'Canada'], ['Israel', 'Israel'], ['Spain', 'Spain'], ['Brazil', 'Brazil'],
-	['UAE,United Arab Emirates', 'United Arab Emirates'], ['The Netherlands,Netherlands', 'Netherlands'],
-	['Sweden', 'Sweden'], ['China', 'China'], ['Switzerland', 'Switzerland'], ['Belgium', 'Belgium'],
-	['Japan', 'Japan'], ['Italy', 'Italy'], ['Denmark', 'Denmark'], ['South Korea', 'South Korea'],
-	['Ireland', 'Ireland'], ['Portugal', 'Portugal'], ['Finland', 'Finland'], ['Luxembourg', 'Luxembourg'],
-	['Saudi Arabia', 'Saudi Arabia'],
 ];
 const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
@@ -151,6 +135,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 	const rounds = Array.isArray(roundsResp.data) ? roundsResp.data : (roundsResp.data?.data ?? []);
 	const sectors = useSectorTierData();
 	const sportOptions = useSportOptions();
+	const countryOptions = useCountryOptions();
 	const loc = useLocationFacetOptions();
 	const techTags = useTechTagOptions();
 	const adv = useFeatureAccess('advanced_filters');
@@ -215,7 +200,7 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 						sel('sport', 'Sports', sport, sportOptions, setSport),
 					] },
 					{ label: 'Geography & location', filters: [
-						sel('country', 'Countries', country, COUNTRY_OPTIONS, setCountry),
+						sel('country', 'Countries', country, countryOptions, setCountry),
 						...(adv.hasAccess ? [
 							sel('continent', 'Continents', continent, loc.continent, setContinent),
 							sel('region', 'Regions', region, loc.region, setRegion),
