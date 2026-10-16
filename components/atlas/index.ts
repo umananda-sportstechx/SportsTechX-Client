@@ -20,6 +20,8 @@ export { Button, Action } from './ui/button';
 export { Field, Input, Textarea, Select, ReadOnly } from './ui/form';
 export { Badge } from './ui/badge';
 export { Tabs, Seg, PillTabs } from './ui/tabs';
+export { ViewToggle } from './ui/view-toggle';
+export type { ViewMode } from './ui/view-toggle';
 export { Stat, Progress } from './ui/stat';
 
 // Patterns
