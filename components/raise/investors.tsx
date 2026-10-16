@@ -109,9 +109,10 @@ export function RecommendedInvestors() {
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
 							<span className="atlas-table__name">Investor</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Type</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
-							<span className="atlas-table__col" style={{ width: 100 }}>Status</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
+							<span className="atlas-table__col" style={{ width: 60 }}>Score</span>
+							<span className="atlas-table__col" style={{ width: 90 }}>Status</span>
 						</div>
 						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
 							<Link key={m.id} className="atlas-table__row" href={`${hrefOf('investors')}/${m.id}`}>
@@ -122,9 +123,10 @@ export function RecommendedInvestors() {
 										{m.match_reasons?.[0] && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{m.match_reasons[0]}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{m.category ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{m.hq_country ? canonicalCountry(m.hq_country) : '—'}</span>
-								<span className="atlas-table__col" style={{ width: 100 }}>{inPipeline.has(m.id) ? 'In watchlist' : '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{m.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{m.hq_country ? canonicalCountry(m.hq_country) : '—'}</span>
+								<span className="atlas-table__col" style={{ width: 60 }}>{m.score}%</span>
+								<span className="atlas-table__col" style={{ width: 90 }}>{inPipeline.has(m.id) ? 'In watchlist' : '—'}</span>
 							</Link>
 						))}
 					</div>
@@ -268,9 +270,12 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
 							<span className="atlas-table__name">Investor</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Type</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 120 }}>Location</span>
-							<span className="atlas-table__col" style={{ width: 100 }}>Status</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Type</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 60 }}>Deals</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Investments</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Launched</span>
+							<span className="atlas-table__col" style={{ width: 90 }}>Status</span>
 						</div>
 						{rows.map((inv) => (
 							<Link key={inv.id} className="atlas-table__row" href={`${hrefOf('investors')}/${inv.id}`}>
@@ -281,9 +286,12 @@ function AllInvestorsTab({ inPipeline, onAdd }: { inPipeline: Set<string>; onAdd
 										{inv.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{inv.description}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{inv.category ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 120 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
-								<span className="atlas-table__col" style={{ width: 100 }}>{inPipeline.has(inv.id) ? 'In watchlist' : '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
+								<span className="atlas-table__col" style={{ width: 90 }}>{inv.actively_investing ? 'Active' : inPipeline.has(inv.id) ? 'Watchlist' : '—'}</span>
 							</Link>
 						))}
 					</div>
