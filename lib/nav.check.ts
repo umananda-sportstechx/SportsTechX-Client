@@ -52,13 +52,12 @@ const EXPECTED: Record<Tier, Shape> = {
 		bottom: [],
 	},
 	scout: {
-		// "All watchlists" is heading-less: its "Watchlists" section holds a single
-		// item until the user saves a list, and a one-item section collapses to a
-		// plain top-level item (see buildNav). The splice test below covers the
-		// section form, which reappears the moment a saved list joins it.
-		top: ['Home', 'Chat', 'All watchlists'],
+		// "All watchlists" lives inside Discover (Scout has no pipeline, so a
+		// standalone one-item Watchlists section looked orphaned). Saved lists
+		// splice in before it — covered by the splice test below.
+		top: ['Home', 'Chat'],
 		sections: [
-			['Discover', ['Companies', 'Recommended', 'Signals']],
+			['Discover', ['Companies', 'Recommended', 'Signals', 'All watchlists']],
 			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
@@ -107,10 +106,12 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 	check(leaked.length === 0, `no cross-tier leakage${leaked.length ? ': ' + leaked.map((r) => r.id).join(', ') : ''}`);
 }
 
-// The watchlist splice: user lists land immediately before "All watchlists".
+// The watchlist splice: user lists land immediately before "All watchlists",
+// inside Raise's "Watchlists" section or Scout's "Discover" section.
 for (const tier of ['raise', 'scout'] as Tier[]) {
 	const { nav } = buildNav(tier, false, [{ id: 'w1', name: 'My list' }], ROUTES[0]!.icon);
-	const section = nav.filter(isSection).find((s) => s.title === 'Watchlists')!;
+	const title = tier === 'scout' ? 'Discover' : 'Watchlists';
+	const section = nav.filter(isSection).find((s) => s.title === title)!;
 	const names = section.items.map((i) => i.name);
 	check(names[names.length - 2] === 'My list' && names[names.length - 1] === 'All watchlists',
 		`[${tier}] watchlists splice: ${names.join(', ')}`);
