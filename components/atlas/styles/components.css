@@ -415,7 +415,7 @@ span.atlas-fbar__pill-main { cursor: default; }
 
 /* ── Ranked table (Figma "Funding rounds" / "Largest acquisitions") ── */
 .atlas .atlas-table { display: flex; flex-direction: column; margin: 0 -23px; overflow-x: auto; }
-.atlas .atlas-table__head, .atlas .atlas-table__row { display: flex; align-items: center; gap: 18px; padding: 14px 23px; min-width: fit-content; }
+.atlas .atlas-table__head, .atlas .atlas-table__row { display: flex; align-items: center; gap: 18px; padding: 14px 23px; }
 .atlas .atlas-table__head {
 	border-top: 1px solid var(--a-border); border-bottom: 1px solid var(--a-border);
 	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--a-faint);
