@@ -118,6 +118,7 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 				icon={<PencilLine size={14} />}
 				title={`Correct ${companyName}`}
 				width={640}
+				nonModal
 				footer={
 					<>
 						<Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
