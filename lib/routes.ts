@@ -176,7 +176,7 @@ export const ROUTES: RouteDef[] = [
 	// No tier: every plan gets the assistant, bounded by credits rather than by a
 	// locked door (see chat.controller.ts). Still unlisted in NAV_LAYOUT — it is
 	// reached from the home composer and the FAB.
-	{ id: 'chat', icon: 'nav-watchlist', name: 'Chat', path: '/chat' },
+	{ id: 'chat', icon: 'nav-chat', name: 'Chat', path: '/chat' },
 	{ id: 'strategy', icon: 'nav-onboarding', name: 'Strategy', path: '/strategy', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// Interests sits with Home, per the Figma Side Nav (31:15195). The HTML
 		// mockup puts it in the bottom group with Account; Figma is the newer
 		// file and the one named as the UI source, so it wins.
-		{ title: null, items: ['home', 'interests', 'deck'] },
+		{ title: null, items: ['home', 'chat', 'interests', 'deck'] },
 		{ title: 'Intelligence', items: ['framework', 'reports', 'newsletter'] },
 		// Investors is a Raise feature listed in Explore's sidebar on purpose —
 		// the design surfaces it unlocked-looking and lets the page do the
@@ -226,7 +226,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
 	],
 	raise: [
-		{ title: null, items: ['home'] },
+		{ title: null, items: ['home', 'chat'] },
 		{ title: 'Raise', items: ['deck', 'investors', 'programs'] },
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
@@ -234,7 +234,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 	],
 	scout: [
-		{ title: null, items: ['home'] },
+		{ title: null, items: ['home', 'chat'] },
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'recently-funded'] },
 		{ title: 'Watchlists', items: ['watchlists'] },

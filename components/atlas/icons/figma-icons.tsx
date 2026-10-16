@@ -41,7 +41,7 @@ export const FIGMA_ICONS: Record<string, FigmaIconDef> = {
 	},
 	'nav-events': {
 		viewBox: '0 0 24 24', w: 24, h: 24,
-		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M5 8h14v2.5a1.5 1.5 0 0 0 0 3V16H5v-2.5a1.5 1.5 0 0 0 0-3z" />, <path key={1} d="M14 8v8" stroke-dasharray="1.2 1.4" />]}</g>,
+		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M5 8h14v2.5a1.5 1.5 0 0 0 0 3V16H5v-2.5a1.5 1.5 0 0 0 0-3z" />, <path key={1} d="M14 8v8" strokeDasharray="1.2 1.4" />]}</g>,
 	},
 	'nav-framework': {
 		viewBox: '-0.5 -0.5 13 13', w: 13, h: 13,
@@ -50,6 +50,10 @@ export const FIGMA_ICONS: Record<string, FigmaIconDef> = {
 	'nav-funded': {
 		viewBox: '0 0 24 24', w: 24, h: 24,
 		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M5 18.5h14" />, <path key={1} d="m6 15 4-4 3 3 5-5.5" />, <path key={2} d="M15 8.5h3v3" />]}</g>,
+	},
+	'nav-chat': {
+		viewBox: '0 0 24 24', w: 24, h: 24,
+		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M5 6h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H10l-4 3v-3H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z" />, <path key={1} d="M8 10h8M8 13h5" />]}</g>,
 	},
 	'nav-home': {
 		viewBox: '-0.62 -0.62 14.24 13.24', w: 14.24, h: 13.24,
