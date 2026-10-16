@@ -14,8 +14,8 @@
  *
  *   control      Atlas source
  *   ─────────────────────────────────────────────────────────────────────────
- *   input        .atlas-input     34px · 10px radius · --a-border-strong · 13px
- *   button       .atlas-btn       29px · pill · mono 11px · 0.1em · uppercase
+ *   input        .atlas-input     38px · 10px radius · --a-border-strong · 13px
+ *   button       .atlas-btn       34px · pill · mono 11px · 0.1em · uppercase
  *   label        .atlas-label     mono 10px · 0.05em · uppercase · --a-muted
  *   card         .atlas-card      --a-surface · --a-card-border · 13px radius
  *   tag          .atlas-badge     mono 9px · uppercase · --a-radius-tag
