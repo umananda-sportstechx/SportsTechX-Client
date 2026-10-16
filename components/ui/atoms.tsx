@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Zap, Users, Briefcase } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { countryToIso, isoToCountry } from '@/lib/countries';
 
 /**
  * Atomic primitives ported from ui_design/app/atoms.jsx.
@@ -40,56 +41,8 @@ const FLAG_COLORS: Record<string, [string, string, string]> = {
 	AD: ['#10069F', '#FFCD00', '#D50032'], KW: ['#007A3D', '#FFF', '#CE1126'],
 };
 
-/**
- * 2-letter ISO country code → display name. Used as the hover tooltip on
- * every `<Flag />` so users see "United States" instead of the bare "US"
- * code. Mirrors the keys in `FLAG_COLORS` above so every rendered flag has
- * a friendly label.
- */
-const CC_TO_COUNTRY: Record<string, string> = {
-	US: 'United States', CA: 'Canada', GB: 'United Kingdom', DE: 'Germany',
-	FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands', SE: 'Sweden',
-	PT: 'Portugal', CH: 'Switzerland', BE: 'Belgium', AT: 'Austria',
-	PL: 'Poland', IN: 'India', CN: 'China', JP: 'Japan', KR: 'South Korea',
-	SG: 'Singapore', AU: 'Australia', NZ: 'New Zealand', BR: 'Brazil',
-	AR: 'Argentina', MX: 'Mexico', SA: 'Saudi Arabia', AE: 'United Arab Emirates',
-	EG: 'Egypt', ZA: 'South Africa', KE: 'Kenya', BA: 'Bosnia and Herzegovina',
-	HK: 'Hong Kong', LU: 'Luxembourg', AD: 'Andorra', KW: 'Kuwait',
-	IL: 'Israel', IE: 'Ireland', FI: 'Finland', NO: 'Norway', DK: 'Denmark',
-	ID: 'Indonesia', VN: 'Vietnam', TH: 'Thailand', MY: 'Malaysia',
-	PH: 'Philippines', TR: 'Turkey', GR: 'Greece', CZ: 'Czechia',
-	HU: 'Hungary', RO: 'Romania', UA: 'Ukraine', RU: 'Russia',
-	CL: 'Chile', CO: 'Colombia', PE: 'Peru', NG: 'Nigeria', GH: 'Ghana',
-	MA: 'Morocco', QA: 'Qatar', BH: 'Bahrain', OM: 'Oman', JO: 'Jordan',
-	PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
-};
-
-/**
- * Country name → ISO-2 code. Built by inverting CC_TO_COUNTRY, plus common
- * aliases/spellings. Lets callers pass a raw country name (or a code) to
- * <Flag> and to country helpers without each page maintaining its own lossy map.
- */
-const COUNTRY_TO_ISO: Record<string, string> = {
-	...Object.fromEntries(Object.entries(CC_TO_COUNTRY).map(([code, n]) => [n.toLowerCase(), code])),
-	usa: 'US', 'u.s.': 'US', 'u.s.a.': 'US', 'united states of america': 'US',
-	uk: 'GB', 'great britain': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
-	uae: 'AE', 'the netherlands': 'NL', 'holland': 'NL', 'czech republic': 'CZ',
-	'south korea': 'KR', 'korea': 'KR', 'republic of korea': 'KR', 'russia': 'RU',
-	'viet nam': 'VN', 'hong kong': 'HK', 'türkiye': 'TR', 'turkiye': 'TR',
-};
-
-/** Resolve an ISO-2 code from either a 2-letter code or a country name. '' if unknown. */
-export function countryToIso(input?: string | null): string {
-	if (!input) return '';
-	const s = input.trim();
-	if (!s) return '';
-	if (s.length === 2) {
-		const up = s.toUpperCase();
-		// Common non-ISO 2-letter codes that flagcdn rejects.
-		return up === 'UK' ? 'GB' : up;
-	}
-	return COUNTRY_TO_ISO[s.toLowerCase()] ?? '';
-}
+// Name→ISO resolution + display names come from `lib/countries` (single source).
+export { countryToIso } from '@/lib/countries';
 
 /**
  * Flag — real country flag.
@@ -123,7 +76,7 @@ export function Flag({
 	// real country name resolves to the correct ISO code via COUNTRY_TO_ISO.
 	const iso = countryToIso(cc);
 	const code = iso.toLowerCase();
-	const label = name ?? CC_TO_COUNTRY[iso] ?? cc;
+	const label = name ?? (isoToCountry(iso) || cc);
 	const [failed, setFailed] = useState(false);
 	const colors = FLAG_COLORS[iso] ?? ['#888', '#bbb', '#888'];
 
