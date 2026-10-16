@@ -7,8 +7,7 @@ import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useRoundTypeOptions } from '@/hooks/use-catalog-options';
-import { COUNTRY_OPTIONS } from '@/lib/catalog-options';
+import { useRoundTypeOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { Empty, FilterBar, Loading, Logo, Pager, type FilterDef } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import './funding.css';
@@ -36,6 +35,7 @@ export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const roundOptions = useRoundTypeOptions();
+	const countryOptions = useCountryOptions();
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
 
@@ -59,7 +59,7 @@ export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string
 				search={{ value: q, onChange: (v) => { setQ(v); reset(); }, placeholder: 'Search companies or investors' }}
 				groups={[
 					{ label: 'Round', filters: [sel('round', 'Round', round, roundOptions, setRound)] },
-					{ label: 'Geography', filters: [sel('country', 'Country', country, COUNTRY_OPTIONS, setCountry)] },
+					{ label: 'Geography', filters: [sel('country', 'Country', country, countryOptions, setCountry)] },
 					{ label: 'Date', filters: [sel('period', 'Period', period, PERIODS, setPeriod)] },
 				]}
 				sort={{ value: sort, options: SORTS, onChange: (v) => { setSort(v); reset(); } }}

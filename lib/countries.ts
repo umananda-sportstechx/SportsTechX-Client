@@ -72,6 +72,3 @@ export function isKnownCountry(raw: string | null | undefined): boolean {
 const JUNK = new Set(['', '#n/a', 'n/a', 'na', 'null', 'none', 'unknown', 'undefined', '-', '—']);
 export const isJunkFacet = (raw: string | null | undefined): boolean =>
 	!raw || JUNK.has(raw.trim().toLowerCase());
-
-/** [value, label] options for a full country picker (onboarding/claim). */
-export const COUNTRY_SELECT_OPTIONS: [string, string][] = COUNTRIES.map((c) => [c, c]);
