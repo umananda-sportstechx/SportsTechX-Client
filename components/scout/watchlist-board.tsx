@@ -7,7 +7,7 @@ import { Combobox } from '@/components/atlas/ui/combobox';
 import { useWatchlistCompanies } from '@/components/features/watchlists/use-company-watchlists';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
 import { BOARD_STAGES, type BoardStage } from './sample-data';
-import { companyHref } from '@/lib/routes';
+import { companyHref, hrefOf } from '@/lib/routes';
 
 /**
  * Watchlist board view (Claude Design "Board"): the watchlist's real companies
@@ -25,7 +25,7 @@ export function WatchlistBoard({ id }: { id: string }) {
 	if (isLoading) return <Loading />;
 	return (
 		<>
-			{companies.length === 0 ? <Empty>No companies yet. Open any company and use “Add to watchlist”.</Empty> : (
+			{companies.length === 0 ? <Empty>No companies yet. <a href={hrefOf('companies')} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Browse companies</a> and use &quot;Add to watchlist&quot;.</Empty> : (
 				<div className="scout-board">
 					{BOARD_STAGES.map((s) => {
 						const cards = companies.filter((c) => stageOf(c.id) === s);
