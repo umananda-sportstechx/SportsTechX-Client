@@ -43,7 +43,7 @@
 
 /* Icon buttons → round outline pills */
 .atlas .co-drawer-overlay .icon-btn {
-	width: 29px; height: 29px; border-radius: var(--a-radius-pill);
+	width: 34px; height: 34px; border-radius: var(--a-radius-pill);
 	border: 1px solid var(--a-border); background: var(--a-field); color: var(--a-ink);
 }
 .atlas .co-drawer-overlay .icon-btn:hover { background: var(--a-inset); border-color: var(--a-border-strong); color: var(--a-ink); }
