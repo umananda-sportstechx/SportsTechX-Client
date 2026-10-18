@@ -181,6 +181,8 @@ export interface MyDealRow {
 	committed_amount: string | number | null;
 	lead_status: string | null;
 	target_close_date: string | null;
+	/** How many investors have requested an introduction to this (live) deal. */
+	interest_count: number;
 }
 
 /** What a submitter should understand their own deal's status to mean. */
