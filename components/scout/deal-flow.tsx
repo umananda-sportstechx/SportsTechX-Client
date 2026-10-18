@@ -197,6 +197,12 @@ function MySubmissions() {
 							)}
 							{m.status === 'live' && (
 								<>
+									<div className="scout-df-card__interest">
+										<strong>{m.interest_count}</strong> investor{m.interest_count === 1 ? '' : 's'} interested
+									</div>
+									{m.interest_count > 0 && (
+										<p className="scout-df-card__reachout">The Atlas team will reach out within 24 hours to coordinate introductions.</p>
+									)}
 									<Link href={dealHref(m.id)} className="scout-df-card__link">View listing →</Link>
 									<LiveEdit m={m} onSaved={() => void mutate()} />
 								</>
