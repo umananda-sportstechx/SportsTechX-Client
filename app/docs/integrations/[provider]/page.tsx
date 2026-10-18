@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation';
 import { PROVIDER_DOCS } from '../providers';
 import { ProviderLogo } from '../provider-logo';
 
+// Integrations aren't shipped yet — don't prebuild provider doc pages.
 export function generateStaticParams() {
-	return Object.keys(PROVIDER_DOCS).map((provider) => ({ provider }));
+	return [] as { provider: string }[];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ provider: string }> }) {
@@ -19,6 +20,8 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 export default async function IntegrationDocPage({ params }: { params: Promise<{ provider: string }> }) {
+	// Integrations aren't shipped yet — keep provider docs private (404) until launch.
+	notFound();
 	const { provider } = await params;
 	const doc = PROVIDER_DOCS[provider];
 	if (!doc) notFound();
@@ -123,7 +126,7 @@ export default async function IntegrationDocPage({ params }: { params: Promise<{
 				{doc.externalDocs && (
 					<p className="text-sm text-muted-foreground">
 						Provider reference:{' '}
-						<a href={doc.externalDocs.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{doc.externalDocs.label} ↗</a>
+						<a href={doc.externalDocs?.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{doc.externalDocs?.label} ↗</a>
 					</p>
 				)}
 			</div>
