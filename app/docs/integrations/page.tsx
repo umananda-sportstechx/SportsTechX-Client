@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { PROVIDER_LIST } from './providers';
 import { ProviderLogo } from './provider-logo';
 
@@ -15,6 +16,8 @@ const STEPS = [
 ];
 
 export default function IntegrationsDocsPage() {
+	// Integrations aren't shipped yet — keep the docs private (404) until launch.
+	notFound();
 	return (
 		<main className="max-w-4xl mx-auto px-5">
 			{/* Hero */}
