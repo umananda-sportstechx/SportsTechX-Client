@@ -109,26 +109,29 @@ export function VerifiedReport({ id }: { id: string }) {
 		['Region', c.region ?? c.continent ?? '—'],
 		['Founded', c.founded_year ? String(c.founded_year) : '—'],
 	];
+	const shownFacts = facts.filter(([, v]) => !!v && v !== '—');
 	const site = c.website ?? data.company_website;
 
 	return (
 		<>
 			<PageHead
-				title={c.name ?? host(data.company_website) ?? 'Verified company report'}
+				title={c.name || host(data.company_website) || 'Verified company report'}
 				sub={`Verified company report${d.generatedAt ? ` · generated ${new Date(d.generatedAt).toLocaleDateString()}` : ''}`}
 			/>
 
 			<Card>
 				<div className="vcr-badge"><BadgeCheck size={13} aria-hidden="true" /> Verified by SportsTechX</div>
 				{c.description && <p className="vcr-lede">{c.description}</p>}
-				<dl className="vcr-facts">
-					{facts.filter(([, v]) => v && v !== '—').map(([k, v]) => (
-						<div key={k} className="vcr-facts__row">
-							<dt className="atlas-eyebrow">{k}</dt>
-							<dd>{v}</dd>
-						</div>
-					))}
-				</dl>
+				{shownFacts.length > 0 && (
+					<dl className="vcr-facts">
+						{shownFacts.map(([k, v]) => (
+							<div key={k} className="vcr-facts__row">
+								<dt className="atlas-eyebrow">{k}</dt>
+								<dd>{v}</dd>
+							</div>
+						))}
+					</dl>
+				)}
 				{href(site) && (
 					<a className="vcr-link" href={href(site)} target="_blank" rel="noreferrer noopener">
 						{host(site)} &rarr;
@@ -142,10 +145,10 @@ export function VerifiedReport({ id }: { id: string }) {
 					{d.marketOverview.headline && <p className="vcr-headline">{d.marketOverview.headline}</p>}
 					{!!d.marketOverview.bullets?.length && (
 						<ul className="vcr-bullets">
-							{d.marketOverview.bullets.map((b) => <li key={b}>{b}</li>)}
+							{d.marketOverview.bullets.map((b, i) => <li key={i}>{b}</li>)}
 						</ul>
 					)}
-					{d.marketOverview.paragraphs?.map((p) => <p key={p} className="vcr-para">{p}</p>)}
+					{d.marketOverview.paragraphs?.map((p, i) => <p key={i} className="vcr-para">{p}</p>)}
 				</Card>
 			)}
 
