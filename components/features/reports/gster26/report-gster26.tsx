@@ -11,6 +11,8 @@ import { qk } from "@/lib/query-keys";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import "./gster26.css";
+import { LandingFooter } from "@/components/landing/landing-footer";
+import "@/components/landing/landing.css";
 import { BRAND } from './brand';
 import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT } from './content-defaults';
 import gsap from "gsap";
@@ -632,7 +634,7 @@ function PollVoteSection({ pollId, article, t, isMobile, user, sessionValid }: {
         <button
           type="button"
           onClick={(e) => handleVote(e, "yes")}
-          disabled={voteMutation.isPending}
+          disabled={hasVoted}
           style={{
             background: t.bgCard,
             border: `1px solid ${userVote === "yes" ? GREEN : t.border}`,
@@ -675,7 +677,7 @@ function PollVoteSection({ pollId, article, t, isMobile, user, sessionValid }: {
         <button
           type="button"
           onClick={(e) => handleVote(e, "no")}
-          disabled={voteMutation.isPending}
+          disabled={hasVoted}
           style={{
             background: t.bgCard,
             border: `1px solid ${userVote === "no" ? BRAND.pink : t.border}`,
@@ -1308,10 +1310,10 @@ export default function ReportGSTER26() {
   const marqueeItems = data ? [
     `$${totalFundingB}B TOTAL DEALFLOW`, `${s?.total_companies?.toLocaleString()} COMPANIES TRACKED`,
     `${s?.total_deals?.toLocaleString()} FUNDING ROUNDS`, `${s?.total_ma} M&A DEALS`,
-    `${s?.total_countries} COUNTRIES COVERED`, "SPORTSTECHX INTELLIGENCE HUB",
+    `${s?.total_countries} COUNTRIES COVERED`, "SPORTSTECHX ATLAS",
     `$${totalFundingB}B TOTAL DEALFLOW`, `${s?.total_companies?.toLocaleString()} COMPANIES TRACKED`,
     `${s?.total_deals?.toLocaleString()} FUNDING ROUNDS`, `${s?.total_ma} M&A DEALS`,
-    `${s?.total_countries} COUNTRIES COVERED`, "SPORTSTECHX INTELLIGENCE HUB",
+    `${s?.total_countries} COUNTRIES COVERED`, "SPORTSTECHX ATLAS",
   ] : Array(12).fill("LOADING…");
 
   const sectionLabel = (text: string) => (
@@ -1381,7 +1383,7 @@ export default function ReportGSTER26() {
     <div ref={reportContainerRef} style={{ background: t.bg, color: t.text, fontFamily: "'Open Sans','system-ui',sans-serif", overflowX: "hidden", minHeight: "100vh", transition: "background 0.35s, color 0.35s" }}>
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
       <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
-        <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: isMobile ? 22 : 28, flexShrink: 0 }} />
+        <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, flexShrink: 0 }} />
         {/* Desktop nav links */}
         {!isMobile && (
           <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
@@ -1425,12 +1427,11 @@ export default function ReportGSTER26() {
           ) : (
             <>
               <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf"
-                style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: "#fff", background: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "6px 14px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 4 }}
+                style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: "#fff", background: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "7px 16px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                 onClick={() => { trackG26("nav_click", { section: "pdf_download" }); }}
               >↓ Download PDF</a>
-              <a href="/dashboard" target="_blank" rel="noopener noreferrer" className="stx-nav-hub" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "6px 14px", textDecoration: "none", textTransform: "uppercase", transition: "background 0.2s" }}>← Hub</a>
             </>
           )}
         </div>
@@ -1458,8 +1459,7 @@ export default function ReportGSTER26() {
                 {label}
               </a>
             ))}
-            <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 14px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 4, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
-            <a href="/dashboard" target="_blank" rel="noopener noreferrer" onClick={() => trackG26("nav_click", { section: "hub" })} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: BRAND.pink, textDecoration: "none", padding: "10px 0", fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>← Hub</a>
+            <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 18px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
           </div>
         </div>
       )}
@@ -1527,7 +1527,7 @@ export default function ReportGSTER26() {
             <div style={{ display: "flex", alignItems: "flex-start", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>Presented by</span>
-                <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
+                <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
               </div>
               <div style={{ width: 1, alignSelf: "stretch", background: "rgba(190,208,227,0.2)" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -3527,7 +3527,7 @@ export default function ReportGSTER26() {
             <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: "2px solid rgba(237,26,94,0.2)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: "linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)", transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
             <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-            <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+            <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
             <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Is your company on the global sports tech database?</div>
               <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>ADD or VERIFY your company to get discovered by investors, programs, and sports organizations worldwide</div>
@@ -3776,7 +3776,7 @@ export default function ReportGSTER26() {
                 <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: "2px solid rgba(237,26,94,0.2)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: "linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)", transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-                <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+                <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
                 <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Dive Deeper into the Data</div>
                   <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>
@@ -3976,58 +3976,8 @@ export default function ReportGSTER26() {
         </div>
       </div>
 
-      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer style={{ background: isDark ? BRAND.darkTitle : BRAND.darkTitle, borderTop: `1px solid ${t.divider}`, padding: isMobile ? "16px 0 12px" : "48px 0 36px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 8 : 40, justifyContent: "space-between", flexWrap: "wrap" }}>
-          {/* Left column: logo, socials, description, contact */}
-          <div style={{ flex: "1 1 320px", maxWidth: 420 }}>
-            <a href="https://sportstechx.com" target="_blank" rel="noopener noreferrer">
-              <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: 32, opacity: 0.9 }} />
-            </a>
-            {/* Social icons */}
-            <div style={{ display: "flex", gap: 14, marginTop: 16 }}>
-              {([
-                { href: "https://www.linkedin.com/company/sportstechx/", label: "LinkedIn", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg> },
-                { href: "https://x.com/sportstechx", label: "X", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> },
-                { href: "https://www.youtube.com/@SportsTechX", label: "YouTube", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg> },
-                { href: "https://www.instagram.com/sportstechx", label: "Instagram", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
-              ]).map(({ href, label, icon }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" style={{ color: "rgba(190,208,227,0.5)", transition: "color 0.2s" }} onMouseEnter={e => (e.currentTarget.style.color = BRAND.pink)} onMouseLeave={e => (e.currentTarget.style.color = "rgba(190,208,227,0.5)")}>
-                  {icon}
-                </a>
-              ))}
-            </div>
-            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, lineHeight: 1.7, color: "rgba(190,208,227,0.45)", marginTop: 16, margin: "16px 0 0" }}>
-              Empowering leaders across the sports tech ecosystem with market intelligence and strategic insights to shape the future of sports.
-            </p>
-            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "rgba(190,208,227,0.35)", marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "rgba(190,208,227,0.4)", flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                <a href="mailto:hello@sportstechx.com" style={{ color: "rgba(190,208,227,0.5)", textDecoration: "none" }}>hello@sportstechx.com</a>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "rgba(190,208,227,0.4)", flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                Berlin, Germany
-              </div>
-            </div>
-          </div>
-          {/* Right column: links */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "center" }}>
-            <a href="/reports/methodology" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase" }}>
-              Methodology
-            </a>
-            <a href="https://sportstechx.com/about" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase" }}>
-              Team
-            </a>
-            <a href="https://sportstechx.com/#services" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase" }}>
-              Services
-            </a>
-            <a href="/dashboard" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase" }}>
-              Atlas
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* ── FOOTER (the exact Atlas landing footer) ─────────────────────── */}
+      <div className="lp"><LandingFooter /></div>
 
       </div>
       <style>{`
