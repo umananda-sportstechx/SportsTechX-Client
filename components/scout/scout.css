@@ -111,24 +111,35 @@
 .atlas .scout-df__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 
 /* Featured deal: black card */
-.atlas .scout-df-feat { position: relative; overflow: hidden; margin-bottom: 26px; padding: 30px 32px; border-radius: var(--a-radius); background: var(--a-primary); color: var(--a-primary-ink); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28); }
-/* Green "featured" accent so the light spotlight card reads as intentional on the dark page. */
-.atlas .scout-df-feat::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--scout-green), color-mix(in srgb, var(--scout-green) 30%, transparent)); }
-.atlas .scout-df-feat__eyebrow, .atlas .scout-df-feat__k {
-	font-family: var(--a-mono); text-transform: uppercase; color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent);
+/* Featured deal — a dark "spotlight" card that matches the page, lifted by a
+   green glow + accent so it reads as premium next to the verified/circle cards. */
+.atlas .scout-df-feat {
+	position: relative; overflow: hidden; margin-bottom: 26px; padding: 30px 32px; border-radius: var(--a-radius);
+	background:
+		radial-gradient(135% 160% at 100% 0%, color-mix(in srgb, var(--scout-green) 18%, transparent) 0%, transparent 44%),
+		var(--a-surface);
+	color: var(--a-ink);
+	border: 1px solid color-mix(in srgb, var(--scout-green) 30%, var(--a-card-border));
+	box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
 }
-.atlas .scout-df-feat__eyebrow { margin-bottom: 14px; font-size: 11px; letter-spacing: 0.08em; color: var(--scout-green-ink); }
+.atlas .scout-df-feat::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--scout-green), color-mix(in srgb, var(--scout-green) 20%, transparent)); }
+.atlas .scout-df-feat__eyebrow, .atlas .scout-df-feat__k {
+	font-family: var(--a-mono); text-transform: uppercase; color: var(--a-muted);
+}
+.atlas .scout-df-feat__eyebrow { margin-bottom: 14px; font-size: 11px; letter-spacing: 0.08em; color: var(--scout-green); }
 .atlas .scout-df-feat__body { display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .atlas .scout-df-feat__main { flex: 1; min-width: 0; }
-.atlas .scout-df-feat__name { margin: 0 0 20px; font-family: var(--a-font); font-size: 32px; font-weight: 700; line-height: 1; color: inherit; }
-.atlas .scout-df-feat__desc { margin: 0 0 20px; max-width: 620px; font-size: 15px; line-height: 1.6; color: color-mix(in srgb, var(--a-primary-ink) 80%, transparent); }
+.atlas .scout-df-feat__name { margin: 0 0 18px; font-family: var(--a-font); font-size: 32px; font-weight: 700; line-height: 1; color: var(--a-ink); }
+.atlas .scout-df-feat__desc { margin: 0 0 20px; max-width: 620px; font-size: 15px; line-height: 1.6; color: var(--a-muted); }
 .atlas .scout-df-feat__btn {
-	display: inline-flex; padding: 8px 14px; border-radius: var(--a-radius-pill); background: var(--a-primary-ink); color: var(--a-primary); text-decoration: none; line-height: 1;
-	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+	display: inline-flex; padding: 10px 18px; border-radius: var(--a-radius-pill); background: var(--scout-green); color: #0E0E0F; text-decoration: none; line-height: 1;
+	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.atlas .scout-df-feat__terms { flex: none; display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 16px 26px; }
+.atlas .scout-df-feat__btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px color-mix(in srgb, var(--scout-green) 45%, transparent); }
+.atlas .scout-df-feat__terms { flex: none; display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 16px 26px; padding-left: 28px; border-left: 1px solid var(--a-card-border); }
 .atlas .scout-df-feat__k { margin-bottom: 10px; font-size: 10px; line-height: 1; letter-spacing: 0.1em; }
-.atlas .scout-df-feat__v { font-family: var(--a-font); font-size: 15px; font-weight: 700; }
+.atlas .scout-df-feat__v { font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); }
 
 /* Verified / Circle cards */
 .atlas .scout-df-card { display: flex; flex-direction: column; padding: 20px 20px 18px; border-radius: var(--a-radius); background: var(--a-surface); border: 1px solid var(--a-card-border); }
@@ -153,7 +164,7 @@
 .atlas .scout-df-card__interest strong { font-size: 15px; }
 .atlas .scout-df-card__reachout { margin: 0 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--a-muted); }
 .atlas .scout-df-card__link { font-size: 14px; color: var(--a-ink); text-decoration: underline; text-underline-offset: 3px; }
-@media (max-width: 1000px) { .atlas .scout-df__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .atlas .scout-df-feat__body { flex-direction: column; } }
+@media (max-width: 1000px) { .atlas .scout-df__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .atlas .scout-df-feat__body { flex-direction: column; } .atlas .scout-df-feat__terms { padding-left: 0; border-left: 0; padding-top: 22px; border-top: 1px solid var(--a-card-border); width: 100%; } }
 @media (max-width: 640px) { .atlas .scout-df__grid { grid-template-columns: 1fr; } .atlas .scout-df-feat { padding: 22px 20px; } }
 
 /* Deal page */
