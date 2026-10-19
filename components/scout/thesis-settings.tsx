@@ -1,71 +1,108 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Pencil, Sparkles } from 'lucide-react';
 import { Button, Card, Loading, PageHead } from '@/components/atlas';
-import { FundFields, StageFields, GeographyFields, SectorFields, AttributeFields } from './thesis-form';
+import { openScoutThesis } from '@/lib/setup-events';
 import { useThesisState } from './use-thesis';
 import type { Thesis } from './sample-data';
 
 /**
- * Thesis settings. Persisted to the account through `PATCH /api/scout` and
- * `PUT /api/scout/thesis` — and it is the gate on `GET /scout/recommended`,
- * which answers 403 SCOUT_NOT_SET_UP until a workspace exists.
+ * Thesis settings — a READ-ONLY summary of the saved thesis, not a form.
  *
- * Laid out like `app/(dashboard)/settings/page.tsx`, the Raise equivalent of
- * this page: `PageHead`, a stack of `Card` sections each with an inline title
- * over a hairline, and the save button on a row of its own. The two are the
- * same screen for different products and were drifting apart.
+ * Editing happens in the same thesis wizard used for onboarding: the "Edit
+ * thesis" button fires `openScoutThesis()`, which the globally-mounted
+ * `SetupModalHost` turns into the pre-filled wizard modal (it reads the saved
+ * thesis as its initial state and resumes on the Review step when everything is
+ * already filled). On save the wizard mutates the scout/thesis SWR keys, so this
+ * summary — built from the same `useThesisState()` — refreshes on its own.
+ *
+ * There is deliberately no inline form here any more: one editor (the wizard),
+ * one place to change the thesis, no second set of inputs to drift from it.
  */
 export function ThesisSettings() {
-	const { thesis: saved, save, isLoading } = useThesisState();
-	const [draft, setDraft] = useState<Thesis | null>(null);
-	const [busy, setBusy] = useState(false);
-	const t = draft ?? saved;
-	const patch = (p: Partial<Thesis>) => setDraft({ ...t, ...p });
-	const dirty = draft !== null;
-
+	const { thesis: t, isLoading, needsSetup } = useThesisState();
 	if (isLoading) return <Loading />;
+
+	const cheque = t.chequeMin || t.chequeMax ? `${t.chequeMin || '—'} – ${t.chequeMax || '—'}` : '';
+	const hq = [t.city, t.country].filter(Boolean).join(', ');
+
 	return (
 		<>
-			<PageHead title="Thesis settings" sub="Tell Atlas what you&apos;re looking for." />
-			<div className="scout-stack">
-				<Section title="Fund profile"><FundFields t={t} patch={patch} /></Section>
-				<Section title="Stage and cheque size"><StageFields t={t} patch={patch} /></Section>
-				<Section title="Geography" sub="Regions and countries where you actively invest."><GeographyFields t={t} patch={patch} /></Section>
-				<Section title="Sectors" sub="Based on the SportsTechX Framework."><SectorFields t={t} patch={patch} /></Section>
-				<Section title="Attributes" sub="Traction, sports and the attributes you look for or avoid."><AttributeFields t={t} patch={patch} /></Section>
+			<PageHead
+				title="Thesis settings"
+				sub="What Atlas uses to personalise your recommendations, signals and Deal Flow."
+				actions={<Button onClick={openScoutThesis}><Pencil size={13} /> Edit thesis</Button>}
+			/>
 
-				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingBottom: 40 }}>
-					<span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--a-muted)', maxWidth: 520 }}>
-						Atlas uses your thesis to personalise company recommendations, signals, Deal Flow and alerts.
-					</span>
-					<Button
-						disabled={!dirty || busy}
-						onClick={async () => {
-							setBusy(true);
-							try { await save(t); setDraft(null); toast.success('Thesis saved'); }
-							// Clearing the draft on a failed save would lose the edits and
-							// claim success, which is the worst of both.
-							catch { toast.error('Could not save your thesis. Try again.'); }
-							finally { setBusy(false); }
-						}}
-					>{busy ? <Loader2 className="animate-spin" size={13} /> : dirty ? 'Save thesis' : 'Saved'}</Button>
+			{needsSetup ? (
+				<Card>
+					<div style={{ textAlign: 'center', padding: '28px 16px', display: 'grid', gap: 12, placeItems: 'center' }}>
+						<span style={{ width: 44, height: 44, borderRadius: 'var(--a-radius-sm)', display: 'grid', placeItems: 'center', background: 'var(--a-inset)', color: 'var(--a-muted)' }}><Sparkles size={20} /></span>
+						<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, color: 'var(--a-ink)' }}>Your thesis isn&rsquo;t set up yet</div>
+						<p style={{ margin: 0, maxWidth: 440, fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)' }}>
+							Tell Atlas what you&rsquo;re looking for — stage, cheque, geography and sectors — and it personalises the whole product to your thesis.
+						</p>
+						<Button onClick={openScoutThesis} style={{ marginTop: 4 }}>Set up your thesis</Button>
+					</div>
+				</Card>
+			) : (
+				<div className="scout-stack">
+					<SummaryCard title="Profile" fields={[
+						['Name', t.name], ['Work email', t.email], ['Role', t.role], ['LinkedIn', t.linkedin],
+					]} />
+					<SummaryCard title="Fund" fields={[
+						['Fund / organisation', t.fundName], ['Investor type', t.investorType],
+						['Fund size / AUM', t.aum], ['Website', t.website], ['Headquarters', hq],
+					]} />
+					<SummaryCard title="Stage &amp; cheque" fields={[
+						['Stages', t.stages], ['Cheque size', cheque], ['Lead or follow', t.invStyle],
+					]} />
+					<SummaryCard title="Investment focus" fields={[
+						['Regions', t.regions], ['Sectors', t.sectors], ['Minimum traction', t.traction],
+						['Looks for', t.include], ['Avoids', t.exclude],
+					]} />
 				</div>
-			</div>
+			)}
 		</>
 	);
 }
 
-function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+type FieldValue = Thesis[keyof Thesis];
+
+function SummaryCard({ title, fields }: { title: string; fields: [string, FieldValue][] }) {
 	return (
 		<Card>
-			<div style={{ paddingBottom: 14, marginBottom: 18, borderBottom: '1px solid var(--a-border)' }}>
-				<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, color: 'var(--a-ink)' }}>{title}</div>
-				{sub && <p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--a-muted)' }}>{sub}</p>}
+			<div style={{ paddingBottom: 14, marginBottom: 16, borderBottom: '1px solid var(--a-border)', fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, color: 'var(--a-ink)' }}>
+				{title}
 			</div>
-			{children}
+			<dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '18px 28px', margin: 0 }}>
+				{fields.map(([label, value]) => (
+					<div key={label} style={{ minWidth: 0 }}>
+						<dt style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--a-muted)', marginBottom: 7 }}>{label}</dt>
+						<dd style={{ margin: 0 }}><FieldReadout value={value} /></dd>
+					</div>
+				))}
+			</dl>
 		</Card>
 	);
+}
+
+function FieldReadout({ value }: { value: FieldValue }) {
+	if (Array.isArray(value)) {
+		if (value.length === 0) return <Dash />;
+		return (
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+				{value.map((v) => (
+					<span key={v} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, lineHeight: 1.3, padding: '4px 10px', borderRadius: 'var(--a-radius-pill)', background: 'var(--a-inset)', border: '1px solid var(--a-border)', color: 'var(--a-ink)' }}>{v}</span>
+				))}
+			</div>
+		);
+	}
+	const text = value == null ? '' : String(value).trim();
+	if (!text) return <Dash />;
+	return <span style={{ fontSize: 13.5, lineHeight: 1.5, color: 'var(--a-ink)', wordBreak: 'break-word' }}>{text}</span>;
+}
+
+function Dash() {
+	return <span style={{ fontSize: 13.5, color: 'var(--a-faint)' }}>—</span>;
 }
