@@ -63,3 +63,21 @@
 /* Public, chrome-less pricing page surface (app/plans). */
 .atlas.plans-public { min-height: 100dvh; background: var(--a-page); padding: 48px 20px 64px; }
 .atlas.plans-public .atlas-screen { margin: 0 auto; }
+
+/* Monthly / welcome credit allowance on each plan card. */
+.atlas .plans-card__credits {
+	display: flex; flex-direction: column; gap: 2px;
+	margin: 10px 0 2px; padding: 9px 11px;
+	border-radius: var(--a-radius-sm);
+	background: var(--a-surface-2); border: 1px solid var(--a-card-border);
+	font-size: 13px; color: var(--a-ink);
+}
+.atlas .plans-card__credits strong { font-family: var(--a-font); font-weight: 700; }
+.atlas .plans-card__credits-note {
+	font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.04em;
+	text-transform: uppercase; color: var(--a-faint);
+}
+.atlas .plans-credits-hint {
+	margin: 18px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--a-muted); text-align: center;
+}
+.atlas .plans-credits-hint a { color: var(--a-navy); text-decoration: underline; text-underline-offset: 2px; }

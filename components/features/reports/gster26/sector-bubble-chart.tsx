@@ -322,7 +322,7 @@ export default function SectorDrilldownChart({ data, theme, brandColors, sectorC
       })}
 
       <div style={{ marginTop: 14, fontSize: 10, color: theme.textMuted, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <a href="https://intelligence.sportstechx.com/framework" target="_blank" rel="noopener noreferrer" style={{ color: brandColors.pink, textDecoration: "none" }}>Understand the Framework →</a>
+        <a href="https://atlas.sportstechx.com/framework" target="_blank" rel="noopener noreferrer" style={{ color: brandColors.pink, textDecoration: "none" }}>Understand the Framework →</a>
       </div>
     </div>
   );
