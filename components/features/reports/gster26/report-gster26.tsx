@@ -994,7 +994,7 @@ export default function ReportGSTER26() {
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.font = `10px sans-serif`;
     ctx.textAlign = "right";
-    ctx.fillText("intelligence.sportstechx.com/reports/gster26", W - 24, H - 22);
+    ctx.fillText("atlas.sportstechx.com/reports/gster26", W - 24, H - 22);
 
     return canvas.toDataURL("image/png");
   };
@@ -1381,7 +1381,7 @@ export default function ReportGSTER26() {
     <div ref={reportContainerRef} style={{ background: t.bg, color: t.text, fontFamily: "'Open Sans','system-ui',sans-serif", overflowX: "hidden", minHeight: "100vh", transition: "background 0.35s, color 0.35s" }}>
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
       <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
-        <img src="/stx-logo-magenta.png" alt="SportsTechX" style={{ height: isMobile ? 22 : 28, flexShrink: 0 }} />
+        <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: isMobile ? 22 : 28, flexShrink: 0 }} />
         {/* Desktop nav links */}
         {!isMobile && (
           <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
@@ -1527,7 +1527,7 @@ export default function ReportGSTER26() {
             <div style={{ display: "flex", alignItems: "flex-start", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>Presented by</span>
-                <img src="/stx-logo-white.png" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
+                <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
               </div>
               <div style={{ width: 1, alignSelf: "stretch", background: "rgba(190,208,227,0.2)" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1660,7 +1660,6 @@ export default function ReportGSTER26() {
 
           {/* ── Trends accordion ── */}
           {(isPdf || trendsTab === "trends") && (() => {
-            const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
             const dtcExamples: { entity: string; desc: string; date: string; country: string; domain: string }[] = [
               { entity: "ESPN", desc: "Launched full DTC streaming service (ESPN Unlimited) for the first time, unbundling all 12 linear networks from cable at $29.99/month with 47,000 live events/year", date: "Aug 2025", country: "USA", domain: "espn.com" },
               { entity: "Ligue 1 (LFP)", desc: "First major men's football league in Europe to launch its own DTC service (Ligue 1+), hitting 1M+ subscribers within one month", date: "Aug 2025", country: "France", domain: "ligue1.com" },
@@ -1853,7 +1852,7 @@ export default function ReportGSTER26() {
                                         <tbody>
                                           {data.topAcquirers.map((row, i) => {
                                             const domain = acquirerDomains[row.name];
-                                            const aUrl = domain && logoToken ? `https://img.logo.dev/${domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                                            const aUrl = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : null;
                                             const isNonSt = row.is_sportstech !== "Y";
                                             return (
                                               <tr key={i} style={{ background: isNonSt ? `${BRAND.slate}11` : (i % 2 === 1 ? t.tableRowAlt : "transparent") }}>
@@ -2087,7 +2086,7 @@ export default function ReportGSTER26() {
                                     </thead>
                                     <tbody>
                                       {marathons.map((m, i) => {
-                                        const mUrl = logoToken ? `https://img.logo.dev/${m.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                                        const mUrl = m.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${m.domain}` : null;
                                         const isNeg2425 = m.g2425.startsWith("\u2212") || m.g2425.startsWith("-");
                                         const isNeg2324 = m.g2324.startsWith("\u2212") || m.g2324.startsWith("-");
                                         return (
@@ -2436,8 +2435,7 @@ export default function ReportGSTER26() {
                                           <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 20 }}>Three firms defined what institutional sports ownership actually looks like, each representing a structurally distinct thesis.</p>
                                           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                                             {article.firms.map(firm => {
-                                              const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
-                                              const fUrl = firm.domain && logoToken ? `https://img.logo.dev/${firm.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                                              const fUrl = firm.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${firm.domain}` : null;
                                               return (
                                                 <div key={firm.name} style={{ paddingLeft: 16, borderLeft: `3px solid ${BRAND.pink}` }}>
                                                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -2893,8 +2891,7 @@ export default function ReportGSTER26() {
                                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 32 }}>WHO PIONEERED THE MODEL</div>
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
                                   {article.firms.map(firm => {
-                                    const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
-                                    const fUrl = firm.domain && logoToken ? `https://img.logo.dev/${firm.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                                    const fUrl = firm.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${firm.domain}` : null;
                                     return (
                                       <div key={firm.name} style={{ paddingLeft: 16, borderLeft: `3px solid ${BRAND.pink}` }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -3018,7 +3015,6 @@ export default function ReportGSTER26() {
               </div>
               <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>Nine finalists pitch live to leading sports executives and investors.</p>
               {(() => {
-                const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
                 const sectors = ["athletes", "fans", "executives"] as const;
                 const sectorLabels = { athletes: "For Athletes", fans: "For Fans", executives: "For Executives" };
                 return (
@@ -3030,7 +3026,7 @@ export default function ReportGSTER26() {
                       sectors.map(sector => {
                         const c = PEAK_SWC_FINALISTS[sector][row];
                         if (!c) return <div key={`${sector}-${row}`} />;
-                        const lUrl = logoToken ? `https://img.logo.dev/${c.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                        const lUrl = c.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${c.domain}` : null;
                         return (
                           <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             {lUrl && <img src={lUrl} alt="" style={{ width: 18, height: 18, borderRadius: 3, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
@@ -3052,8 +3048,7 @@ export default function ReportGSTER26() {
               <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>Connecting startups with leading sports organisations seeking tech-driven solutions.</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px 12px" }}>
                 {GROUNDBREAKERS_ORGS.map(org => {
-                  const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
-                  const lUrl = logoToken ? `https://img.logo.dev/${org.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                  const lUrl = org.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${org.domain}` : null;
                   return (
                     <div key={org.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {lUrl && <img src={lUrl} alt="" style={{ width: 18, height: 18, borderRadius: 3, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
@@ -3161,23 +3156,25 @@ export default function ReportGSTER26() {
                           boxShadow: `0 0 18px ${ringColor}44`,
                           transition: "box-shadow 0.2s, transform 0.2s",
                           flexShrink: 0,
+                          position: "relative",
                         }}
                           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 30px ${ringColor}88`; (e.currentTarget as HTMLElement).style.transform = "scale(1.06)"; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 18px ${ringColor}44`; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
                         >
-                          {person.photo_url ? (
+                          {/* Initials sit behind; the photo covers them and reveals them on
+                              error — the Notion-hosted innovator photos can expire. */}
+                          <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: t.bgCard, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: ringColor }}>
+                              {person.name.charAt(0)}
+                            </span>
+                          </div>
+                          {person.photo_url && (
                             <img
                               src={person.photo_url}
                               alt={person.name}
-                              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", objectPosition: "top", filter: "grayscale(20%)" }}
+                              style={{ position: "absolute", inset: 3, width: "calc(100% - 6px)", height: "calc(100% - 6px)", borderRadius: "50%", objectFit: "cover", objectPosition: "top", filter: "grayscale(20%)" }}
                               onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                             />
-                          ) : (
-                            <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: t.bgCard, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: ringColor }}>
-                                {person.name.charAt(0)}
-                              </span>
-                            </div>
                           )}
                         </div>
 
@@ -3453,14 +3450,13 @@ export default function ReportGSTER26() {
           {/* ── Card Grid ── */}
           {(() => {
             const companies = mergeWatchCompanies[watchTab];
-            const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
             const sectorColorMap: Record<WatchCompany["sector"], string> = { athletes: BRAND.athletes, execs: BRAND.execs, fans: BRAND.fans };
             const sectorLabelMap: Record<WatchCompany["sector"], string> = { athletes: "For Athletes", execs: "For Executives", fans: "For Fans" };
             return (
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 20 }}>
                 {companies.map((c, idx) => {
                   const sectorColor = sectorColorMap[c.sector];
-                  const logoUrl = c.domain && logoToken ? `https://img.logo.dev/${c.domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                  const logoUrl = c.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${c.domain}` : null;
                   const CardWrapper = c.website ? "a" : "div";
                   const cardLinkProps = c.website ? { href: c.website, target: "_blank", rel: "noopener noreferrer" } : {};
                   return (
@@ -3531,7 +3527,7 @@ export default function ReportGSTER26() {
             <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: "2px solid rgba(237,26,94,0.2)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: "linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)", transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
             <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-            <img src="/stx-hub-logo-white.png" alt="SportsTechX Intelligence Hub" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+            <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
             <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Is your company on the global sports tech database?</div>
               <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>ADD or VERIFY your company to get discovered by investors, programs, and sports organizations worldwide</div>
@@ -3765,7 +3761,7 @@ export default function ReportGSTER26() {
                 </div>
               </div>
 
-              {/* Intelligence Hub CTA Banner , same style as ecosystem map */}
+              {/* Atlas CTA Banner , same style as ecosystem map */}
               <div style={{
                 marginTop: 56, marginBottom: 56,
                 padding: isMobile ? "32px 20px" : "40px 48px",
@@ -3780,7 +3776,7 @@ export default function ReportGSTER26() {
                 <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: "2px solid rgba(237,26,94,0.2)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: "linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)", transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-                <img src="/stx-hub-logo-white.png" alt="SportsTechX Intelligence Hub" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+                <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
                 <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Dive Deeper into the Data</div>
                   <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>
@@ -3833,14 +3829,13 @@ export default function ReportGSTER26() {
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 2, marginTop: 24 }}>
                   {["NA","EU","APAC"].map(region => {
-                    const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
                     return (
                       <div key={region} style={{ background: t.bgCard, padding: isMobile ? 16 : 28, border: `1px solid ${t.border}` }}>
                         <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 24, marginBottom: isMobile ? 10 : 16, color: t.titleColor }}>{regionLabels[region]}</div>
                         {(data?.topCompaniesByRegion[region] || []).map((co, i) => {
                           let domain = "";
                           if (co.website) { try { domain = new URL(co.website).hostname.replace(/^www\./, ""); } catch {} }
-                          const logoUrl = domain && logoToken ? `https://img.logo.dev/${domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                          const logoUrl = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : null;
                           const displayName = co.name.replace(/\s*\(formerly [^)]+\)/, "");
                           const logoEl = (
                             <div style={{ width: 26, height: 26, borderRadius: 4, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
@@ -3917,13 +3912,12 @@ export default function ReportGSTER26() {
                         <div style={{ padding: "24px 20px", fontSize: 13, color: t.textMuted, textAlign: "center" }}>Loading…</div>
                       )}
                       {!maDealsQuery.isLoading && maDeals.slice(0, 10).map((d, i) => {
-                        const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
                         const domain = d.acquiree_name.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
-                        const logoUrl = logoToken ? `https://img.logo.dev/${domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                        const logoUrl = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : null;
                         const eeFlag = d.acquiree_country ? getCountryFlag(d.acquiree_country) : null;
                         const erFlag = d.acquirer_country ? getCountryFlag(d.acquirer_country) : null;
                         const erDomain = d.acquirer_name.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
-                        const erLogoUrl = logoToken ? `https://img.logo.dev/${erDomain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                        const erLogoUrl = erDomain ? `https://www.google.com/s2/favicons?sz=128&domain=${erDomain}` : null;
                         return (
                           <div key={i} style={{ display: "grid", gridTemplateColumns: cols09, gap: "0 12px", padding: "14px 20px", borderTop: `1px solid ${t.border}`, fontSize: 13, background: i % 2 === 0 ? "transparent" : t.tableRowAlt, alignItems: "center" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -3977,7 +3971,7 @@ export default function ReportGSTER26() {
             The data is clear. Sports technology is not a trend. It is the infrastructure of modern sport.
           </p>
           <cite style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: 2, color: BRAND.pink, fontStyle: "normal" }}>
-            , SportsTechX Intelligence Hub · 2025
+            , SportsTechX Atlas · 2025
           </cite>
         </div>
       </div>
@@ -3988,7 +3982,7 @@ export default function ReportGSTER26() {
           {/* Left column: logo, socials, description, contact */}
           <div style={{ flex: "1 1 320px", maxWidth: 420 }}>
             <a href="https://sportstechx.com" target="_blank" rel="noopener noreferrer">
-              <img src="/stx-logo-magenta.png" alt="SportsTechX" style={{ height: 32, opacity: 0.9 }} />
+              <img src="/atlas-wordmark.png" alt="SportsTechX" style={{ height: 32, opacity: 0.9 }} />
             </a>
             {/* Social icons */}
             <div style={{ display: "flex", gap: 14, marginTop: 16 }}>
@@ -4029,7 +4023,7 @@ export default function ReportGSTER26() {
               Services
             </a>
             <a href="/dashboard" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase" }}>
-              Intelligence Hub
+              Atlas
             </a>
           </div>
         </div>
