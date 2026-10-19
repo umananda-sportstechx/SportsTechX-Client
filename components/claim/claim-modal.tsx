@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
 import {
@@ -139,6 +139,28 @@ export function ClaimModal({
 
   const R = role ? CM_ROLES[role] : null;
   const { results } = useClaimSearch(role, q);
+
+  // An already-verified entity can't be claimed again — UNLESS the signed-in user
+  // is the one who verified it (they're editing their own profile). The search
+  // result's `verified` flag is global (someone owns it); to tell whether that
+  // someone is *me*, cross-reference my own verified claims by target id.
+  type MyClaimRow = {
+    target_company_id?: string | null; target_investor_id?: string | null;
+    target_ecosystem_entity_id?: string | null; is_verified?: boolean | null;
+  };
+  // Shape note: this endpoint returns either a bare array or `{ data: [...] }`
+  // depending on the interceptor — verify-cta.tsx normalises the same way.
+  const { data: myClaimsRaw } = useSWR<MyClaimRow[] | { data: MyClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
+  const myVerifiedIds = useMemo(() => {
+    const rows = Array.isArray(myClaimsRaw) ? myClaimsRaw : (myClaimsRaw?.data ?? []);
+    const s = new Set<string>();
+    for (const c of rows) {
+      if (!c.is_verified) continue;
+      const id = c.target_company_id ?? c.target_investor_id ?? c.target_ecosystem_entity_id;
+      if (id) s.add(id);
+    }
+    return s;
+  }, [myClaimsRaw]);
 
   // Prefill the claimant email from the signed-in profile once it loads (SWR
   // resolves after mount, so this genuinely syncs external state → form).
@@ -283,8 +305,12 @@ export function ClaimModal({
           <aside className="cm-rail">
             <div className="cm-rail-glow" />
             <div className="cm-rail-brand">
-              <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><path d="M4 4 L20 4 L28 12 L28 28 L12 28 L4 20 Z" fill="currentColor" /></svg>
-              SPORTS<span className="cm-rail-x">TECH</span>X
+              {/* Real Atlas wordmark (white on the dark theme, dark-ink on light) —
+                  swapped by CSS off the [data-theme] root attribute. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="cm-rail-logo cm-rail-logo--on-light" src="/landing/atlas-wordmark-dark.svg" alt="SportsTechX Atlas" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="cm-rail-logo cm-rail-logo--on-dark" src="/landing/atlas-wordmark-white.svg" alt="SportsTechX Atlas" />
             </div>
             <h2 className="cm-rail-h">{isRole ? 'Own your profile on SportsTechX.' : (R?.free ? "Own your company's profile." : 'Claim and manage your profile.')}</h2>
             <p className="cm-rail-lead">{isRole || !R ? 'Verify ownership so the details the ecosystem sees come from you — not from a guess.' : R.railLead(selItem?.name || form.name)}</p>
@@ -374,16 +400,34 @@ export function ClaimModal({
                 </div>
                 {results.length > 0 && (
                   <div className="cm-results">
-                    {results.map((it) => (
-                      <button key={it.id} className="cm-result" onClick={() => pickItem({ id: it.id, name: it.name, website: it.website, hq: it.hq, cc: it.cc, verified: it.verified })}>
-                        <EntityLogo item={it} />
-                        <span className="cm-result-text">
-                          <span className="cm-result-name">{it.name} {it.verified && <BadgeCheck size={12} aria-label="Verified" style={{ color: 'var(--a-navy)', verticalAlign: 'middle', flexShrink: 0 }} />}</span>
-                          <span className="cm-result-meta">{it.cc && <Flag cc={it.cc} size={12} />} {it.hq ?? ''}{it.kind ? ` · ${it.kind}` : ''}</span>
-                        </span>
-                        {it.verified ? <span className="cm-result-claimed">Claimed</span> : <span className="cm-result-arrow"><ArrowRight size={14} /></span>}
-                      </button>
-                    ))}
+                    {results.map((it) => {
+                      // Verified by someone else → locked (show a tag, don't let them
+                      // walk into a flow that would only fail on submit). Verified by
+                      // ME → selectable (I'm editing my own). Unverified → selectable.
+                      const mine = myVerifiedIds.has(it.id);
+                      const locked = it.verified && !mine;
+                      return (
+                        <button
+                          key={it.id}
+                          className={`cm-result${locked ? ' cm-result-locked' : ''}`}
+                          disabled={locked}
+                          aria-disabled={locked}
+                          title={locked ? 'Already verified by its owner — you can’t claim it.' : undefined}
+                          onClick={locked ? undefined : () => pickItem({ id: it.id, name: it.name, website: it.website, hq: it.hq, cc: it.cc, verified: it.verified })}
+                        >
+                          <EntityLogo item={it} />
+                          <span className="cm-result-text">
+                            <span className="cm-result-name">{it.name} {it.verified && <BadgeCheck size={12} aria-label="Verified" style={{ color: 'var(--a-navy)', verticalAlign: 'middle', flexShrink: 0 }} />}</span>
+                            <span className="cm-result-meta">{it.cc && <Flag cc={it.cc} size={12} />} {it.hq ?? ''}{it.kind ? ` · ${it.kind}` : ''}</span>
+                          </span>
+                          {locked
+                            ? <span className="cm-result-claimed">Already verified</span>
+                            : mine
+                              ? <span className="cm-result-claimed cm-result-yours">Yours</span>
+                              : <span className="cm-result-arrow"><ArrowRight size={14} /></span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 <button className="cm-addnew" onClick={addNew}>
