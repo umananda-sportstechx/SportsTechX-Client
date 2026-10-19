@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { ReportErrorBoundary } from '@/components/features/reports/gster26/error-boundary';
 
 // The ported STX flagship is a fully client-side, self-chromed report (particle
 // canvas, gsap/ScrollTrigger, Lenis smooth-scroll, Next-incompatible SSR). Mount
@@ -12,5 +13,9 @@ const ReportGSTER26 = dynamic(
 );
 
 export default function Gster26ReportPage() {
-	return <ReportGSTER26 />;
+	return (
+		<ReportErrorBoundary>
+			<ReportGSTER26 />
+		</ReportErrorBoundary>
+	);
 }
