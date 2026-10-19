@@ -32,7 +32,7 @@ const PEAK_TRACKS_DEFAULT = [
 ];
 import * as topojsonClient from "topojson-client";
 import { geoMercator, geoPath } from "d3-geo";
-import { Users, Building2, Activity, Bot, Trophy, TrendingUp, Lightbulb, BarChart3, Monitor, GitMerge, Footprints, Landmark, DollarSign, Globe, Menu, X } from "lucide-react";
+import { Users, Building2, Activity, Bot, Trophy, TrendingUp, Lightbulb, BarChart3, Monitor, GitMerge, Footprints, Landmark, DollarSign, Globe, Menu, X, Sun, Moon } from "lucide-react";
 import { GSTER25_FACTS } from "./data/gster25-facts-data";
 import { GSTER25_MA_DEALS } from "./data/gster25-ma-deals-data";
 import { INNOVATORS_DATA } from "./data/gster26-innovators-data";
@@ -1383,7 +1383,9 @@ export default function ReportGSTER26() {
     <div ref={reportContainerRef} style={{ background: t.bg, color: t.text, fontFamily: "'Open Sans','system-ui',sans-serif", overflowX: "hidden", minHeight: "100vh", transition: "background 0.35s, color 0.35s" }}>
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
       <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
-        <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, flexShrink: 0 }} />
+        <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0, flexShrink: 0 }}>
+          <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, display: "block" }} />
+        </a>
         {/* Desktop nav links */}
         {!isMobile && (
           <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
@@ -1392,7 +1394,8 @@ export default function ReportGSTER26() {
               return (
                 <a key={href} href={href} className="stx-nav-link"
                   style={{
-                    fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
+                    fontFamily: "var(--font-space-grotesk), system-ui, sans-serif",
+                    fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase",
                     color: isActive ? BRAND.pink : t.textMuted,
                     textDecoration: "none", transition: "color 0.2s",
                     fontWeight: 500,
@@ -1415,8 +1418,8 @@ export default function ReportGSTER26() {
           {/* Dark/Light toggle */}
           <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            style={{ background: isDark ? "rgba(237,26,94,0.15)" : BRAND.peach, border: `1px solid ${BRAND.pink}`, borderRadius: 20, padding: isMobile ? "5px 10px" : "5px 14px", fontSize: isMobile ? 10 : 12, color: BRAND.pink, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, transition: "background 0.25s" }}>
-            {isDark ? "☀" : "☾"}
+            style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", background: isDark ? "rgba(243,33,99,0.16)" : "rgba(243,33,99,0.08)", border: `1px solid ${isDark ? "rgba(243,33,99,0.7)" : "rgba(243,33,99,0.5)"}`, borderRadius: 99, padding: isMobile ? "6px 9px" : "6px 11px", fontSize: isMobile ? 10 : 12, color: isDark ? "#ffa7c2" : "#f32163", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", transition: "background 0.25s, color 0.25s" }}>
+            {isDark ? <Sun size={isMobile ? 14 : 16} strokeWidth={2} /> : <Moon size={isMobile ? 14 : 16} strokeWidth={2} />}
           </button>
           {/* Desktop: Hub link / Mobile: Hamburger */}
           {isMobile ? (
@@ -1427,7 +1430,7 @@ export default function ReportGSTER26() {
           ) : (
             <>
               <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf"
-                style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: "#fff", background: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "7px 16px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
+                style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontSize: 11, letterSpacing: 1.6, fontWeight: 500, color: "#fff", background: "#f32163", border: "1px solid #f32163", padding: "8px 18px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                 onClick={() => { trackG26("nav_click", { section: "pdf_download" }); }}
@@ -1459,7 +1462,7 @@ export default function ReportGSTER26() {
                 {label}
               </a>
             ))}
-            <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 18px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
+            <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
           </div>
         </div>
       )}
@@ -3970,9 +3973,14 @@ export default function ReportGSTER26() {
           <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(28px,4vw,52px)", lineHeight: 1.1, maxWidth: 860, margin: "0 auto 24px", color: isDark ? BRAND.white : BRAND.darkTitle }}>
             The data is clear. Sports technology is not a trend. It is the infrastructure of modern sport.
           </p>
-          <cite style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: 2, color: BRAND.pink, fontStyle: "normal" }}>
-            , SportsTechX Atlas · 2025
-          </cite>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0 }}>
+              <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 32, opacity: 0.9 }} />
+            </a>
+            <cite style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: 2, color: BRAND.pink, fontStyle: "normal" }}>
+              2025
+            </cite>
+          </div>
         </div>
       </div>
 

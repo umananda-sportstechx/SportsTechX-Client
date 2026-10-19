@@ -529,7 +529,9 @@ export default function EcosystemMapSection({
           <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: `2px solid rgba(237,26,94,0.2)`, pointerEvents: "none" }} />
           <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: `linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)`, transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-          <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+          <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ position: "relative", zIndex: 1, flexShrink: 0, lineHeight: 0 }}>
+            <img src="/landing/atlas-wordmark-white.svg" alt="Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, objectFit: "contain" }} />
+          </a>
           <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Discover the Full Ecosystem</div>
             <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? 10 : 11, color: "rgba(255,255,255,0.6)", letterSpacing: 0.5 }}>
