@@ -14,6 +14,9 @@ import { PeopleGridSection } from './sections/people-grid';
 import { CompanyGridSection } from './sections/company-grid';
 import { DealTableSection } from './sections/deal-table';
 import { DataChartSection } from './sections/data-chart';
+import { PollSection } from './sections/poll';
+import { TrendCardListSection } from './sections/trend-card-list';
+import { AccordionSection } from './sections/accordion';
 
 /**
  * Dispatch a report section to its renderer. Hero is full-bleed (no section
@@ -50,8 +53,10 @@ function renderKind(section: VisibleSection): ReactNode {
 		case 'company_grid': return <CompanyGridSection section={section} />;
 		case 'deal_table': return <DealTableSection section={section} />;
 		case 'data_chart': return <DataChartSection section={section} />;
-		// Built in later phases (poll, ecosystem_map, trend_card_list,
-		// sector_bubble, accordion).
+		case 'poll': return <PollSection section={section} />;
+		case 'trend_card_list': return <TrendCardListSection content={section.content} />;
+		case 'accordion': return <AccordionSection content={section.content} />;
+		// Built next: ecosystem_map (d3), sector_bubble (drilldown).
 		default: return <Placeholder kind={section.kind} />;
 	}
 }
