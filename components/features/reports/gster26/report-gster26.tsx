@@ -750,7 +750,9 @@ export default function ReportGSTER26() {
   const watchPeak             = ov?.watchPeak            ?? watchPeak_DEFAULT;
   const watchStxRecommends    = ov?.watchStxRecommends   ?? watchStxRecommends_DEFAULT;
   const FEATURED_ARTICLES     = ov?.featuredArticles     ?? FEATURED_ARTICLES_DEFAULT;
-  const PEAK_TRACKS           = ov?.peakTracks           ?? PEAK_TRACKS_DEFAULT;
+  // PEAK_TRACKS is code-only (its items carry live lucide Icon components, not
+  // serializable JSON) — no DB override path, so reports.content can't crash it.
+  const PEAK_TRACKS           = PEAK_TRACKS_DEFAULT;
   const PEAK_SWC_FINALISTS    = ov?.peakSwcFinalists     ?? PEAK_SWC_FINALISTS_DEFAULT;
   const GROUNDBREAKERS_ORGS   = ov?.groundbreakersOrgs   ?? GROUNDBREAKERS_ORGS_DEFAULT;
   const PEAK_PARTNERS_TIER1   = ov?.peakPartnersTier1    ?? PEAK_PARTNERS_TIER1_DEFAULT;
