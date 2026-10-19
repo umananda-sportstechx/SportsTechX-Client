@@ -153,17 +153,15 @@ export const ROUTES: RouteDef[] = [
 		// Both paid products include this: a founder checks their own pitch, an
 		// investor screens someone else's. Same backend and component, different
 		// copy and a different name in each sidebar.
-		// Explore is included because the feature is bounded by credits, not by
-		// tier: the welcome grant pays for about four analyses. It used to resolve
-		// to `upsell` here while the service refused base-tier callers outright,
-		// so a free user got a sales page for something their credits covered.
+		// Paid-only (Raise + Scout): the deck analyser is a paid feature again, so
+		// Explore gets the upsell (TierGate) rather than spending its welcome grant
+		// on it. The server mirrors this — DeckAnalysisService refuses base-tier
+		// callers (admins exempt). Both sides are `['raise','scout']`.
 		id: 'deck', icon: 'nav-screener',
 		name: { explore: 'Pitch Deck', raise: 'Pitch Deck', scout: 'Deck Screener' },
 		// The Deck Screener is live now: Scout runs the same engine in investor
-		// mode (snapshot, thesis fit, red flags, diligence questions). It carried
-		// a `placeholder: { scout: true }` "Not connected" flag while that was
-		// still a founder critique; the flag is gone with the real feature.
-		path: '/deck', tier: ['explore', 'raise', 'scout'],
+		// mode (snapshot, thesis fit, red flags, diligence questions).
+		path: '/deck', tier: ['raise', 'scout'],
 	},
 	{ id: 'interests', icon: 'nav-interests', name: 'Interests', path: '/interests', tier: 'explore' },
 
