@@ -278,28 +278,33 @@ function LiveEdit({ m, onSaved }: { m: MyDealRow; onSaved: () => void }) {
 
 function FeaturedDeal({ d }: { d: DealRow }) {
 	const month = new Date().toLocaleDateString(undefined, { month: 'long' });
-	const terms: [string, string][] = [
-		['Round', d.round_type ?? '—'],
-		['Target', money(d.target_amount, d.currency_code) ?? '—'],
-		['Committed', money(d.committed_amount, d.currency_code) ?? '—'],
-		['Valuation', d.valuation ?? 'Not disclosed'],
-		['Sector', d.sector ?? '—'],
-		// HQ is returned even for an anonymous company — a region does not identify
-		// it — and the design shows only the country.
-		['Geography', d.company_hq?.split(', ').pop() ?? '—'],
-	];
+	// HQ is returned even for an anonymous company (a region doesn't identify it);
+	// the design shows only the country.
+	const geography = d.company_hq?.split(', ').pop();
+	// Only render terms we actually have — empty "—" cells read as unfinished.
+	const terms = ([
+		['Round', d.round_type],
+		['Target', money(d.target_amount, d.currency_code)],
+		['Committed', money(d.committed_amount, d.currency_code)],
+		['Valuation', d.valuation],
+		['Sector', d.sector],
+		['Geography', geography],
+	] as [string, string | null | undefined][]).filter((t): t is [string, string] => !!t[1] && t[1] !== '—');
+	const desc = d.company_description?.trim();
 	return (
 		<article className="scout-df-feat">
-			<div className="scout-df-feat__eyebrow">Featured deal · {month}</div>
+			<div className="scout-df-feat__eyebrow">★ Featured deal · {month}</div>
 			<div className="scout-df-feat__body">
 				<div className="scout-df-feat__main">
 					<h2 className="scout-df-feat__name">{companyLabel(d)}</h2>
-					<p className="scout-df-feat__desc">{d.company_description ?? ''}</p>
+					{desc && <p className="scout-df-feat__desc">{desc}</p>}
 					<Link href={dealHref(d.id)} className="scout-df-feat__btn">View opportunity →</Link>
 				</div>
-				<div className="scout-df-feat__terms">
-					{terms.map(([k, v]) => <div key={k}><div className="scout-df-feat__k">{k}</div><div className="scout-df-feat__v">{v}</div></div>)}
-				</div>
+				{terms.length > 0 && (
+					<div className="scout-df-feat__terms">
+						{terms.map(([k, v]) => <div key={k}><div className="scout-df-feat__k">{k}</div><div className="scout-df-feat__v">{v}</div></div>)}
+					</div>
+				)}
 			</div>
 		</article>
 	);
