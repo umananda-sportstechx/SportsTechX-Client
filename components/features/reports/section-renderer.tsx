@@ -28,7 +28,7 @@ import { EcosystemMapSection } from './sections/ecosystem-map';
  */
 export function SectionRenderer({ section }: { section: Section }) {
 	if (section.is_locked) return <LockedCard section={section} />;
-	if (section.kind === 'hero') return <HeroSection content={section.content} title={section.title} />;
+	if (section.kind === 'hero') return <div id={section.slug ?? undefined}><HeroSection content={section.content} title={section.title} /></div>;
 
 	const eyebrow = section.content.eyebrow ?? section.content.kicker;
 	return (
@@ -74,7 +74,7 @@ function Placeholder({ kind }: { kind: string }) {
 
 function LockedCard({ section }: { section: LockedSection }) {
 	return (
-		<section className="rk-section">
+		<section className="rk-section" id={section.slug ?? undefined}>
 			<div style={{ position: 'relative', padding: 'clamp(28px, 4vw, 48px)', borderRadius: 16, border: '1px solid var(--rk-border)', background: 'var(--rk-bg-card)', overflow: 'hidden' }}>
 				<div style={{ filter: 'blur(5px)', opacity: 0.5, userSelect: 'none', pointerEvents: 'none' }}>
 					{section.title && <h2 className="rk-title" style={{ fontSize: 'clamp(24px,3vw,38px)' }}>{section.title}</h2>}
