@@ -50,10 +50,12 @@ export function SetupModalHost() {
 	if (!wizard) return null;
 
 	const close = () => setOpen(false);
-	const label = wizard === 'thesis' && edit ? 'Edit your investment thesis' : LABEL[wizard];
+	const label = edit
+		? (wizard === 'thesis' ? 'Edit your investment thesis' : 'Edit your raise')
+		: LABEL[wizard];
 	return (
 		<SetupModal open={open} onClose={close} label={label}>
-			{wizard === 'raise' ? <RaiseSetup onClose={close} /> : <Onboarding onClose={close} edit={edit} />}
+			{wizard === 'raise' ? <RaiseSetup onClose={close} edit={edit} /> : <Onboarding onClose={close} edit={edit} />}
 		</SetupModal>
 	);
 }
