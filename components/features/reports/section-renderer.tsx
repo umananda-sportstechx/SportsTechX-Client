@@ -13,6 +13,7 @@ import { EmbedSection } from './sections/embed';
 import { PeopleGridSection } from './sections/people-grid';
 import { CompanyGridSection } from './sections/company-grid';
 import { DealTableSection } from './sections/deal-table';
+import { DataChartSection } from './sections/data-chart';
 
 /**
  * Dispatch a report section to its renderer. Hero is full-bleed (no section
@@ -48,8 +49,9 @@ function renderKind(section: VisibleSection): ReactNode {
 		case 'people_grid': return <PeopleGridSection content={section.content} />;
 		case 'company_grid': return <CompanyGridSection section={section} />;
 		case 'deal_table': return <DealTableSection section={section} />;
-		// Built in later phases (data_chart, poll, ecosystem_map,
-		// trend_card_list, sector_bubble, accordion).
+		case 'data_chart': return <DataChartSection section={section} />;
+		// Built in later phases (poll, ecosystem_map, trend_card_list,
+		// sector_bubble, accordion).
 		default: return <Placeholder kind={section.kind} />;
 	}
 }
