@@ -62,7 +62,7 @@ const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
  * `onClose` is also "done" — finishing drops you back where you were rather
  * than pushing you at the dashboard.
  */
-export function RaiseSetup({ onClose }: { onClose: () => void }) {
+export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edit?: boolean }) {
 	const resetScroll = useSetupScrollReset();
 	const { data, isLoading, mutate } = useSWR<{ raise: Rec | null; criteria: Rec | null }>(qk.raise.current());
 	const [step, setStep] = useState(0);
@@ -209,6 +209,10 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 		try {
 			await saveCriteria();
 			await apiRequest('PATCH', '/api/raise', { setup_completed: true });
+			void mutate();
+			// Re-editing from settings: already set up, so skip the first-run
+			// transition screen — just confirm and close.
+			if (edit) { toast.success('Raise settings updated'); onClose(); return; }
 			setDone(true);
 		} catch (e) { toast.error((e as Error).message ?? 'Could not build your plan'); }
 		finally { setSaving(false); }
@@ -329,7 +333,7 @@ export function RaiseSetup({ onClose }: { onClose: () => void }) {
 				<Button variant="ghost" disabled={step === 0 || saving} onClick={() => void back()}><ArrowLeft size={13} /> Back</Button>
 				{step < STEPS.length - 1
 					? <Button disabled={saving} onClick={() => void next()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Continue <ArrowRight size={13} /></>}</Button>
-					: <Button disabled={saving} onClick={() => void finish()}>{saving ? <Loader2 className="animate-spin" size={13} /> : <>Build my raise plan <Check size={13} /></>}</Button>}
+					: <Button disabled={saving} onClick={() => void finish()}>{saving ? <Loader2 className="animate-spin" size={13} /> : edit ? <>Save changes <Check size={13} /></> : <>Build my raise plan <Check size={13} /></>}</Button>}
 			</div>
 		</Screen>
 	);

@@ -67,7 +67,7 @@ export function DealflowOptIn() {
 				Set up your raise first and you can share it with the Investor Circle from here.{' '}
 				{/* `--a-accent` was the colour here and is defined nowhere, so this
 				    link rendered in the inherited body colour. */}
-				<button type="button" onClick={openRaiseSetup} style={LINK}>Set up your raise</button>
+				<button type="button" onClick={() => openRaiseSetup()} style={LINK}>Set up your raise</button>
 			</p>
 		);
 	}
