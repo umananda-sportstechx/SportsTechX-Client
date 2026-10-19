@@ -43,9 +43,15 @@ export function ReportView({ slug }: { slug: string }) {
 		'--rk-fg': t.text, '--rk-fg-sec': t.textSec, '--rk-fg-muted': t.textMuted,
 		'--rk-border': t.border, '--rk-title': t.titleColor, '--rk-nav-bg': t.navBg,
 		'--rk-divider': t.divider, '--rk-row-alt': t.tableRowAlt, '--rk-accent': t.accent,
+		// ecosystem_map ocean/land + CTA band (depend on dark/light only).
+		'--rk-map-ocean-0': isDark ? '#0e1624' : '#e8f0f8',
+		'--rk-map-ocean-1': isDark ? '#060d18' : '#d5e4f0',
+		'--rk-map-land': isDark ? 'rgba(75,100,130,0.45)' : 'rgba(160,185,210,0.55)',
+		'--rk-map-stroke': isDark ? 'rgba(190,208,227,0.18)' : 'rgba(100,130,160,0.25)',
+		'--rk-cta-bg': isDark ? '#0c0f1a' : '#2D3B49',
 		...(detail.data?.theme?.font_display ? { '--rk-font-display': detail.data.theme.font_display } : {}),
 		...(detail.data?.theme?.font_mono ? { '--rk-font-mono': detail.data.theme.font_mono } : {}),
-	} as CSSProperties), [t, detail.data?.theme]);
+	} as CSSProperties), [t, isDark, detail.data?.theme]);
 
 	if (detail.isLoading || sections.isLoading) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Loading /></div>;
 	if (!detail.data) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Empty>Report not found. <Link href="/reports">Back to reports</Link></Empty></div>;

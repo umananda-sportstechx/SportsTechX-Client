@@ -17,6 +17,8 @@ import { DataChartSection } from './sections/data-chart';
 import { PollSection } from './sections/poll';
 import { TrendCardListSection } from './sections/trend-card-list';
 import { AccordionSection } from './sections/accordion';
+import { SectorBubbleSection } from './sections/sector-bubble';
+import { EcosystemMapSection } from './sections/ecosystem-map';
 
 /**
  * Dispatch a report section to its renderer. Hero is full-bleed (no section
@@ -56,7 +58,8 @@ function renderKind(section: VisibleSection): ReactNode {
 		case 'poll': return <PollSection section={section} />;
 		case 'trend_card_list': return <TrendCardListSection content={section.content} />;
 		case 'accordion': return <AccordionSection content={section.content} />;
-		// Built next: ecosystem_map (d3), sector_bubble (drilldown).
+		case 'sector_bubble': return <SectorBubbleSection content={section.content} />;
+		case 'ecosystem_map': return <EcosystemMapSection section={section} />;
 		default: return <Placeholder kind={section.kind} />;
 	}
 }
