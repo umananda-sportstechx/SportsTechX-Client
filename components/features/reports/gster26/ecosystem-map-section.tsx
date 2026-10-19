@@ -513,7 +513,7 @@ export default function EcosystemMapSection({
           </div>
         </div>
 
-        {/* Full-width CTA banner — Explore the Hub */}
+        {/* Full-width CTA banner — Explore Atlas */}
         <div style={{
           marginTop: 28,
           padding: isMobile ? "32px 20px" : "40px 48px",
@@ -529,14 +529,14 @@ export default function EcosystemMapSection({
           <div style={{ position: "absolute", top: "-15%", right: "5%", width: "clamp(120px,20vw,220px)", height: "clamp(120px,20vw,220px)", borderRadius: "50%", border: `2px solid rgba(237,26,94,0.2)`, pointerEvents: "none" }} />
           <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "140%", background: `linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.1) 50%, transparent 90%)`, transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
-          <img src="/stx-hub-logo-white.png" alt="SportsTechX Intelligence Hub" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
+          <img src="/atlas-wordmark.png" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
           <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Discover the Full Ecosystem</div>
             <div style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? 10 : 11, color: "rgba(255,255,255,0.6)", letterSpacing: 0.5 }}>
-              1,000+ investors, accelerators, and innovation programs on the Intelligence Hub
+              1,000+ investors, accelerators, and innovation programs on Atlas
             </div>
           </div>
-          <a href="https://intelligence.sportstechx.com/investors" target="_blank" rel="noopener noreferrer" style={{
+          <a href="https://atlas.sportstechx.com/investors" target="_blank" rel="noopener noreferrer" style={{
             position: "relative", zIndex: 1,
             display: "inline-block", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: 2,
             color: "#fff", background: BRAND.pink, textDecoration: "none",
@@ -546,7 +546,7 @@ export default function EcosystemMapSection({
           }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${BRAND.pink}55`; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${BRAND.pink}44`; }}
-          >EXPLORE THE HUB </a>
+          >EXPLORE ATLAS </a>
         </div>
 
         {/* ── CONTINENT DETAIL PANEL ── */}
@@ -623,7 +623,7 @@ export default function EcosystemMapSection({
                         boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
                         width: 260,
                       }}>
-                        View all 1,000+ investors, accelerators & programs on the Intelligence Hub
+                        View all 1,000+ investors, accelerators & programs on Atlas
                         <div style={{
                           position: "absolute", top: -5, left: 24, transform: "rotate(45deg)",
                           width: 10, height: 10,
@@ -687,7 +687,6 @@ export default function EcosystemMapSection({
                 <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
                   {groupedByCategory.map(([category, entities]) => {
                     const accentColor = TAB_COLORS[activeTab];
-                    const logoToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
                     return (
                       <div key={category}>
                         {/* Category header */}
@@ -703,7 +702,7 @@ export default function EcosystemMapSection({
                           {entities.map((entity, i) => {
                             const href = entity.website ? (entity.website.startsWith("http") ? entity.website : `https://${entity.website}`) : undefined;
                             const domain = entity.website ? entity.website.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : null;
-                            const logoUrl = domain && logoToken ? `https://img.logo.dev/${domain}?token=${encodeURIComponent(logoToken)}&size=64&format=png` : null;
+                            const logoUrl = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${domain}` : null;
                             const CardTag = href ? "a" : "div";
                             const yr = Number(entity.founded_year);
                             const isNew = yr === 2025 || yr === 2026;
@@ -784,14 +783,14 @@ export default function EcosystemMapSection({
                     {filteredEntities.length}/{data[activeTab].filter(e => normalizeContinent(e.continent) === selectedContinent).length} {TAB_LABELS[activeTab].toUpperCase()}
                   </span>
                   <span style={{ color: t.textMuted, fontSize: 10 }}>·</span>
-                  <a href="https://intelligence.sportstechx.com/investors" target="_blank" rel="noopener noreferrer" style={{
+                  <a href="https://atlas.sportstechx.com/investors" target="_blank" rel="noopener noreferrer" style={{
                     fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 0.5,
                     textDecoration: "none", transition: "opacity 0.2s",
                   }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                   >
-                    View all on the Intelligence Hub →
+                    View all on Atlas →
                   </a>
                 </div>
               )}

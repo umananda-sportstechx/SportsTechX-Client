@@ -113,7 +113,7 @@ export function VerifiedReport({ id }: { id: string }) {
 	const site = c.website ?? data.company_website;
 
 	return (
-		<>
+		<div className="vcr-report">
 			<PageHead
 				title={c.name || host(data.company_website) || 'Verified company report'}
 				sub={`Verified company report${d.generatedAt ? ` · generated ${new Date(d.generatedAt).toLocaleDateString()}` : ''}`}
@@ -250,6 +250,6 @@ export function VerifiedReport({ id }: { id: string }) {
 					</ul>
 				</Card>
 			)}
-		</>
+		</div>
 	);
 }

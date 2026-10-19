@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -41,7 +42,11 @@ interface PlanRow {
 	price_amount: number;
 	currency_code: string;
 	stripe_price_id: string | null;
+	stx_credits_monthly: number;
 }
+
+/** Free (Explore) one-time welcome grant — mirrors SIGNUP_GRANT server-side. */
+const WELCOME_CREDITS = 300;
 
 /** Display order, cheapest first. Explore is never a checkout target. */
 const ORDER: Tier[] = ['explore', 'raise', 'scout'];
@@ -193,6 +198,17 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 							<div className="plans-card__interval">
 								{plan && plan.price_amount === 0 ? 'Free forever' : plan?.billing_interval === 'yearly' ? 'per year' : plan?.billing_interval === 'semiannual' ? 'per 6 months' : plan?.billing_interval === 'monthly' ? 'per month' : (plan?.billing_interval ?? '')}
 							</div>
+							{plan && (
+								<div className="plans-card__credits">
+									{plan.stx_credits_monthly > 0 ? (
+										<><strong>{plan.stx_credits_monthly.toLocaleString()}</strong> credits / month
+											<span className="plans-card__credits-note">reloaded to your account each month</span></>
+									) : (
+										<><strong>{WELCOME_CREDITS}</strong> welcome credits
+											<span className="plans-card__credits-note">one-time on sign-up · top up anytime</span></>
+									)}
+								</div>
+							)}
 							<p className="plans-card__blurb">
 								{copy?.tagline ?? 'Understand and explore the sports-tech market.'}
 							</p>
@@ -206,6 +222,10 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 					);
 				})}
 			</div>
+
+			<p className="plans-credits-hint">
+				Credits power AI chat, pitch-deck analysis and data exports. Monthly credits don&rsquo;t roll over — <Link href="/credits">top up anytime</Link> if you need more.
+			</p>
 
 			{err && <p role="alert" className="plans-err">{err}</p>}
 
