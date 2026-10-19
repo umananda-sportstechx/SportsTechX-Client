@@ -16,22 +16,29 @@ export type SetupWizard = 'raise' | 'thesis';
 
 export interface OpenSetupDetail {
 	wizard: SetupWizard;
+	/**
+	 * Re-editing an existing, already-complete thesis from settings rather than
+	 * onboarding. The wizard then saves + closes with a toast on finish instead
+	 * of showing the first-run "you're set up" transition.
+	 */
+	edit?: boolean;
 }
 
 export const SETUP_EVENT = 'stx:open-setup';
 
-function open(wizard: SetupWizard): void {
+function open(wizard: SetupWizard, edit = false): void {
 	// SSR has no window; a server-rendered CTA calling this is a no-op rather
 	// than a crash.
 	if (typeof window === 'undefined') return;
-	window.dispatchEvent(new CustomEvent<OpenSetupDetail>(SETUP_EVENT, { detail: { wizard } }));
+	window.dispatchEvent(new CustomEvent<OpenSetupDetail>(SETUP_EVENT, { detail: { wizard, edit } }));
 }
 
 /** The Raise setup wizard (company → raise → traction → readiness → investors). */
 export const openRaiseSetup = (): void => open('raise');
 
-/** The Scout thesis wizard (profile → fund → stage → focus → review). */
-export const openScoutThesis = (): void => open('thesis');
+/** The Scout thesis wizard (profile → fund → stage → focus → review). Pass
+ *  `{ edit: true }` to re-edit a completed thesis (saves + closes, no done screen). */
+export const openScoutThesis = (opts?: { edit?: boolean }): void => open('thesis', opts?.edit);
 
 /**
  * Which wizard a home-screen attention card should open, keyed by the card's

@@ -31,7 +31,7 @@ export function ThesisSettings() {
 			<PageHead
 				title="Thesis settings"
 				sub="What Atlas uses to personalise your recommendations, signals and Deal Flow."
-				actions={<Button onClick={openScoutThesis}><Pencil size={13} /> Edit thesis</Button>}
+				actions={<Button onClick={() => openScoutThesis({ edit: true })}><Pencil size={13} /> Edit thesis</Button>}
 			/>
 
 			{needsSetup ? (
@@ -42,7 +42,7 @@ export function ThesisSettings() {
 						<p style={{ margin: 0, maxWidth: 440, fontSize: 13, lineHeight: 1.55, color: 'var(--a-muted)' }}>
 							Tell Atlas what you&rsquo;re looking for — stage, cheque, geography and sectors — and it personalises the whole product to your thesis.
 						</p>
-						<Button onClick={openScoutThesis} style={{ marginTop: 4 }}>Set up your thesis</Button>
+						<Button onClick={() => openScoutThesis()} style={{ marginTop: 4 }}>Set up your thesis</Button>
 					</div>
 				</Card>
 			) : (
