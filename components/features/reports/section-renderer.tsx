@@ -10,6 +10,9 @@ import { KpiGridSection } from './sections/kpi-grid';
 import { NarrativeSection } from './sections/narrative';
 import { QuoteSection } from './sections/quote';
 import { EmbedSection } from './sections/embed';
+import { PeopleGridSection } from './sections/people-grid';
+import { CompanyGridSection } from './sections/company-grid';
+import { DealTableSection } from './sections/deal-table';
 
 /**
  * Dispatch a report section to its renderer. Hero is full-bleed (no section
@@ -42,8 +45,11 @@ function renderKind(section: VisibleSection): ReactNode {
 		case 'narrative': return <NarrativeSection content={section.content} />;
 		case 'quote': return <QuoteSection content={section.content} />;
 		case 'embed': return <EmbedSection content={section.content} />;
-		// Built in later phases (people_grid, company_grid, deal_table, data_chart,
-		// poll, ecosystem_map, trend_card_list, sector_bubble, accordion).
+		case 'people_grid': return <PeopleGridSection content={section.content} />;
+		case 'company_grid': return <CompanyGridSection section={section} />;
+		case 'deal_table': return <DealTableSection section={section} />;
+		// Built in later phases (data_chart, poll, ecosystem_map,
+		// trend_card_list, sector_bubble, accordion).
 		default: return <Placeholder kind={section.kind} />;
 	}
 }
