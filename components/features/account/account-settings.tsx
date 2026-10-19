@@ -106,7 +106,10 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 			// password without knowing the current one — fail closed on a bad match.
 			const { error: authErr } = await supabase.auth.signInWithPassword({ email: profile.email, password: curPw });
 			if (authErr) { toast.error('Current password is incorrect.'); return; }
-			const { error } = await supabase.auth.updateUser({ password: newPw });
+			// GoTrue also wants the current password passed to the update itself when
+			// the project's "Require current password when updating" setting is on
+			// (ours is). It's an optional field, so this is harmless when it's off.
+			const { error } = await supabase.auth.updateUser({ password: newPw, current_password: curPw });
 			if (error) throw error;
 			toast.success('Password updated.');
 			closePw();
