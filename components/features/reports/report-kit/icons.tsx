@@ -7,9 +7,10 @@ import {
 /** Maps a section-content `icon` key to a lucide icon. Mirrors the admin map. */
 const ICONS: Record<string, LucideIcon> = {
 	funding: DollarSign, dollar: DollarSign, trophy: Trophy, users: Users, people: Users,
-	globe: Globe, world: Globe, trend: TrendingUp, growth: TrendingUp, activity: Activity,
+	globe: Globe, world: Globe, trend: TrendingUp, trending: TrendingUp, growth: TrendingUp, activity: Activity,
 	zap: Zap, company: Building2, building: Building2, rocket: Rocket, startup: Rocket,
-	star: Star, heart: Heart, flag: Flag, handshake: Handshake, deal: Handshake,
+	star: Star, unicorn: Star, heart: Heart, flag: Flag, handshake: Handshake, deal: Handshake,
+	investors: Users, play: Monitor,
 	landmark: Landmark, gov: Landmark, footprints: Footprints, monitor: Monitor, broadcast: Monitor,
 	merge: GitMerge, ma: GitMerge, idea: Lightbulb, lightbulb: Lightbulb, ai: Bot, bot: Bot,
 	chart: BarChart3, bar: BarChart3,
