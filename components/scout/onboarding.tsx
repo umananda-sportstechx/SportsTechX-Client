@@ -58,7 +58,7 @@ function firstIncomplete(t: Thesis): number {
 	return STEPS.length - 1;
 }
 
-export function Onboarding({ onClose }: { onClose: () => void }) {
+export function Onboarding({ onClose, edit = false }: { onClose: () => void; edit?: boolean }) {
 	const { isLoading: profileLoading } = useUserProfile();
 	const { thesis: saved, save, isLoading } = useThesisState();
 	// Wait for the THESIS, not just the profile.
@@ -69,10 +69,10 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
 	// DEFAULT_THESIS, `useState` kept that seed, and a returning Scout who
 	// reopened the wizard could save an empty thesis over a real one.
 	if (profileLoading || isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
-	return <OnboardingForm initial={saved} save={save} onClose={onClose} />;
+	return <OnboardingForm initial={saved} save={save} onClose={onClose} edit={edit} />;
 }
 
-function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: ThesisState['save']; onClose: () => void }) {
+function OnboardingForm({ initial, save, onClose, edit }: { initial: Thesis; save: ThesisState['save']; onClose: () => void; edit: boolean }) {
 	const [t, setT] = useState<Thesis>(initial);
 	// Resume where they left off. Every step saves as it is left, so a thesis
 	// that already satisfies steps 1–3 should not make anyone retype them —
@@ -111,6 +111,7 @@ function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: The
 			// looking at a finished wizard on a still-gated Scout.
 			await save(t, { complete: last });
 			if (!last) { setStep(step + 1); top(); return; }
+			if (edit) { toast.success('Thesis updated'); onClose(); return; }
 			setDone(true);
 			top();
 		} catch {
@@ -148,7 +149,7 @@ function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: The
 				<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
 					<Button variant="ghost" disabled={step === 0 || busy} onClick={() => { setStep(step - 1); setErr(''); top(); }}><ArrowLeft size={13} /> Back</Button>
 					<Button disabled={busy} onClick={() => void next()}>
-						{busy ? <Loader2 className="animate-spin" size={13} /> : last ? <>Finish setup <Check size={13} /></> : <>Continue <ArrowRight size={13} /></>}
+						{busy ? <Loader2 className="animate-spin" size={13} /> : last ? (edit ? <>Save changes <Check size={13} /></> : <>Finish setup <Check size={13} /></>) : <>Continue <ArrowRight size={13} /></>}
 					</Button>
 				</div>
 
@@ -157,7 +158,7 @@ function OnboardingForm({ initial, save, onClose }: { initial: Thesis; save: The
 				    part-way through had no exit but the browser button. */}
 				<p style={{ textAlign: 'center', marginTop: 16 }}>
 					<button type="button" className="scout-link" onClick={onClose}>
-						{step === 0 ? 'Skip for now — I’ll do this later' : 'Skip for now — I’ll finish this later'}
+						{edit ? 'Close' : step === 0 ? 'Skip for now — I’ll do this later' : 'Skip for now — I’ll finish this later'}
 					</button>
 				</p>
 			</Screen>
