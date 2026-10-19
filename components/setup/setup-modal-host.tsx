@@ -32,12 +32,14 @@ const LABEL: Record<SetupWizard, string> = {
 export function SetupModalHost() {
 	const [open, setOpen] = useState(false);
 	const [wizard, setWizard] = useState<SetupWizard | null>(null);
+	const [edit, setEdit] = useState(false);
 
 	useEffect(() => {
 		const onEvent = (e: Event) => {
 			const detail = (e as CustomEvent<OpenSetupDetail>).detail;
 			if (!detail?.wizard) return;
 			setWizard(detail.wizard);
+			setEdit(!!detail.edit);
 			setOpen(true);
 		};
 		window.addEventListener(SETUP_EVENT, onEvent);
@@ -48,9 +50,10 @@ export function SetupModalHost() {
 	if (!wizard) return null;
 
 	const close = () => setOpen(false);
+	const label = wizard === 'thesis' && edit ? 'Edit your investment thesis' : LABEL[wizard];
 	return (
-		<SetupModal open={open} onClose={close} label={LABEL[wizard]}>
-			{wizard === 'raise' ? <RaiseSetup onClose={close} /> : <Onboarding onClose={close} />}
+		<SetupModal open={open} onClose={close} label={label}>
+			{wizard === 'raise' ? <RaiseSetup onClose={close} /> : <Onboarding onClose={close} edit={edit} />}
 		</SetupModal>
 	);
 }
