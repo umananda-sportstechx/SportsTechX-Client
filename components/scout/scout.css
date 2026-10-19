@@ -111,11 +111,13 @@
 .atlas .scout-df__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 
 /* Featured deal: black card */
-.atlas .scout-df-feat { margin-bottom: 26px; padding: 28px 30px; border-radius: var(--a-radius); background: var(--a-primary); color: var(--a-primary-ink); }
+.atlas .scout-df-feat { position: relative; overflow: hidden; margin-bottom: 26px; padding: 30px 32px; border-radius: var(--a-radius); background: var(--a-primary); color: var(--a-primary-ink); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28); }
+/* Green "featured" accent so the light spotlight card reads as intentional on the dark page. */
+.atlas .scout-df-feat::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--scout-green), color-mix(in srgb, var(--scout-green) 30%, transparent)); }
 .atlas .scout-df-feat__eyebrow, .atlas .scout-df-feat__k {
 	font-family: var(--a-mono); text-transform: uppercase; color: color-mix(in srgb, var(--a-primary-ink) 60%, transparent);
 }
-.atlas .scout-df-feat__eyebrow { margin-bottom: 12px; font-size: 11px; letter-spacing: 0.05em; }
+.atlas .scout-df-feat__eyebrow { margin-bottom: 14px; font-size: 11px; letter-spacing: 0.08em; color: var(--scout-green-ink); }
 .atlas .scout-df-feat__body { display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
 .atlas .scout-df-feat__main { flex: 1; min-width: 0; }
 .atlas .scout-df-feat__name { margin: 0 0 20px; font-family: var(--a-font); font-size: 32px; font-weight: 700; line-height: 1; color: inherit; }
