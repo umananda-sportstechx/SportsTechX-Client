@@ -33,8 +33,9 @@ function open(wizard: SetupWizard, edit = false): void {
 	window.dispatchEvent(new CustomEvent<OpenSetupDetail>(SETUP_EVENT, { detail: { wizard, edit } }));
 }
 
-/** The Raise setup wizard (company → raise → traction → readiness → investors). */
-export const openRaiseSetup = (): void => open('raise');
+/** The Raise setup wizard (company → raise → traction → readiness → investors).
+ *  Pass `{ edit: true }` to re-edit a completed raise (saves + closes, no done screen). */
+export const openRaiseSetup = (opts?: { edit?: boolean }): void => open('raise', opts?.edit);
 
 /** The Scout thesis wizard (profile → fund → stage → focus → review). Pass
  *  `{ edit: true }` to re-edit a completed thesis (saves + closes, no done screen). */
