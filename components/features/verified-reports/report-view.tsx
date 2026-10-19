@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { BadgeCheck } from 'lucide-react';
 import { Card, ComboBarLine, Empty, Loading, PageHead, PieDonut, barAt, type ComboPoint, type PieSegment } from '@/components/atlas';
 import { fmtCount, fmtUsd, fmtUsdB, place } from '@/components/features/market/format';
 import { qk } from '@/lib/query-keys';
@@ -118,9 +119,10 @@ export function VerifiedReport({ id }: { id: string }) {
 			/>
 
 			<Card>
+				<div className="vcr-badge"><BadgeCheck size={13} aria-hidden="true" /> Verified by SportsTechX</div>
 				{c.description && <p className="vcr-lede">{c.description}</p>}
 				<dl className="vcr-facts">
-					{facts.map(([k, v]) => (
+					{facts.filter(([, v]) => v && v !== '—').map(([k, v]) => (
 						<div key={k} className="vcr-facts__row">
 							<dt className="atlas-eyebrow">{k}</dt>
 							<dd>{v}</dd>
