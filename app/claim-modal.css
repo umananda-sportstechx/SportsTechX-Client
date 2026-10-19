@@ -35,9 +35,13 @@
 /* ── Shell ─────────────────────────────────────────────────────────────────*/
 .cm-overlay {
   position: fixed; inset: 0; z-index: 1200;
-  /* 55% — inside the 40–60% band that keeps foreground content legible. */
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  /* The page behind must stay VISIBLE through the scrim (it was reading as a
+     flat black void on dark-theme / some GPUs). A lighter 40% scrim keeps the
+     backdrop legible in both themes; the blur is the frosting on top, with the
+     -webkit- prefix so Safari actually applies it instead of falling back. */
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   animation: cm-fade 0.14s ease-out;
@@ -78,12 +82,14 @@
 /* The rail is flat now; this decorative div still renders, so neutralise
    it rather than reaching into the component for one div. */
 .cm-rail-glow { display: none; }
-.cm-rail-brand {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--a-font); font-weight: 700; font-size: 13px;
-  letter-spacing: 0.02em; color: var(--a-ink);
-}
-.cm-rail-brand .cm-rail-x { color: var(--a-faint); }
+.cm-rail-brand { display: inline-flex; align-items: center; }
+/* Real Atlas wordmark; the right variant shows per theme (default = light). */
+.cm-rail-logo { height: 24px; width: auto; display: block; }
+.cm-rail-logo--on-dark { display: none; }
+[data-theme="dark"] .cm-rail-logo--on-light,
+.dark .cm-rail-logo--on-light { display: none; }
+[data-theme="dark"] .cm-rail-logo--on-dark,
+.dark .cm-rail-logo--on-dark { display: block; }
 .cm-rail-h {
   font-family: var(--a-font); font-size: 21px; font-weight: 700;
   line-height: 1.18; color: var(--a-ink);
@@ -254,6 +260,14 @@
 .cm-result-meta { font-family: var(--a-body); font-size: 11px; color: var(--a-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .cm-result-arrow { color: var(--a-faint); flex-shrink: 0; }
 .cm-result:hover .cm-result-arrow { color: var(--a-ink); }
+/* Already verified by someone else → not selectable. */
+.cm-result:disabled, .cm-result-locked { cursor: not-allowed; opacity: 0.72; }
+.cm-result-locked:hover { background: transparent; }
+/* Verified by the signed-in user → selectable, flagged as theirs. */
+.cm-result-yours {
+  background: var(--a-ok-bg); color: var(--a-ok);
+  border-color: color-mix(in srgb, var(--a-ok) 30%, transparent);
+}
 
 .cm-addnew { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 14px; background: transparent; border: 1px dashed var(--a-border-strong); border-radius: var(--a-radius); color: var(--a-ink); font: inherit; text-align: left; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .cm-addnew:hover { border-style: solid; background: var(--a-inset); }

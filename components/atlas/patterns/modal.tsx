@@ -40,7 +40,8 @@ export function Modal({ open, onOpenChange, icon, title, children, footer, width
 		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={!nonModal}>
 			<DialogPrimitive.Portal>
 				<DialogPrimitive.Overlay
-					style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', zIndex: 200 }}
+					// Keep the page behind visible through the scrim (a heavier black read as a flat void on the dark theme). 40% + blur, with the -webkit- prefix so Safari applies it.
+					style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', WebkitBackdropFilter: 'blur(6px)', backdropFilter: 'blur(6px)', zIndex: 200 }}
 				/>
 				{/* `.atlas` because the portal renders outside the shell, so the
 				    design-system scope would not otherwise apply to it. */}

@@ -39,6 +39,11 @@ import { INNOVATORS_DATA } from "./data/gster26-innovators-data";
 import { getCountryFlag } from "./flags";
 import mixpanel from "mixpanel-browser";
 
+// The downloadable "lite" PDF lives in Supabase storage (public_bucket), not in
+// the repo. `?download` makes Supabase serve it as an attachment — the HTML
+// `download` attr is ignored cross-origin, so the query param is what forces it.
+const GSTER26_PDF_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/public_bucket/reports/GSTER26-LITE.pdf?download=GSTER26-LITE.pdf`;
+
 /* ── Atlas port shims ─────────────────────────────────────────────────────
    The STX page ran under wouter + react-query + a custom auth hook. In Atlas
    the page is rendered chrome-less behind ProtectedRoute, so the viewer is
@@ -1429,7 +1434,7 @@ export default function ReportGSTER26() {
             </button>
           ) : (
             <>
-              <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf"
+              <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf"
                 style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontSize: 11, letterSpacing: 1.6, fontWeight: 500, color: "#fff", background: "#f32163", border: "1px solid #f32163", padding: "8px 18px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
@@ -1462,7 +1467,7 @@ export default function ReportGSTER26() {
                 {label}
               </a>
             ))}
-            <a href="/GSTER26-LITE.pdf" download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
+            <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
           </div>
         </div>
       )}
