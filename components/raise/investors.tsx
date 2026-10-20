@@ -157,7 +157,7 @@ function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<
 	const [view, setView] = useState<ViewMode>('cards');
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [category, setCategory] = useState(() => url.str('category'));
+	const [category, setCategory] = useState(() => url.oneOf('category', CATEGORY_OPTIONS.map(([v]) => v), ''));
 	const [roundType, setRoundType] = useState(() => url.str('round'));
 	const [sector, setSector] = useState(() => url.str('sector'));
 	const [subSector, setSubSector] = useState(() => url.str('sub'));
@@ -172,7 +172,7 @@ function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<
 	const [deals, setDeals] = useState(() => url.str('deals'));
 	const [verified, setVerified] = useState(() => url.bool('verified'));
 	const [active, setActive] = useState(() => url.bool('active'));
-	const [sort, setSort] = useState(() => url.str('sort') || '-created_at');
+	const [sort, setSort] = useState(() => url.oneOf('sort', SORT_OPTIONS.map(([v]) => v), '-created_at'));
 	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1); // any filter/search change returns to page 1
 	useUrlSync({

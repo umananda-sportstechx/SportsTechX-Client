@@ -55,7 +55,17 @@ export function WatchlistPicker({
 		`watchlist:${companyId ?? 'new'}`,
 		{ newName, newColor },
 		(d) => { if (d.newName) setNewName(d.newName); if (d.newColor) setNewColor(d.newColor); },
-		{ enabled: open },
+		{
+			enabled: open,
+			// Untrusted stored blob: accept only a well-formed name + hex colour.
+			validate: (raw) => {
+				if (!raw || typeof raw !== 'object') return null;
+				const r = raw as Record<string, unknown>;
+				const name = typeof r.newName === 'string' ? r.newName.slice(0, 120) : '';
+				const color = typeof r.newColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(r.newColor) ? r.newColor : '#f43f5e';
+				return name || color !== '#f43f5e' ? { newName: name, newColor: color } : null;
+			},
+		},
 	);
 
 	// Don't wipe the typed name on close any more — that was the data loss the
