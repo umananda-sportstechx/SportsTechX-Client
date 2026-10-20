@@ -19,21 +19,32 @@ export function useFormDraft<T>(
 	key: string,
 	value: T,
 	onRestore: (draft: T) => void,
-	opts?: { enabled?: boolean },
+	opts?: { enabled?: boolean; validate?: (raw: unknown) => T | null },
 ): { clear: () => void } {
 	const enabled = opts?.enabled ?? true;
+	const validate = opts?.validate;
 	const storeKey = `stx:draft:${key}`;
 	const restored = useRef(false);
 
-	// Restore once, before anything is persisted.
+	// Restore once, before anything is persisted. The stored blob is untrusted
+	// (user-writable storage, possibly from an older schema or hand-edited), so a
+	// `validate` is given the parsed value and must return a typed object or null;
+	// an invalid/foreign draft is dropped instead of flowing into form state.
 	useEffect(() => {
 		if (!enabled || restored.current) return;
 		restored.current = true;
 		try {
 			const raw = sessionStorage.getItem(storeKey);
-			if (raw) onRestore(JSON.parse(raw) as T);
-		} catch { /* private mode / corrupt JSON — start blank */ }
-		// onRestore is intentionally not a dep: restore is a one-shot on mount.
+			if (!raw) return;
+			const parsed: unknown = JSON.parse(raw);
+			const draft = validate ? validate(parsed) : (parsed as T);
+			if (draft != null) onRestore(draft);
+			else sessionStorage.removeItem(storeKey);
+		} catch {
+			// private mode / corrupt JSON — start blank, and bin the bad entry.
+			try { sessionStorage.removeItem(storeKey); } catch { /* ignore */ }
+		}
+		// onRestore/validate intentionally not deps: restore is a one-shot on mount.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [enabled, storeKey]);
 

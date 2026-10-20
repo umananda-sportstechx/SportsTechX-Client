@@ -60,6 +60,60 @@ type Step =
   | 'role' | 'search' | 'identity' | 'dataedits' | 'fundraising' | 'review'
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
 
+// Runtime whitelists for validating a restored draft (stored blobs are untrusted).
+const STEP_VALUES: readonly Step[] = [
+  'role', 'search', 'identity', 'dataedits', 'fundraising', 'review',
+  'invdata', 'portfolio', 'details', 'extra', 'done',
+];
+const ROLE_VALUES: readonly ClaimRole[] = ['founder', 'investor', 'operator'];
+const SELMODE_VALUES = ['claim', 'add'] as const;
+
+/** Keep only draft `form` fields whose type matches the blank template, so a
+ *  hand-edited or stale draft can't put (say) a string where an array is
+ *  expected and crash a later `.map`/`.includes`. */
+function sanitizeClaimForm(raw: unknown, template: ClaimForm): Partial<ClaimForm> {
+  if (!raw || typeof raw !== 'object') return {};
+  const src = raw as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, tv] of Object.entries(template)) {
+    if (k === 'deckFile') continue; // never restored (a File can't round-trip JSON)
+    const v = src[k];
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(tv)) { if (Array.isArray(v)) out[k] = v; }
+    else if (typeof tv === typeof v) out[k] = v;
+  }
+  return out as Partial<ClaimForm>;
+}
+
+interface ClaimDraft {
+  role: ClaimRole | null;
+  step: Step;
+  selMode: 'claim' | 'add';
+  selItem: SelectedEntity | null;
+  form: Partial<ClaimForm>;
+}
+
+/** Parse + validate an untrusted stored claim draft into a safe shape, or null. */
+function parseClaimDraft(raw: unknown): ClaimDraft | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const role = ROLE_VALUES.includes(r.role as ClaimRole) ? (r.role as ClaimRole) : null;
+  // A step only makes sense once a role is picked; without one, pin to the chooser.
+  const rawStep = STEP_VALUES.includes(r.step as Step) ? (r.step as Step) : 'role';
+  const step: Step = role ? rawStep : 'role';
+  const selMode = SELMODE_VALUES.includes(r.selMode as 'claim' | 'add') ? (r.selMode as 'claim' | 'add') : 'add';
+  let selItem: SelectedEntity | null = null;
+  if (r.selItem && typeof r.selItem === 'object') {
+    const o = r.selItem as Record<string, unknown>;
+    selItem = {
+      id: typeof o.id === 'string' ? o.id : null,
+      name: typeof o.name === 'string' ? o.name : '',
+      website: typeof o.website === 'string' ? o.website : null,
+    };
+  }
+  return { role, step, selMode, selItem, form: sanitizeClaimForm(r.form, blankClaimForm(null)) };
+}
+
 // Editing an existing claim opens on the entity-data step (identity is already
 // known and is dropped from the step list), not the identity step.
 const EDIT_DATA_STEP: Record<ClaimRole, Step> = { founder: 'dataedits', investor: 'invdata', operator: 'details' };
@@ -130,20 +184,21 @@ export function ClaimModal({
   // overwritten by a stale draft, so the cache is disabled there. The pitch-deck
   // File can't be serialized, so it's dropped from the draft (re-attach on reopen).
   const draftEnabled = !target?.id && !target?.claimId && !hasPrefill;
-  const draftValue = useMemo(
-    () => ({ role, step, selMode, form: { ...form, deckFile: undefined } }),
-    [role, step, selMode, form],
+  const draftValue = useMemo<ClaimDraft>(
+    () => ({ role, step, selMode, selItem, form: { ...form, deckFile: undefined } }),
+    [role, step, selMode, selItem, form],
   );
-  const { clear: clearDraft } = useFormDraft(
+  const { clear: clearDraft } = useFormDraft<ClaimDraft>(
     'claim',
     draftValue,
     (d) => {
-      if (d.role) setRole(d.role);
-      if (d.step) setStep(d.step);
-      if (d.selMode) setSelMode(d.selMode);
-      if (d.form) setForm((f) => ({ ...f, ...d.form, deckFile: f.deckFile }));
+      setRole(d.role);
+      setStep(d.step);
+      setSelMode(d.selMode);
+      setSelItem(d.selItem);
+      setForm((f) => ({ ...f, ...d.form, deckFile: f.deckFile }));
     },
-    { enabled: draftEnabled },
+    { enabled: draftEnabled, validate: parseClaimDraft },
   );
 
   // Editing a verified/pending claim: load the user's submitted data back into

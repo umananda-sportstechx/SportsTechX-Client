@@ -45,7 +45,7 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	const [view, setView] = useState<ViewMode>('cards');
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [model, setModel] = useState(() => url.str('model'));
+	const [model, setModel] = useState(() => url.oneOf('model', BUSINESS_MODELS.map(([v]) => v), ''));
 	const [sector, setSector] = useState(() => url.str('sector'));
 	const [subSector, setSubSector] = useState(() => url.str('sub'));
 	const [subSubSector, setSubSubSector] = useState(() => url.str('subsub'));
@@ -60,9 +60,11 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	const [verified, setVerified] = useState(() => url.bool('verified'));
 	const [raising, setRaising] = useState(() => url.bool('raising'));
 	const [unicorn, setUnicorn] = useState(() => url.bool('unicorn'));
-	const [sort, setSort] = useState(() => url.str('sort') || '-created_at');
+	const [sort, setSort] = useState(() => url.oneOf('sort', COMPANY_SORTS.map(([v]) => v), '-created_at'));
 	const [page, setPage] = useState(() => url.num('page', 1));
-	// The detail drawer is addressable: ?company=<slug> reopens it on load.
+	// The detail drawer is addressable: ?company=<slug> reopens it on load. The
+	// slug is format-validated (useUrlModal's default), so a junk param won't fire
+	// a fetch or open an empty drawer.
 	const [openId, setOpenId] = useUrlModal('company');
 	const reset = () => setPage(1);
 
