@@ -16,6 +16,9 @@ const cases: [string | null | undefined, string][] = [
 	['/startups', '/companies'],
 	// unknown hub route on sportstechx → kept relative (stays in Atlas)
 	['/some-new-page', '/some-new-page'],
+	// protocol-relative hub link → mapped; protocol-relative external → untouched
+	['//hub.sportstechx.com/companies', '/companies'],
+	['//evil.com/companies', '//evil.com/companies'],
 	// genuinely external / non-nav → untouched
 	['https://www.linkedin.com/in/x', 'https://www.linkedin.com/in/x'],
 	['mailto:a@b.com', 'mailto:a@b.com'],
