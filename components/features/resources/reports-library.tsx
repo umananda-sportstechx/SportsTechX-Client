@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import { downloadReport, viewReport } from '@/lib/report-pdf';
@@ -9,7 +8,7 @@ import type { Page, ReportListItem } from '@/types/api';
 import { ResourceLibrary } from './resource-library';
 import type { Resource } from './resource-contract';
 
-const toResource = (r: ReportListItem, router: ReturnType<typeof useRouter>): Resource => ({
+const toResource = (r: ReportListItem): Resource => ({
 	id: r.id,
 	title: r.title,
 	desc: r.description ?? '',
@@ -19,24 +18,24 @@ const toResource = (r: ReportListItem, router: ReturnType<typeof useRouter>): Re
 	access: r.has_pro_version ? 'Premium' : 'Free',
 	tags: r.tags ?? [],
 	cover: r.cover_url,
-	// Section reports open the chrome-less in-app renderer; legacy cover+PDF
-	// reports keep the download/view flow.
+	// Both kinds open in a NEW TAB: section reports → the chrome-less in-app
+	// renderer, legacy cover+PDF reports → the signed PDF (viewReport already
+	// opens its own tab), so reading a report never loses the library you were on.
 	onView: r.has_sections
-		? () => router.push(`/reports/${r.slug ?? r.id}`)
+		? () => window.open(`/reports/${r.slug ?? r.id}`, '_blank', 'noopener')
 		: () => void viewReport(r.slug ?? r.id),
 	onDownload: () => void downloadReport(r.slug ?? r.id),
 });
 
 export function ReportsLibrary() {
-	const router = useRouter();
 	// One page covers the whole library — 33 reports today. `pageQuerySchema`
 	// caps limit at 200.
 	const res = useSWR<Page<ReportListItem>>(qk.reports.list({ limit: 100 }));
 	// Sort on the displayed date rather than trusting the server's `-report_year`,
 	// which puts year-less rows first — wrong for a hero.
 	const items = useMemo(
-		() => (res.data?.data ?? []).map((r) => toResource(r, router)).sort((a, b) => Date.parse(b.date) - Date.parse(a.date)),
-		[res.data, router],
+		() => (res.data?.data ?? []).map(toResource).sort((a, b) => Date.parse(b.date) - Date.parse(a.date)),
+		[res.data],
 	);
 
 	return (
