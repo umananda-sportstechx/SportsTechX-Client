@@ -11,6 +11,7 @@ import { SINCE_YEARS, canonicalCountry } from '@/lib/catalog-options';
 import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import { companyHref } from '@/lib/routes';
+import { MaDealPanel } from '@/components/features/market/ma-deal-panel';
 
 /**
  * M&A — a tabulated list of acquisitions (GET /api/acquisitions), newest first.
@@ -20,21 +21,31 @@ import { companyHref } from '@/lib/routes';
  * shows initials unless it too is a company we hold.
  */
 
-/** One acquisition row, as /api/acquisitions returns it (see acquisitions.repository.ts list). */
-interface MaDeal {
+/** One acquisition row, as /api/acquisitions returns it. The list SELECT is
+ *  `f.*` (every raw acquisition column) plus the joined acquiree enrichments,
+ *  so the row already carries the acquirer snapshot and both business models —
+ *  enough to render the detail panel without a second fetch. */
+export interface MaDeal {
 	id: string;
 	acquiree_name: string | null;
 	acquiree_slug: string | null;
 	acquiree_website: string | null;
+	acquiree_website_snapshot: string | null;
 	acquiree_logo: string | null;
+	acquiree_business_model: string | null;
 	acquirer_name: string | null;
 	acquirer_slug: string | null;
+	acquirer_website_snapshot: string | null;
+	acquirer_business_model: string | null;
 	primary_sector: string | null;
 	hq_country: string | null;
 	hq_city: string | null;
 	acquisition_date: string | null;
+	acquisition_year: number | null;
 	acquisition_type: string | null;
 	amount_usd: number | string | null;
+	currency_code: string | null;
+	source_url: string | null;
 }
 
 const PAGE_SIZE = 25;
@@ -54,6 +65,7 @@ export function MaDeals() {
 	const [disclosed, setDisclosed] = useState(false);
 	const [sort, setSort] = useState('-acquisition_date');
 	const [page, setPage] = useState(1);
+	const [selected, setSelected] = useState<MaDeal | null>(null);
 	const reset = () => setPage(1);
 
 	const sectors = useSectorTierData();
@@ -122,7 +134,11 @@ export function MaDeals() {
 					{rows.map((d) => {
 						const name = d.acquiree_name ?? '—';
 						return (
-							<div key={d.id} className="atlas-table__row" role="row" style={{ cursor: 'default' }}>
+							<div key={d.id} className="atlas-table__row" role="row" tabIndex={0}
+								aria-label={`${name} acquired by ${d.acquirer_name ?? 'undisclosed'} — open details`}
+								style={{ cursor: 'pointer' }}
+								onClick={(e) => { if ((e.target as HTMLElement).closest('a')) return; setSelected(d); }}
+								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(d); } }}>
 								<div className="atlas-table__name">
 									<Logo co={{ name, website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={28} radius={5} />
 									<div className="atlas-table__name-main">
@@ -153,6 +169,7 @@ export function MaDeals() {
 				)}
 
 			<Pager page={page} totalPages={res.data?.totalPages ?? 1} onPage={setPage} />
+			<MaDealPanel deal={selected} onClose={() => setSelected(null)} />
 		</>
 	);
 }
