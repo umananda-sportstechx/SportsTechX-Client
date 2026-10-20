@@ -46,7 +46,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		sections: [
 			['Raise', ['Pitch Deck', 'Investors', 'Programs']],
 			['Discover', ['Companies', 'Recommended', 'Signals']],
-			['Intelligence', ['Analytics', 'Monthly Roundup', 'My Market', 'Recently Funded']],
+			['Intelligence', ['Analytics', 'Monthly Roundup', 'My Market', 'Recently Funded', 'M&A']],
 			['Watchlists', ['Main watchlist', 'All watchlists']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
@@ -59,7 +59,8 @@ const EXPECTED: Record<Tier, Shape> = {
 		top: ['Home', 'Chat'],
 		sections: [
 			['Discover', ['Companies', 'Recommended', 'Signals', 'All watchlists']],
-			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded']],
+			['Ecosystem', ['Investors', 'Programs']],
+			['Intelligence', ['Market', 'Monthly Roundup', 'Recently Funded', 'M&A']],
 			['Deal Flow', ['All', 'Featured', 'Verified Raises', 'From the Circle', 'Deck Screener']],
 			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
 		],
@@ -265,10 +266,14 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 {
 	check(navigable('companies', 'scout') && navigable('companies', 'raise'),
 		'navigable: a shared page is offered to both products');
-	check(!navigable('programs', 'scout') && navigable('programs', 'raise'),
+	check(!navigable('my-market', 'scout') && navigable('my-market', 'raise'),
 		'navigable: a Raise-only page is never offered to a Scout');
-	check(!navigable('pipeline', 'scout') && !navigable('investors', 'scout'),
-		'navigable: the other Raise-only chips are dropped too');
+	// Investors and Programs are shared by both products now, so a Scout may be
+	// handed those chips; pipeline / my-market stay genuinely Raise-only.
+	check(navigable('investors', 'scout') && navigable('programs', 'scout'),
+		'navigable: the ecosystem directories are offered to Scout');
+	check(!navigable('pipeline', 'scout'),
+		'navigable: a genuinely Raise-only chip (pipeline) is still dropped for Scout');
 	check(navigable('thesis', 'scout') && !navigable('thesis', 'raise'),
 		'navigable: a Scout-only page is never offered to a founder');
 	// `upsell` is good enough for the sidebar and not for an action.

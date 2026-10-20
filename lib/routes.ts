@@ -112,6 +112,10 @@ export const ROUTES: RouteDef[] = [
 		id: 'recently-funded', icon: 'nav-funded', name: 'Recently Funded',
 		path: '/recently-funded', tier: ['raise', 'scout'],
 	},
+	// M&A tracker — a tabulated list of acquisitions (acquirer ↔ acquiree),
+	// ported from the hub's /ma page. Sits beside Recently Funded in both paid
+	// products; Explore is not shown it (not in its nav, `['raise','scout']`).
+	{ id: 'ma', icon: 'nav-ma', name: 'M&A', path: '/ma', tier: ['raise', 'scout'] },
 	{
 		id: 'watchlists', icon: 'nav-list', name: 'All watchlists',
 		path: '/watchlists',
@@ -166,8 +170,10 @@ export const ROUTES: RouteDef[] = [
 	{ id: 'interests', icon: 'nav-interests', name: 'Interests', path: '/interests', tier: 'explore' },
 
 	// ── Raise ───────────────────────────────────────────────────────────────
-	{ id: 'investors', icon: 'nav-circle', name: 'Investors', path: '/investors', tier: 'raise' },
-	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs', tier: 'raise' },
+	// Both paid products get the ecosystem directories (Scout browses them, Raise
+	// targets them). Explore keeps Investors as an upsell via its own nav entry.
+	{ id: 'investors', icon: 'nav-circle', name: 'Investors', path: '/investors', tier: ['raise', 'scout'] },
+	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs', tier: ['raise', 'scout'] },
 	{ id: 'my-market', icon: 'nav-market', name: 'My Market', path: '/my-market', tier: 'raise' },
 	{ id: 'pipeline', icon: 'nav-list', name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
 	{ id: 'raise-settings', icon: 'nav-thesis', name: 'Thesis Settings', path: '/settings', tier: 'raise' },
@@ -227,7 +233,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: null, items: ['home', 'chat'] },
 		{ title: 'Raise', items: ['deck', 'investors', 'programs'] },
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
-		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded'] },
+		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded', 'ma'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 	],
@@ -237,7 +243,11 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// "Watchlists" section collapsed to one headerless item. Fold it into
 		// Discover instead — saved lists still splice in before "All watchlists".
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals', 'watchlists'] },
-		{ title: 'Intelligence', items: ['analytics', 'roundup', 'recently-funded'] },
+		// Ecosystem directories — investors and accelerator/VC programs. In the hub
+		// these are their own "Ecosystem" category; a scout browses them to map a
+		// market, so both products now carry them (Raise lists them under "Raise").
+		{ title: 'Ecosystem', items: ['investors', 'programs'] },
+		{ title: 'Intelligence', items: ['analytics', 'roundup', 'recently-funded', 'ma'] },
 		{ title: 'Deal Flow', items: ['deal-flow', 'deal-flow-featured', 'deal-flow-verified', 'deal-flow-circle', 'deck'] },
 		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
 	],
