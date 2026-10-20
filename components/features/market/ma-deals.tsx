@@ -12,6 +12,7 @@ import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef } from '@/
 import { fmtUsd } from '@/components/features/market/format';
 import { companyHref } from '@/lib/routes';
 import { MaDealPanel } from '@/components/features/market/ma-deal-panel';
+import { useUrlSync, useUrlReader, useUrlModal } from '@/hooks/use-url-state';
 
 /**
  * M&A — a tabulated list of acquisitions (GET /api/acquisitions), newest first.
@@ -56,17 +57,25 @@ const fmtMonth = (d?: string | null) => (d ? new Date(d).toLocaleDateString(unde
 const fmtValue = (n: MaDeal['amount_usd']) => (n == null || Number(n) === 0 ? 'Undisclosed' : fmtUsd(Number(n)));
 
 export function MaDeals() {
-	const [q, setQ] = useState('');
+	// View-state in the URL (Back/Forward restore, shareable).
+	const url = useUrlReader();
+	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [type, setType] = useState('');
-	const [sector, setSector] = useState('');
-	const [country, setCountry] = useState('');
-	const [year, setYear] = useState('');
-	const [disclosed, setDisclosed] = useState(false);
-	const [sort, setSort] = useState('-acquisition_date');
-	const [page, setPage] = useState(1);
-	const [selected, setSelected] = useState<MaDeal | null>(null);
+	const [type, setType] = useState(() => url.str('type'));
+	const [sector, setSector] = useState(() => url.str('sector'));
+	const [country, setCountry] = useState(() => url.str('country'));
+	const [year, setYear] = useState(() => url.str('year'));
+	const [disclosed, setDisclosed] = useState(() => url.bool('disclosed'));
+	const [sort, setSort] = useState(() => url.str('sort') || '-acquisition_date');
+	const [page, setPage] = useState(() => url.num('page', 1));
+	// The detail panel is addressable (?deal=<id>) for deals on the loaded page.
+	const [dealId, setDealId] = useUrlModal('deal');
 	const reset = () => setPage(1);
+	useUrlSync({
+		q: dq, type, sector, country, year, disclosed,
+		sort: sort !== '-acquisition_date' ? sort : undefined,
+		page: page > 1 ? page : undefined,
+	});
 
 	const sectors = useSectorTierData();
 	const countryOptions = useCountryOptions();
@@ -93,6 +102,8 @@ export function MaDeals() {
 	);
 	const rows = res.data?.data ?? [];
 	const total = res.data?.total ?? 0;
+	// Panel content is the row matching ?deal=; closes automatically on Back.
+	const selected = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
 	const anyFilter = !!(dq || type || sector || country || year || disclosed);
 
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
@@ -137,8 +148,8 @@ export function MaDeals() {
 							<div key={d.id} className="atlas-table__row" role="row" tabIndex={0}
 								aria-label={`${name} acquired by ${d.acquirer_name ?? 'undisclosed'} — open details`}
 								style={{ cursor: 'pointer' }}
-								onClick={(e) => { if ((e.target as HTMLElement).closest('a')) return; setSelected(d); }}
-								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(d); } }}>
+								onClick={(e) => { if ((e.target as HTMLElement).closest('a')) return; setDealId(d.id); }}
+								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDealId(d.id); } }}>
 								<div className="atlas-table__name">
 									<Logo co={{ name, website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={28} radius={5} />
 									<div className="atlas-table__name-main">
@@ -169,7 +180,7 @@ export function MaDeals() {
 				)}
 
 			<Pager page={page} totalPages={res.data?.totalPages ?? 1} onPage={setPage} />
-			<MaDealPanel deal={selected} onClose={() => setSelected(null)} />
+			<MaDealPanel deal={selected} onClose={() => setDealId(null)} />
 		</>
 	);
 }

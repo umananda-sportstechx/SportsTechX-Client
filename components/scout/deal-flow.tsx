@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Button, Empty, Field, Input, Loading, Progress, Select } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
+import { useUrlSync, useUrlReader } from '@/hooks/use-url-state';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
@@ -47,8 +48,11 @@ export function useDealFlow(tab: DealTab) {
 export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	const { data, isLoading, error } = useDealFlow(tab);
 	// Valuation filter — purely client-side over the already-fetched page (≤50).
-	const [maxVal, setMaxVal] = useState('');
-	const [valCcy, setValCcy] = useState('EUR');
+	// Mirrored into the URL so it survives Back from a deal page and is shareable.
+	const url = useUrlReader();
+	const [maxVal, setMaxVal] = useState(() => url.str('maxVal'));
+	const [valCcy, setValCcy] = useState(() => url.str('ccy') || 'EUR');
+	useUrlSync({ maxVal, ccy: valCcy !== 'EUR' ? valCcy : undefined });
 
 	// Every Deal Flow route 403s without a `scout_profiles` row, and most Scout
 	// accounts do not have one — so this is the common path, not an edge case.

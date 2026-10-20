@@ -10,6 +10,7 @@ import {
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useFormDraft } from '@/hooks/use-form-draft';
 import { Flag } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { LocationSelect } from '@/components/features/location/location-select';
@@ -121,6 +122,29 @@ export function ClaimModal({
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Draft cache: if the wizard is dismissed by accident (Escape / click-outside)
+  // mid-answer, reopening restores what was typed — no re-fetch, per-tab only.
+  // Scoped to a brand-new claim started from scratch: editing an existing claim
+  // (or a prefilled post-setup verify) is seeded from the server and must not be
+  // overwritten by a stale draft, so the cache is disabled there. The pitch-deck
+  // File can't be serialized, so it's dropped from the draft (re-attach on reopen).
+  const draftEnabled = !target?.id && !target?.claimId && !hasPrefill;
+  const draftValue = useMemo(
+    () => ({ role, step, selMode, form: { ...form, deckFile: undefined } }),
+    [role, step, selMode, form],
+  );
+  const { clear: clearDraft } = useFormDraft(
+    'claim',
+    draftValue,
+    (d) => {
+      if (d.role) setRole(d.role);
+      if (d.step) setStep(d.step);
+      if (d.selMode) setSelMode(d.selMode);
+      if (d.form) setForm((f) => ({ ...f, ...d.form, deckFile: f.deckFile }));
+    },
+    { enabled: draftEnabled },
+  );
 
   // Editing a verified/pending claim: load the user's submitted data back into
   // the form so they see (and edit) exactly what they entered, not a blank form.
@@ -274,6 +298,7 @@ export function ClaimModal({
         await apiRequest('POST', url, changes);
       }
       await mutate(qk.claims.mine());
+      clearDraft();
       setStep('done');
       onSubmitted?.();
     } catch (e) {
