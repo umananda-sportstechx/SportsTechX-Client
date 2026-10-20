@@ -420,7 +420,7 @@ function CompanySearch({ onPick }: { onPick: (c: CoRow) => void }) {
 }
 
 function s(v: unknown): string { return v == null ? '' : String(v); }
-function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>{children}</div>; }
+function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16 }}>{children}</div>; }
 function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
 	const sel = new Set((v as string[]) ?? []);
 	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
