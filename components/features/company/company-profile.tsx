@@ -186,14 +186,29 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 									<span role="columnheader">Date</span>
 									<span role="columnheader">Funding Type</span>
 									<span role="columnheader">Money Raised</span>
-									<span role="columnheader">Lead Investor</span>
+									<span role="columnheader">Investors</span>
 								</div>
 								{dealRows.map((d) => (
 									<div key={d.id} className="atlas-co__deal" role="row">
 										<span role="cell">{fmtDate(d.announced_date)}</span>
 										<span role="cell">{d.round_type_name ?? 'Round'}</span>
 										<span className="atlas-co__amt" role="cell">{d.amount_usd == null ? '—' : fmtUsd(Number(d.amount_usd))}</span>
-										<span className="atlas-co__investors" role="cell">{(d.lead_investor ? [d.lead_investor] : d.investors?.length ? d.investors : []).join(', ') || 'Undisclosed'}</span>
+										{/* All participants in the round, each linked to its investor page
+										    when the investor is in our DB (slug present); the lead is
+										    marked. Falls back to the flat name string for older rows that
+										    have no investor_links. */}
+										<span className="atlas-co__investors" role="cell">
+											{d.investor_links && d.investor_links.length > 0
+												? d.investor_links.map((iv, i) => (
+													<span key={(iv.slug ?? iv.name) + i}>
+														{iv.slug
+															? <Link href={`/investors/${iv.slug}`} style={{ color: 'var(--a-navy)', textDecoration: 'none' }}>{iv.name}</Link>
+															: <span>{iv.name}</span>}
+														{iv.is_lead ? ' (lead)' : ''}{i < d.investor_links!.length - 1 ? ', ' : ''}
+													</span>
+												))
+												: (d.lead_investor ? [d.lead_investor] : d.investors?.length ? d.investors : []).join(', ') || 'Undisclosed'}
+										</span>
 									</div>
 								))}
 							</div>
