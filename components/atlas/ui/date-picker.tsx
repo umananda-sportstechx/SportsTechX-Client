@@ -165,12 +165,13 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 						<input
 							type="text"
 							inputMode="numeric"
+							className="atlas-datepanel__jump"
 							aria-label="Jump to date (YYYY-MM-DD)"
 							placeholder="Jump to date: YYYY-MM-DD"
 							value={typed}
 							onChange={(e) => onTyped(e.target.value)}
 							onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const d = parseTyped(typed); if (d) pick(d); } }}
-							style={{ width: '100%', margin: '0 0 10px', padding: '7px 9px', fontSize: 12, fontFamily: 'var(--a-mono)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', background: 'var(--a-field)', color: 'var(--a-ink)', outline: 'none' }}
+							style={{ width: '100%', margin: '0 0 10px', padding: '7px 9px', fontFamily: 'var(--a-mono)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', background: 'var(--a-field)', color: 'var(--a-ink)', outline: 'none' }}
 						/>
 						<div className="atlas-datepanel__dow">{['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => <span key={d}>{d}</span>)}</div>
 						<div className="atlas-datepanel__grid">

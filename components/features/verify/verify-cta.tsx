@@ -129,7 +129,7 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 				onClick={() => openClaim(target, target.role, undefined, allowed)}
 				title={state === 'verified' ? 'Edit your verified details' : 'Edit your pending submission'}
 			>
-				<VerifiedBadge size={17} className="atlas-verify-btn__tick" /> {state === 'verified' ? 'Verified' : 'Verification pending'}{name ? ` · ${name}` : ''}
+				<VerifiedBadge size={17} className="atlas-verify-btn__tick" /><span className="atlas-ellipsis atlas-verify-btn__label">{state === 'verified' ? 'Verified' : 'Verification pending'}{name ?` · ${name}` : ''}</span>
 			</Button>
 		);
 	}
