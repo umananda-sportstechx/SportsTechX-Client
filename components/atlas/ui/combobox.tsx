@@ -50,6 +50,11 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
+	// Only auto-scroll the active option into view for keyboard/open — NOT for
+	// mouse hover. Wheel-scrolling moves options under a stationary cursor, firing
+	// onMouseEnter → setActive; scrolling that into view fought the wheel and made
+	// the list jump (reported: "scroll to the bottom and it shoots to the top").
+	const keyNav = useRef(false);
 
 	const all = useMemo(() => flatten(options, groups), [options, groups]);
 	const selectedLabel = useMemo(() => all.find(([v]) => v === value)?.[1] ?? (value || ''), [all, value]);
@@ -90,12 +95,19 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 		if (!open) return;
 		place();
 		setQuery('');
+		keyNav.current = true; // scroll the selected option into view on open
 		setActive(Math.max(0, visible.findIndex(([v]) => v === value)));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 	useEffect(() => {
 		if (!open) return;
-		const h = () => place();
+		// Reposition only when the PAGE/ancestor scrolls — ignore the panel's own
+		// list scroll (capture catches it) so scrolling the list doesn't re-run
+		// place() and jitter the panel.
+		const h = (e?: Event) => {
+			if (e && e.target instanceof Node && panelRef.current?.contains(e.target)) return;
+			place();
+		};
 		window.addEventListener('scroll', h, true);
 		window.addEventListener('resize', h);
 		const away = (e: MouseEvent) => {
@@ -121,8 +133,8 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 		if (!open) return;
 		const onKeyCap = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); triggerRef.current?.focus(); }
-			else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(visible.length - 1, i + 1)); }
-			else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
+			else if (e.key === 'ArrowDown') { e.preventDefault(); keyNav.current = true; setActive((i) => Math.min(visible.length - 1, i + 1)); }
+			else if (e.key === 'ArrowUp') { e.preventDefault(); keyNav.current = true; setActive((i) => Math.max(0, i - 1)); }
 			else if (e.key === 'Enter') { e.preventDefault(); const o = visible[active]; if (o) pick(o[0]); }
 		};
 		document.addEventListener('keydown', onKeyCap, true);
@@ -132,7 +144,7 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 
 	// Keep the keyboard-highlighted option in view in a long (scrolled) list.
 	useEffect(() => {
-		if (!open) return;
+		if (!open || !keyNav.current) return; // keyboard/open only — see keyNav
 		panelRef.current?.querySelector<HTMLElement>(`[data-ci="${active}"]`)?.scrollIntoView({ block: 'nearest' });
 	}, [active, open]);
 
@@ -202,7 +214,7 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 												data-ci={idx}
 												aria-selected={v === value}
 												className={cx('atlas-combo-opt', v === value && 'is-selected', idx === active && 'is-active')}
-												onMouseEnter={() => setActive(idx)}
+												onMouseEnter={() => { keyNav.current = false; setActive(idx); }}
 												onClick={() => pick(v)}
 											>
 												<span>{l}</span>

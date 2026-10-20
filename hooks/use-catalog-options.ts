@@ -85,7 +85,9 @@ export function useCountryOptions(): [string, string][] {
 	);
 	return useMemo(() => {
 		const list = Array.isArray(data) ? data : [];
-		return list.map((c) => [c.name, c.name] as [string, string]);
+		// Alphabetical, like every other option hook here — the endpoint doesn't
+		// guarantee order, so the country dropdown was coming out unsorted.
+		return list.map((c) => [c.name, c.name] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
 	}, [data]);
 }
 
