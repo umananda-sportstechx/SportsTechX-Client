@@ -31,7 +31,10 @@ interface Props {
 const pad = (n: number) => String(n).padStart(2, '0');
 const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parseISO = (s: string): Date | null => {
-	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+	// Accept a bare 'YYYY-MM-DD' or the date prefix of a full ISO timestamp
+	// ('YYYY-MM-DDT…') — defensive against any value that still arrives as a
+	// timestamp, so the field never renders blank for a real date.
+	const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
 	if (!m) return null;
 	const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 	return Number.isNaN(d.getTime()) ? null : d;
@@ -48,6 +51,7 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number } | null>(null);
 	const [view, setView] = useState<Date>(() => parseISO(value) ?? new Date());
 	const [focus, setFocus] = useState<Date>(() => parseISO(value) ?? new Date());
+	const [typed, setTyped] = useState('');
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +74,7 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 		if (!open) return;
 		place();
 		const base = parseISO(value) ?? new Date();
-		setView(base); setFocus(base);
+		setView(base); setFocus(base); setTyped('');
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 	useEffect(() => {
@@ -103,6 +107,20 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 
 	const outOfRange = (d: Date) => (!!minD && d < minD) || (!!maxD && d > maxD);
 	const pick = (d: Date) => { if (outOfRange(d)) return; onChange(toISO(d)); setOpen(false); triggerRef.current?.focus(); };
+	// Typed "jump to date" — a real, in-range YYYY-MM-DD (single-digit month/day ok).
+	const parseTyped = (s: string): Date | null => {
+		const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s.trim());
+		if (!m) return null;
+		const y = Number(m[1]), mo = Number(m[2]), da = Number(m[3]);
+		const d = new Date(y, mo - 1, da);
+		if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da || outOfRange(d)) return null;
+		return d;
+	};
+	const onTyped = (s: string) => {
+		setTyped(s);
+		const d = parseTyped(s);
+		if (d) { setView(new Date(d.getFullYear(), d.getMonth(), 1)); setFocus(d); }
+	};
 
 	// Monday-first grid for the viewed month, padded with leading blanks.
 	const cells = useMemo<(Date | null)[]>(() => {
@@ -139,6 +157,17 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 							<span className="atlas-datepanel__month">{view.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span>
 							<button type="button" className="atlas-datepanel__nav" aria-label="Next month" onClick={() => setView((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
 						</div>
+						{/* Type a date to jump to it, instead of paging month by month. */}
+						<input
+							type="text"
+							inputMode="numeric"
+							aria-label="Jump to date (YYYY-MM-DD)"
+							placeholder="Jump to date: YYYY-MM-DD"
+							value={typed}
+							onChange={(e) => onTyped(e.target.value)}
+							onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const d = parseTyped(typed); if (d) pick(d); } }}
+							style={{ width: '100%', margin: '0 0 10px', padding: '7px 9px', fontSize: 12, fontFamily: 'var(--a-mono)', border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius-sm)', background: 'var(--a-field)', color: 'var(--a-ink)', outline: 'none' }}
+						/>
 						<div className="atlas-datepanel__dow">{['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => <span key={d}>{d}</span>)}</div>
 						<div className="atlas-datepanel__grid">
 							{cells.map((d, i) => d === null ? <span key={`b${i}`} /> : (

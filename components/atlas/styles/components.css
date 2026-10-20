@@ -88,6 +88,7 @@
 
 /* ── Field ──────────────────────────────────────────────────────────────── */
 .atlas-label { display: block; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 7px; }
+.atlas-label__req { color: var(--a-danger); }
 .atlas-input, .atlas-select, .atlas-textarea {
   width: 100%; height: 38px; padding: 0 14px;
   background: var(--a-field); color: var(--a-ink);
