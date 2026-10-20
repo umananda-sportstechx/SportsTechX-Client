@@ -113,13 +113,16 @@ export function AtlasShell({ product, productColor, homePath, nav, topbar, overl
 	};
 	const renderEntry = (e: ShellNavEntry) => {
 		if (!isSection(e)) return renderItem(e);
-		// The section holding the current page always stays open.
-		const holdsActive = e.items.some((i) => i.path === activePath);
-		const isOpen = holdsActive || !closed.includes(e.title);
+		// Collapsible regardless of whether it holds the current page. It used to be
+		// force-open + the toggle disabled whenever the section contained the active
+		// route — which made the Raise "Watchlists" section's collapse button dead,
+		// since a user is almost always on one of its pages (pipeline / a saved list
+		// / All watchlists).
+		const isOpen = !closed.includes(e.title);
 		const id = `nav-sec-${e.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 		return (
 			<div key={e.title} className={`atlas-nav-section${isOpen ? '' : ' is-closed'}`}>
-				<button type="button" className="atlas-nav-section__head" aria-expanded={isOpen} aria-controls={id} onClick={() => toggleSection(e.title)} disabled={holdsActive}>
+				<button type="button" className="atlas-nav-section__head" aria-expanded={isOpen} aria-controls={id} onClick={() => toggleSection(e.title)}>
 					<span>{e.title}</span>
 					<span className="atlas-nav-caret"><FigmaIcon name="nav-caret" /></span>
 				</button>

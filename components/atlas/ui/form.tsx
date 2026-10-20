@@ -8,7 +8,7 @@ import { DatePicker } from './date-picker';
 
 /** Form fields — mono uppercase labels, rounded inputs. Add `className="atlas-input--search"` for a pill search box. */
 
-export function Field({ label, children }: { label?: string; children: ReactNode }) {
+export function Field({ label, required, children }: { label?: string; required?: boolean; children: ReactNode }) {
 	const autoId = useId();
 	// Tie the label to a single Atlas control (screen readers + click-to-focus).
 	// Other children (button groups, read-only values) keep a plain label.
@@ -17,8 +17,10 @@ export function Field({ label, children }: { label?: string; children: ReactNode
 	const id = control ? (control.props.id ?? autoId) : undefined;
 	return (
 		<div>
-			{label && <label className="atlas-label" htmlFor={id}>{label}</label>}
-			{control ? cloneElement(control, { id }) : children}
+			{/* `required` shows a `*` up front, so a mandatory field reads as one before
+			    save rather than only erroring in a toast afterwards. */}
+			{label && <label className="atlas-label" htmlFor={id}>{label}{required && <span className="atlas-label__req" aria-hidden="true"> *</span>}</label>}
+			{control ? cloneElement(control, { id, ...(required ? { 'aria-required': true } : {}) }) : children}
 		</div>
 	);
 }

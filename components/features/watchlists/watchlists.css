@@ -1,5 +1,7 @@
 /* Company watchlists — picker menu extras, overview + detail rows. Atlas tokens only. */
-.atlas .atlas-wl-menu { min-width: 260px; }
+/* Above the sidebar rail (z-index 60 on mobile) so the open menu isn't hidden
+   behind it when the control sits near the left edge. The base .atlas-menu is 30. */
+.atlas .atlas-wl-menu { min-width: 260px; z-index: 70; }
 .atlas .atlas-wl-check {
 	display: inline-grid; place-items: center; flex-shrink: 0; width: 14px; height: 14px; border-radius: 3px;
 	border: 1px solid color-mix(in srgb, var(--a-primary-ink) 45%, transparent);

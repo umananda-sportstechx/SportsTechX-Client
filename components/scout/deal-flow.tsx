@@ -102,7 +102,7 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 				<div className="scout-df__filter">
 					<span className="scout-df__filter-label">Max valuation</span>
 					<div style={{ width: 96 }}><Select value={valCcy} onChange={(e) => setValCcy(e.target.value)} options={[['EUR', 'EUR'], ['USD', 'USD']]} /></div>
-					<div style={{ width: 170 }}><Input type="number" min="0" value={maxVal} onChange={(e) => setMaxVal(e.target.value)} placeholder={`e.g. ${valCcy === 'USD' ? '$' : '€'}10000000`} /></div>
+					<div style={{ width: 170 }}><Input type="number" min="0" step={100000} value={maxVal} onChange={(e) => setMaxVal(e.target.value)} placeholder={`e.g. ${valCcy === 'USD' ? '$' : '€'}10000000`} /></div>
 					{valActive && <button type="button" className="scout-df__filter-clear" onClick={() => setMaxVal('')}>Clear</button>}
 				</div>
 			)}
@@ -264,7 +264,7 @@ function LiveEdit({ m, onSaved }: { m: MyDealRow; onSaved: () => void }) {
 	return (
 		<div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
 			<Field label={`Committed to date (${m.currency_code ?? 'EUR'})`}>
-				<Input type="number" min="0" value={committed} onChange={(e) => setCommitted(e.target.value)} placeholder="500000" />
+				<Input type="number" min="0" step={1000} value={committed} onChange={(e) => setCommitted(e.target.value)} placeholder="500000" />
 			</Field>
 			<Field label="Lead status">
 				<Select value={lead} onChange={(e) => setLead(e.target.value)} options={Object.entries(LEAD_LABEL)} placeholder="No change" />
