@@ -68,6 +68,7 @@ export const qk = {
   acquisitions: {
     list: (params: Record<string, unknown> = {}) => ['/api/acquisitions', params] as const,
     detail: (id: string) => [`/api/acquisitions/${id}`] as const,
+    sports: (id: string) => [`/api/acquisitions/${id}/sports`] as const,
   },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
