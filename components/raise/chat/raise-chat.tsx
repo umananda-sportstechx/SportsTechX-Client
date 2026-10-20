@@ -83,6 +83,10 @@ export function RaiseChat() {
 		setDrag(null);
 		try { localStorage.setItem(CORNER_KEY, next); } catch { /* private mode / blocked */ }
 	};
+	// If the gesture is interrupted (pointercancel, e.g. the OS takes over), snap
+	// the button back to its parked corner and clear the drag flags so the next
+	// click opens the panel normally and the button isn't left stuck mid-drag.
+	const onFabPointerCancel = () => { dragStart.current = null; moved.current = false; setDrag(null); };
 
 	// Memoized: `useChat` keeps this in its callback deps, so a fresh closure on
 	// every render would rebuild them for nothing.
@@ -139,6 +143,7 @@ export function RaiseChat() {
 					onPointerDown={onFabPointerDown}
 					onPointerMove={onFabPointerMove}
 					onPointerUp={onFabPointerUp}
+					onPointerCancel={onFabPointerCancel}
 					onClick={() => { if (moved.current) { moved.current = false; return; } setOpen(true); }}
 					aria-label={copy.fabLabel}
 					title="Drag to move • click to open"

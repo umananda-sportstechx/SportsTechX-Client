@@ -69,7 +69,10 @@ export function MarketRoundup() {
 	const setMonth = (m: number) => setSel({ year, month: m });
 
 	const start = `${year}-${pad(month)}-01`;
-	const end = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
+	// The deals/acquisitions `to` bound is INCLUSIVE server-side, so use the last
+	// day of the month — passing the 1st of the next month would leak that day's
+	// rows into this month's list (and double-count them next month).
+	const end = `${year}-${pad(month)}-${pad(new Date(Date.UTC(year, month, 0)).getUTCDate())}`;
 	// Largest deals this month — deals for funding, acquisitions for M&A. Held
 	// until the month is known, and only the active market's list is fetched.
 	const deals = useSWR<{ data: Deal[] }>(shown && mode === 'funding' ? qk.deals.list({ from: start, to: end, sort: '-amount_usd', limit: 10 }) : null);

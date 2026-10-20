@@ -104,7 +104,11 @@ export function MaDeals() {
 	const rows = res.data?.data ?? [];
 	const total = res.data?.total ?? 0;
 	// Panel content is the row matching ?deal=; closes automatically on Back.
-	const selected = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
+	// If the deal isn't on the loaded page (a shared/pasted link, or a different
+	// page/filter), fetch it directly so the deep link still opens the panel.
+	const inRows = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
+	const detail = useSWR<MaDeal>(dealId && !inRows ? qk.acquisitions.detail(dealId) : null);
+	const selected = inRows ?? detail.data ?? null;
 	const anyFilter = !!(dq || type || sector || country || year || disclosed);
 
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
