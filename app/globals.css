@@ -193,6 +193,10 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* Nothing should ever scroll the whole document sideways on a phone: one
+     over-wide child used to drag the entire page into a horizontal scroll. */
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {

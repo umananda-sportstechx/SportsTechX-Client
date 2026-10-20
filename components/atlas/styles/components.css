@@ -286,7 +286,9 @@ span.atlas-fbar__pill-main { cursor: default; }
 
 /* Black popover menu (Figma filter dropdowns). Inverts in dark mode via the primary tokens. */
 .atlas-menu {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+  /* z-index above the Ask-Atlas scrim/panel (79/80) so a filter/sort/menu never
+     opens *behind* the chat; still below real modals (>=100). */
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 90;
   min-width: 190px; max-width: min(92vw, 440px);
   background: var(--a-primary); color: var(--a-primary-ink);
   border-radius: var(--a-radius); padding: 14px 14px 12px;
@@ -360,6 +362,15 @@ span.atlas-fbar__pill-main { cursor: default; }
   .atlas-fbar__search { flex-basis: 100%; }
   .atlas-fbar__right { margin-left: 0; width: 100%; justify-content: space-between; }
   .atlas-menu--wide .atlas-menu__groups { grid-template-columns: 1fr; }
+  /* Opt-in bottom sheet for filter/sort/watchlist menus: an absolute dropdown
+     anchored to a left/right-edge button ran off the viewport on phones. Pin it
+     to the bottom of the screen instead. Navbar account/notification menus do
+     NOT get this (they aren't `--sheet`). */
+  .atlas-menu.atlas-menu--sheet {
+    position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
+    width: auto; min-width: 0; max-width: none;
+    max-height: 72vh; overflow-y: auto;
+  }
 }
 
 /* ── Investor card (Figma "Investor Card": 252×232, pink glow on hover) ─── */
@@ -488,7 +499,8 @@ span.atlas-fbar__pill-main { cursor: default; }
 	.atlas .atlas-kpis { grid-template-columns: 1fr 1fr; padding: 24px 0; }
 	.atlas .atlas-kpi { padding: 0 18px; }
 	.atlas .atlas-kpi:nth-child(odd) { border-left: none; }
-	.atlas .atlas-kpi__value { font-size: 28px; }
+	/* Let a very large number wrap instead of clipping in the narrow 2-col cell. */
+	.atlas .atlas-kpi__value { font-size: 28px; white-space: normal; overflow-wrap: anywhere; }
 }
 
 @media (max-width: 640px) {

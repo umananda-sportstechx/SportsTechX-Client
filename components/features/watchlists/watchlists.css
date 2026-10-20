@@ -1,16 +1,9 @@
 /* Company watchlists — picker menu extras, overview + detail rows. Atlas tokens only. */
 /* Above the sidebar rail (z-index 60 on mobile) so the open menu isn't hidden
    behind it when the control sits near the left edge. The base .atlas-menu is 30. */
-.atlas .atlas-wl-menu { min-width: 260px; z-index: 70; }
-/* On phones the trigger sits near the left edge, so the right-anchored 260px menu
-   ran off the left side of the screen. Pin it to the viewport as a bottom sheet. */
-@media (max-width: 640px) {
-	.atlas .atlas-wl-menu {
-		position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
-		width: auto; min-width: 0; max-width: none;
-		max-height: 70vh; overflow-y: auto;
-	}
-}
+/* z-index and the mobile bottom-sheet come from `.atlas-menu` / `.atlas-menu--sheet`
+   (this menu opts in via that class); only the desktop min-width is bespoke. */
+.atlas .atlas-wl-menu { min-width: 260px; }
 .atlas .atlas-wl-check {
 	display: inline-grid; place-items: center; flex-shrink: 0; width: 14px; height: 14px; border-radius: 3px;
 	border: 1px solid color-mix(in srgb, var(--a-primary-ink) 45%, transparent);
