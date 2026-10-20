@@ -314,7 +314,7 @@
 /* ── Checkboxes ────────────────────────────────────────────────────────────*/
 .cm-check { display: inline-flex; align-items: center; gap: 8px; font-family: var(--a-body); font-size: 13px; color: var(--a-ink); cursor: pointer; user-select: none; }
 .cm-check input { width: 16px; height: 16px; accent-color: var(--a-primary); cursor: pointer; flex-shrink: 0; }
-.cm-check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; margin-bottom: 6px; }
+.cm-check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px 14px; margin-bottom: 6px; }
 
 .cm-bigcheck { display: flex; align-items: flex-start; gap: 12px; padding: 14px; margin-bottom: 4px; background: var(--a-surface); border: 1px solid var(--a-card-border); border-radius: var(--a-radius); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .cm-bigcheck.on { border-color: var(--a-border-strong); background: var(--a-inset); }

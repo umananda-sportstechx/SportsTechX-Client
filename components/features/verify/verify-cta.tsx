@@ -145,7 +145,7 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, undefined, allowed)}>
 			{/* The verification tick everyone already reads as "verified", in the
 			    one place Atlas spends a hue on something that is not a status. */}
-			<VerifiedBadge size={17} className="atlas-verify-btn__tick" /> {label ?? 'Get verified'}
+			<VerifiedBadge size={17} className="atlas-verify-btn__tick" /><span className="atlas-verify-btn__label">{label ?? 'Get verified'}</span>
 		</Button>
 	);
 }
