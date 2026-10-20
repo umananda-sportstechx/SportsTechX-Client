@@ -51,6 +51,16 @@ export function rewriteReportHref(href: string | null | undefined): string {
 	const raw = href.trim();
 	if (!raw || raw.startsWith('#') || /^(mailto:|tel:)/i.test(raw)) return raw || '#';
 
+	// Protocol-relative (`//host/path`) — resolve against https so the host check
+	// runs; otherwise it would fall through to the `/`-path branch and a hub host
+	// like `//hub.sportstechx.com/companies` would leak out unchanged.
+	if (raw.startsWith('//')) {
+		try {
+			const u = new URL('https:' + raw);
+			return isSportsTechX(u.hostname) ? mapPath(u.pathname, u.search + u.hash) : raw;
+		} catch { return raw; }
+	}
+
 	if (/^https?:\/\//i.test(raw)) {
 		let u: URL;
 		try { u = new URL(raw); } catch { return raw; }
