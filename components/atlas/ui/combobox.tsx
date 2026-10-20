@@ -195,7 +195,7 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 									autoFocus
 									value={query}
 									placeholder="Type to filter…"
-									onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+									onChange={(e) => { keyNav.current = true; setQuery(e.target.value); setActive(0); }}
 								/>
 							</div>
 						)}
