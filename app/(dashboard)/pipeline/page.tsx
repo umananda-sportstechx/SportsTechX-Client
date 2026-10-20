@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/query-client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button, Eyebrow, Field, Flag, Input, Loading, Logo, SectionHeader, Select, Textarea } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
+import './pipeline.css';
 
 /**
  * Atlas Raise — investor Watchlist, formerly "Pipeline" (mock-up 14 / Notion "Pipeline"). Full-width
@@ -91,14 +92,14 @@ export default function RaisePipelinePage() {
 
 			{isLoading ? <Loading /> : (
 				<div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: `0 ${PAD_X} 20px` }}>
-					<div style={{ display: 'flex', gap: 14, minWidth: 'max-content', minHeight: '100%' }}>
+					<div className="pipe-board">
 						{STAGES.map(([s, label]) => (
 							<div key={s}
 								onDragOver={(e) => { e.preventDefault(); if (dragOver !== s) setDragOver(s); }}
 								onDragLeave={() => setDragOver((cur) => (cur === s ? null : cur))}
 								onDrop={(e) => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData('text/plain'); if (id) void moveCard(id, s); }}
-								className="atlas-card"
-								style={{ flex: '0 0 248px', minWidth: 248, display: 'flex', flexDirection: 'column', padding: 0, borderColor: dragOver === s ? 'var(--a-border-strong)' : undefined }}>
+								className="atlas-card pipe-col"
+								style={{ borderColor: dragOver === s ? 'var(--a-border-strong)' : undefined }}>
 								<div style={{ position: 'sticky', top: 0, zIndex: 1, fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '14px 16px 12px', borderBottom: '1px solid var(--a-border)', display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--a-ink)', background: 'var(--a-surface)', borderRadius: 'var(--a-radius) var(--a-radius) 0 0' }}>
 									<span>{label}</span><span style={{ color: 'var(--a-faint)' }}>{byStage[s]?.length ?? 0}</span>
 								</div>

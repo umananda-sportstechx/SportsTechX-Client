@@ -57,6 +57,8 @@ export function Modal({ open, onOpenChange, icon, title, children, footer, width
 						width: `min(92vw, ${width}px)`, background: 'var(--a-surface)',
 						border: '1px solid var(--a-border)', borderRadius: 'var(--a-radius)', padding: '26px 28px',
 						boxShadow: '0 20px 60px rgba(0,0,0,0.4)', zIndex: 201, color: 'var(--a-ink)',
+						// Tall content scrolls inside the dialog instead of spilling off a phone.
+						maxHeight: '88dvh', overflowY: 'auto',
 					}}
 				>
 					{icon && (

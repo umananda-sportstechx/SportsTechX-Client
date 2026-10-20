@@ -1,0 +1,10 @@
+/* Watchlist kanban board layout. Desktop: 8 fixed-width columns on a horizontal
+   scroll. Mobile: stack the stages vertically (no 2000px sideways scroll) — stage
+   changes on a phone happen via a card's detail-panel Stage select, not drag. */
+.atlas .pipe-board { display: flex; gap: 14px; min-width: max-content; min-height: 100%; }
+.atlas .pipe-col { flex: 0 0 248px; min-width: 248px; display: flex; flex-direction: column; padding: 0; }
+
+@media (max-width: 720px) {
+	.atlas .pipe-board { flex-direction: column; min-width: 0; gap: 12px; }
+	.atlas .pipe-col { flex: 1 1 auto; width: 100%; min-width: 0; }
+}
