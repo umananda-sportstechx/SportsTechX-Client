@@ -56,7 +56,7 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 				{inCount ? `In ${inCount} watchlist${inCount === 1 ? '' : 's'}` : 'Add to watchlist'}
 			</button>
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-wl-menu" role="dialog" aria-label="Save to watchlist">
+				<div className="atlas-menu atlas-menu--end atlas-wl-menu atlas-menu--sheet" role="dialog" aria-label="Save to watchlist">
 					<div className="atlas-menu__head"><span>Save to watchlist</span></div>
 					{lists.length > 5 && (
 						<div className="atlas-switcher__search">

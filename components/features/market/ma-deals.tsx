@@ -143,7 +143,7 @@ export function MaDeals() {
 						<span className="atlas-table__name">Company</span>
 						<span className="atlas-table__col hide-sm" style={{ width: 150 }}>Sector</span>
 						<span className="atlas-table__col hide-sm" style={{ width: 130 }}>Location</span>
-						<span className="atlas-table__col" style={{ width: 200 }}>Acquirer</span>
+						<span className="atlas-table__col hide-sm" style={{ width: 200 }}>Acquirer</span>
 						<span className="atlas-table__col hide-sm" style={{ width: 90 }}>Announced</span>
 						<span className="atlas-table__col" style={{ width: 100, textAlign: 'right' }}>Value</span>
 					</div>
@@ -168,7 +168,7 @@ export function MaDeals() {
 								<span className="atlas-table__col hide-sm" style={{ width: 130, display: 'flex', alignItems: 'center', gap: 6 }}>
 									{d.hq_country ? <><Flag cc={d.hq_country} size={11} /><span className="atlas-ellipsis">{canonicalCountry(d.hq_country)}</span></> : '—'}
 								</span>
-								<span className="atlas-table__col" style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+								<span className="atlas-table__col hide-sm" style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
 									{d.acquirer_name ? <>
 										<Logo co={{ name: d.acquirer_name, website: null, custom_logo_url: null }} size={24} radius={5} />
 										{d.acquirer_slug
