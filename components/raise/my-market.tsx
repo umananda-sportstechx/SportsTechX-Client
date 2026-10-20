@@ -117,7 +117,7 @@ export function MyMarket() {
 			) : (
 				<div style={{ marginTop: 27 }}>
 					{competitors.length === 0 ? <Empty>No competitors mapped yet.</Empty> : (
-						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
 							{competitors.map((c) => (
 								<Link key={c.id} href={companyHref(c.id)} className="atlas-card atlas-entity-card" style={{ minHeight: 120, textDecoration: 'none', color: 'inherit' }}>
 									<div className="atlas-entity-card__head" style={{ marginBottom: 12 }}>

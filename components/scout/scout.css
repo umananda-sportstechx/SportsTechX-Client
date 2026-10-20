@@ -215,7 +215,7 @@
 @media (max-width: 560px) { .atlas .scout-dd-terms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ── Forms: thesis, onboarding, share a deal ─────────────────────────────── */
-.atlas .scout-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 18px; margin-bottom: 18px; }
+.atlas .scout-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px 18px; margin-bottom: 18px; }
 .atlas .scout-field { margin-bottom: 20px; }
 .atlas .scout-field:last-child { margin-bottom: 0; }
 .atlas .scout-field__label { margin-bottom: 9px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); }
@@ -266,7 +266,7 @@
 }
 .atlas .scout-chip.on { background: var(--a-purple-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-purple) 40%, transparent); }
 .atlas .scout-chip--add { background: transparent; box-shadow: inset 0 0 0 1px var(--a-border-strong); color: var(--a-ink); }
-.atlas .scout-pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+.atlas .scout-pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 18px; }
 .atlas .scout-pillar { display: flex; flex-direction: column; gap: 10px; }
 .atlas .scout-pillar__pill {
 	align-self: flex-start; padding: 6px 14px; border-radius: var(--a-radius-pill); color: #FFFFFF; line-height: 1;
@@ -312,7 +312,7 @@
 .atlas .scout-modal__search input { flex: 1; border: none; background: transparent; outline: none; color: var(--a-ink); font-family: var(--a-body); font-size: 13px; }
 .atlas .scout-modal__body { flex: 1; overflow-y: auto; padding: 4px 22px 12px; }
 .atlas .scout-modal__group { margin: 14px 0 8px; }
-.atlas .scout-modal__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.atlas .scout-modal__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 6px; }
 .atlas .scout-modal__foot { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--a-border); }
 .atlas .scout-pick {
 	display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px; text-align: left; cursor: pointer;

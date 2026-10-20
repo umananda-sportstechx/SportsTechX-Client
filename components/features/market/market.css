@@ -46,7 +46,7 @@
 .atlas .mkt-co-open:hover::before { background: var(--a-field); color: var(--a-ink); box-shadow: inset 0 0 0 1px var(--a-border-strong); }
 
 /* ── Roundup donut cards (Figma "Funding by sector") ── */
-.atlas .mkt-donuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.atlas .mkt-donuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 24px; }
 .atlas .mkt-donut-card { padding: 0; overflow: hidden; }
 .atlas .mkt-donut-card .atlas-chart-card__head { padding: 22px 18px 16px; }
 .atlas .mkt-donut-card .atlas-section-title { font-size: 16px; }
@@ -65,7 +65,7 @@
 .atlas .mkt-news-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; }
 
 /* ── Archive grid ── */
-.atlas .mkt-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 26px; }
+.atlas .mkt-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 0 26px; }
 .atlas .mkt-archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--a-border); font-family: var(--a-body); font-size: 13px; }
 .atlas .mkt-archive-row button { background: none; border: none; color: var(--a-ink); cursor: pointer; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; padding: 0; }
 .atlas .mkt-archive-row button:hover { text-decoration: underline; }

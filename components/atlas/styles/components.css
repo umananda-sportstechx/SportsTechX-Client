@@ -365,12 +365,24 @@ span.atlas-fbar__pill-main { cursor: default; }
   /* Opt-in bottom sheet for filter/sort/watchlist menus: an absolute dropdown
      anchored to a left/right-edge button ran off the viewport on phones. Pin it
      to the bottom of the screen instead. Navbar account/notification menus do
-     NOT get this (they aren't `--sheet`). */
+     NOT get this (they aren't `--sheet`). A flex column so the header/search stay
+     pinned and only the list scrolls. */
   .atlas-menu.atlas-menu--sheet {
     position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
     width: auto; min-width: 0; max-width: none;
-    max-height: 72vh; overflow-y: auto;
+    max-height: 72vh; overflow: hidden;
+    display: flex; flex-direction: column;
   }
+  /* The "Add filter" menu drills root -> group options. Give it a FIXED height so
+     the sheet frame doesn't leap up the screen when the taller options list
+     replaces the short group grid — the reported "doesn't hold its position" bug. */
+  .atlas-menu.atlas-menu--drill { height: min(72vh, 520px); }
+  .atlas-menu--sheet .atlas-menu__head,
+  .atlas-menu--sheet .atlas-menu__search { flex: none; }
+  .atlas-menu--sheet .atlas-menu__groups,
+  .atlas-menu--sheet .atlas-menu__list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  /* One scroll region inside the fixed frame, not a nested 280px scroller. */
+  .atlas-menu--sheet .atlas-menu__list--scroll { max-height: none; }
 }
 
 /* ── Investor card (Figma "Investor Card": 252×232, pink glow on hover) ─── */
