@@ -12,7 +12,7 @@ import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef } from '@/
 import { fmtUsd } from '@/components/features/market/format';
 import { companyHref } from '@/lib/routes';
 import { MaDealPanel } from '@/components/features/market/ma-deal-panel';
-import { useUrlSync, useUrlReader, useUrlModal } from '@/hooks/use-url-state';
+import { useUrlSync, useUrlReader, useUrlModal, isUuid } from '@/hooks/use-url-state';
 
 /**
  * M&A — a tabulated list of acquisitions (GET /api/acquisitions), newest first.
@@ -61,15 +61,16 @@ export function MaDeals() {
 	const url = useUrlReader();
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [type, setType] = useState(() => url.str('type'));
+	const [type, setType] = useState(() => url.oneOf('type', TYPE_OPTIONS.map(([v]) => v), ''));
 	const [sector, setSector] = useState(() => url.str('sector'));
 	const [country, setCountry] = useState(() => url.str('country'));
-	const [year, setYear] = useState(() => url.str('year'));
+	const [year, setYear] = useState(() => url.oneOf('year', SINCE_YEARS.map(([v]) => v), ''));
 	const [disclosed, setDisclosed] = useState(() => url.bool('disclosed'));
-	const [sort, setSort] = useState(() => url.str('sort') || '-acquisition_date');
+	const [sort, setSort] = useState(() => url.oneOf('sort', SORTS.map(([v]) => v), '-acquisition_date'));
 	const [page, setPage] = useState(() => url.num('page', 1));
-	// The detail panel is addressable (?deal=<id>) for deals on the loaded page.
-	const [dealId, setDealId] = useUrlModal('deal');
+	// The detail panel is addressable (?deal=<uuid>) for deals on the loaded page.
+	// The id must be a UUID or the param is ignored.
+	const [dealId, setDealId] = useUrlModal('deal', { validate: isUuid });
 	const reset = () => setPage(1);
 	useUrlSync({
 		q: dq, type, sector, country, year, disclosed,
