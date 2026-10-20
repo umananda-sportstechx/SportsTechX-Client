@@ -77,11 +77,13 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 		const above = r.top - margin;
 		// Match the trigger width — long labels (e.g. full sector paths) wrap
 		// rather than widening the panel, so short dropdowns aren't oversized.
-		const width = r.width;
+		const width = Math.min(r.width, window.innerWidth - margin * 2);
+		// Clamp horizontally so the panel never spills off either edge on a phone.
+		const left = Math.max(margin, Math.min(r.left, window.innerWidth - width - margin));
 		if (below >= Math.min(want, 180) || below >= above) {
-			setPos({ left: r.left, width, top: r.bottom + gap, maxH: Math.min(want, below) });
+			setPos({ left, width, top: r.bottom + gap, maxH: Math.min(want, below) });
 		} else {
-			setPos({ left: r.left, width, bottom: window.innerHeight - r.top + gap, maxH: Math.min(want, above) });
+			setPos({ left, width, bottom: window.innerHeight - r.top + gap, maxH: Math.min(want, above) });
 		}
 	};
 	useLayoutEffect(() => {

@@ -84,7 +84,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 						</button>
 					</span>
 					{menu?.at === f.key && f.kind === 'select' && (
-						<div className="atlas-menu" role="dialog" aria-label={f.label}>
+						<div className="atlas-menu atlas-menu--sheet" role="dialog" aria-label={f.label}>
 							<OptionsView f={f} onDone={() => setMenu(null)} />
 						</div>
 					)}
@@ -96,7 +96,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 					<Plus /> Add filter
 				</button>
 				{menu?.at === 'add' && (
-					<div className={cx('atlas-menu', (groups.length > 1 || menu.view !== 'root') && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
+					<div className={cx('atlas-menu atlas-menu--sheet', (groups.length > 1 || menu.view !== 'root') && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
 						{menu.view === 'root' ? (
 							<div className="atlas-menu__groups">
 								{groups.map((g) => (
@@ -142,7 +142,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 							<SlidersHorizontal /> Sort by
 						</button>
 						{menu?.at === 'sort' && (
-							<div className="atlas-menu atlas-menu--end" role="dialog" aria-label="Sort by">
+							<div className="atlas-menu atlas-menu--end atlas-menu--sheet" role="dialog" aria-label="Sort by">
 								<div className="atlas-menu__list">
 									{sort.options.map(([v, l]) => (
 										<button key={v} type="button" className={cx('atlas-menu__item', v === sort.value && 'on')} aria-pressed={v === sort.value}
