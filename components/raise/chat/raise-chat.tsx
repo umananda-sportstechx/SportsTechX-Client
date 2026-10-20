@@ -28,6 +28,17 @@ import './raise-chat.css';
  * "Atlas"), mono uppercase labels, and the command palette's row for prompts.
  */
 
+/** Which corner the launcher is parked in. Dropped wherever you let go. */
+type Corner = 'tl' | 'tr' | 'bl' | 'br';
+const CORNER_OFFSET: Record<Corner, React.CSSProperties> = {
+	br: { right: 24, bottom: 24, left: 'auto', top: 'auto' },
+	bl: { left: 24, bottom: 24, right: 'auto', top: 'auto' },
+	tr: { right: 24, top: 24, left: 'auto', bottom: 'auto' },
+	tl: { left: 24, top: 24, right: 'auto', bottom: 'auto' },
+};
+const CORNER_KEY = 'atlas:alphy-corner';
+const isCorner = (v: unknown): v is Corner => v === 'tl' || v === 'tr' || v === 'bl' || v === 'br';
+
 export function RaiseChat() {
 	const [open, setOpen] = useState(false);
 	const pathname = usePathname();
@@ -37,6 +48,41 @@ export function RaiseChat() {
 	const copy = chatCopy(tier);
 	const suggestions = isScout ? SCOUT_SUGGESTIONS : tier === 'raise' ? RAISE_SUGGESTIONS : EXPLORE_SUGGESTIONS;
 	const inputRef = useRef<HTMLTextAreaElement>(null);
+
+	// Draggable launcher. The FAB was fixed bottom-right and sat on top of the
+	// pagination "next" control (feedback: "Unable to go to next page because of
+	// Ask Atlas icon"). Drag it to any corner; the choice is a per-viewer
+	// convenience kept in localStorage. A drop under the move threshold counts as
+	// a click and opens the panel, so keyboard/tap users are unaffected.
+	const [corner, setCorner] = useState<Corner>(() => {
+		if (typeof window === 'undefined') return 'br';
+		try { const c = localStorage.getItem(CORNER_KEY); return isCorner(c) ? c : 'br'; } catch { return 'br'; }
+	});
+	const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
+	const dragStart = useRef<{ x: number; y: number } | null>(null);
+	const moved = useRef(false);
+	const onFabPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+		if (e.button !== 0) return;
+		e.currentTarget.setPointerCapture(e.pointerId);
+		dragStart.current = { x: e.clientX, y: e.clientY };
+		moved.current = false;
+	};
+	const onFabPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+		if (!dragStart.current) return;
+		const dx = e.clientX - dragStart.current.x, dy = e.clientY - dragStart.current.y;
+		if (!moved.current && Math.hypot(dx, dy) < 5) return; // below threshold = still a click
+		moved.current = true;
+		setDrag({ x: e.clientX, y: e.clientY });
+	};
+	const onFabPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+		if (!dragStart.current) return;
+		dragStart.current = null;
+		if (!moved.current) return; // a tap — let onClick open the panel
+		const next = `${e.clientY < window.innerHeight / 2 ? 't' : 'b'}${e.clientX < window.innerWidth / 2 ? 'l' : 'r'}` as Corner;
+		setCorner(next);
+		setDrag(null);
+		try { localStorage.setItem(CORNER_KEY, next); } catch { /* private mode / blocked */ }
+	};
 
 	// Memoized: `useChat` keeps this in its callback deps, so a fresh closure on
 	// every render would rebuild them for nothing.
@@ -85,7 +131,18 @@ export function RaiseChat() {
 			<style>{AI_MD_CSS}</style>
 
 			{!open && (
-				<button className="raise-chat-fab" onClick={() => setOpen(true)} aria-label={copy.fabLabel}>
+				<button
+					className="raise-chat-fab"
+					style={drag
+						? { left: drag.x, top: drag.y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -50%)', transition: 'none', cursor: 'grabbing' }
+						: CORNER_OFFSET[corner]}
+					onPointerDown={onFabPointerDown}
+					onPointerMove={onFabPointerMove}
+					onPointerUp={onFabPointerUp}
+					onClick={() => { if (moved.current) { moved.current = false; return; } setOpen(true); }}
+					aria-label={copy.fabLabel}
+					title="Drag to move • click to open"
+				>
 					<span className="raise-chat-fab__mark"><AtlasMark size={14} /></span>
 					<span className="raise-chat-fab__label">Ask Atlas</span>
 				</button>
