@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { Logo, cx } from '@/components/atlas';
 import { FigmaIcon } from '@/components/atlas/icons/figma-icons';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -167,7 +167,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 						aria-label="Search Atlas"
 					/>
 					{searching && <Loader2 className="animate-spin" size={13} aria-hidden="true" />}
-					<kbd className="cmdk__kbd">Esc</kbd>
+					<kbd className="cmdk__kbd cmdk__kbd--esc">Esc</kbd>
+					<button type="button" className="cmdk__close" aria-label="Close search" onClick={onClose}><X size={16} aria-hidden="true" /></button>
 				</div>
 
 				<div className="cmdk__list">

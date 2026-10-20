@@ -75,7 +75,7 @@ function SummaryCard({ title, fields }: { title: string; fields: [string, FieldV
 			<div style={{ paddingBottom: 14, marginBottom: 16, borderBottom: '1px solid var(--a-border)', fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, color: 'var(--a-ink)' }}>
 				{title}
 			</div>
-			<dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '18px 28px', margin: 0 }}>
+			<dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '18px 28px', margin: 0 }}>
 				{fields.map(([label, value]) => (
 					<div key={label} style={{ minWidth: 0 }}>
 						<dt style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--a-muted)', marginBottom: 7 }}>{label}</dt>
