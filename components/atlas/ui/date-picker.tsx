@@ -86,6 +86,10 @@ export function DatePicker({ value, onChange, id, disabled, placeholder = 'Selec
 		};
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); triggerRef.current?.focus(); return; }
+			// Don't hijack arrows/Enter while the user is typing in the jump-to-date
+			// field — let the text cursor move and the input's own Enter handler run.
+			const t = e.target as HTMLElement | null;
+			if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
 			const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' ? -7 : e.key === 'ArrowDown' ? 7 : 0;
 			if (step) {
 				e.preventDefault();
