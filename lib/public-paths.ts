@@ -90,7 +90,7 @@ export const PRIVATE_PREFIXES = [
   // Dashboard routes — mirrors `ROUTES` in lib/routes.ts (nav.check enforces it).
   '/account', '/analytics', '/billing', '/chat', '/companies', '/credits', '/deal-flow',
   '/deck', '/events', '/framework', '/home', '/interests',
-  '/investors', '/my-market', '/newsletter', '/pipeline', '/programs',
+  '/investors', '/ma', '/my-market', '/newsletter', '/pipeline', '/programs',
   '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
   // Not in ROUTES: the onboarding tree, the integration docs, and the

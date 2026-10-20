@@ -65,6 +65,10 @@ export const qk = {
     thesis: (idOrSlug: string) => [`/api/investors/${idOrSlug}/thesis`] as const,
     funds: (idOrSlug: string) => [`/api/investors/${idOrSlug}/funds`] as const,
   },
+  acquisitions: {
+    list: (params: Record<string, unknown> = {}) => ['/api/acquisitions', params] as const,
+    detail: (id: string) => [`/api/acquisitions/${id}`] as const,
+  },
   deals: {
     list: (params: Record<string, unknown> = {}) => ['/api/deals', params] as const,
     detail: (id: string) => [`/api/deals/${id}`] as const,
