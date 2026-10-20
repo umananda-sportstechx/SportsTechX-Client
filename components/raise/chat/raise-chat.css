@@ -34,7 +34,11 @@
 	background: var(--a-primary); color: var(--a-primary-ink);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 0 0 0.5px var(--a-border);
 	transition: transform 0.15s, box-shadow 0.15s;
+	/* Draggable: suppress touch scrolling so a drag moves the button, and hint
+	   the grab affordance. Position is set inline from the parked corner. */
+	cursor: grab; touch-action: none;
 }
+.raise-chat-fab:active { cursor: grabbing; }
 .raise-chat-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22), inset 0 0 0 0.5px var(--a-border); }
 .raise-chat-fab:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-ink) 22%, transparent), 0 8px 24px rgba(0, 0, 0, 0.18); }
 .raise-chat-fab__mark {
