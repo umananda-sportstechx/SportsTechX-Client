@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { SETUP_EVENT, type OpenSetupDetail, type SetupWizard } from '@/lib/setup-events';
+import { useUrlModal } from '@/hooks/use-url-state';
 import { SetupModal } from './setup-modal';
 
 /**
@@ -33,6 +34,9 @@ export function SetupModalHost() {
 	const [open, setOpen] = useState(false);
 	const [wizard, setWizard] = useState<SetupWizard | null>(null);
 	const [edit, setEdit] = useState(false);
+	// `?setup=raise|thesis` makes the wizard shareable: pasting the URL reopens it,
+	// and Back closes it. Event-bus opens stamp the param too.
+	const [setupParam, setSetupParam] = useUrlModal('setup');
 
 	useEffect(() => {
 		const onEvent = (e: Event) => {
@@ -41,15 +45,27 @@ export function SetupModalHost() {
 			setWizard(detail.wizard);
 			setEdit(!!detail.edit);
 			setOpen(true);
+			setSetupParam(detail.wizard);
 		};
 		window.addEventListener(SETUP_EVENT, onEvent);
 		return () => window.removeEventListener(SETUP_EVENT, onEvent);
-	}, []);
+	}, [setSetupParam]);
+
+	// URL-driven: a deep link opens the matching wizard (first-run flow, edit=false);
+	// losing the param (Back, or close) hides it.
+	useEffect(() => {
+		if (setupParam === 'raise' || setupParam === 'thesis') {
+			setWizard(setupParam);
+			setOpen(true);
+		} else if (!setupParam) {
+			setOpen(false);
+		}
+	}, [setupParam]);
 
 	// Nothing rendered, and neither wizard's chunk requested, until asked for.
 	if (!wizard) return null;
 
-	const close = () => setOpen(false);
+	const close = () => { setOpen(false); setSetupParam(null); };
 	const label = edit
 		? (wizard === 'thesis' ? 'Edit your investment thesis' : 'Edit your raise')
 		: LABEL[wizard];
