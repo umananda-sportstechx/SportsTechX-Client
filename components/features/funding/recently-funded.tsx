@@ -33,8 +33,8 @@ export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string
 	const dq = useDebouncedValue(q);
 	const [round, setRound] = useState(() => url.str('round'));
 	const [country, setCountry] = useState(() => url.str('country'));
-	const [period, setPeriod] = useState(() => url.str('period'));
-	const [sort, setSort] = useState(() => url.str('sort') || '-announced_date');
+	const [period, setPeriod] = useState(() => url.oneOf('period', PERIODS.map(([v]) => v), ''));
+	const [sort, setSort] = useState(() => url.oneOf('sort', SORTS.map(([v]) => v), '-announced_date'));
 	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1);
 	useUrlSync({

@@ -55,36 +55,75 @@ export function useUrlSync(state: Record<string, ParamVal>): void {
 	}, [qs, current, pathname, router]);
 }
 
-/** Read the current params once (for seeding state on mount). */
+// Query-string values are attacker-controllable (anyone can hand-craft a link),
+// so everything read back out is validated here rather than trusted. These feed
+// component state and SWR keys → API requests, so a bad value must degrade to a
+// safe default, never flow through raw.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+const clean = (v: string, max: number): string => v.replace(CONTROL_CHARS, '').trim().slice(0, max);
+// A slug or opaque id: letters/digits/._- , bounded length. Rejects anything
+// that could be a path, script, or injection payload.
+const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const isSafeId = (v: string | null | undefined): v is string => !!v && ID_RE.test(v);
+export const isUuid = (v: string | null | undefined): v is string => !!v && UUID_RE.test(v);
+
+/** Read + validate the current params once (for seeding state on mount). */
 export function useUrlReader() {
 	const sp = useSearchParams();
 	return {
-		str: (key: string, fallback = ''): string => sp.get(key) ?? fallback,
-		num: (key: string, fallback: number): number => {
+		/** A free-text value, stripped of control chars and length-capped. */
+		str: (key: string, fallback = '', max = 120): string => {
+			const v = sp.get(key);
+			return v == null ? fallback : clean(v, max);
+		},
+		/** A positive integer within [1, max]; anything else → fallback. */
+		num: (key: string, fallback: number, max = 100_000): number => {
 			const n = Number(sp.get(key));
-			return Number.isFinite(n) && n > 0 ? n : fallback;
+			return Number.isInteger(n) && n >= 1 && n <= max ? n : fallback;
 		},
 		bool: (key: string): boolean => sp.get(key) === '1',
+		/** A value constrained to a known set (sort keys, enums); else fallback. */
+		oneOf: <T extends string>(key: string, allowed: readonly T[], fallback: T): T => {
+			const v = sp.get(key);
+			return v != null && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
+		},
+		/** A slug/opaque id in the safe charset, or null. */
+		id: (key: string): string | null => {
+			const v = sp.get(key);
+			return isSafeId(v) ? v : null;
+		},
 	};
 }
 
 /**
  * A modal/drawer whose open state is a query param. Returns the param value
- * (the open entity id, or null when closed) and a setter. Opening pushes a
- * history entry so Back closes the modal; closing replaces.
+ * (the open entity id, or null when closed/invalid) and a setter. Opening pushes
+ * a history entry so Back closes the modal; closing replaces.
+ *
+ * `validate` gates what counts as "open": a hand-crafted `?company=<junk>` fails
+ * it and the modal stays shut rather than firing a request for a bogus id. It
+ * defaults to the safe-id check.
  */
-export function useUrlModal(key: string): [string | null, (value: string | null) => void] {
+export function useUrlModal(
+	key: string,
+	opts?: { validate?: (value: string) => boolean },
+): [string | null, (value: string | null) => void] {
 	const sp = useSearchParams();
 	const router = useRouter();
 	const pathname = usePathname();
-	const value = sp.get(key);
+	const validate = opts?.validate ?? isSafeId;
+	const raw = sp.get(key);
+	const value = raw != null && validate(raw) ? raw : null;
 	const set = useCallback((v: string | null) => {
 		const next = new URLSearchParams(Array.from(sp.entries()));
-		if (v) next.set(key, v); else next.delete(key);
+		// Only valid values ever reach the URL; an invalid one clears the param.
+		if (v && validate(v)) next.set(key, v); else next.delete(key);
 		const qs = next.toString();
 		const url = qs ? `${pathname}?${qs}` : pathname;
-		if (v) router.push(url, { scroll: false });
+		if (v && validate(v)) router.push(url, { scroll: false });
 		else router.replace(url, { scroll: false });
-	}, [sp, router, pathname, key]);
+	}, [sp, router, pathname, key, validate]);
 	return [value, set];
 }

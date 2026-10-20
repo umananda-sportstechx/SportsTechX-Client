@@ -50,8 +50,8 @@ export function DealFlow({ tab = 'all' }: { tab?: DealTab }) {
 	// Valuation filter — purely client-side over the already-fetched page (≤50).
 	// Mirrored into the URL so it survives Back from a deal page and is shareable.
 	const url = useUrlReader();
-	const [maxVal, setMaxVal] = useState(() => url.str('maxVal'));
-	const [valCcy, setValCcy] = useState(() => url.str('ccy') || 'EUR');
+	const [maxVal, setMaxVal] = useState(() => url.str('maxVal', '', 20).replace(/[^0-9.]/g, ''));
+	const [valCcy, setValCcy] = useState<string>(() => url.oneOf('ccy', ['EUR', 'USD'] as const, 'EUR'));
 	useUrlSync({ maxVal, ccy: valCcy !== 'EUR' ? valCcy : undefined });
 
 	// Every Deal Flow route 403s without a `scout_profiles` row, and most Scout
