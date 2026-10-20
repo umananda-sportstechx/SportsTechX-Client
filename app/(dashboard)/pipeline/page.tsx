@@ -151,7 +151,7 @@ function DetailPanel({ row, onClose, onSaved }: { row: Pipe; onClose: () => void
 			<div style={{ display: 'grid', gap: 14 }}>
 				<Field label="Stage"><Select value={f.stage} onChange={(e) => set('stage', e.target.value)} options={STAGES} /></Field>
 				<Field label="Contact"><Input value={f.contact_name ?? ''} onChange={(e) => set('contact_name', e.target.value)} /></Field>
-				<Field label="Potential amount"><Input type="number" min={0} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
+				<Field label="Potential amount"><Input type="number" min={0} step={1000} value={(f.potential_amount as string) ?? ''} onChange={(e) => set('potential_amount', e.target.value)} /></Field>
 				<Field label="Next step"><Input value={f.next_step ?? ''} onChange={(e) => set('next_step', e.target.value)} /></Field>
 				<Field label="Next step due"><DatePicker value={f.next_step_due ?? ''} onChange={(v) => set('next_step_due', v)} /></Field>
 				<Field label="Notes"><Textarea value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
@@ -233,7 +233,7 @@ function AddPanel({ onClose, onSaved, existing }: { onClose: () => void; onSaved
 			<hr className="atlas-divider" style={{ margin: '24px 0' }} />
 			<div style={{ marginBottom: 8 }}><Eyebrow>Or add a custom investor</Eyebrow></div>
 			<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 12 }}>For an investor not yet in the Atlas database.</div>
-			<Field label="Investor name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+			<Field label="Investor name" required><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
 			<div style={{ marginTop: 14 }}><Button variant="outline" disabled={busy || !name.trim()} onClick={() => void addCustom()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Add custom investor'}</Button></div>
 		</Drawer>
 	);
