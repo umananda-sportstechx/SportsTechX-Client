@@ -73,6 +73,12 @@ export const FIGMA_ICONS: Record<string, FigmaIconDef> = {
 		viewBox: '0 0 24 24', w: 24, h: 24,
 		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M9 8h10M9 12h10M9 16h10" />, <circle key={1} cx="6" cy="8" r=".6" />, <circle key={2} cx="6" cy="12" r=".6" />, <circle key={3} cx="6" cy="16" r=".6" />]}</g>,
 	},
+	// M&A — two entities merging into one, git-merge style. Distinct from the
+	// nav-dealflow briefcase (Programs / Deal Flow) so the sidebar reads cleanly.
+	'nav-ma': {
+		viewBox: '0 0 24 24', w: 24, h: 24,
+		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<path key={0} d="M5 7h4l3 5M5 17h4l3-5" />, <path key={1} d="M12 12h6" />, <path key={2} d="m16 9 3 3-3 3" />]}</g>,
+	},
 	'nav-newsletter': {
 		viewBox: '0 0 24 24', w: 24, h: 24,
 		paint: <g fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{[<rect key={0} x="5" y="6" width="14" height="12" rx="1" />, <path key={1} d="M8 9.5h4v3H8zM14 9.5h2M14 12.5h2M8 15.5h8" />]}</g>,
