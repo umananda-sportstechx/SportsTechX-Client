@@ -1,7 +1,7 @@
 'use client';
 
 import { AccountTabs } from './account-tabs';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -40,6 +40,13 @@ type NotificationKey =
 	| 'notification_funding_alerts' | 'notification_ma_alerts'
 	| 'notification_programs_deadline';
 
+/** Friendly labels for the Supabase identity providers an account can carry. */
+const PROVIDER_LABEL: Record<string, string> = {
+	email: 'Email & password',
+	google: 'Google',
+	linkedin_oidc: 'LinkedIn',
+};
+
 const NOTIFICATIONS: { key: NotificationKey; label: string; sub: string }[] = [
 	{ key: 'notification_email', label: 'Email notifications', sub: 'The master switch — turn this off and we send you nothing.' },
 	{ key: 'notification_newsletter', label: 'Newsletter and digests', sub: 'Saved-search digests and the SportsTechX newsletter.' },
@@ -66,6 +73,20 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	const [newPw, setNewPw] = useState('');
 	const [confirmPw, setConfirmPw] = useState('');
 	const closePw = () => { setPwOpen(false); setCurPw(''); setNewPw(''); setConfirmPw(''); };
+	// The identity providers on this account (google / linkedin_oidc / email).
+	// An account with no `email` identity has no password, so we offer "Set a
+	// password" (adds an email+password login) rather than "Change password".
+	const [providers, setProviders] = useState<string[]>([]);
+	useEffect(() => {
+		let alive = true;
+		getSupabaseBrowser().auth.getUser().then(({ data }) => {
+			if (!alive) return;
+			const ids = data.user?.identities?.map((i) => i.provider) ?? data.user?.app_metadata?.providers ?? [];
+			setProviders([...new Set(ids)]);
+		}).catch(() => { /* leave empty; the password card just won't branch */ });
+		return () => { alive = false; };
+	}, []);
+	const hasPassword = providers.includes('email');
 	// Overlay, not a snapshot: the old `useState` initialiser read the props
 	// once at mount and then drifted from the server forever.
 	const [pending, setPending] = useState<Partial<Record<NotificationKey, boolean>>>({});
@@ -94,26 +115,36 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 	const name = profile?.display_name ?? profile?.full_name ?? '';
 	const initial = (name || profile?.email || '?').charAt(0).toUpperCase();
 
-	const changePassword = async () => {
-		if (!profile?.email) { toast.error('No email on file'); return; }
-		if (!curPw) { toast.error('Enter your current password.'); return; }
-		if (newPw.length < 8) { toast.error('New password must be at least 8 characters.'); return; }
-		if (newPw !== confirmPw) { toast.error('New passwords do not match.'); return; }
+	const savePassword = async () => {
+		if (hasPassword && !curPw) { toast.error('Enter your current password.'); return; }
+		if (newPw.length < 8) { toast.error('Password must be at least 8 characters.'); return; }
+		if (newPw !== confirmPw) { toast.error('Passwords do not match.'); return; }
 		setBusy(true);
 		try {
 			const supabase = getSupabaseBrowser();
-			// Re-authenticate first so a hijacked open session can't change the
-			// password without knowing the current one — fail closed on a bad match.
-			const { error: authErr } = await supabase.auth.signInWithPassword({ email: profile.email, password: curPw });
-			if (authErr) { toast.error('Current password is incorrect.'); return; }
-			// GoTrue also wants the current password passed to the update itself when
-			// the project's "Require current password when updating" setting is on
-			// (ours is). It's an optional field, so this is harmless when it's off.
-			const { error } = await supabase.auth.updateUser({ password: newPw, current_password: curPw });
-			if (error) throw error;
-			toast.success('Password updated.');
+			if (hasPassword) {
+				if (!profile?.email) { toast.error('No email on file'); return; }
+				// Re-authenticate first so a hijacked open session can't change the
+				// password without knowing the current one — fail closed on a bad match.
+				const { error: authErr } = await supabase.auth.signInWithPassword({ email: profile.email, password: curPw });
+				if (authErr) { toast.error('Current password is incorrect.'); return; }
+				// GoTrue also wants the current password passed to the update when the
+				// project's "Require current password when updating" setting is on
+				// (ours is). Optional field, harmless when it's off.
+				const { error } = await supabase.auth.updateUser({ password: newPw, current_password: curPw });
+				if (error) throw error;
+				toast.success('Password updated.');
+			} else {
+				// OAuth-only account (Google / LinkedIn, no password). This SETS the
+				// first password — no current one exists, so none is sent. The
+				// account's email + this password then become an email login.
+				const { error } = await supabase.auth.updateUser({ password: newPw });
+				if (error) throw error;
+				toast.success('Password set — you can now sign in with your email and password.');
+				setProviders((p) => [...new Set([...p, 'email'])]);
+			}
 			closePw();
-		} catch (e) { toast.error((e as Error).message ?? 'Could not update password'); }
+		} catch (e) { toast.error((e as Error).message ?? 'Could not save password'); }
 		finally { setBusy(false); }
 	};
 
@@ -184,17 +215,33 @@ export function AccountSettings({ sub, extra }: { sub?: string; /** Product-spec
 
 				<Card>
 					<div style={{ fontSize: 16, fontFamily: 'var(--a-font)', fontWeight: 700, color: 'var(--a-ink)', marginBottom: 16 }}>Security</div>
+
+					<SplitRow label="Sign-in methods" sub="How you sign in to this account">
+						<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+							{providers.length === 0
+								? <span style={{ fontSize: 12, color: 'var(--a-muted)' }}>—</span>
+								: providers.map((p) => (
+									<span key={p} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '4px 10px', borderRadius: 'var(--a-radius-pill)', background: 'var(--a-inset)', border: '1px solid var(--a-border)', color: 'var(--a-ink)' }}>{PROVIDER_LABEL[p] ?? p}</span>
+								))}
+						</div>
+					</SplitRow>
+
+					<div style={{ height: 1, background: 'var(--a-border)', margin: '14px 0' }} />
+
 					{!pwOpen ? (
-						<SplitRow label="Password" sub="Change your password without leaving the app">
-							<Button variant="outline" size="sm" onClick={() => setPwOpen(true)}>Change password</Button>
+						<SplitRow
+							label={hasPassword ? 'Password' : 'Set a password'}
+							sub={hasPassword ? 'Change your password without leaving the app' : 'Add an email + password login so you can also sign in without a provider'}
+						>
+							<Button variant="outline" size="sm" onClick={() => setPwOpen(true)}>{hasPassword ? 'Change password' : 'Set password'}</Button>
 						</SplitRow>
 					) : (
 						<div style={{ display: 'grid', gap: 14, maxWidth: 380 }}>
-							<PasswordField id="acct-cur-pw" label="Current password" value={curPw} onChange={setCurPw} autoComplete="current-password" minLength={1} placeholder="Your current password" />
-							<PasswordField id="acct-new-pw" label="New password" value={newPw} onChange={setNewPw} autoComplete="new-password" placeholder="At least 8 characters" />
-							<PasswordField id="acct-confirm-pw" label="Confirm new password" value={confirmPw} onChange={setConfirmPw} autoComplete="new-password" placeholder="Re-enter new password" />
+							{hasPassword && <PasswordField id="acct-cur-pw" label="Current password" value={curPw} onChange={setCurPw} autoComplete="current-password" minLength={1} placeholder="Your current password" />}
+							<PasswordField id="acct-new-pw" label={hasPassword ? 'New password' : 'Password'} value={newPw} onChange={setNewPw} autoComplete="new-password" placeholder="At least 8 characters" />
+							<PasswordField id="acct-confirm-pw" label="Confirm password" value={confirmPw} onChange={setConfirmPw} autoComplete="new-password" placeholder="Re-enter password" />
 							<div style={{ display: 'flex', gap: 10 }}>
-								<Button size="sm" disabled={busy} onClick={() => void changePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : 'Update password'}</Button>
+								<Button size="sm" disabled={busy} onClick={() => void savePassword()}>{busy ? <Loader2 className="animate-spin" size={13} /> : hasPassword ? 'Update password' : 'Set password'}</Button>
 								<Button size="sm" variant="outline" disabled={busy} onClick={closePw}>Cancel</Button>
 							</div>
 						</div>
