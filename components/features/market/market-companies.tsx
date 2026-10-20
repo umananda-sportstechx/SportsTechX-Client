@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { Globe, ArrowUpRight } from 'lucide-react';
+import { useUrlSync, useUrlReader, useUrlModal } from '@/hooks/use-url-state';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
 import type { CompanyListItem as Company } from '@/types/api';
@@ -38,30 +38,42 @@ const DASH = <span className="atlas-dash">—</span>;
  */
 /** `companyHref` → rows link to a company profile page; omitted → rows open the side drawer. */
 export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: string) => string } = {}) {
-	// Deep links (e.g. from the framework or Scout) can preselect ?q=, ?sector=<pillar>&sub=<category>.
-	const searchParams = useSearchParams();
+	// View-state lives in the URL so Back/Forward restore it (a profile visit
+	// unmounts this list; the URL is all the browser keeps) and so the page is
+	// shareable. Deep links (framework/Scout) can preselect ?q=, ?sector= etc.
+	const url = useUrlReader();
 	const [view, setView] = useState<ViewMode>('cards');
-	const [q, setQ] = useState(() => searchParams.get('q') ?? '');
+	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [model, setModel] = useState('');
-	const [sector, setSector] = useState(() => searchParams.get('sector') ?? '');
-	const [subSector, setSubSector] = useState(() => searchParams.get('sub') ?? '');
-	const [subSubSector, setSubSubSector] = useState(() => searchParams.get('subsub') ?? '');
-	const [sport, setSport] = useState('');
-	const [country, setCountry] = useState('');
-	const [city, setCity] = useState('');
-	const [continent, setContinent] = useState('');
-	const [region, setRegion] = useState('');
-	const [techTag, setTechTag] = useState('');
-	const [funding, setFunding] = useState('');
-	const [founded, setFounded] = useState('');
-	const [verified, setVerified] = useState(false);
-	const [raising, setRaising] = useState(false);
-	const [unicorn, setUnicorn] = useState(false);
-	const [sort, setSort] = useState('-created_at');
-	const [page, setPage] = useState(1);
-	const [openId, setOpenId] = useState<string | null>(null);
+	const [model, setModel] = useState(() => url.str('model'));
+	const [sector, setSector] = useState(() => url.str('sector'));
+	const [subSector, setSubSector] = useState(() => url.str('sub'));
+	const [subSubSector, setSubSubSector] = useState(() => url.str('subsub'));
+	const [sport, setSport] = useState(() => url.str('sport'));
+	const [country, setCountry] = useState(() => url.str('country'));
+	const [city, setCity] = useState(() => url.str('city'));
+	const [continent, setContinent] = useState(() => url.str('continent'));
+	const [region, setRegion] = useState(() => url.str('region'));
+	const [techTag, setTechTag] = useState(() => url.str('tech'));
+	const [funding, setFunding] = useState(() => url.str('funding'));
+	const [founded, setFounded] = useState(() => url.str('founded'));
+	const [verified, setVerified] = useState(() => url.bool('verified'));
+	const [raising, setRaising] = useState(() => url.bool('raising'));
+	const [unicorn, setUnicorn] = useState(() => url.bool('unicorn'));
+	const [sort, setSort] = useState(() => url.str('sort') || '-created_at');
+	const [page, setPage] = useState(() => url.num('page', 1));
+	// The detail drawer is addressable: ?company=<slug> reopens it on load.
+	const [openId, setOpenId] = useUrlModal('company');
 	const reset = () => setPage(1);
+
+	// Mirror the whole view-state into the URL (defaults omitted to keep it short).
+	useUrlSync({
+		q: dq, model, sector, sub: subSector, subsub: subSubSector, sport, country,
+		city, continent, region, tech: techTag, funding, founded,
+		verified, raising, unicorn,
+		sort: sort !== '-created_at' ? sort : undefined,
+		page: page > 1 ? page : undefined,
+	});
 	const sectors = useSectorTierData();
 	const sportOptions = useSportOptions();
 	const countryOptions = useCountryOptions();

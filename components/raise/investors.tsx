@@ -15,6 +15,7 @@ import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTag
 import { SINCE_YEARS, DEALS_BUCKETS, canonicalCountry } from '@/lib/catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
+import { useUrlSync, useUrlReader } from '@/hooks/use-url-state';
 import { hrefOf } from '@/lib/routes';
 
 /**
@@ -151,27 +152,36 @@ export function AllInvestors() {
 
 /** The "All investors" tab — search + filters + sort + pagination over /api/investors. */
 function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<string>; onAdd: (id: string) => void; canWatchlist: boolean }) {
+	// View-state mirrored into the URL (Back/Forward restore, shareable links).
+	const url = useUrlReader();
 	const [view, setView] = useState<ViewMode>('cards');
-	const [q, setQ] = useState('');
+	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [category, setCategory] = useState('');
-	const [roundType, setRoundType] = useState('');
-	const [sector, setSector] = useState('');
-	const [subSector, setSubSector] = useState('');
-	const [subSubSector, setSubSubSector] = useState('');
-	const [sport, setSport] = useState('');
-	const [country, setCountry] = useState('');
-	const [city, setCity] = useState('');
-	const [continent, setContinent] = useState('');
-	const [region, setRegion] = useState('');
-	const [techTag, setTechTag] = useState('');
-	const [launched, setLaunched] = useState('');
-	const [deals, setDeals] = useState('');
-	const [verified, setVerified] = useState(false);
-	const [active, setActive] = useState(false);
-	const [sort, setSort] = useState('-created_at');
-	const [page, setPage] = useState(1);
+	const [category, setCategory] = useState(() => url.str('category'));
+	const [roundType, setRoundType] = useState(() => url.str('round'));
+	const [sector, setSector] = useState(() => url.str('sector'));
+	const [subSector, setSubSector] = useState(() => url.str('sub'));
+	const [subSubSector, setSubSubSector] = useState(() => url.str('subsub'));
+	const [sport, setSport] = useState(() => url.str('sport'));
+	const [country, setCountry] = useState(() => url.str('country'));
+	const [city, setCity] = useState(() => url.str('city'));
+	const [continent, setContinent] = useState(() => url.str('continent'));
+	const [region, setRegion] = useState(() => url.str('region'));
+	const [techTag, setTechTag] = useState(() => url.str('tech'));
+	const [launched, setLaunched] = useState(() => url.str('launched'));
+	const [deals, setDeals] = useState(() => url.str('deals'));
+	const [verified, setVerified] = useState(() => url.bool('verified'));
+	const [active, setActive] = useState(() => url.bool('active'));
+	const [sort, setSort] = useState(() => url.str('sort') || '-created_at');
+	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1); // any filter/search change returns to page 1
+	useUrlSync({
+		q: dq, category, round: roundType, sector, sub: subSector, subsub: subSubSector,
+		sport, country, city, continent, region, tech: techTag, launched, deals,
+		verified, active,
+		sort: sort !== '-created_at' ? sort : undefined,
+		page: page > 1 ? page : undefined,
+	});
 
 	const roundsResp = useSWR<RoundRef[] | { data: RoundRef[] }>(qk.reference.roundTypes(), { dedupingInterval: 60 * 60_000 });
 	const rounds = Array.isArray(roundsResp.data) ? roundsResp.data : (roundsResp.data?.data ?? []);

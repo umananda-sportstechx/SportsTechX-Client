@@ -7,6 +7,7 @@ import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useUrlSync, useUrlReader } from '@/hooks/use-url-state';
 import { useRoundTypeOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { Empty, FilterBar, Loading, Logo, Pager, type FilterDef } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
@@ -26,14 +27,21 @@ const isoDaysAgo = (days: number) => new Date(Date.now() - days * 864e5).toISOSt
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
 export function RecentlyFunded({ companyHref }: { companyHref: (idOrSlug: string) => string }) {
-	const [q, setQ] = useState('');
+	// View-state in the URL (Back/Forward restore, shareable).
+	const url = useUrlReader();
+	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
-	const [round, setRound] = useState('');
-	const [country, setCountry] = useState('');
-	const [period, setPeriod] = useState('');
-	const [sort, setSort] = useState('-announced_date');
-	const [page, setPage] = useState(1);
+	const [round, setRound] = useState(() => url.str('round'));
+	const [country, setCountry] = useState(() => url.str('country'));
+	const [period, setPeriod] = useState(() => url.str('period'));
+	const [sort, setSort] = useState(() => url.str('sort') || '-announced_date');
+	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1);
+	useUrlSync({
+		q: dq, round, country, period,
+		sort: sort !== '-announced_date' ? sort : undefined,
+		page: page > 1 ? page : undefined,
+	});
 	const roundOptions = useRoundTypeOptions();
 	const countryOptions = useCountryOptions();
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>

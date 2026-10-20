@@ -5,6 +5,7 @@ import useSWR, { mutate as globalMutate } from 'swr';
 import { X, Plus, Check } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { useFormDraft } from '@/hooks/use-form-draft';
 
 interface Watchlist {
 	id: string;
@@ -48,12 +49,18 @@ export function WatchlistPicker({
 	const [newName, setNewName] = useState('');
 	const [newColor, setNewColor] = useState('#f43f5e');
 
-	useEffect(() => {
-		if (!open) {
-			setCreating(false);
-			setNewName('');
-		}
-	}, [open]);
+	// Keep a half-typed new-list name across an accidental close (Escape /
+	// click-outside) so reopening restores it. Cleared once the list is created.
+	const { clear: clearDraft } = useFormDraft(
+		`watchlist:${companyId ?? 'new'}`,
+		{ newName, newColor },
+		(d) => { if (d.newName) setNewName(d.newName); if (d.newColor) setNewColor(d.newColor); },
+		{ enabled: open },
+	);
+
+	// Don't wipe the typed name on close any more — that was the data loss the
+	// draft cache fixes. Just drop the transient "creating" flag.
+	useEffect(() => { if (!open) setCreating(false); }, [open]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -96,6 +103,7 @@ export function WatchlistPicker({
 				await globalMutate(qk.userWatchlists.containing(companyId));
 			}
 			setNewName('');
+			clearDraft();
 			setCreating(false);
 		} catch {
 			setCreating(false);

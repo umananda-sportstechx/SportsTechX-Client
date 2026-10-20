@@ -19,7 +19,7 @@ import { CreditExhaustionHost } from '@/components/credits/credit-exhaustion-mod
 import { TierRequiredHost } from '@/components/features/tier-gate/tier-required-host';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { identify, initAnalytics, reset } from '@/lib/analytics';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 
 function AppInit() {
   const { sessionValid } = useAuthSession();
@@ -68,7 +68,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <AppInit />
                     {children}
                     <ClaimModalHost />
-                    <SetupModalHost />
+                    {/* Reads `?setup=` via useSearchParams — a Suspense boundary
+                        keeps that from forcing static pages to client-render. */}
+                    <Suspense fallback={null}><SetupModalHost /></Suspense>
                     <CreditExhaustionHost />
                     <TierRequiredHost />
                     <Toaster position="top-right" theme="dark" closeButton toastOptions={{ unstyled: false }} />
