@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 /**
  * URL-as-state helpers. Two jobs:
@@ -35,24 +35,39 @@ function merge(current: URLSearchParams, state: Record<string, ParamVal>): strin
 }
 
 /**
- * Keep the query string in sync with `state`. Writes use `replace` (no history
- * spam per keystroke/filter change); the entry the user navigates away from
- * still carries the latest state, which is all Back needs.
+ * Keep the query string in sync with `state` using the native History API
+ * (`history.replaceState`), NOT `router.replace`.
+ *
+ * Why not the router: `router.replace` on every debounced keystroke is a Next
+ * soft-navigation — it re-renders (and, with a loading boundary, remounts) the
+ * list, which reset the controlled search input back to the shorter, debounced
+ * URL value and cut off whatever was typed after the debounce. `replaceState`
+ * updates the address bar and the current history entry WITHOUT any navigation,
+ * so typing is never interrupted; Next still reflects the change in
+ * `useSearchParams`, and Back/Forward restore the URL (and the list remounts
+ * reading it) exactly as before.
+ *
+ * It MERGES over the live `window.location.search`, so a drawer's `?company=`
+ * (written by `useUrlModal` via the router) is preserved.
  *
  * Pass only the keys that should appear in the URL, already reduced to their
  * "non-default" form (e.g. `page: page > 1 ? page : undefined`,
  * `sort: sort !== DEFAULT ? sort : undefined`) so defaults stay out of the URL.
  */
 export function useUrlSync(state: Record<string, ParamVal>): void {
-	const router = useRouter();
-	const pathname = usePathname();
-	const sp = useSearchParams();
-	const qs = merge(sp, state);
-	const current = sp.toString();
+	// Re-run only when the managed state changes (not on unrelated re-renders).
+	const serialized = JSON.stringify(state);
 	useEffect(() => {
-		if (qs === current) return;
-		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-	}, [qs, current, pathname, router]);
+		if (typeof window === 'undefined') return;
+		const live = new URLSearchParams(window.location.search);
+		const qs = merge(live, state);
+		if (qs === live.toString()) return;
+		// Relative URL keeps the current pathname; null state lets Next's patched
+		// replaceState inject its own router state.
+		window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+		// `state` is captured through `serialized`; that is the intended dep.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [serialized]);
 }
 
 // Query-string values are attacker-controllable (anyone can hand-craft a link),
@@ -112,18 +127,24 @@ export function useUrlModal(
 ): [string | null, (value: string | null) => void] {
 	const sp = useSearchParams();
 	const router = useRouter();
-	const pathname = usePathname();
 	const validate = opts?.validate ?? isSafeId;
 	const raw = sp.get(key);
 	const value = raw != null && validate(raw) ? raw : null;
 	const set = useCallback((v: string | null) => {
-		const next = new URLSearchParams(Array.from(sp.entries()));
-		// Only valid values ever reach the URL; an invalid one clears the param.
-		if (v && validate(v)) next.set(key, v); else next.delete(key);
+		if (typeof window === 'undefined') return;
+		// Merge over the LIVE query string, not the (possibly stale) router
+		// snapshot: list filters are written by useUrlSync via history.replaceState,
+		// so reading window.location.search is what preserves them here.
+		const next = new URLSearchParams(window.location.search);
+		const open = !!(v && validate(v));
+		if (open) next.set(key, v!); else next.delete(key);
 		const qs = next.toString();
-		const url = qs ? `${pathname}?${qs}` : pathname;
-		if (v && validate(v)) router.push(url, { scroll: false });
+		const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+		// The router (not history API) so the modal actually opens/closes: it
+		// re-renders useSearchParams consumers. Opening pushes (Back closes it),
+		// closing replaces (no dead entry).
+		if (open) router.push(url, { scroll: false });
 		else router.replace(url, { scroll: false });
-	}, [sp, router, pathname, key, validate]);
+	}, [router, key, validate]);
 	return [value, set];
 }
