@@ -12,6 +12,7 @@ import { Action, Empty, Loading, Logo } from '@/components/atlas';
 import { ago, fmtUsd, place } from '@/components/features/market/format';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SuggestCorrection } from '@/components/features/verify/suggest-correction';
+import { CompanyMa } from '@/components/features/company/company-ma';
 import './company-profile.css';
 
 /**
@@ -214,6 +215,8 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 							</div>
 						)}
 					</section>
+
+					<CompanyMa companyId={c.id} />
 				</div>
 
 				<aside className="atlas-co__rail">
