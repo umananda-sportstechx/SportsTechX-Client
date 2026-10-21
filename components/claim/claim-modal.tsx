@@ -545,7 +545,7 @@ export function ClaimModal({
                     <div className="cm-field cm-half"><label className="cm-label">Last name <span className="cm-req">*</span></label><input className="cm-input" value={form.last} onChange={(e) => set('last', e.target.value)} placeholder="Your last name" /></div>
                   </div>
                   <div className="cm-row2">
-                    <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-req">*</span></label><CityInput className="cm-input" value={form.city} onChange={(v) => set('city', v)} placeholder="Your city" /></div>
+                    <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-req">*</span></label><CityInput className="cm-input" value={form.city} onChange={(v) => set('city', v)} placeholder="Your city" geo={form.country} /></div>
                     <div className="cm-field cm-half"><label className="cm-label">Country <span className="cm-req">*</span></label><LocationSelect className="cm-select" value={form.country} onChange={(v) => set('country', v)} placeholder="Select your country" /></div>
                   </div>
                 </div>
@@ -604,7 +604,7 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Founded year</label><input className="cm-input" value={form.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" geo={form.coCountry} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
@@ -706,7 +706,7 @@ export function ClaimModal({
                 <div className="cm-field"><label className="cm-label">One-line description</label><input className="cm-input" value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What you do, in a sentence" /></div>
                 <div className="cm-sub">Profile</div>
                 <div className="cm-row2">
-                  <div className="cm-field cm-half"><label className="cm-label">Location</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" /></div>
+                  <div className="cm-field cm-half"><label className="cm-label">Location</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="London" geo={form.coCountry} /></div>
                   <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                 </div>
                 <div className="cm-field"><label className="cm-label">Type</label><Combobox className="cm-select" value={form.opType} onChange={(v) => set('opType', v)} options={opt(OP_TYPES)} /></div>
@@ -772,7 +772,7 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">Year launched</label><input className="cm-input" value={form.yearLaunched} onChange={(e) => set('yearLaunched', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2018" inputMode="numeric" /></div>
                     </div>
                     <div className="cm-row2">
-                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="Boston" /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">City</label><CityInput className="cm-input" value={form.coCity} onChange={(v) => set('coCity', v)} placeholder="Boston" geo={form.coCountry} /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Country</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                     </div>
                     <div className="cm-row2">

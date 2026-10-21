@@ -22,13 +22,16 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
  */
 interface LocHit { city: string | null; state: string | null; country: string | null }
 
-export function CityInput({ value, onChange, id, disabled, className, placeholder = 'City' }: {
+export function CityInput({ value, onChange, id, disabled, className, placeholder = 'City', geo }: {
 	value: string;
 	onChange: (value: string) => void;
 	id?: string;
 	disabled?: boolean;
 	className?: string;
 	placeholder?: string;
+	/** Scope the suggestions to a chosen country / region / continent (e.g. the
+	 *  sibling country field) so picking "India" only offers Indian cities. */
+	geo?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const [active, setActive] = useState(0);
@@ -37,7 +40,8 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 	const panelRef = useRef<HTMLDivElement>(null);
 
 	const debounced = useDebouncedValue(value.trim(), 250);
-	const { data } = useSWR<LocHit[]>(debounced.length >= 2 ? ['/api/locations/search', { q: debounced }] : null);
+	const g = geo?.trim() || undefined;
+	const { data } = useSWR<LocHit[]>(debounced.length >= 2 ? ['/api/locations/search', { q: debounced, ...(g ? { geo: g } : {}) }] : null);
 
 	const matches = useMemo(() => {
 		const seen = new Set<string>(), out: { city: string; country: string | null }[] = [];

@@ -267,7 +267,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 						)}
 						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field>
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field>
-						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} disabled={coLock('hq_city')} /></Field></Grid>
+						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} disabled={coLock('hq_city')} geo={s(form.hq_country)} /></Field></Grid>
 						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
 						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
 						{linked && <div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: -6 }}>Company details come from the Atlas profile. Verify your company to request changes.</div>}
