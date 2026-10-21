@@ -1,117 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
-import { type AccountType, useUserProfile } from '@/hooks/use-user-profile';
-import type { ClaimRole } from '@/lib/claim-events';
-import { patchOnboarding } from '@/lib/onboarding';
-import { AuthBrand } from '@/components/auth/auth-shell';
-import { PersonaStep } from '@/components/onboarding/persona-step';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { Plans } from '@/components/features/plans/plans';
 
-// Loaded only once a persona branches into the claim flow. A static import here
-// put ~750 lines into this route's bundle for a modal two of the three paths
-// never reach — the same cost `claim-modal-host.tsx` was changed to avoid, which
-// this route had quietly kept.
-const ClaimModal = dynamic(() => import('@/components/claim/claim-modal').then((m) => m.ClaimModal), { ssr: false });
-
 /**
- * What a new account sees after confirming its email: the plan step, then the
- * persona picker.
+ * What a new account sees after confirming its email: the plans page, and only
+ * the plans page. The chosen plan already encodes the persona — raise → founder,
+ * scout → investor, explore → just browsing — so there is no separate
+ * "what brings you here?" step (it double-asked for something the plan answers).
  *
- * The plan step is the shared `Plans` page in onboarding mode — the same UI as
- * /plans, not a separate chooser. It shows until `paywall_shown_at` is stamped:
- * choosing Explore (or "maybe later") stamps and advances to the persona step;
- * choosing Raise or Scout leaves for Stripe and comes back via
- * `/billing/success`, which waits for the webhook before stamping anything.
+ * It shows until the one-time paywall is stamped: choosing Explore / "maybe
+ * later" stamps it and goes to the app; a paid plan leaves for Stripe and comes
+ * back via `/billing/success`. A user who has already seen the wall (returning,
+ * or back from checkout) is sent straight to the app.
  *
  * It sits on this route (no app shell) on purpose — as an overlay over the
- * dashboard it would have ambushed every pre-existing unstamped account,
- * including people already paying.
+ * dashboard it would have ambushed every pre-existing unstamped account.
  */
 export default function OnboardingPage() {
 	const router = useRouter();
 	const { data: profile, mutate: refreshProfile } = useUserProfile();
-	const [busy, setBusy] = useState(false);
-	const [claimRole, setClaimRole] = useState<ClaimRole | null>(null);
 
-	const goDashboard = () => router.push('/home');
+	// Paywall already handled → nothing to show here; go to the app.
+	useEffect(() => {
+		if (profile && profile.paywall_shown_at) router.replace('/home');
+	}, [profile, router]);
 
-	async function choose(persona: AccountType) {
-		setBusy(true);
-		try {
-			if (persona === 'user') {
-				await patchOnboarding({ account_type: 'user', onboarding_stage: 'complete', onboarding_complete_explore: true });
-				goDashboard();
-				return;
-			}
-			await patchOnboarding({ account_type: persona, onboarding_stage: `persona:${persona}` });
-			setClaimRole(persona === 'founder' ? 'founder' : 'investor');
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	async function skip() {
-		setBusy(true);
-		try {
-			await patchOnboarding({ onboarding_stage: 'skipped' });
-			goDashboard();
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	// When the claim is submitted, mark onboarding done; closing the modal (incl.
-	// the "Back to the platform" button on the done screen) returns to the app.
-	function onClaimSubmitted() {
-		void patchOnboarding({ onboarding_stage: 'complete', onboarding_complete_explore: true });
-	}
-
-	if (claimRole) {
-		return (
-			<ClaimModal
-				target={null}
-				initialRole={claimRole}
-				onClose={goDashboard}
-				onSubmitted={onClaimSubmitted}
-			/>
-		);
-	}
-
-	// Plan step first — the shared Plans page, until the one-time paywall is
-	// stamped. Choosing Explore / "maybe later" stamps it and this falls through
-	// to the persona step on the next render; a paid plan leaves for Stripe.
 	if (profile && !profile.paywall_shown_at) {
 		return (
 			<div className="onb-screen">
 				<div className="onb-plans">
-					<Plans onboarding={{ onDone: () => { void refreshProfile(); } }} />
+					<Plans onboarding={{ onDone: () => { void refreshProfile(); router.replace('/home'); } }} />
 				</div>
 			</div>
 		);
 	}
 
-	return (
-		<div className="onb-screen">
-			<div className="onb-screen__inner">
-				<div className="onb-head">
-					<AuthBrand />
-					<h1 className="onb-head__title">Welcome — what brings you here?</h1>
-					<p className="onb-head__sub">
-						This helps us tailor what you see. You can change it later in Settings.
-					</p>
-				</div>
-
-				<PersonaStep onChoose={choose} />
-
-				<button type="button" className="onb-skip" onClick={skip} disabled={busy}>
-					{busy && <Loader2 size={13} className="animate-spin" />}
-					Skip for now
-				</button>
-			</div>
-		</div>
-	);
+	return null;
 }
