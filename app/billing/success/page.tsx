@@ -29,6 +29,11 @@ import { openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
  */
 const POLL_MS = 2000;
 const GIVE_UP_AFTER = 20; // ~40s
+// Ticks at which we reconcile straight from Stripe (POST /api/billing/sync)
+// instead of just polling /me. The webhook gets the first ~6s (cheap /me polls);
+// if it's late or was dropped (e.g. a server deploy), these pull the subscription
+// from Stripe directly — Stripe is the source of truth — and activate the plan.
+const RECONCILE_AT = [3, 19];
 
 export default function BillingSuccessPage() {
 	const router = useRouter();
@@ -42,9 +47,20 @@ export default function BillingSuccessPage() {
 	useEffect(() => {
 		if (confirmed) return;
 		let n = 0;
+		let syncing = false;
+		const reconcile = () => {
+			if (syncing) return;
+			syncing = true;
+			// Idempotent with the webhook; ignore errors and keep polling /me.
+			void apiRequest('POST', '/api/billing/sync', {})
+				.catch(() => {})
+				.finally(() => { syncing = false; void mutate(); });
+		};
 		const t = setInterval(() => {
-			void mutate();
-			if (++n >= GIVE_UP_AFTER) { clearInterval(t); setGaveUp(true); }
+			n += 1;
+			if (RECONCILE_AT.includes(n)) reconcile();
+			else void mutate();
+			if (n >= GIVE_UP_AFTER) { clearInterval(t); setGaveUp(true); }
 		}, POLL_MS);
 		return () => clearInterval(t);
 	}, [confirmed, mutate]);
