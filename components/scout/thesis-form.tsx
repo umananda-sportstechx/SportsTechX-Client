@@ -57,7 +57,7 @@ export function FundFields({ t, patch }: Props) {
 			<div className="scout-form-grid">
 				<Field label="Website"><Input type="url" {...text(t, patch, 'website')} placeholder="https://fund.com" disabled={linked} /></Field>
 				<Field label="Country"><LocationSelect value={t.country} onChange={(v) => patch({ country: v })} /></Field>
-				<Field label="City"><CityInput value={String(t.city ?? '')} onChange={(v) => patch({ city: v })} /></Field>
+				<Field label="City"><CityInput value={String(t.city ?? '')} onChange={(v) => patch({ city: v })} geo={String(t.country ?? '')} /></Field>
 			</div>
 			<FieldBlock label="Investor type"><ChipSet options={THESIS_OPTIONS.investorType} value={t.investorType} onToggle={(o) => patch({ investorType: o })} /></FieldBlock>
 			<FieldBlock label="Fund size / AUM (USD)" hint="Full amount in USD, numbers only — e.g. 20000000">
