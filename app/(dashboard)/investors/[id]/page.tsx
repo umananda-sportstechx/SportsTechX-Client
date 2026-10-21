@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Archive } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
+import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import type { Deal, Investor, PipelineActivity as Activity, PipelineStage, PipelineUpdate } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
@@ -57,10 +58,16 @@ const geoOf = (i: Investor) => [i.hq_country, i.hq_region].filter(Boolean)[0] ??
 export default function InvestorProfilePage() {
 	const id = String(useParams().id);
 	const router = useRouter();
+	const { data: profile } = useUserProfile();
+	// The pipeline/watchlist is Atlas Raise only (a founder tracking investors to
+	// pitch). `/api/raise/pipeline` is `@RequireTier('raise')`, so fetching it for
+	// a Scout viewer 402s and pops the global "different plan" modal — hence the
+	// key is null for anyone but Raise, and the pipeline UI below is hidden too.
+	const isRaise = getUserType(profile) === 'raise';
 	const { data: inv, isLoading, error } = useSWR<Investor>(qk.investors.detail(id));
 	const { data: bundle } = useSWR<ThesisBundle>(qk.investors.thesis(id));
 	const { data: deals } = useSWR<{ data: Deal[] }>(qk.deals.list({ investor_id: id, sort: '-announced_date', limit: 12 }));
-	const pipe = useSWR<{ data: Pipe[] }>(qk.raise.pipeline());
+	const pipe = useSWR<{ data: Pipe[] }>(isRaise ? qk.raise.pipeline() : null);
 	const record = useMemo(() => (pipe.data?.data ?? []).find((r) => r.investor_id === id) ?? null, [pipe.data, id]);
 
 	if (error) return <Screen><Empty>Investor not found. <button onClick={() => router.push(hrefOf('investors'))} style={{ background: 'none', border: 'none', color: 'var(--a-navy)', cursor: 'pointer', font: 'inherit' }}>Back to investors</button></Empty></Screen>;
@@ -88,7 +95,7 @@ export default function InvestorProfilePage() {
 				</div>
 				{record
 					? <Badge tone="navy">{STAGE_LABEL[record.stage] ?? record.stage}</Badge>
-					: <AddButton investorId={inv.id} onAdded={() => pipe.mutate()} />}
+					: isRaise ? <AddButton investorId={inv.id} onAdded={() => pipe.mutate()} /> : null}
 			</div>
 
 			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
