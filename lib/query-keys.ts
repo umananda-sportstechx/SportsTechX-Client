@@ -202,7 +202,7 @@ export const qk = {
 
   // ── Market Monthly Roundup (editorial + live deal aggregates) ───────────
   market: {
-    roundup: (params: { year?: number; month?: number; mode?: 'funding' | 'ma' } = {}) => ['/api/market/roundup', params] as const,
+    roundup: (params: { year?: number; month?: number; mode?: 'funding' | 'ma'; perspective?: 'acquiree' | 'acquirer' } = {}) => ['/api/market/roundup', params] as const,
   },
 
   // ── Billing ─────────────────────────────────────────────────────────────
