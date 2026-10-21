@@ -6,6 +6,7 @@ import { qk } from '@/lib/query-keys';
 import type { Deal } from '@/types/api';
 import Link from 'next/link';
 import { Card, Loading, Badge, PieDonut, PieLegend, Seg, type PieSegment, paletteAt } from '@/components/atlas';
+import { Modal } from '@/components/atlas/patterns/modal';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { MONTHS } from '@/lib/catalog-options';
 import { companyHref } from '@/lib/routes';
@@ -14,6 +15,8 @@ import './market.css';
 
 type Mode = 'funding' | 'ma';
 type Metric = 'amount' | 'count';
+type Perspective = 'acquiree' | 'acquirer';
+type SectorView = 'sector' | 'sub';
 
 interface Grouping { label: string; deal_count: number; total_amount: number }
 interface RoundupStats {
@@ -25,10 +28,10 @@ interface NewsItem {
 	body: string | null; org: string | null; geo: string | null; source_url: string | null;
 }
 interface Roundup {
-	year: number; month: number; mode: Mode;
+	year: number; month: number; mode: Mode; perspective?: Perspective;
 	edition: { title: string | null; summary: string | null } | null;
 	news: NewsItem[]; stats: RoundupStats;
-	by_sector: Grouping[]; by_business_model: Grouping[]; by_geo: Grouping[];
+	by_sector: Grouping[]; by_sub_sector?: Grouping[]; by_business_model: Grouping[]; by_geo: Grouping[];
 }
 /** Largest-deal row for the M&A table (subset of /api/acquisitions). */
 interface AcqRow {
@@ -55,13 +58,16 @@ const YEARS: [string, string][] = (() => {
 export function MarketRoundup() {
 	const [mode, setMode] = useState<Mode>('funding');
 	const [metric, setMetric] = useState<Metric>('amount');
+	const [perspective, setPerspective] = useState<Perspective>('acquiree');
+	const [sectorView, setSectorView] = useState<SectorView>('sector');
+	const [breakdown, setBreakdown] = useState<{ title: string; rows: Grouping[] } | null>(null);
 	// `null` = "whatever the server says is the latest month with data".
 	// Seeding this to the previous calendar month is what made the page look
 	// broken: ingest is behind, so it opened on a month of zeros. The server
 	// resolves the default per mode and echoes the month it chose.
 	const [sel, setSel] = useState<{ year: number; month: number } | null>(null);
 
-	const roundup = useSWR<Roundup>(qk.market.roundup({ ...(sel ?? {}), mode }));
+	const roundup = useSWR<Roundup>(qk.market.roundup({ ...(sel ?? {}), mode, ...(mode === 'ma' ? { perspective } : {}) }));
 	const shown = sel ?? (roundup.data ? { year: roundup.data.year, month: roundup.data.month } : null);
 	const year = shown?.year ?? new Date().getUTCFullYear();
 	const month = shown?.month ?? 1;
@@ -75,8 +81,8 @@ export function MarketRoundup() {
 	const end = `${year}-${pad(month)}-${pad(new Date(Date.UTC(year, month, 0)).getUTCDate())}`;
 	// Largest deals this month — deals for funding, acquisitions for M&A. Held
 	// until the month is known, and only the active market's list is fetched.
-	const deals = useSWR<{ data: Deal[] }>(shown && mode === 'funding' ? qk.deals.list({ from: start, to: end, sort: '-amount_usd', limit: 10 }) : null);
-	const acqs = useSWR<{ data: AcqRow[] }>(shown && mode === 'ma' ? qk.acquisitions.list({ from: start, to: end, sort: '-amount_usd', limit: 10 }) : null);
+	const deals = useSWR<{ data: Deal[] }>(shown && mode === 'funding' ? qk.deals.list({ from: start, to: end, sort: '-amount_usd', limit: 50 }) : null);
+	const acqs = useSWR<{ data: AcqRow[] }>(shown && mode === 'ma' ? qk.acquisitions.list({ from: start, to: end, sort: '-amount_usd', limit: 50 }) : null);
 
 	const monthName = MONTHS.find(([v]) => v === String(month))?.[1] ?? '';
 	const s = roundup.data?.stats;
@@ -96,15 +102,22 @@ export function MarketRoundup() {
 
 	const donuts = useMemo(() => {
 		const d = roundup.data;
-		if (!d) return [] as { title: string; total: string; unit: string; segments: PieSegment[] }[];
+		if (!d) return [] as { title: string; total: string; unit: string; segments: PieSegment[]; rows: Grouping[] }[];
+		const val = (x: Grouping) => (metric === 'amount' ? x.total_amount : x.deal_count);
 		const mk = (title: string, g: Grouping[]) => {
-			const val = (x: Grouping) => (metric === 'amount' ? x.total_amount : x.deal_count);
-			const segments: PieSegment[] = g.map((x, i) => ({ name: x.label, v: val(x), color: paletteAt(i), label: metric === 'amount' ? fmtUsd(x.total_amount) : fmtCount(x.deal_count) }));
+			// Donut shows the top slices; the full list (up to 25) is in the breakdown
+			// dialog. Centre value is the grand total across every row.
+			const segments: PieSegment[] = g.slice(0, 8).map((x, i) => ({ name: x.label, v: val(x), color: paletteAt(i), label: metric === 'amount' ? fmtUsd(x.total_amount) : fmtCount(x.deal_count) }));
 			const sum = g.reduce((a, x) => a + val(x), 0);
-			return { title, total: metric === 'amount' ? fmtUsd(sum) : fmtCount(sum), unit: metric === 'amount' ? 'total' : 'deals', segments };
+			return { title, total: metric === 'amount' ? fmtUsd(sum) : fmtCount(sum), unit: metric === 'amount' ? 'total' : 'deals', segments, rows: g };
 		};
-		return [mk('By sector', d.by_sector), mk('By business model', d.by_business_model), mk('By country', d.by_geo)];
-	}, [roundup.data, metric]);
+		const sectorG = sectorView === 'sector' ? d.by_sector : (d.by_sub_sector ?? d.by_sector);
+		return [
+			mk(sectorView === 'sector' ? 'By sector' : 'By sub-sector', sectorG),
+			mk('By business model', d.by_business_model),
+			mk('By country', d.by_geo),
+		];
+	}, [roundup.data, metric, sectorView]);
 
 	const sections = useMemo(() => {
 		const news = roundup.data?.news ?? [];
@@ -145,6 +158,7 @@ export function MarketRoundup() {
 			<div className="atlas-controls">
 				<Seg<Mode> ariaLabel="Market" value={mode} onChange={setMode} options={[{ key: 'funding', label: 'Funding' }, { key: 'ma', label: 'M&A' }]} />
 				<Seg<Metric> ariaLabel="Metric" value={metric} onChange={setMetric} options={[{ key: 'amount', label: 'Amount' }, { key: 'count', label: 'Count' }]} />
+				{mode === 'ma' && <Seg<Perspective> ariaLabel="Perspective" value={perspective} onChange={setPerspective} options={[{ key: 'acquiree', label: 'Acquiree' }, { key: 'acquirer', label: 'Acquirer' }]} />}
 			</div>
 
 			{roundup.isLoading ? <Loading /> : (
@@ -166,11 +180,13 @@ export function MarketRoundup() {
 
 					{/* Donuts */}
 					<div className="mkt-donuts">
-						{donuts.map((d) => (
+						{donuts.map((d, di) => (
 							<Card key={d.title} className="mkt-donut-card">
 								<div className="atlas-chart-card__head">
 									<div className="atlas-section-title">{d.title}</div>
-									<div className="atlas-section-note">{metric === 'amount' ? 'By capital' : 'By deal count'}</div>
+									{di === 0
+										? <Seg<SectorView> ariaLabel="Sector view" value={sectorView} onChange={setSectorView} options={[{ key: 'sector', label: 'Sector' }, { key: 'sub', label: 'Sub' }]} />
+										: <div className="atlas-section-note">{metric === 'amount' ? 'By capital' : 'By deal count'}</div>}
 								</div>
 								{d.segments.length === 0 ? <div style={{ fontSize: 13, color: 'var(--a-faint)', padding: 18 }}>No data.</div> : (
 									<>
@@ -178,6 +194,12 @@ export function MarketRoundup() {
 											<PieDonut mode="donut" size={142} segments={d.segments} showLabelOnLargest={false} centerValue={d.total} centerLabel={d.unit} />
 										</div>
 										<div className="mkt-donut-legend"><PieLegend segments={d.segments.slice(0, 6)} /></div>
+										{d.rows.length > 6 && (
+											<button type="button" onClick={() => setBreakdown({ title: d.title, rows: d.rows })}
+												style={{ marginTop: 8, background: 'none', border: 0, padding: 0, color: 'var(--a-navy)', cursor: 'pointer', font: 'inherit', fontSize: 12 }}>
+												View full breakdown ({d.rows.length})
+											</button>
+										)}
 									</>
 								)}
 							</Card>
@@ -187,7 +209,7 @@ export function MarketRoundup() {
 					{/* Largest deals table */}
 					<Card style={{ padding: '0 23px' }}>
 						<div className="atlas-section-head" style={{ padding: '16px 0 14px', alignItems: 'center' }}>
-							<div className="atlas-section-title" style={{ fontSize: 16 }}>{mode === 'ma' ? 'Largest acquisitions this month' : 'Largest rounds this month'}</div>
+							<div className="atlas-section-title" style={{ fontSize: 16 }}>{mode === 'ma' ? 'Acquisitions this month' : 'Funding rounds this month'}</div>
 							<span className="atlas-section-aside">All disclosed {mode === 'ma' ? 'acquisitions' : 'rounds'} for {monthName} {year}, sorted by {mode === 'ma' ? 'value' : 'amount'}</span>
 						</div>
 						{mode === 'funding' ? (
@@ -273,6 +295,23 @@ export function MarketRoundup() {
 						</div>
 					</Card>
 				</>
+			)}
+
+			{breakdown && (
+				<Modal open onOpenChange={(o) => { if (!o) setBreakdown(null); }} title={breakdown.title} width={520}>
+					<div style={{ display: 'grid', gap: 2, maxHeight: 440, overflowY: 'auto' }}>
+						<div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 110px', gap: 10, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--a-faint)', padding: '2px 0 6px', borderBottom: '1px solid var(--a-border)' }}>
+							<span>Name</span><span style={{ textAlign: 'right' }}>Deals</span><span style={{ textAlign: 'right' }}>Amount</span>
+						</div>
+						{breakdown.rows.map((r) => (
+							<div key={r.label} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 110px', gap: 10, fontSize: 13, color: 'var(--a-ink)', padding: '7px 0', borderBottom: '1px solid var(--a-border)' }}>
+								<span>{r.label}</span>
+								<span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtCount(r.deal_count)}</span>
+								<span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtUsd(r.total_amount)}</span>
+							</div>
+						))}
+					</div>
+				</Modal>
 			)}
 		</div>
 	);
