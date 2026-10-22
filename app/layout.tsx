@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -7,24 +7,32 @@ import './globals.css';
 //  • Space Grotesk — display (headings, brand)
 //  • Inter         — body
 //  • JetBrains Mono — mono (KPIs, tickers, code, monospace small caps)
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
+//
+// Self-hosted (next/font/local), NOT next/font/google: the Google loader fetches
+// the font files from fonts.gstatic.com AT BUILD TIME, and when that fetch flakes
+// on a cold Vercel build the whole deploy fails with a font module-not-found.
+// The latin woff2s live in ./fonts and ship with the repo, so builds never touch
+// the network. Weights are variable ranges. Re-download: Google Fonts CSS2 API,
+// latin subset (see scripts or app/fonts/README if refreshing).
+const spaceGrotesk = localFont({
+  src: './fonts/space-grotesk.woff2',
   variable: '--font-space-grotesk',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: '300 700',
 });
 
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: './fonts/inter.woff2',
   variable: '--font-inter',
   display: 'swap',
+  weight: '100 900',
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
+const jetbrainsMono = localFont({
+  src: './fonts/jetbrains-mono.woff2',
   variable: '--font-jetbrains-mono',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: '100 800',
 });
 
 /** The public origin. Atlas is the marketing front door for the app. */
