@@ -21,7 +21,7 @@ const TIERS: {
 }[] = [
 	{
 		key: 'explore', label: 'EXPLORE', colour: '#ff3373', accent: '#f32163',
-		eyebrow: 'Atlas Explore · For Operators',
+		eyebrow: 'Atlas Explore · For Founders',
 		heading: 'The business of sports tech',
 		sub: 'Map the market',
 		desc: 'The foundational layer of Atlas — map companies, investors and funding across sports tech & venture, all in one shared view.',
