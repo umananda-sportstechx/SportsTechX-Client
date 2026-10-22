@@ -317,7 +317,9 @@ body:has(.lp) {
 .lp-howjoin.lp-cream { background: #ffffff; }
 .lp-trusted { padding: 96px 0 104px; }
 .lp-trusted-head { text-align: center; margin: 0 auto 52px; }
-.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 700; text-transform: uppercase; font-size: clamp(36px, 4.2vw, 64px); line-height: 1; margin: 0 0 16px; color: #050505; }
+/* Matches the product headline (.lp-display .lp-howjoin-title): Zuume 400, same
+   size ramp and ink. */
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: clamp(40px, 5.69vw, 86px); line-height: 1; margin: 0 0 16px; color: var(--lp-ink-heading); }
 /* Design: Inter Medium 18/31. */
 .lp-trusted-head p { color: var(--lp-ink-soft); font-size: 18px; font-weight: 500; line-height: 31px; margin: 0 auto; max-width: 720px; }
 
@@ -878,6 +880,8 @@ body:has(.lp) {
 	.lp-hero--final .lp-hero-headline { font-size: 26px; }
 	.lp-hero-sub { font-size: 17px; }
 	.lp-trusted-head h2, .lp-gallery-title, .lp-team-intro h2 { font-size: 24px; }
+	/* Trusted by tracks the product headline's size on mobile too. */
+	.lp-trusted-head h2 { font-size: 30px; }
 	.lp-howjoin-title { font-size: 30px; }
 	.lp-howjoin-desc, .lp-team-intro p, .lp-gallery-desc { font-size: 17px; }
 
