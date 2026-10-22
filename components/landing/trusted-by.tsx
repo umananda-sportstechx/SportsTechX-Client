@@ -128,7 +128,7 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 			<div className="lp-inner">
 				<div className="lp-trusted-head">
 					<h2>Trusted by</h2>
-					<p>founders, investors, sports organizations</p>
+					<p>Founders, Investors, Sports Organizations</p>
 				</div>
 			</div>
 
