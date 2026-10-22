@@ -140,6 +140,21 @@
 .lp-btn--ui { font-family: var(--lp-ui); font-size: 21px; line-height: 26px; letter-spacing: 2.1px; height: 62px; padding: 0 34px; }
 
 /* ── Nav ───────────────────────────────────────────────────────────────── */
+/* The app's globals.css sets `html, body { height: 100%; overflow-x: hidden }`,
+   and overflow-x:hidden forces overflow-y to `auto` — which makes <body> the
+   scroll container. On the landing that breaks two things at once: the fixed
+   nav's `window` scroll listener never fires (so it never gets its glass), and
+   native smooth-scroll / anchor navigation targets the wrong scroller (hence
+   the jump). Restoring ordinary window scrolling fixes both: `clip` prevents the
+   horizontal overflow without creating a scroll container, and height:auto lets
+   the document grow so the viewport is what scrolls. Scoped to pages with .lp. */
+html:has(.lp),
+body:has(.lp) {
+	overflow-x: clip;
+	height: auto;
+	min-height: 100%;
+}
+
 /* In-page anchor links (nav, footer, hero CTAs) ease to their section rather
    than jumping. Scoped to the landing through :has(.lp) so the rest of the app
    is untouched, and switched off under reduced-motion. scroll-margin-top clears
