@@ -1,13 +1,10 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { SiteItem } from '@/lib/site-content';
 import { PLACEHOLDER_QUOTES as BASE_QUOTES, quoted } from '@/lib/testimonial-quotes';
 import { photoBg } from './trusted-by';
-
-/** Matches the STX landing + Playmakers rails so the sites drift at one rate. */
-const DRIFT_PX_PER_SEC = 50;
 
 /**
  * Testimonials — white section, two serif quotes per page with a centred
@@ -44,7 +41,6 @@ const PLACEHOLDER_QUOTES: Quote[] = BASE_QUOTES.map((q, i) => ({ ...q, tone: TON
 export function Testimonials({ items }: { items?: SiteItem[] }) {
 	const track = useRef<HTMLDivElement | null>(null);
 	const paused = useRef(false);
-	const resumeAt = useRef<number | null>(null);
 
 	const quotes: Quote[] = items?.length
 		? items.map((it, i) => ({
@@ -56,45 +52,11 @@ export function Testimonials({ items }: { items?: SiteItem[] }) {
 		}))
 		: PLACEHOLDER_QUOTES;
 
-	// Continuous smooth drift (marquee). The quotes are rendered twice and the
-	// scroll position wraps at the halfway mark for a seamless loop. Pauses on
-	// hover / focus and while the arrows settle; never runs under
-	// prefers-reduced-motion. Mirrors the STX landing + Playmakers rails.
-	useEffect(() => {
+	// Step forward one card, wrapping at the halfway mark (the track carries two
+	// copies for a seamless loop). No drift to hold, so this just scrolls.
+	const scroll = useCallback((dir: number) => {
 		const el = track.current;
 		if (!el) return;
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		el.scrollLeft = 1;
-		let raf = 0;
-		let last = performance.now();
-		let pos = el.scrollLeft;
-		const tick = (now: number) => {
-			const dt = Math.min(now - last, 100) / 1000; // clamp after a background tab
-			last = now;
-			if (paused.current) {
-				pos = el.scrollLeft; // pick up wherever the arrows or a drag left it
-			} else {
-				const half = el.scrollWidth / 2;
-				pos += DRIFT_PX_PER_SEC * dt;
-				if (pos >= half) pos -= half;
-				el.scrollLeft = pos;
-			}
-			raf = requestAnimationFrame(tick);
-		};
-		raf = requestAnimationFrame(tick);
-		return () => cancelAnimationFrame(raf);
-	}, [quotes.length]);
-
-	useEffect(() => () => { if (resumeAt.current) window.clearTimeout(resumeAt.current); }, []);
-
-	// One card per press, measured rather than assumed. The drift rewrites
-	// scrollLeft every frame, so hold it while the smooth scroll settles, and
-	// wrap near either end since the track carries two copies.
-	const scroll = (dir: number) => {
-		const el = track.current;
-		if (!el) return;
-		paused.current = true;
-		if (resumeAt.current) window.clearTimeout(resumeAt.current);
 		const card = el.firstElementChild as HTMLElement | null;
 		const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
 		const delta = dir * ((card?.offsetWidth ?? el.clientWidth) + gap);
@@ -102,10 +64,21 @@ export function Testimonials({ items }: { items?: SiteItem[] }) {
 		if (el.scrollLeft + delta < 0) el.scrollLeft += half;
 		else if (el.scrollLeft + delta > el.scrollWidth - el.clientWidth) el.scrollLeft -= half;
 		el.scrollBy({ left: delta, behavior: 'smooth' });
-		resumeAt.current = window.setTimeout(() => { paused.current = false; }, 800);
-	};
-	const pause = () => { paused.current = true; };
-	const resume = () => { paused.current = false; };
+	}, []);
+
+	// Discrete auto-advance: one card every 6s (step by step, not a continuous
+	// drift), smoothly, looping. Pauses on hover/focus and under reduced motion.
+	useEffect(() => {
+		const el = track.current;
+		if (!el) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		el.scrollLeft = 1; // seed so the loop can wrap left too
+		const id = window.setInterval(() => { if (!paused.current) scroll(1); }, 6000);
+		return () => window.clearInterval(id);
+	}, [scroll, quotes.length]);
+
+	const pause = useCallback(() => { paused.current = true; }, []);
+	const resume = useCallback(() => { paused.current = false; }, []);
 
 	return (
 		<section className="lp-testi" id="testimonials">
