@@ -49,7 +49,7 @@ export function IntroHero() {
 				</div>
 				<div className="lp-hero-ctas">
 					<a className="lp-btn lp-btn--pink" href="https://cal.com/khyati/sportstechx" target="_blank" rel="noreferrer">Book a demo</a>
-					<a className="lp-btn lp-btn--outline" href="#how-to-join">View the tiers</a>
+					<a className="lp-btn lp-btn--outline" href="#how-to-join">Explore products</a>
 				</div>
 			</div>
 		</header>
