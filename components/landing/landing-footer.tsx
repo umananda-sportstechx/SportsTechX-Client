@@ -3,9 +3,9 @@ import { Mail, MapPin } from 'lucide-react';
 /* Root-relative so the anchors also work from the legal pages. Products all
    point at the product selector section. */
 const QUICK: [string, string][] = [
-	['Atlas Explore', '/#how-to-join'],
-	['Atlas Raise', '/#how-to-join'],
-	['Atlas Scout', '/#how-to-join'],
+	['Atlas Explore', '/#dash-explore'],
+	['Atlas Raise', '/#dash-raise'],
+	['Atlas Scout', '/#dash-scout'],
 	['Plans & Pricing', '/plans'],
 	['FAQ', '/#faq'],
 ];
