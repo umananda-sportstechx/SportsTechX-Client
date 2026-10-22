@@ -70,6 +70,12 @@ export function HowToJoin() {
 					</div>
 
 					<div className="lp-howjoin-rule" />
+
+						{/* Primary CTA out of the section — straight to the Atlas plans
+						    page. (Gated routes send a logged-out visitor to /login.) */}
+						<a href="/plans" className="lp-btn lp-btn--pink lp-howjoin-cta">
+							See plans &amp; pricing
+						</a>
 				</div>
 
 				<div className="lp-stack">
@@ -112,6 +118,16 @@ export function HowToJoin() {
 												</span>
 											))}
 										</span>
+
+										{/* Scrolls to this tier's dashboard screenshot section.
+										    stopPropagation so it doesn't re-fire the card toggle. */}
+										<a
+											className="lp-tier-link"
+											href={`#dash-${t.key}`}
+											onClick={(e) => e.stopPropagation()}
+										>
+											View the {t.label} dashboard <span aria-hidden>→</span>
+										</a>
 									</span>
 								)}
 							</button>
