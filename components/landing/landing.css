@@ -508,7 +508,10 @@
    and snap would keep yanking the track back to a card edge. */
 .lp-testi-track { display: flex; max-width: var(--lp-max); margin: 60px auto 0; overflow-x: auto; scrollbar-width: none; }
 .lp-testi-track::-webkit-scrollbar { display: none; }
-.lp-quote-wrap { flex: 0 0 50%; margin: 0; padding: 0 40px; text-align: center; }
+/* Column with the chip pushed to the bottom, so the avatar holds ONE fixed
+   vertical position across cards (equal-height flex items) — a short quote just
+   leaves a gap above the chip instead of floating it up. */
+.lp-quote-wrap { flex: 0 0 50%; margin: 0; padding: 0 40px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
 /* Design: Kepler Std Display 27/37. */
 .lp-quote { font-family: var(--lp-serif); font-size: clamp(18px, 1.5vw, 23px); line-height: 1.45; color: var(--lp-ink); margin: 0 auto; max-width: 560px; }
 .lp-chip { display: inline-flex; align-items: center; gap: 18px; margin-top: 44px; text-align: left; }
