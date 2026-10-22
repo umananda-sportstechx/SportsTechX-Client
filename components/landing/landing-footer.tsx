@@ -1,13 +1,19 @@
 import { Mail, MapPin } from 'lucide-react';
 
-/* Was five dead href="#" anchors. The homepage sections are root-relative so
-   they work from the legal pages too. */
+/* Root-relative so the anchors also work from the legal pages. Products all
+   point at the product selector section. */
 const QUICK: [string, string][] = [
-	['Explore Membership', '/#explore'],
-	['How to Join', '/#how-to-join'],
-	['About us', '/#team'],
+	['Atlas Explore', '/#how-to-join'],
+	['Atlas Raise', '/#how-to-join'],
+	['Atlas Scout', '/#how-to-join'],
+	['Plans & Pricing', '/plans'],
 	['FAQ', '/#faq'],
-	['Terms of membership', '/terms-of-service'],
+];
+
+const SPORTSTECHX: [string, string][] = [
+	['About us', 'https://sports-tech-x-landing.vercel.app/about'],
+	['Book a demo', 'https://cal.com/khyati/sportstechx'],
+	['Contact', 'mailto:hello@sportstechx.com'],
 ];
 
 const Svg = ({ children }: { children: React.ReactNode }) => (
@@ -31,16 +37,19 @@ export function LandingFooter() {
 							    and would vanish on the light footer. */}
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img className="lp-footer-wordmark" src="/landing/atlas-wordmark-dark.svg" alt="Atlas" />
-							<p className="lp-footer-desc">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam.</p>
+							<p className="lp-footer-desc">Your insider guide to sports tech &amp; venture. Get sports tech market intelligence, fundraising support and deal sourcing.</p>
 							<div className="lp-footer-meta">
-								<div><Mail size={16} /> hello@playmakers.com</div>
+								<div><Mail size={16} /> hello@sportstechx.com</div>
 								<div><MapPin size={16} /> Berlin, Germany</div>
 							</div>
 						</div>
-						<div aria-hidden />
 						<div>
-							<div className="lp-footer-h">Quick Links</div>
-							<nav className="lp-footer-links">{QUICK.map(([l, href]) => <a key={l} href={href}>{l}</a>)}</nav>
+								<div className="lp-footer-h">Quick Links</div>
+								<nav className="lp-footer-links">{QUICK.map(([l, href]) => <a key={l} href={href}>{l}</a>)}</nav>
+							</div>
+						<div>
+							<div className="lp-footer-h">SportsTechX</div>
+							<nav className="lp-footer-links">{SPORTSTECHX.map(([l, href]) => <a key={l} href={href} {...(href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}>{l}</a>)}</nav>
 						</div>
 						<div>
 							<div className="lp-footer-h">Connect</div>
@@ -51,10 +60,10 @@ export function LandingFooter() {
 						<span>© 2026 SportsTechX GmbH. All rights reserved.</span>
 						{/* These were a plain string; both pages exist and are public. */}
 						<span>
-							<a href="/privacy-policy">Privacy</a>
+							<a href="/privacy-policy">Privacy Policy</a>
 							{' · '}
-							<a href="/terms-of-service">Terms</a>
-							{' · The Inner Circle of Sports Tech'}
+							<a href="/terms-of-service">Terms of Service</a>
+							{''}
 						</span>
 					</div>
 				</div>

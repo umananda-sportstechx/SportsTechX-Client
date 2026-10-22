@@ -38,9 +38,9 @@ const jetbrainsMono = localFont({
 /** The public origin. Atlas is the marketing front door for the app. */
 export const SITE_URL = 'https://atlas.sportstechx.com';
 
-const TITLE = 'Atlas — Your Insider Guide to Sports Tech & Venture';
+const TITLE = 'Atlas | Sports Tech Intelligence by SportsTechX';
 const DESCRIPTION =
-  'Market intelligence, investor tracking and warm introductions for founders raising in sports tech. Atlas is built by SportsTechX.';
+  'Explore sports tech companies and investors, prepare your next funding round and source investment opportunities with Atlas by SportsTechX.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
