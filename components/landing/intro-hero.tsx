@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 /* eslint-disable @next/next/no-img-element */
 
 /**
@@ -50,7 +48,7 @@ export function IntroHero() {
 					<h1 className="lp-display lp-hero-headline">Your insider guide to<br />sports tech &amp; venture</h1>
 				</div>
 				<div className="lp-hero-ctas">
-					<Link className="lp-btn lp-btn--pink" href="/signup">Book a demo</Link>
+					<a className="lp-btn lp-btn--pink" href="https://cal.com/khyati/sportstechx" target="_blank" rel="noreferrer">Book a demo</a>
 					<a className="lp-btn lp-btn--outline" href="#how-to-join">View the tiers</a>
 				</div>
 			</div>
