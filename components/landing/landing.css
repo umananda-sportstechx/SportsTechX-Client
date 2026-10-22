@@ -140,6 +140,16 @@
 .lp-btn--ui { font-family: var(--lp-ui); font-size: 21px; line-height: 26px; letter-spacing: 2.1px; height: 62px; padding: 0 34px; }
 
 /* ── Nav ───────────────────────────────────────────────────────────────── */
+/* In-page anchor links (nav, footer, hero CTAs) ease to their section rather
+   than jumping. Scoped to the landing through :has(.lp) so the rest of the app
+   is untouched, and switched off under reduced-motion. scroll-margin-top clears
+   the fixed bar so a target's heading isn't left hidden beneath it. */
+:root:has(.lp) { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+	:root:has(.lp) { scroll-behavior: auto; }
+}
+.lp :where([id]) { scroll-margin-top: 96px; }
+
 .lp-nav {
 	position: fixed; top: 0; left: 0; right: 0; z-index: 40;
 	/* `top` is deliberately absent from this list. While the drawer is out the
@@ -159,10 +169,15 @@
 /* Glass bar once the page moves. One dark translucent treatment reads correctly
    over the dark hero and over the cream / white sections below. */
 .lp-nav.is-scrolled {
-	background: rgba(6, 9, 20, 0.86);
-	-webkit-backdrop-filter: blur(20px) saturate(140%);
-	backdrop-filter: blur(20px) saturate(140%);
-	border-bottom-color: rgba(255, 255, 255, 0.08);
+	/* Dark translucent glass: enough opacity for white nav text to stay legible
+	   over the cream / white sections below, a heavy blur + saturate so it reads
+	   as glass rather than a flat panel, and a soft shadow to lift it off the
+	   content it overlaps. */
+	background: rgba(8, 11, 24, 0.8);
+	-webkit-backdrop-filter: blur(24px) saturate(150%);
+	backdrop-filter: blur(24px) saturate(150%);
+	border-bottom-color: rgba(255, 255, 255, 0.1);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 /* Design: nav frame at x=107, y=85 — a wider gutter than the content sections. */
 /* Design puts the nav at 1291 @ x=107 — 26px tighter per side than the
@@ -965,10 +980,11 @@ html:has(.lp)::-webkit-scrollbar-thumb:hover {
    page has a white ground, so it wears the scrolled glass from the start
    instead of only after a scroll, or the whole bar is white on white. */
 .lp-solid-nav .lp-nav {
-	background: rgba(6, 9, 20, 0.86);
-	-webkit-backdrop-filter: blur(20px) saturate(140%);
-	backdrop-filter: blur(20px) saturate(140%);
-	border-bottom-color: rgba(255, 255, 255, 0.08);
+	background: rgba(8, 11, 24, 0.8);
+	-webkit-backdrop-filter: blur(24px) saturate(150%);
+	backdrop-filter: blur(24px) saturate(150%);
+	border-bottom-color: rgba(255, 255, 255, 0.1);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .lp-legal { background: #ffffff; color: var(--lp-ink); padding: 168px var(--lp-pad) 140px; }
