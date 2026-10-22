@@ -24,9 +24,10 @@ import '@/components/landing/landing.css';
  * they fall through to Anton, the closest free match. Eyebrows/buttons/nav use
  * Azeret Mono (exact, from the design); body reuses the app's Inter.
  */
-/* Placeholder copy, reproduced from the design as-is. */
-const GALLERY_DESC =
-	'Sed diam nonumy eirmod tempor invidunt ut labore. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
+/* "Inside Atlas" gallery blurbs, from the spec (#5 Explore, #6 Raise, #7 Scout). */
+const DASH_EXPLORE_DESC = 'Map the sports tech market, research companies and investors, and access industry reports, programs and events.';
+const DASH_RAISE_DESC = 'Find the right investors, benchmark your company and sharpen your pitch with the SportsTechX intelligence layer.';
+const DASH_SCOUT_DESC = 'Source deals matched to your thesis and strengthen due diligence with sports tech market data and analysis.';
 
 export default async function LandingPage() {
 	/* Carousel, team, dashboard screenshots and testimonials come from the admin
@@ -51,11 +52,11 @@ export default async function LandingPage() {
 				{/* The three product dashboards. The ids are the scroll targets for
 				    the tier cards' "View the … dashboard" links in HowToJoin. */}
 				<section className="lp-gallery-wrap" id="explore">
-					<ProductGallery id="dash-explore" title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" shots={cms.dashboard} />
+					<ProductGallery id="dash-explore" title="Inside Atlas" accent="Explore" desc={DASH_EXPLORE_DESC} variant="a" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery id="dash-raise" title="Inside Atlas" accent="Raise" desc={GALLERY_DESC} variant="b" shots={cms.dashboard} />
+					<ProductGallery id="dash-raise" title="Inside Atlas" accent="Raise" desc={DASH_RAISE_DESC} variant="b" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery id="dash-scout" title="Inside Atlas" accent="Scout" desc={GALLERY_DESC} variant="c" shots={cms.dashboard} />
+					<ProductGallery id="dash-scout" title="Inside Atlas" accent="Scout" desc={DASH_SCOUT_DESC} variant="c" shots={cms.dashboard} />
 				</section>
 				<Testimonials items={cms.testimonials} />
 				<Team items={cms.team} />
