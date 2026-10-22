@@ -504,11 +504,13 @@
 
 .lp-testi { position: relative; background: #ffffff; color: var(--lp-ink); padding: 120px var(--lp-pad) 150px; }
 /* Real scroller, so the arrows below have something to scroll. */
-.lp-testi-track { display: flex; max-width: var(--lp-max); margin: 60px auto 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+/* No scroll-snap: the testimonials auto-drift (a per-frame scrollLeft write),
+   and snap would keep yanking the track back to a card edge. */
+.lp-testi-track { display: flex; max-width: var(--lp-max); margin: 60px auto 0; overflow-x: auto; scrollbar-width: none; }
 .lp-testi-track::-webkit-scrollbar { display: none; }
-.lp-quote-wrap { flex: 0 0 50%; scroll-snap-align: start; margin: 0; padding: 0 40px; text-align: center; }
+.lp-quote-wrap { flex: 0 0 50%; margin: 0; padding: 0 40px; text-align: center; }
 /* Design: Kepler Std Display 27/37. */
-.lp-quote { font-family: var(--lp-serif); font-size: clamp(20px, 1.79vw, 27px); line-height: 1.37; color: var(--lp-ink); margin: 0 auto; max-width: 560px; }
+.lp-quote { font-family: var(--lp-serif); font-size: clamp(18px, 1.5vw, 23px); line-height: 1.45; color: var(--lp-ink); margin: 0 auto; max-width: 560px; }
 .lp-chip { display: inline-flex; align-items: center; gap: 18px; margin-top: 44px; text-align: left; }
 .lp-chip-avatar { width: 69px; height: 69px; border-radius: 99px; flex: none; box-shadow: 0 0 0 7px rgba(20, 18, 26, 0.045); }
 /* Per-run styles (fig --overrides): Zuume Regular 22 + Space Mono 11 ls -3% @70%. */
