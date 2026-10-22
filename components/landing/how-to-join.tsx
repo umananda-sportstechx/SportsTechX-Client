@@ -13,27 +13,32 @@ import { Check } from 'lucide-react';
  */
 type Key = 'explore' | 'raise' | 'scout';
 
+/* Copy from the "ATLAS LANDING PAGE FULL CONTENT" spec. `heading` is the big
+   display line, which now changes per selected product. */
 const TIERS: {
 	key: Key; label: string; colour: string; accent: string; eyebrow: string;
-	sub: string; desc: string; points: string[];
+	heading: string; sub: string; desc: string; points: string[];
 }[] = [
 	{
 		key: 'explore', label: 'EXPLORE', colour: '#ff3373', accent: '#f32163',
-		eyebrow: 'Atlas Explore · The Base',
-		sub: 'Map the landscape',
+		eyebrow: 'Atlas Explore · For Operators',
+		heading: 'The business of sports tech',
+		sub: 'Map the market',
 		desc: 'The foundational layer of Atlas — map companies, investors and funding across sports tech & venture, all in one shared view.',
-		points: ['Browse 1,500+ sports tech companies', 'Filter by category, stage and geography', 'See the whole ecosystem in one view'],
+		points: ['Browse 8,500+ sports tech companies', 'Search by sport, category, geography', 'Find accelerators, programs and events'],
 	},
 	{
 		key: 'raise', label: 'RAISE', colour: '#4580ec', accent: '#1c55be',
-		eyebrow: 'Atlas Raise · The Workspace',
+		eyebrow: 'Atlas Raise · For founders',
+		heading: 'The smart way to raise capital',
 		sub: 'Run your raise',
 		desc: 'Everything a founder needs to run the raise — investor targeting, warm-intro paths and outreach tracking in one workspace.',
-		points: ['Match with investors active in your category', 'Track outreach, intros and momentum', 'Sharpen the story with live market data'],
+		points: ['Match with investors active in your category', 'Track outreach, intros and momentum', 'Sharpen your story with live market data'],
 	},
 	{
 		key: 'scout', label: 'SCOUT', colour: '#1cc3a4', accent: '#338b6e',
-		eyebrow: 'Atlas Scout · The Edge',
+		eyebrow: 'Atlas Scout · For investors',
+		heading: 'Source your next investment',
 		sub: 'Find your next deal',
 		desc: 'Surface the companies that match your thesis before anyone else, and follow their momentum as it happens.',
 		points: ['Surface companies matching your thesis', 'Monitor rounds, hiring and momentum', 'Build and share curated shortlists'],
@@ -54,7 +59,8 @@ export function HowToJoin() {
 						<i />
 					</div>
 
-					<h2 className="lp-display lp-howjoin-title">The smart way<br />to raise capital</h2>
+					{/* Changes with the selected product (feedback spec #4). */}
+					<h2 className="lp-display lp-howjoin-title">{current.heading}</h2>
 					<p className="lp-howjoin-desc">{current.desc}</p>
 
 					<div className="lp-switcher">

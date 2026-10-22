@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 /* eslint-disable @next/next/no-img-element */
 
 /**
@@ -25,11 +23,11 @@ export function FinalHero() {
 			<div className="lp-hero-inner">
 				<div className="lp-hero-texts">
 					<img className="lp-hero-wordmark lp-hero-wordmark--sm" src="/landing/atlas-wordmark.svg" alt="Atlas" />
-					<h2 className="lp-display lp-hero-headline">Built for sports tech&rsquo;s most daring operators</h2>
+					<h2 className="lp-display lp-hero-headline">Built for sports tech&rsquo;s most advanced operators</h2>
 				</div>
-				<p className="lp-hero-sub">See how founders and investors use Atlas to navigate, raise and do deals in sports tech.</p>
+				<p className="lp-hero-sub">Explore the market, prepare your next round or find investment opportunities. See how Atlas supports your goals.</p>
 				<div className="lp-hero-ctas">
-					<Link className="lp-btn lp-btn--ui lp-btn--pink" href="/signup">Apply for membership</Link>
+					<a className="lp-btn lp-btn--ui lp-btn--pink" href="https://cal.com/khyati/sportstechx" target="_blank" rel="noreferrer">Book a demo</a>
 				</div>
 			</div>
 		</section>
