@@ -13,14 +13,14 @@ const PLACEHOLDER_MEMBERS: Member[] = [
 	{
 		name: 'ROHN MALHOTRA',
 		eyebrow: 'Founder at SportsTechX | VC at Match Ventures',
-		bio: 'Co-Founder & Managing Director at SportsTechX, the leading sports innovation intelligence platform, exited founder and Investment Director at Match Ventures.',
+		bio: 'Co-Founder & Managing Director at SportsTechX, the leading sports innovation intelligence platform, exited founder and Investment',
 		img: '/landing/team-1.jpg',
 		tone: 'linear-gradient(160deg,#b6ae9e,#4a4750)',
 	},
 	{
 		name: 'THOMAS PREISS',
 		eyebrow: 'Playmakers and Common Goal Co-Founder',
-		bio: 'Serial entrepreneur and community builder in sports, Co-Founder of Common Goal with deep expertise in building and operating high-impact membership networks.',
+		bio: 'Serial entrepreneur and community builder in sports, Co-Founder of Common Goal with deep expertise in building and operating high-impact membership networks',
 		img: '/landing/team-2.jpg',
 		tone: 'linear-gradient(160deg,#a9adb4,#43454d)',
 	},
