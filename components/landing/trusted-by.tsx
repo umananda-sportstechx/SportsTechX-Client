@@ -127,8 +127,8 @@ export function TrustedBy({ items }: { items?: SiteItem[] }) {
 		<section className="lp-cream lp-trusted" id="trusted">
 			<div className="lp-inner">
 				<div className="lp-trusted-head">
-					<h2>Lorem ipsum dolor sit amet, consetetur</h2>
-					<p>Playmakers is a by-invitation private network for high growth sports tech founders and CEOs. Your peers. Your confidants. Your advantage.</p>
+					<h2>Trusted by</h2>
+					<p>founders, investors, sports organizations</p>
 				</div>
 			</div>
 
