@@ -370,6 +370,7 @@ body:has(.lp) {
    design's (34/45); only the family changed. */
 .lp-howjoin-desc { font-family: var(--lp-sans); font-size: clamp(19px, 2.25vw, 34px); line-height: 1.324; color: var(--lp-ink); max-width: 560px; margin: 0 0 34px; }
 .lp-howjoin-rule { height: 1px; background: rgba(20, 18, 26, 0.16); margin-top: 46px; }
+.lp-howjoin-cta { margin-top: 36px; align-self: flex-start; }
 
 /* Switcher — one rounded container holding the three tier tags (design). */
 /* nowrap: the pill's 99px radius only reads as a pill on one line, and the
@@ -463,6 +464,15 @@ body:has(.lp) {
 /* Design: Kepler Std Light Display 19. */
 .lp-point { display: flex; align-items: center; min-height: 28px; gap: 14px; font-family: var(--lp-sans); font-weight: 400; font-size: 19px; line-height: 1.25; color: rgba(255, 255, 255, 0.92); }
 .lp-point-ico { width: 24px; height: 24px; border-radius: 6px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.16); color: #fff; }
+/* "View the … dashboard" link inside an open tier card — scrolls to that
+   product's screenshot section. Light on the dark card; the arrow nudges on hover. */
+.lp-tier-link {
+	display: inline-flex; align-items: center; gap: 8px; margin-top: 34px;
+	font-family: var(--lp-ui); font-weight: 500; font-size: 15px; letter-spacing: 1.2px;
+	text-transform: uppercase; color: #fff; text-decoration: none; opacity: 0.9;
+	transition: opacity 0.12s ease, gap 0.12s ease;
+}
+.lp-tier-link:hover { opacity: 1; gap: 13px; }
 
 /* ── Product gallery ───────────────────────────────────────────────────── */
 /* White section; each block is a dark navy→magenta panel with a white app
