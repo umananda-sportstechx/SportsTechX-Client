@@ -69,8 +69,8 @@ function Mockup({ tab, shots }: { tab: Tab; shots?: SiteItem[] }) {
 	);
 }
 
-export function ProductGallery({ title, accent, desc, variant, shots }: {
-	title: string; accent: string; desc: string; variant: 'a' | 'b' | 'c'; shots?: SiteItem[];
+export function ProductGallery({ id, title, accent, desc, variant, shots }: {
+	id?: string; title: string; accent: string; desc: string; variant: 'a' | 'b' | 'c'; shots?: SiteItem[];
 }) {
 	const [tab, setTab] = useState<Tab>(variant === 'b' ? 'TRACK' : variant === 'c' ? 'CONNECT' : 'MAP');
 
@@ -86,7 +86,7 @@ export function ProductGallery({ title, accent, desc, variant, shots }: {
 
 	if (variant === 'b') {
 		return (
-			<div className="lp-gallery lp-gallery--light">
+			<div id={id} className="lp-gallery lp-gallery--light">
 				<div className="lp-gallery-headwrap">{head}</div>
 				<div className="lp-gallery-panel lp-gallery-panel--bare">
 					<Mockup tab={tab} shots={shots} />
@@ -96,7 +96,7 @@ export function ProductGallery({ title, accent, desc, variant, shots }: {
 	}
 
 	return (
-		<div className="lp-gallery">
+		<div id={id} className="lp-gallery">
 			<div className="lp-gallery-panel">
 				{head}
 				<Mockup tab={tab} shots={shots} />

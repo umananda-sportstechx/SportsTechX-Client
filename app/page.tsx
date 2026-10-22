@@ -48,12 +48,14 @@ export default async function LandingPage() {
 				<IntroHero />
 				<TrustedBy items={cms.gallery} />
 				<HowToJoin />
+				{/* The three product dashboards. The ids are the scroll targets for
+				    the tier cards' "View the … dashboard" links in HowToJoin. */}
 				<section className="lp-gallery-wrap" id="explore">
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" shots={cms.dashboard} />
+					<ProductGallery id="dash-explore" title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="a" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="b" shots={cms.dashboard} />
+					<ProductGallery id="dash-raise" title="Inside Atlas" accent="Raise" desc={GALLERY_DESC} variant="b" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery title="Inside Atlas" accent="Explore" desc={GALLERY_DESC} variant="c" shots={cms.dashboard} />
+					<ProductGallery id="dash-scout" title="Inside Atlas" accent="Scout" desc={GALLERY_DESC} variant="c" shots={cms.dashboard} />
 				</section>
 				<Testimonials items={cms.testimonials} />
 				<Team items={cms.team} />
