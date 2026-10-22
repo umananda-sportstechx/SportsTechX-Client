@@ -305,6 +305,8 @@ body:has(.lp) {
 .lp-hero--final .lp-hero-headline { font-size: clamp(34px, 4.1vw, 62px); line-height: 1.161; }
 /* Design: Kepler Std Display 34/45. */
 .lp-hero-sub { font-family: var(--lp-serif); color: var(--lp-on-dark-soft); font-size: clamp(19px, 2.25vw, 34px); line-height: 1.324; max-width: 760px; margin: 0 auto; }
+/* The closing CTA copy is longer; a wider cap keeps it to two lines, not three. */
+.lp-hero--final .lp-hero-sub { max-width: 960px; }
 .lp-hero-ctas { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; padding: 12px 0; }
 
 /* ── Trusted by ────────────────────────────────────────────────────────── */
@@ -315,7 +317,7 @@ body:has(.lp) {
 .lp-howjoin.lp-cream { background: #ffffff; }
 .lp-trusted { padding: 96px 0 104px; }
 .lp-trusted-head { text-align: center; margin: 0 auto 52px; }
-.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 400; text-transform: uppercase; font-size: clamp(30px, 3.64vw, 55px); line-height: 1; margin: 0 0 16px; color: #050505; }
+.lp-trusted-head h2 { font-family: var(--lp-display-stack); font-weight: 700; text-transform: uppercase; font-size: clamp(36px, 4.2vw, 64px); line-height: 1; margin: 0 0 16px; color: #050505; }
 /* Design: Inter Medium 18/31. */
 .lp-trusted-head p { color: var(--lp-ink-soft); font-size: 18px; font-weight: 500; line-height: 31px; margin: 0 auto; max-width: 720px; }
 
