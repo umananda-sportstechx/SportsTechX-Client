@@ -1,16 +1,24 @@
 /** Shared formatting for market figures, dates and places. */
 
-/** Compact USD ($1.2B / $340.0M / $2.3M / $12,000 / —).
- *  Millions carry one decimal, matching billions — so a deal of $2.3M shows as
- *  "$2.3M", not rounded to "$2M". */
+/** `$2.3M`, `$340M`, `$1.2B`, `$5B` — one decimal, but a trailing ".0" is dropped
+ *  so round values read cleanly. The decimal is KEPT when it's real, so a $2.3M
+ *  deal never shows rounded as "$2M". */
+const compact = (n: number, div: number, suffix: string) => `$${(n / div).toFixed(1).replace(/\.0$/, '')}${suffix}`;
+
+/** Compact USD for amounts and deal values ($1.2B / $340M / $2.3M / $12,000 / —). */
 export function fmtUsd(n?: number | null): string {
 	if (n == null) return '—';
-	if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
-	if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+	if (n >= 1e9) return compact(n, 1e9, 'B');
+	if (n >= 1e6) return compact(n, 1e6, 'M');
 	return n > 0 ? `$${Math.round(n).toLocaleString()}` : '—';
 }
-/** USD in billions for chart axes ($1.2B). */
-export const fmtUsdB = (n: number) => (n >= 1e9 || n === 0 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}M` : `$${Math.round(n).toLocaleString()}`);
+/** Same compaction for chart axes AND hover tooltips — so a tooltip shows the
+ *  real figure ($2.3M, not $2M) while round axis ticks stay clean ($340M). */
+export const fmtUsdB = (n: number) => {
+	if (n >= 1e9) return compact(n, 1e9, 'B');
+	if (n >= 1e6) return compact(n, 1e6, 'M');
+	return `$${Math.round(n).toLocaleString()}`;
+};
 export const fmtCount = (n?: number | null) => Number(n ?? 0).toLocaleString();
 
 /** Coarse relative time ("today", "3 days ago", "5 months ago").
