@@ -629,8 +629,9 @@ function formatDollars(value: number | string | null | undefined): string {
 	if (value == null) return '—';
 	const n = typeof value === 'string' ? Number(value) : value;
 	if (!Number.isFinite(n) || n <= 0) return '—';
-	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+	// One decimal, dropping a trailing ".0" so round values stay clean ($2.3M / $5M).
+	if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
 	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
 	return `$${n.toFixed(0)}`;
 }
