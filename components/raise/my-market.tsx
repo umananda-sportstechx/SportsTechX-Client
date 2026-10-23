@@ -26,12 +26,14 @@ interface Market {
 	methodology: Methodology | null; competitors: Competitor[] | null; updated_at?: string;
 }
 
+// One decimal, dropping a trailing ".0" so round values stay clean (2.3m / 340m).
+const d1 = (x: number) => x.toFixed(1).replace(/\.0$/, '');
 const eur = (v: string | null) => {
 	if (v == null) return '—';
 	const n = Number(v);
-	return n >= 1e9 ? `EUR ${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `EUR ${(n / 1e6).toFixed(1)}m` : `EUR ${n.toLocaleString()}`;
+	return n >= 1e9 ? `EUR ${d1(n / 1e9)}bn` : n >= 1e6 ? `EUR ${d1(n / 1e6)}m` : `EUR ${n.toLocaleString()}`;
 };
-const usd = (n?: number | null) => (n == null ? '—' : n >= 1e9 ? `$${(n / 1e9).toFixed(1)}bn` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}m` : n > 0 ? `$${n.toLocaleString()}` : '—');
+const usd = (n?: number | null) => (n == null ? '—' : n >= 1e9 ? `$${d1(n / 1e9)}bn` : n >= 1e6 ? `$${d1(n / 1e6)}m` : n > 0 ? `$${n.toLocaleString()}` : '—');
 
 export function MyMarket() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
