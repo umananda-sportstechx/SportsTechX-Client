@@ -148,7 +148,7 @@ export function SuggestCorrection({ companyId, companyName, current }: {
 							<LocationSelect value={values.hq_country ?? ''} onChange={(v) => set('hq_country', v)} placeholder="Select country" />
 						</Field>
 						<Field label={LABELS.hq_city}>
-							<CityInput value={values.hq_city ?? ''} onChange={(v) => set('hq_city', v)} placeholder="City name" geo={values.hq_country ?? ''} />
+							<CityInput value={values.hq_city ?? ''} onChange={(v) => set('hq_city', v)} onPick={(h) => { if (h.country) set('hq_country', h.country); }} placeholder="City name" geo={values.hq_country ?? ''} />
 						</Field>
 						<Field label={LABELS.sector}>
 							<Input value={values.sector ?? ''} onChange={(e) => set('sector', e.target.value)} placeholder="Category" />

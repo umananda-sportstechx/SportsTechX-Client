@@ -22,9 +22,14 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
  */
 interface LocHit { city: string | null; state: string | null; country: string | null }
 
-export function CityInput({ value, onChange, id, disabled, className, placeholder = 'City', geo }: {
+export function CityInput({ value, onChange, onPick, id, disabled, className, placeholder = 'City', geo }: {
 	value: string;
 	onChange: (value: string) => void;
+	/** Fires ONLY when a DB suggestion is chosen (not on free typing), carrying the
+	 *  canonical city + its country so the caller can auto-fill the sibling country
+	 *  field — this keeps city/country consistent and avoids "Bangalore"/"Bengaluru"
+	 *  duplicates that break aggregation. */
+	onPick?: (hit: { city: string; country: string | null }) => void;
 	id?: string;
 	disabled?: boolean;
 	className?: string;
@@ -89,12 +94,12 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [showPanel]);
 
-	const pick = (c: string) => { onChange(c); setOpen(false); };
+	const pick = (m: { city: string; country: string | null }) => { onChange(m.city); onPick?.(m); setOpen(false); };
 	const onKey = (e: React.KeyboardEvent) => {
 		if (!showPanel) return;
 		if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(matches.length - 1, i + 1)); }
 		else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
-		else if (e.key === 'Enter') { const m = matches[active]; if (m) { e.preventDefault(); pick(m.city); } }
+		else if (e.key === 'Enter') { const m = matches[active]; if (m) { e.preventDefault(); pick(m); } }
 		else if (e.key === 'Escape') { setOpen(false); }
 	};
 
@@ -129,7 +134,7 @@ export function CityInput({ value, onChange, id, disabled, className, placeholde
 									className={cx('atlas-combo-opt', i === active && 'is-active')}
 									onMouseEnter={() => setActive(i)}
 									// mousedown, not click: fire before the input blurs and closes the panel.
-									onMouseDown={(e) => { e.preventDefault(); pick(m.city); }}
+									onMouseDown={(e) => { e.preventDefault(); pick(m); }}
 								>
 									<span>{m.city}</span>
 									{m.country && <span style={{ marginLeft: 'auto', color: 'var(--a-muted)', fontSize: 12 }}>{m.country}</span>}
