@@ -9,6 +9,7 @@ import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchl
 import { qk } from '@/lib/query-keys';
 import type { Company, Deal } from '@/types/api';
 import { Action, Empty, Loading, Logo } from '@/components/atlas';
+import { RaisingPill } from '@/components/ui/atoms';
 import { ago, fmtUsd, place } from '@/components/features/market/format';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SuggestCorrection } from '@/components/features/verify/suggest-correction';
@@ -124,7 +125,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 				<div className="atlas-co__id">
 					<Logo co={{ name: c.name, website: c.website ?? null, custom_logo_url: c.custom_logo_url }} size={72} radius={10} />
 					<div>
-						<h1 className="atlas-co__name">{c.name}{c.is_verified && <span style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><VerifiedBadge size={20} /></span>}</h1>
+						<h1 className="atlas-co__name">{c.name}{c.is_verified && <span style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><VerifiedBadge size={20} /></span>}{c.is_actively_raising && <span style={{ marginLeft: 8, display: 'inline-flex', verticalAlign: 'middle' }}><RaisingPill compact /></span>}</h1>
 						<div className="atlas-co__meta">{[hq, c.founded_year ? `Founded ${c.founded_year}` : null].filter(Boolean).join(' · ')}</div>
 						{socialLinks.length > 0 && (
 							<div className="atlas-co__socials">
