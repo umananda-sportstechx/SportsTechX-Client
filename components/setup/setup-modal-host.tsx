@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { SETUP_EVENT, type OpenSetupDetail, type SetupWizard } from '@/lib/setup-events';
 import { useUrlModal } from '@/hooks/use-url-state';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
@@ -81,9 +80,9 @@ export function SetupModalHost() {
 			setWizard(setupParam);
 			setOpen(true);
 		} else {
+			// Wrong tier — silently strip the param and show nothing.
 			setSetupParam(null);
 			setOpen(false);
-			toast.error('That setup isn’t available on your current plan.');
 		}
 		// `allows` is derived from `tier`, which is in the deps.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
