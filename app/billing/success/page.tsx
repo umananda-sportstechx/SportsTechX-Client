@@ -8,7 +8,6 @@ import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { Brand } from '@/components/ui/brand';
 import { Button, Card } from '@/components/atlas';
 import { hrefOf } from '@/lib/routes';
-import { openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
 
 /**
  * Stripe Checkout success landing.
@@ -75,12 +74,16 @@ export default function BillingSuccessPage() {
 
 	// Straight into the setup each product actually needs — both are skippable.
 	// Both used to be their own routes (`/onboarding/scout`, `/setup`); they are
-	// modals now, so this lands on the dashboard and raises the right one over
-	// it. The Stripe return URL itself is `/billing/success` and is unaffected.
+	// modals the dashboard raises from a `?setup=` param.
+	//
+	// Carry that param in ONE navigation to home. Firing the setup event bus here
+	// (openScoutThesis/openRaiseSetup) instead raced the push: the bus writes
+	// `?setup=` onto `window.location`, which is still `/billing/success` at that
+	// instant, so it re-pinned the wizard to THIS page and the onboarding could
+	// never leave it — Continue → wizard → "Go to Scout" → back here, forever.
 	const openSetup = () => {
-		router.push(hrefOf('home'));
-		if (tier === 'scout') openScoutThesis();
-		else if (tier === 'raise') openRaiseSetup();
+		const wizard = tier === 'scout' ? 'thesis' : tier === 'raise' ? 'raise' : null;
+		router.push(wizard ? `${hrefOf('home')}?setup=${wizard}` : hrefOf('home'));
 	};
 
 	return (
