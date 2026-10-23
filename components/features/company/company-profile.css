@@ -94,3 +94,27 @@
 	.atlas .atlas-co__name { font-size: 28px; }
 	.atlas .atlas-co__actions { padding-top: 0; gap: 18px; }
 }
+
+/* Raising pill — the profile route doesn't load company-detail.css (that sheet
+   ships with the dynamically-imported drawer), so the .rp rules live here too. */
+.atlas-co .rp {
+	display: inline-flex; align-items: center; gap: 6px;
+	height: 20px; padding: 0 8px;
+	background: color-mix(in oklch, var(--pos), transparent 88%);
+	color: var(--pos);
+	border: 1px solid color-mix(in oklch, var(--pos), transparent 70%);
+	border-radius: 999px;
+	font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+	letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+}
+.atlas-co .rp.compact { height: 18px; padding: 0 6px; font-size: 9.5px; gap: 4px; }
+.atlas-co .rp-dot {
+	width: 6px; height: 6px; border-radius: 50%;
+	background: var(--pos); flex-shrink: 0;
+	animation: rp-pulse 2.4s ease-out infinite;
+}
+@keyframes rp-pulse {
+	0%   { box-shadow: 0 0 0 0   color-mix(in oklch, var(--pos), transparent 40%); }
+	70%  { box-shadow: 0 0 0 6px color-mix(in oklch, var(--pos), transparent 100%); }
+	100% { box-shadow: 0 0 0 0   color-mix(in oklch, var(--pos), transparent 100%); }
+}
