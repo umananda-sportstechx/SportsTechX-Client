@@ -16,9 +16,13 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
  * country, shown beside the city so same-named places are distinguishable. The
  * query is debounced (250ms, min 2 chars) so it fires on a pause, not a keystroke.
  *
- * It stays free text — typing a city that isn't in the data is allowed. The
- * panel is portalled to <body> (fixed, flips up when cramped) so it is never
- * clipped by the setup modal's overflow, matching the Country dropdown's look.
+ * Strict (pick-only): the committed value changes ONLY when a DB suggestion is
+ * selected — free text that isn't picked is discarded on blur. End users cannot
+ * create cities (that's admin-only, in the reference panel), so everyone lands on
+ * the same canonical city, which keeps funding/aggregation from splitting across
+ * "Bangalore" vs "Bengaluru" variants. Picking also auto-fills the sibling country
+ * via `onPick`. The panel is portalled to <body> (fixed, flips up when cramped) so
+ * it is never clipped by the setup modal's overflow.
  */
 interface LocHit { city: string | null; state: string | null; country: string | null }
 
@@ -44,7 +48,14 @@ export function CityInput({ value, onChange, onPick, id, disabled, className, pl
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
-	const debounced = useDebouncedValue(value.trim(), 250);
+	// Strict combobox: `query` is just the search text; the committed `value` only
+	// changes when a DB suggestion is PICKED (or the field is cleared). Free text
+	// is never committed — end users cannot create cities; that's admin-only, so a
+	// user can only choose a canonical city (which prevents Bangalore/Bengaluru dupes).
+	const [query, setQuery] = useState(value);
+	useEffect(() => { setQuery(value); }, [value]);
+
+	const debounced = useDebouncedValue(query.trim(), 250);
 	const g = geo?.trim() || undefined;
 	const { data } = useSWR<LocHit[]>(debounced.length >= 2 ? ['/api/locations/search', { q: debounced, ...(g ? { geo: g } : {}) }] : null);
 
@@ -94,7 +105,18 @@ export function CityInput({ value, onChange, onPick, id, disabled, className, pl
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [showPanel]);
 
-	const pick = (m: { city: string; country: string | null }) => { onChange(m.city); onPick?.(m); setOpen(false); };
+	const pick = (m: { city: string; country: string | null }) => { onChange(m.city); onPick?.(m); setQuery(m.city); setOpen(false); };
+	// On blur, discard any typed-but-unpicked text (revert to the committed city);
+	// an empty box is allowed (clears the value).
+	const commit = () => {
+		if (query.trim() === '') { if (value !== '') onChange(''); return; }
+		if (query === value) return;
+		// If the typed text exactly names a suggested DB city, accept it (and its
+		// country); otherwise discard the unpicked free text.
+		const exact = matches.find((m) => m.city.toLowerCase() === query.trim().toLowerCase());
+		if (exact) { onChange(exact.city); onPick?.(exact); setQuery(exact.city); }
+		else setQuery(value);
+	};
 	const onKey = (e: React.KeyboardEvent) => {
 		if (!showPanel) return;
 		if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(matches.length - 1, i + 1)); }
@@ -108,12 +130,13 @@ export function CityInput({ value, onChange, onPick, id, disabled, className, pl
 			<Input
 				id={id}
 				className={className}
-				value={value}
+				value={query}
 				disabled={disabled}
 				placeholder={placeholder}
 				autoComplete="off"
-				onChange={(e) => { onChange(e.target.value); setActive(0); setOpen(true); }}
+				onChange={(e) => { setQuery(e.target.value); setActive(0); setOpen(true); }}
 				onFocus={() => setOpen(true)}
+				onBlur={commit}
 				onKeyDown={onKey}
 			/>
 			{showPanel && pos && createPortal(
