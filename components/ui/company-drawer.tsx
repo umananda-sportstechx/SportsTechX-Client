@@ -15,17 +15,7 @@ import useSWR from 'swr';
 import { ArrowRight, Send, Heart, Link2, Lock, Plus, Zap } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { useFavorite } from '@/hooks/use-favorite';
-import { useFeatureAccess } from '@/contexts/feature-access-context';
-
-interface PrimaryContactData {
-	id: string;
-	full_name: string | null;
-	job_position: string | null;
-	email: string | null;
-	linkedin_url: string | null;
-	phone: string | null;
-	role: string | null;
-}
+import { usePrimaryContact } from '@/hooks/use-primary-contact';
 import { openClaim } from '@/lib/claim-events';
 import { hrefOf } from '@/lib/routes';
 import type { Company, Deal, Page } from '@/types/api';
@@ -361,11 +351,7 @@ function ConnectBlock({ company }: { company: Company }) {
  *   - entitled → the real contact, or an honest empty state. No fabricated data.
  */
 function PrimaryContact({ company }: { company: Company }) {
-	const access = useFeatureAccess('company_contacts');
-	const entitled = !access.isLoading && !access.isLocked;
-	const { data: contact } = useSWR<PrimaryContactData | null>(
-		entitled ? qk.companies.contacts(company.id) : null,
-	);
+	const { access, contact } = usePrimaryContact(company.id);
 
 	if (access.isLoading) return null;
 

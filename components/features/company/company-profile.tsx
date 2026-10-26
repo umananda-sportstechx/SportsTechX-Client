@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, type ReactNode } from 'react';
 import useSWR from 'swr';
-import { ArrowUpLeft, ArrowUpRight, Globe, Mail } from 'lucide-react';
+import { ArrowUpLeft, ArrowUpRight, Globe, Lock, Mail } from 'lucide-react';
 import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { SaveToWatchlist } from '@/components/features/watchlists/save-to-watchlist';
 import { qk } from '@/lib/query-keys';
@@ -14,6 +14,8 @@ import { ago, fmtUsd, place } from '@/components/features/market/format';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SuggestCorrection } from '@/components/features/verify/suggest-correction';
 import { CompanyMa } from '@/components/features/company/company-ma';
+import { usePrimaryContact } from '@/hooks/use-primary-contact';
+import { hrefOf } from '@/lib/routes';
 import './company-profile.css';
 
 /**
@@ -46,6 +48,42 @@ const BRAND = {
 const BUSINESS_MODELS: Record<string, string> = { b2b: 'B2B', b2c: 'B2C', b2b2c: 'B2B2C', d2c: 'D2C', b2g: 'B2G', other: 'Other' };
 const asList = <T,>(d: unknown): T[] => (Array.isArray(d) ? d : ((d as { data?: T[] } | null)?.data ?? [])) as T[];
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+
+/**
+ * Primary contact (POC) — Pro-gated via `company_contacts`, same rule as the
+ * drawer (shared hook). Locked → upgrade teaser; entitled → the real contact or
+ * an honest empty state. Uses the profile's own card classes: the drawer's
+ * styles live in company-detail.css, which this page doesn't load.
+ */
+function ContactCard({ companyId }: { companyId: string }) {
+	const { access, contact, isLoading } = usePrimaryContact(companyId);
+	if (access.isLoading) return null;
+	const linkedin = contact?.linkedin_url ? (/^https?:/.test(contact.linkedin_url) ? contact.linkedin_url : `https://${contact.linkedin_url}`) : null;
+	return (
+		<section className="atlas-card atlas-co__side" aria-label="Primary contact">
+			<h2 className="atlas-co__h">Primary contact</h2>
+			{access.isLocked ? (
+				<>
+					<p className="atlas-co__sub" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Lock size={13} aria-hidden="true" /> Pro members can see the founder&apos;s name, email and LinkedIn for every company.</p>
+					<Link href={hrefOf('billing')} className="atlas-btn atlas-btn--outline atlas-co__more">Upgrade to Pro</Link>
+				</>
+			) : isLoading ? <Loading /> : contact ? (
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12 }}>
+					<span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+						<span className="atlas-co__rel-name">{contact.full_name ?? '—'}</span>
+						{(contact.role || contact.job_position) && <span className="atlas-co__rel-meta">{contact.role ?? contact.job_position}</span>}
+					</span>
+					<span className="atlas-co__socials" style={{ margin: 0, flexShrink: 0 }}>
+						{linkedin && <a href={linkedin} target="_blank" rel="noopener noreferrer" className="atlas-co__social" aria-label="LinkedIn" title="LinkedIn">{BRAND.linkedin}</a>}
+						{contact.email && <a href={`mailto:${contact.email}`} className="atlas-co__social" aria-label={`Email ${contact.email}`} title={contact.email}><Mail size={15} aria-hidden="true" /></a>}
+					</span>
+				</div>
+			) : (
+				<p className="atlas-co__empty">No contact on record yet.</p>
+			)}
+		</section>
+	);
+}
 
 export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, railTop }: {
 	idOrSlug: string;
@@ -222,6 +260,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 
 				<aside className="atlas-co__rail">
 					{railTop}
+					<ContactCard companyId={c.id} />
 					<section className="atlas-card atlas-co__side">
 						<h2 className="atlas-co__h">Recent signals</h2>
 						{newsRows.length === 0 ? <p className="atlas-co__empty">No recent signals for this company yet.</p> : newsRows.map((n) => (
