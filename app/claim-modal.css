@@ -260,9 +260,6 @@
 .cm-result-meta { font-family: var(--a-body); font-size: 11px; color: var(--a-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .cm-result-arrow { color: var(--a-faint); flex-shrink: 0; }
 .cm-result:hover .cm-result-arrow { color: var(--a-ink); }
-/* Already verified by someone else → not selectable. */
-.cm-result:disabled, .cm-result-locked { cursor: not-allowed; opacity: 0.72; }
-.cm-result-locked:hover { background: transparent; }
 /* Verified by the signed-in user → selectable, flagged as theirs. */
 .cm-result-yours {
   background: var(--a-ok-bg); color: var(--a-ok);

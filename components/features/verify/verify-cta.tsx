@@ -134,7 +134,10 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 		);
 	}
 
-	// Entity already verified by another user — no CTA for anyone.
+	// Entity already verified (by anyone) — the profile's "Is this your company?"
+	// prompt is hidden. Others can still get verified for it (several people per
+	// company/investor are allowed) via the claim modal's search from the
+	// Get-verified entry points, onboarding and the Raise/Scout thesis flows.
 	if (target?.verified) return null;
 
 	// Already a known, verified user elsewhere — don't prompt them to claim this
