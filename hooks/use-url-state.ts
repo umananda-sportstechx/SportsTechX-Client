@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 /**
@@ -54,6 +54,37 @@ function merge(current: URLSearchParams, state: Record<string, ParamVal>): strin
  * "non-default" form (e.g. `page: page > 1 ? page : undefined`,
  * `sort: sort !== DEFAULT ? sort : undefined`) so defaults stay out of the URL.
  */
+/**
+ * The last query string this page wrote ITSELF (filter sync / drawer open-close).
+ * Next mirrors even native `replaceState` into `useSearchParams`, so without this
+ * a page couldn't tell "I just synced my own search box" from "the user followed
+ * a deep link" — see useDeepLinkKey.
+ */
+let selfWritten: string | null = null;
+
+/**
+ * A React `key` for a list that must REMOUNT on a genuine deep link (e.g.
+ * /companies?sector=x followed while already on /companies) so its filters
+ * re-read the URL — but NOT when the URL changed because the list synced its
+ * own state or opened a drawer. Keying on `useSearchParams()` directly remounted
+ * the list (and its search input) on every debounced keystroke, dropping focus
+ * the moment results loaded.
+ */
+export function useDeepLinkKey(ignore: readonly string[] = []): string {
+	// `ignore` = params that never affect the list (e.g. a drawer's `?company=`),
+	// so opening/closing a drawer — including via Back — doesn't remount it either.
+	const strip = (qs: string | null) => {
+		if (qs == null) return null;
+		const p = new URLSearchParams(qs);
+		for (const k of ignore) p.delete(k);
+		return p.toString();
+	};
+	const sp = strip(useSearchParams().toString())!;
+	const key = useRef(sp);
+	if (sp !== key.current && sp !== strip(selfWritten)) key.current = sp; // idempotent: safe under StrictMode double-render
+	return key.current;
+}
+
 export function useUrlSync(state: Record<string, ParamVal>): void {
 	// Re-run only when the managed state changes (not on unrelated re-renders).
 	const serialized = JSON.stringify(state);
@@ -64,6 +95,7 @@ export function useUrlSync(state: Record<string, ParamVal>): void {
 		if (qs === live.toString()) return;
 		// Relative URL keeps the current pathname; null state lets Next's patched
 		// replaceState inject its own router state.
+		selfWritten = qs;
 		window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
 		// `state` is captured through `serialized`; that is the intended dep.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,6 +171,7 @@ export function useUrlModal(
 		const open = !!(v && validate(v));
 		if (open) next.set(key, v!); else next.delete(key);
 		const qs = next.toString();
+		selfWritten = qs; // an in-page drawer toggle, not a deep link
 		const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
 		// The router (not history API) so the modal actually opens/closes: it
 		// re-renders useSearchParams consumers. Opening pushes (Back closes it),
