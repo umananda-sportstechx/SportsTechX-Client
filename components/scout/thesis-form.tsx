@@ -35,9 +35,10 @@ export function ProfileFields({ t, patch }: Props) {
 export function FundFields({ t, patch }: Props) {
 	// Fund identity is directory-backed: the picker searches investors, lets you
 	// add a new one (→ admin approval) or use what you typed, and surfaces the
-	// verify-ownership step (optional; only gates deal submission). When a fund
-	// is already claimed, its name/website come from that verified record, so we
-	// mirror them onto the thesis and lock the Website field here.
+	// verify step (optional; only gates deal submission). Once YOU have claimed a
+	// fund (pending or verified — other people from the same fund may be verified
+	// too), its name/website come from your claim, so we mirror them onto the
+	// thesis and lock the Website field here.
 	const { state, claim } = useVerifyState();
 	const linked = (state === 'verified' || state === 'pending') && claim?.claim_type === 'investor';
 	const name = claim?.claim_type === 'investor' ? (claim.target_name_snapshot ?? '') : '';

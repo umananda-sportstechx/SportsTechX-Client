@@ -219,10 +219,10 @@ export function ClaimModal({
   const R = role ? CM_ROLES[role] : null;
   const { results } = useClaimSearch(role, q);
 
-  // An already-verified entity can't be claimed again — UNLESS the signed-in user
-  // is the one who verified it (they're editing their own profile). The search
-  // result's `verified` flag is global (someone owns it); to tell whether that
-  // someone is *me*, cross-reference my own verified claims by target id.
+  // Several people from the same company / investor may be verified (admins
+  // decide), so a verified entity stays selectable for anyone. The search
+  // result's `verified` flag is entity-level (someone is verified); to tell
+  // whether *I* am, cross-reference my own verified claims by target id.
   type MyClaimRow = {
     target_company_id?: string | null; target_investor_id?: string | null;
     target_ecosystem_entity_id?: string | null; is_verified?: boolean | null;
@@ -240,6 +240,10 @@ export function ClaimModal({
     }
     return s;
   }, [myClaimsRaw]);
+  // I'm already verified for what I'm submitting on: that's an edit of my own
+  // record, not a new claim — it goes to the data-change-request queue below
+  // (a fresh claim would only duplicate my verification).
+  const editingVerified = !!target?.verified || (!!selItem?.id && myVerifiedIds.has(selItem.id));
 
   // Prefill the claimant email from the signed-in profile once it loads (SWR
   // resolves after mount, so this genuinely syncs external state → form).
@@ -329,7 +333,7 @@ export function ClaimModal({
         if (c.details) delete c.details.pitch_deck_url;
       }
 
-      if (target?.verified && targetId) {
+      if (editingVerified && targetId) {
         // Editing an entity the viewer has *already verified*: this is not a
         // new claim. It goes to the data-change-request queue so the published
         // record stays live and untouched until an admin confirms the edit —
@@ -481,30 +485,24 @@ export function ClaimModal({
                 {results.length > 0 && (
                   <div className="cm-results">
                     {results.map((it) => {
-                      // Verified by someone else → locked (show a tag, don't let them
-                      // walk into a flow that would only fail on submit). Verified by
-                      // ME → selectable (I'm editing my own). Unverified → selectable.
+                      // Everything is selectable: others being verified for an entity
+                      // doesn't stop me requesting verification too. "Yours" marks one
+                      // I'm already verified for (picking it edits my own record).
                       const mine = myVerifiedIds.has(it.id);
-                      const locked = it.verified && !mine;
                       return (
                         <button
                           key={it.id}
-                          className={`cm-result${locked ? ' cm-result-locked' : ''}`}
-                          disabled={locked}
-                          aria-disabled={locked}
-                          title={locked ? 'Already verified by its owner — you can’t claim it.' : undefined}
-                          onClick={locked ? undefined : () => pickItem({ id: it.id, name: it.name, website: it.website, hq: it.hq, cc: it.cc, verified: it.verified })}
+                          className="cm-result"
+                          onClick={() => pickItem({ id: it.id, name: it.name, website: it.website, hq: it.hq, cc: it.cc, verified: it.verified })}
                         >
                           <EntityLogo item={it} />
                           <span className="cm-result-text">
                             <span className="cm-result-name">{it.name} {it.verified && <BadgeCheck size={12} aria-label="Verified" style={{ color: 'var(--a-navy)', verticalAlign: 'middle', flexShrink: 0 }} />}</span>
                             <span className="cm-result-meta">{it.cc && <Flag cc={it.cc} size={12} />} {it.hq ?? ''}{it.kind ? ` · ${it.kind}` : ''}</span>
                           </span>
-                          {locked
-                            ? <span className="cm-result-claimed">Already verified</span>
-                            : mine
-                              ? <span className="cm-result-claimed cm-result-yours">Yours</span>
-                              : <span className="cm-result-arrow"><ArrowRight size={14} /></span>}
+                          {mine
+                            ? <span className="cm-result-claimed cm-result-yours">Yours</span>
+                            : <span className="cm-result-arrow"><ArrowRight size={14} /></span>}
                         </button>
                       );
                     })}
@@ -935,7 +933,7 @@ export function ClaimModal({
               <div className="cm-done">
                 <div className="cm-done-badge"><Check size={30} /></div>
                 <h3 className="cm-done-h">{selMode === 'add' ? "We've got your details" : "You're in review"}</h3>
-                <p className="cm-done-p">Thanks{form.first ? `, ${form.first}` : ''}. We&apos;ve received your {selMode === 'add' ? 'submission' : target?.verified ? `changes to ${form.name}` : `request to claim ${form.name}`}. Here&apos;s what happens next.</p>
+                <p className="cm-done-p">Thanks{form.first ? `, ${form.first}` : ''}. We&apos;ve received your {selMode === 'add' ? 'submission' : editingVerified ? `changes to ${form.name}` : `request to claim ${form.name}`}. Here&apos;s what happens next.</p>
                 <div className="cm-timeline">
                   <div className="cm-tl-row lit"><span className="cm-tl-ico"><Check size={15} /></span><span className="cm-tl-text"><span className="cm-tl-h">Submitted <span className="cm-tl-when">· just now</span></span><span className="cm-tl-p">Sent a confirmation to {form.email || 'your email'}.</span></span></div>
                   <div className="cm-tl-row"><span className="cm-tl-ico">2</span><span className="cm-tl-text"><span className="cm-tl-h">We verify the details <span className="cm-tl-when">· within 24–48h</span></span><span className="cm-tl-p">Our team confirms your role and your {R.noun} data. We may email you if anything needs a second look.</span></span></div>
