@@ -102,14 +102,16 @@ export function MarketRoundup() {
 
 	const donuts = useMemo(() => {
 		const d = roundup.data;
-		if (!d) return [] as { title: string; total: string; unit: string; segments: PieSegment[]; rows: Grouping[] }[];
+		if (!d) return [] as { title: string; total: string; unit: string; segments: PieSegment[]; rows: Grouping[]; zero: boolean }[];
 		const val = (x: Grouping) => (metric === 'amount' ? x.total_amount : x.deal_count);
 		const mk = (title: string, g: Grouping[]) => {
 			// Donut shows the top slices; the full list (up to 25) is in the breakdown
 			// dialog. Centre value is the grand total across every row.
 			const segments: PieSegment[] = g.slice(0, 8).map((x, i) => ({ name: x.label, v: val(x), color: paletteAt(i), label: metric === 'amount' ? fmtUsd(x.total_amount) : fmtCount(x.deal_count) }));
 			const sum = g.reduce((a, x) => a + val(x), 0);
-			return { title, total: metric === 'amount' ? fmtUsd(sum) : fmtCount(sum), unit: metric === 'amount' ? 'total' : 'deals', segments, rows: g };
+			// Deals exist but none disclosed a value (common for M&A): every slice is
+			// $0, which PieDonut draws as an empty ring — flag it for an empty state.
+			return { title, total: metric === 'amount' ? fmtUsd(sum) : fmtCount(sum), unit: metric === 'amount' ? 'total' : 'deals', segments, rows: g, zero: segments.length > 0 && sum === 0 };
 		};
 		const sectorG = sectorView === 'sector' ? d.by_sector : (d.by_sub_sector ?? d.by_sector);
 		return [
@@ -188,7 +190,15 @@ export function MarketRoundup() {
 										? <Seg<SectorView> ariaLabel="Sector view" value={sectorView} onChange={setSectorView} options={[{ key: 'sector', label: 'Sector' }, { key: 'sub', label: 'Sub' }]} />
 										: <div className="atlas-section-note">{metric === 'amount' ? 'By capital' : 'By deal count'}</div>}
 								</div>
-								{d.segments.length === 0 ? <div style={{ fontSize: 13, color: 'var(--a-faint)', padding: 18 }}>No data.</div> : (
+								{d.segments.length === 0 ? <div style={{ fontSize: 13, color: 'var(--a-faint)', padding: 18 }}>No data.</div> : d.zero ? (
+									<div style={{ fontSize: 13, color: 'var(--a-faint)', padding: 18 }}>
+										No disclosed {mode === 'ma' ? 'deal values' : 'amounts'} for these {fmtCount(d.rows.reduce((a, x) => a + x.deal_count, 0))} deals.{' '}
+										<button type="button" onClick={() => setMetric('count')}
+											style={{ background: 'none', border: 0, padding: 0, color: 'var(--a-navy)', cursor: 'pointer', font: 'inherit' }}>
+											View by count
+										</button>
+									</div>
+								) : (
 									<>
 										<div className="mkt-donut-chart">
 											<PieDonut mode="donut" size={142} segments={d.segments} showLabelOnLargest={false} centerValue={d.total} centerLabel={d.unit} />
