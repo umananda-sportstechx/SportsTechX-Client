@@ -15,6 +15,8 @@ import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
 import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
+import { useVerifyState, type VerifyState } from '@/components/features/verify/verify-cta';
+import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
@@ -222,6 +224,10 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// founder only adds the verification-only fields (name, position, LinkedIn, email).
 	// Links to the master company when one was picked; otherwise starts an "add new"
 	// company request that admins approve.
+	// My OWN verification for this company (several people may be verified for
+	// one company) — don't offer "Verify your company" to someone already verified
+	// or awaiting review; that click would only produce an edit request.
+	const { state: myVerifyState } = useVerifyState(form.company_id ? String(form.company_id) : undefined);
 	const verify = () => {
 		const target = form.company_id
 			? { role: 'founder' as const, id: String(form.company_id), name: s(form.company_name), website: s(form.company_website) || null }
@@ -230,7 +236,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	};
 
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (done) return <Screen width={620}><TransitionScreen onEnter={onClose} onVerify={verify} /></Screen>;
+	if (done) return <Screen width={620}><TransitionScreen onEnter={onClose} onVerify={verify} verifyState={myVerifyState} /></Screen>;
 
 	return (
 		<Screen width={720}>
@@ -361,7 +367,7 @@ function buildVerifyPrefill(form: Rec): ClaimPrefill {
 	};
 }
 
-function TransitionScreen({ onEnter, onVerify }: { onEnter: () => void; onVerify: () => void }) {
+function TransitionScreen({ onEnter, onVerify, verifyState = 'none' }: { onEnter: () => void; onVerify: () => void; verifyState?: VerifyState }) {
 	return (
 		<div style={{ textAlign: 'center', padding: '32px 0' }}>
 			<H1>Your raise workspace is ready.</H1>
@@ -379,11 +385,25 @@ function TransitionScreen({ onEnter, onVerify }: { onEnter: () => void; onVerify
 				))}
 			</div>
 			<Card glow="blue" style={{ textAlign: 'left', marginBottom: 20 }}>
-				<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Verify your company</div>
-				<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 16 }}>
-					Get your company verified on SportsTechX. We&apos;ve pre-filled everything you told us — you just add a few details and our team reviews it. Optional, and you can do it later from settings.
-				</div>
-				<Button onClick={onVerify}>Verify your company <ArrowRight size={13} /></Button>
+				{verifyState === 'verified' ? (
+					<>
+						<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}><VerifiedBadge size={18} /> You&apos;re verified for this company</div>
+						<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55 }}>Use “Suggest a correction” on your company&apos;s profile to update its public details.</div>
+					</>
+				) : verifyState === 'pending' ? (
+					<>
+						<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Verification pending</div>
+						<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55 }}>Our team is reviewing your request — we&apos;ll let you know as soon as it&apos;s approved. You can edit it any time from the “Verification pending” button.</div>
+					</>
+				) : (
+					<>
+						<div style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Verify your company</div>
+						<div style={{ fontSize: 13, color: 'var(--a-muted)', lineHeight: 1.55, marginBottom: 16 }}>
+							Get your company verified on SportsTechX. We&apos;ve pre-filled everything you told us — you just add a few details and our team reviews it. Optional, and you can do it later from settings.
+						</div>
+						<Button onClick={onVerify}>Verify your company <ArrowRight size={13} /></Button>
+					</>
+				)}
 			</Card>
 			<Button variant="ghost" onClick={onEnter}>Skip for now — enter your workspace <ArrowRight size={13} /></Button>
 		</div>

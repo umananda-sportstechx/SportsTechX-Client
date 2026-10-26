@@ -21,7 +21,8 @@ import { DatePicker } from '@/components/atlas/ui/date-picker';
 // class lives over there — so the modal dragged a second, unrelated stylesheet
 // along with it. A lucide icon on an Atlas token does the same job.
 import '@/app/claim-modal.css';
-import type { ClaimRole, ClaimTarget } from '@/lib/claim-events';
+import { openClaim, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
+import { claimToTarget, type VerifyClaimRow } from '@/components/features/verify/verify-cta';
 import { soleRoleOf } from '@/lib/claim-roles';
 import {
   CM_ROLES, CM_ROLE_LIST, blankClaimForm,
@@ -223,23 +224,22 @@ export function ClaimModal({
   // decide), so a verified entity stays selectable for anyone. The search
   // result's `verified` flag is entity-level (someone is verified); to tell
   // whether *I* am, cross-reference my own verified claims by target id.
-  type MyClaimRow = {
-    target_company_id?: string | null; target_investor_id?: string | null;
-    target_ecosystem_entity_id?: string | null; is_verified?: boolean | null;
-  };
+  type MyClaimRow = VerifyClaimRow;
   // Shape note: this endpoint returns either a bare array or `{ data: [...] }`
   // depending on the interceptor — verify-cta.tsx normalises the same way.
   const { data: myClaimsRaw } = useSWR<MyClaimRow[] | { data: MyClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
-  const myVerifiedIds = useMemo(() => {
+  // My verified claims, keyed by the entity they're on.
+  const myVerified = useMemo(() => {
     const rows = Array.isArray(myClaimsRaw) ? myClaimsRaw : (myClaimsRaw?.data ?? []);
-    const s = new Set<string>();
+    const m = new Map<string, MyClaimRow>();
     for (const c of rows) {
       if (!c.is_verified) continue;
       const id = c.target_company_id ?? c.target_investor_id ?? c.target_ecosystem_entity_id;
-      if (id) s.add(id);
+      if (id && !m.has(id)) m.set(id, c);
     }
-    return s;
+    return m;
   }, [myClaimsRaw]);
+  const myVerifiedIds = useMemo(() => new Set(myVerified.keys()), [myVerified]);
   // I'm already verified for what I'm submitting on: that's an edit of my own
   // record, not a new claim — it goes to the data-change-request queue below
   // (a fresh claim would only duplicate my verification).
@@ -272,6 +272,11 @@ export function ClaimModal({
 
   const pickRole = (id: ClaimRole) => { setRole(id); setQ(''); setSelItem(null); setForm(blankClaimForm(null)); setStep('search'); };
   const pickItem = (it: SelectedEntity) => {
+    // Already verified for this one ("Yours") → reopen MY claim in edit mode, exactly
+    // like the Verified capsule: prefilled with what I submitted, and saving it is a
+    // data-change request — never a duplicate claim.
+    const mine = it.id ? myVerified.get(it.id) : undefined;
+    if (mine) { openClaim(claimToTarget(mine, true), role); return; }
     setSelItem(it); setSelMode('claim'); setEditTab(role === 'investor' ? 'org' : 'info');
     setForm((f) => ({ ...blankClaimForm(it), first: f.first, last: f.last, email: f.email, linkedin: f.linkedin, city: f.city, country: f.country, position: f.position }));
     setStep('identity');

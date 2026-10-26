@@ -25,7 +25,7 @@ import { qk } from '@/lib/query-keys';
  * The modal itself needs nothing: it handles all three roles and is mounted
  * globally in `app/providers.tsx`, so `openClaim` works from anywhere.
  */
-interface ClaimRow {
+export interface VerifyClaimRow {
 	id: string;
 	claim_type: 'company' | 'investor' | 'ecosystem_entity';
 	is_verified: boolean | null;
@@ -38,12 +38,12 @@ interface ClaimRow {
 
 export type VerifyState = 'none' | 'pending' | 'verified';
 
-const ROLE_OF: Record<ClaimRow['claim_type'], ClaimRole> = {
+const ROLE_OF: Record<VerifyClaimRow['claim_type'], ClaimRole> = {
 	company: 'founder', investor: 'investor', ecosystem_entity: 'operator',
 };
 
 /** The entity a claim points at, as a claim target the modal can reopen. */
-function claimToTarget(c: ClaimRow, verified: boolean): ClaimTarget {
+export function claimToTarget(c: VerifyClaimRow, verified: boolean): ClaimTarget {
 	return {
 		role: ROLE_OF[c.claim_type],
 		id: c.target_company_id ?? c.target_investor_id ?? c.target_ecosystem_entity_id ?? null,
@@ -62,12 +62,12 @@ function claimToTarget(c: ClaimRow, verified: boolean): ClaimTarget {
  * name matching both misses real claims and — worse — can report "Verified"
  * on a company the viewer does not own.
  */
-export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean; claim: ClaimRow | null } {
+export function useVerifyState(entityId?: string): { state: VerifyState; isLoading: boolean; claim: VerifyClaimRow | null } {
 	// The navbar mounts this on every authenticated page, so a default dedupe
 	// window means a refetch on each navigation. Claims only change when an
 	// admin acts on one, so a minute of staleness costs nothing and this stops
 	// being a request per page view.
-	const { data, isLoading } = useSWR<ClaimRow[] | { data: ClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
+	const { data, isLoading } = useSWR<VerifyClaimRow[] | { data: VerifyClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
 	const rows = Array.isArray(data) ? data : (data?.data ?? []);
 	const relevant = entityId
 		? rows.filter((r) => r.target_company_id === entityId
