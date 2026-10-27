@@ -290,7 +290,8 @@ export function ClaimModal({
   const emailOk = /.+@.+\..+/.test(form.email);
   const richId = role === 'founder' || role === 'investor';
   const identityOk = richId
-    ? !!(form.first.trim() && form.last.trim() && form.city.trim() && form.country.trim() && emailOk && form.position.trim())
+    // A new listing's name is typed on this step, so it can't be blank.
+    ? !!(form.first.trim() && form.last.trim() && form.city.trim() && form.country.trim() && emailOk && form.position.trim() && (selMode !== 'add' || form.name.trim()))
     : !!(form.first.trim() && form.last.trim() && emailOk);
   const detailsOk = !!(form.name.trim() && form.website.trim());
   const fundraisingOk = !form.raising || !!(form.raiseMin && form.raiseMax && form.roundNames.length > 0);
@@ -536,10 +537,23 @@ export function ClaimModal({
               <div>
                 <div className="cm-block">
                   <div className="cm-block-h">{R.id === 'investor' ? <Wallet size={16} /> : <Building2 size={16} />} {R.id === 'investor' ? 'Investor information' : 'Company information'}</div>
-                  <div className="cm-row2">
-                    <div className="cm-field cm-half"><label className="cm-label">{R.id === 'investor' ? 'Investor name' : 'Company name'}</label><input className="cm-input cm-readonly" value={form.name} readOnly /></div>
-                    <div className="cm-field cm-half"><label className="cm-label">Website</label><input className="cm-input cm-readonly" value={form.website || '—'} readOnly /></div>
-                  </div>
+                  {/* A new listing IS what's typed here, so it's editable — read-only
+                      left a brand-new fund stuck with a "—" website. An existing
+                      record is what you're claiming; changes to it go in the next step. */}
+                  {selMode === 'add' ? (
+                    <div className="cm-row2">
+                      <div className="cm-field cm-half"><label className="cm-label">{R.id === 'investor' ? 'Investor name' : 'Company name'} <span className="cm-req">*</span></label><input className="cm-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={R.id === 'investor' ? 'Your fund or firm' : 'Your company'} /></div>
+                      <div className="cm-field cm-half"><label className="cm-label">Website</label><div className="cm-input-prefix"><span className="cm-input-prefix-txt">https://</span><input className="cm-input" value={form.website} onChange={(e) => set('website', e.target.value)} placeholder={R.id === 'investor' ? 'firm.com' : 'company.com'} /></div></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="cm-row2">
+                        <div className="cm-field cm-half"><label className="cm-label">{R.id === 'investor' ? 'Investor name' : 'Company name'}</label><input className="cm-input cm-readonly" value={form.name} readOnly /></div>
+                        <div className="cm-field cm-half"><label className="cm-label">Website</label><input className="cm-input cm-readonly" value={form.website || '—'} readOnly /></div>
+                      </div>
+                      <div className="cm-hint">From our directory. Suggest changes to these in the next step.</div>
+                    </>
+                  )}
                 </div>
                 <div className="cm-block">
                   <div className="cm-block-h"><User size={16} /> Your information</div>
