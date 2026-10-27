@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { mutate } from 'swr';
+import { toast } from 'sonner';
 import { Empty, Loading, Logo, cx } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { useWatchlistCompanies } from '@/components/features/watchlists/use-company-watchlists';
@@ -25,8 +26,15 @@ export function WatchlistBoard({ id }: { id: string }) {
 	const [over, setOver] = useState<BoardStage | null>(null);
 	const stageOf = (c: { id: string; stage?: string | null }): BoardStage =>
 		(c.stage ? API_TO_STAGE[c.stage] : null) ?? 'Identified';
+	// apiRequest resolves on any status, so a refused move (e.g. 403 SCOUT_NOT_SET_UP)
+	// used to just snap the card back with no word why.
 	const move = async (cid: string, s: BoardStage) => {
-		await apiRequest('PATCH', `/api/scout/watchlists/${id}/companies/${cid}/stage`, { stage: STAGE_TO_API[s] });
+		try {
+			const res = await apiRequest('PATCH', `/api/scout/watchlists/${id}/companies/${cid}/stage`, { stage: STAGE_TO_API[s] });
+			if (!res.ok) throw new Error(String(res.status));
+		} catch {
+			toast.error("Couldn't move that company. Please try again.");
+		}
 		void mutate(qk.userWatchlists.companies(id));
 	};
 
