@@ -6,9 +6,11 @@ import useSWR from 'swr';
 import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useSectorTierData, useCountryOptions } from '@/hooks/use-catalog-options';
-import { SINCE_YEARS, canonicalCountry } from '@/lib/catalog-options';
-import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef } from '@/components/atlas';
+import { useSectorTierData, useCountryOptions, useSportOptions, useLocationFacetOptions } from '@/hooks/use-catalog-options';
+import { useFeatureAccess } from '@/contexts/feature-access-context';
+
+import { BUSINESS_MODELS, SINCE_YEARS, canonicalCountry } from '@/lib/catalog-options';
+import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef, lockedFiltersNote } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import { companyHref } from '@/lib/routes';
 import { MaDealPanel } from '@/components/features/market/ma-deal-panel';
@@ -56,14 +58,34 @@ const SORTS: [string, string][] = [['-acquisition_date', 'Newest'], ['-amount_us
 const fmtMonth = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '—');
 const fmtValue = (n: MaDeal['amount_usd']) => (n == null || Number(n) === 0 ? 'Undisclosed' : fmtUsd(Number(n)));
 
+/**
+ * The filters one side of a deal carries — the acquired company and the
+ * acquirer get the same set, as on the old Intelligence Hub. The server keeps
+ * both sides' sector / location / model / sport on every acquisition.
+ */
+interface Side { sector: string; sport: string; country: string; model: string; st: boolean; city: string; continent: string; region: string }
+const NO_SIDE: Side = { sector: '', sport: '', country: '', model: '', st: false, city: '', continent: '', region: '' };
+type UrlReader = ReturnType<typeof useUrlReader>;
+/** URL keys: the acquired company keeps the bare names (old links still work), the acquirer is `acq_*`. */
+const readSide = (url: UrlReader, p: '' | 'acq_'): Side => ({
+	sector: url.str(`${p}sector`), sport: url.str(`${p}sport`), country: url.str(`${p}country`),
+	model: url.oneOf(`${p}model`, BUSINESS_MODELS.map(([v]) => v), ''), st: url.bool(`${p}st`),
+	city: url.str(`${p}city`), continent: url.str(`${p}continent`), region: url.str(`${p}region`),
+});
+const sideUrl = (s: Side, p: '' | 'acq_') => ({
+	[`${p}sector`]: s.sector, [`${p}sport`]: s.sport, [`${p}country`]: s.country, [`${p}model`]: s.model,
+	[`${p}st`]: s.st || undefined, [`${p}city`]: s.city, [`${p}continent`]: s.continent, [`${p}region`]: s.region,
+});
+const sideActive = (s: Side) => !!(s.sector || s.sport || s.country || s.model || s.st || s.city || s.continent || s.region);
+
 export function MaDeals() {
 	// View-state in the URL (Back/Forward restore, shareable).
 	const url = useUrlReader();
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
 	const [type, setType] = useState(() => url.oneOf('type', TYPE_OPTIONS.map(([v]) => v), ''));
-	const [sector, setSector] = useState(() => url.str('sector'));
-	const [country, setCountry] = useState(() => url.str('country'));
+	const [target, setTarget] = useState<Side>(() => readSide(url, ''));
+	const [buyer, setBuyer] = useState<Side>(() => readSide(url, 'acq_'));
 	const [year, setYear] = useState(() => url.oneOf('year', SINCE_YEARS.map(([v]) => v), ''));
 	const [disclosed, setDisclosed] = useState(() => url.bool('disclosed'));
 	const [sort, setSort] = useState(() => url.oneOf('sort', SORTS.map(([v]) => v), '-acquisition_date'));
@@ -73,30 +95,46 @@ export function MaDeals() {
 	const [dealId, setDealId] = useUrlModal('deal', { validate: isUuid });
 	const reset = () => setPage(1);
 	useUrlSync({
-		q: dq, type, sector, country, year, disclosed,
+		q: dq, type, year, disclosed, ...sideUrl(target, ''), ...sideUrl(buyer, 'acq_'),
 		sort: sort !== '-acquisition_date' ? sort : undefined,
 		page: page > 1 ? page : undefined,
 	});
 
 	const sectors = useSectorTierData();
 	const countryOptions = useCountryOptions();
+	const sportOptions = useSportOptions();
+	const loc = useLocationFacetOptions();
+	// City / continent / region are advanced filters, as on Companies.
+	const adv = useFeatureAccess('advanced_filters');
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };
 		const term = dq.trim().slice(0, 120);
 		if (term) p.q = term;
 		if (type) p.acquisition_type = type;
-		const secSlug = sectors.sectorSlug(sector, '', '');
-		if (secSlug) p.sector_slug = secSlug;
-		if (country) p.country = country;
 		if (year) p.year_min = year;
 		if (disclosed) p.disclosed_only = true;
+		// Per side. The API's location params are bare for the acquired company
+		// (`country`) and `acquirer_*` for the buyer.
+		for (const [s, side, locKey] of [[target, 'acquiree', ''], [buyer, 'acquirer', 'acquirer_']] as const) {
+			const secSlug = sectors.sectorSlug(s.sector, '', '');
+			if (secSlug) p[`${side}_sector_slug`] = secSlug;
+			if (s.sport) p[`${side}_sport_id`] = s.sport;
+			if (s.model) p[`${side}_business_model`] = s.model;
+			if (s.st) p[`${side}_is_sportstech`] = true;
+			if (s.country) p[`${locKey}country`] = s.country;
+			if (adv.hasAccess) {
+				if (s.city) p[`${locKey}city`] = s.city;
+				if (s.continent) p[`${locKey}continent`] = s.continent;
+				if (s.region) p[`${locKey}region`] = s.region;
+			}
+		}
 		return p;
-	}, [page, sort, dq, type, sectors, sector, country, year, disclosed]);
+	}, [page, sort, dq, type, year, disclosed, sectors, target, buyer, adv.hasAccess]);
 
 	// Only wait on the async sector catalog when a sector is actually selected —
 	// with no sector the key is stable and SWR can fetch immediately.
-	const filtersReady = !sector || sectors.ready;
+	const filtersReady = !(target.sector || buyer.sector) || sectors.ready;
 	const res = useSWR<{ data: MaDeal[]; total: number; totalPages: number }>(
 		filtersReady ? qk.acquisitions.list(params) : null,
 		{ keepPreviousData: true },
@@ -109,27 +147,45 @@ export function MaDeals() {
 	const inRows = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
 	const detail = useSWR<MaDeal>(dealId && !inRows ? qk.acquisitions.detail(dealId) : null);
 	const selected = inRows ?? detail.data ?? null;
-	const anyFilter = !!(dq || type || sector || country || year || disclosed);
+	const anyFilter = !!(dq || type || year || disclosed || sideActive(target) || sideActive(buyer));
 
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
+	// One side's filters. Labels name the side ("Acquirer sector") because the
+	// active-filter pills show the label without the group heading.
+	const sideFilters = (s: Side, set: (fn: (s: Side) => Side) => void, p: '' | 'acq_', who: string): FilterDef[] => {
+		const on = (k: keyof Side) => (v: string) => set((x) => ({ ...x, [k]: v }));
+		return [
+			sel(`${p}sector`, `${who} sector`, s.sector, sectors.topOptions, on('sector')),
+			sel(`${p}sport`, `${who} sport`, s.sport, sportOptions, on('sport')),
+			sel(`${p}country`, `${who} country`, s.country, countryOptions, on('country')),
+			...(adv.hasAccess ? [
+				sel(`${p}continent`, `${who} continent`, s.continent, loc.continent, on('continent')),
+				sel(`${p}region`, `${who} region`, s.region, loc.region, on('region')),
+				sel(`${p}city`, `${who} city`, s.city, loc.city, on('city')),
+			] : []),
+			sel(`${p}model`, `${who} business model`, s.model, BUSINESS_MODELS, on('model')),
+			{ kind: 'toggle', key: `${p}st`, label: `${who} is SportsTech`, value: s.st, onChange: (v) => { set((x) => ({ ...x, st: v })); reset(); } },
+		];
+	};
 
 	return (
 		<>
 			<FilterBar
 				search={{ value: q, onChange: (v) => { setQ(v); reset(); }, placeholder: 'Search by company or acquirer…' }}
 				groups={[
+					{ label: 'Acquired company', filters: sideFilters(target, setTarget, '', 'Company') },
+					{ label: 'Acquirer', filters: sideFilters(buyer, setBuyer, 'acq_', 'Acquirer') },
 					{ label: 'Deal', filters: [
 						sel('type', 'Type', type, TYPE_OPTIONS, setType),
 						sel('year', 'Since', year, SINCE_YEARS, setYear),
+						{ kind: 'toggle', key: 'disclosed', label: 'Disclosed value only', value: disclosed, onChange: (v) => { setDisclosed(v); reset(); } },
 					] },
-					{ label: 'Industry', filters: [sel('sector', 'Sectors', sector, sectors.topOptions, setSector)] },
-					{ label: 'Geography', filters: [sel('country', 'Countries', country, countryOptions, setCountry)] },
-					{ label: 'Status', filters: [{ kind: 'toggle', key: 'disclosed', label: 'Disclosed value only', value: disclosed, onChange: (v) => { setDisclosed(v); reset(); } }] },
+					...(adv.isLocked ? [{ label: 'Advanced', filters: [], locked: lockedFiltersNote(adv.requiredTier) }] : []),
 				]}
 				sort={{ value: sort, options: SORTS, onChange: (v) => { setSort(v); reset(); } }}
 				canClear={anyFilter}
-				onClear={() => { setQ(''); setType(''); setSector(''); setCountry(''); setYear(''); setDisclosed(false); setSort('-acquisition_date'); reset(); }}
+				onClear={() => { setQ(''); setType(''); setTarget(NO_SIDE); setBuyer(NO_SIDE); setYear(''); setDisclosed(false); setSort('-acquisition_date'); reset(); }}
 				count={`${total.toLocaleString()} deal${total === 1 ? '' : 's'}`}
 				actions={<ExportButton entity="acquisitions" search={dq} params={params} />}
 			/>
