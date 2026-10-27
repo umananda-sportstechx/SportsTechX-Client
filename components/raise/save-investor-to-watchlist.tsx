@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
 import { Bookmark, BookmarkCheck, Check, Loader2, Plus } from 'lucide-react';
-import { cx, useDismiss } from '@/components/atlas';
+import { cx } from '@/components/atlas';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { createWatchlist, isInvestorList, useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
@@ -25,19 +26,51 @@ interface PipeRef { id: string; investor_id: string | null; watchlist_id: string
  * investor list). Picking another list moves it, keeping its stage and notes;
  * "+ New watchlist" creates an investor list and files it there.
  */
-export function SaveInvestorToWatchlist({ investorId, investorName, align = 'start' }: {
+export function SaveInvestorToWatchlist({ investorId, investorName, align = 'start', portal = false }: {
 	investorId: string; investorName: string;
 	/** Which edge the menu hangs from: 'start' for a card's left-hand action row,
 	 *  'end' for a button at the right of a header (else it clips off-screen). */
 	align?: 'start' | 'end';
+	/** Render the menu on document.body, fixed to the button — needed inside a
+	 *  table row, whose `overflow-x: auto` container would clip a dropdown. */
+	portal?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const [newName, setNewName] = useState('');
 	const [busy, setBusy] = useState<string | null>(null);
 	const ref = useRef<HTMLDivElement>(null);
+	const menuRef = useRef<HTMLDivElement>(null);
+	const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
 	const close = useCallback(() => { setOpen(false); setCreating(false); setNewName(''); }, []);
-	useDismiss(ref, open, close);
+	const toggle = () => {
+		if (open) { close(); return; }
+		// Phones get the bottom sheet (CSS, ≤640px); desktop pins the portalled menu to the button.
+		const r = ref.current?.getBoundingClientRect();
+		setPos(portal && r && window.innerWidth > 640
+			? { top: r.bottom + 6, ...(align === 'end' ? { right: window.innerWidth - r.right } : { left: r.left }) }
+			: null);
+		setOpen(true);
+	};
+	// Outside click / Escape close it; so does scrolling the page, which would
+	// leave a fixed (portalled) menu floating away from its button.
+	useEffect(() => {
+		if (!open) return;
+		const inside = (t: EventTarget | null) => !!t && (ref.current?.contains(t as Node) || menuRef.current?.contains(t as Node));
+		const onDown = (e: MouseEvent) => { if (!inside(e.target)) close(); };
+		const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+		const onScroll = (e: Event) => { if (portal && !inside(e.target)) close(); };
+		document.addEventListener('mousedown', onDown);
+		document.addEventListener('keydown', onKey);
+		window.addEventListener('scroll', onScroll, true);
+		window.addEventListener('resize', close);
+		return () => {
+			document.removeEventListener('mousedown', onDown);
+			document.removeEventListener('keydown', onKey);
+			window.removeEventListener('scroll', onScroll, true);
+			window.removeEventListener('resize', close);
+		};
+	}, [open, close, portal]);
 
 	// Shares its SWR key with the board and the directory's "In watchlist" badges.
 	const { data } = useSWR<{ data: PipeRef[] }>(qk.raise.pipeline());
@@ -77,12 +110,14 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 
 	return (
 		<div className="atlas-fbar__anchor" ref={ref}>
-			<button type="button" className="atlas-action" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
+			<button type="button" className="atlas-action" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
 				<span className="atlas-action__icon">{row ? <BookmarkCheck /> : <Bookmark />}</span>
 				{row ? `In ${currentName}` : 'Add to watchlist'}
 			</button>
-			{open && (
-				<div className={cx('atlas-menu', align === 'end' && 'atlas-menu--end', 'atlas-wl-menu', 'atlas-menu--sheet')} role="dialog" aria-label={row ? 'Move to watchlist' : 'Add to watchlist'}>
+			{open && (() => {
+				const menu = (
+				<div ref={menuRef} className={cx('atlas-menu', align === 'end' && 'atlas-menu--end', 'atlas-wl-menu', 'atlas-menu--sheet')} role="dialog" aria-label={row ? 'Move to watchlist' : 'Add to watchlist'}
+					style={pos ? { position: 'fixed', top: pos.top, left: pos.left ?? 'auto', right: pos.right ?? 'auto' } : undefined}>
 					<div className="atlas-menu__head"><span>{row ? 'Move to watchlist' : 'Add to watchlist'}</span></div>
 					<div className="atlas-menu__list atlas-menu__list--scroll">
 						{isLoading && <div className="atlas-menu__empty">Loading…</div>}
@@ -110,7 +145,10 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 						)}
 					</div>
 				</div>
-			)}
+				);
+				// `atlas` re-scopes the design tokens outside the app shell.
+				return portal ? createPortal(<div className="atlas">{menu}</div>, document.body) : menu;
+			})()}
 		</div>
 	);
 }
