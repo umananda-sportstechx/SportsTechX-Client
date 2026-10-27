@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Loader2, ArrowUpRight, Check } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
+import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import type { DeckListItem, DeckScorecard } from '@/lib/deck-analysis';
@@ -23,7 +24,6 @@ import { DECK_ANALYSIS_STAGES } from './deck-stages';
  * full analysis lives at `/app/deck/[id]` (DeckAnalysisDetail).
  */
 const BUCKET = 'user-uploads';
-const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED_EXT = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
 const ACCEPT = 'application/pdf,.pdf,.ppt,.pptx,.doc,.docx';
 const AREAS = [
@@ -74,8 +74,8 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 	const analyze = async (file: File) => {
 		if (uploading) return;
 		const ext = (file.name.split('.').pop() ?? '').toLowerCase();
-		if (!ALLOWED_EXT.includes(ext)) { toast.error('Upload a PDF, PPT/PPTX, or DOC/DOCX.'); return; }
-		if (file.size > MAX_BYTES) { toast.error('File too large (max 25 MB).'); return; }
+		const bad = deckFileError(file, ALLOWED_EXT);
+		if (bad) { toast.error(bad); return; }
 		setUploading(true);
 		try {
 			const supabase = getSupabaseBrowser();
@@ -83,8 +83,8 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 			const uid = auth.user?.id;
 			if (!uid) throw new Error('Not signed in');
 			const key = `${uid}/decks/${crypto.randomUUID()}.${ext}`;
-			const { error } = await supabase.storage.from(BUCKET).upload(key, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
-			if (error) throw error;
+			const { error } = await supabase.storage.from(BUCKET).upload(key, file, { upsert: false, contentType: deckContentType(file) });
+			if (error) throw new Error(deckUploadError(error.message, file, ALLOWED_EXT));
 			const res = await apiRequest('POST', '/api/deck-analysis', { storage_path: key, filename: file.name, mode });
 			if (!res.ok) {
 				const body = await res.json().catch(() => null);
@@ -138,6 +138,7 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 				</div>
 				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={14} /> : <>{copy.emptyCta} <ArrowUpRight /></>}</Button>
+				<p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--a-faint)' }}>PDF, PPT/PPTX or DOC/DOCX · max {MAX_DECK_MB} MB</p>
 			</Card>
 		</Screen>
 	);
