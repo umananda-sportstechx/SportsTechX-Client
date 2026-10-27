@@ -87,7 +87,7 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 										<div className="atlas-sig__actions">
 											<SaveToWatchlist companyId={s.company_id} companyName={name} />
 											<Link className="atlas-action" href={href}>
-												<span className="atlas-action__icon"><ArrowUpRight /></span>View company
+												<span className="atlas-action__icon"><ArrowUpRight /></span><span className="atlas-action__label">View company</span>
 											</Link>
 										</div>
 									</div>
