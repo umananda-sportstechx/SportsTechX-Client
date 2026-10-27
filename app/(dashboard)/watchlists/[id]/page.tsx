@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { PlaceholderTag, Screen, Seg, SectionHeader } from '@/components/atlas';
+import { Screen, Seg, SectionHeader } from '@/components/atlas';
 import { WatchlistDetail } from '@/components/features/watchlists/watchlist-detail';
 import { WatchlistBoard } from '@/components/scout/watchlist-board';
 import { usePlaceholderState } from '@/hooks/use-placeholder-state';
@@ -25,12 +25,9 @@ export default function Page() {
 	return (
 		<Screen>
 			<SectionHeader
-				actions={isScout ? (
-					<>
-						{board && <PlaceholderTag />}
-						<Seg ariaLabel="Watchlist view" value={view} onChange={setView} options={[{ key: 'list', label: 'List' }, { key: 'board', label: 'Board' }]} />
-					</>
-				) : undefined}
+				actions={isScout
+					? <Seg ariaLabel="Watchlist view" value={view} onChange={setView} options={[{ key: 'list', label: 'List' }, { key: 'board', label: 'Board' }]} />
+					: undefined}
 			/>
 			{board
 				? <WatchlistBoard id={id} />
