@@ -32,7 +32,7 @@ export function ExportButton({ entity, search, params }: {
 	);
 	return (
 		<>
-			<Button size="sm" variant="outline" onClick={() => setOpen(true)}><Download size={13} /> Export</Button>
+			<Button size="sm" variant="outline" onClick={() => setOpen(true)}><Download size={13} /><span className="atlas-btn__label">Export</span></Button>
 			{open && (
 				<ExportModal entity={entity} search={search?.trim() || null} filters={filters} onClose={() => setOpen(false)} />
 			)}

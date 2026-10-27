@@ -139,7 +139,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 				{sort && (
 					<div className="atlas-fbar__anchor">
 						<button type="button" className="atlas-btn atlas-btn--outline" aria-expanded={menu?.at === 'sort'} onClick={() => toggleMenu('sort')}>
-							<SlidersHorizontal /> Sort by
+							<SlidersHorizontal /><span className="atlas-btn__label">Sort by</span>
 						</button>
 						{menu?.at === 'sort' && (
 							<div className="atlas-menu atlas-menu--end atlas-menu--sheet" role="dialog" aria-label="Sort by">
