@@ -14,9 +14,11 @@ const count = (n: number, investors: boolean) => `${n} ${investors ? `investor${
 /** All watchlists: open, rename, delete, and create a new one by name. Raise
  *  users also keep investor watchlists here, so they pick what a new list holds. */
 export function WatchlistsOverview({ watchlistHref }: { watchlistHref: (id: string) => string }) {
-	const { lists, isLoading } = useCompanyWatchlists();
+	const { lists: all, isLoading } = useCompanyWatchlists();
 	const { data: profile } = useUserProfile();
 	const isRaise = getUserType(profile) === 'raise';
+	// Investor lists only mean something on Raise (see use-nav).
+	const lists = isRaise ? all : all.filter((l) => !isInvestorList(l));
 	const [kind, setKind] = useState<'investors' | 'companies'>('investors');
 	const newKind = isRaise ? kind : 'companies';
 	const [name, setName] = useState('');

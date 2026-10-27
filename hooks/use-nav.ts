@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { ShellNavEntry, ShellNavItem } from '@/components/atlas';
-import { useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
+import { isInvestorList, useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { buildNav } from '@/lib/nav';
 import { pathOf, SECTION_SUBS } from '@/lib/routes';
@@ -36,7 +36,10 @@ export function useNav(): {
 	const ready = !!profile;
 	const tier = getUserType(profile);
 	const isAdmin = profile?.user_role === 'admin';
-	const { lists } = useCompanyWatchlists();
+	const { lists: all } = useCompanyWatchlists();
+	// Investor lists are Raise's (their board is the Raise-only pipeline). A
+	// founder who moves to another plan keeps them on file but not in the nav.
+	const lists = useMemo(() => (tier === 'raise' ? all : all.filter((l) => !isInvestorList(l))), [all, tier]);
 
 	return useMemo(() => {
 		const { nav, bottomNav } = buildNav(tier, isAdmin, lists, 'nav-list');
