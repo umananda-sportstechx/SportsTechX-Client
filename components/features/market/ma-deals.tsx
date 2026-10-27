@@ -76,7 +76,9 @@ const sideUrl = (s: Side, p: '' | 'acq_') => ({
 	[`${p}sector`]: s.sector, [`${p}sport`]: s.sport, [`${p}country`]: s.country, [`${p}model`]: s.model,
 	[`${p}st`]: s.st || undefined, [`${p}city`]: s.city, [`${p}continent`]: s.continent, [`${p}region`]: s.region,
 });
-const sideActive = (s: Side) => !!(s.sector || s.sport || s.country || s.model || s.st || s.city || s.continent || s.region);
+/** Is any filter on this side in effect? City/continent/region count only with
+ *  advanced access — without it they're neither sent nor shown as pills. */
+const sideActive = (s: Side, adv: boolean) => !!(s.sector || s.sport || s.country || s.model || s.st || (adv && (s.city || s.continent || s.region)));
 
 export function MaDeals() {
 	// View-state in the URL (Back/Forward restore, shareable).
@@ -147,7 +149,7 @@ export function MaDeals() {
 	const inRows = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
 	const detail = useSWR<MaDeal>(dealId && !inRows ? qk.acquisitions.detail(dealId) : null);
 	const selected = inRows ?? detail.data ?? null;
-	const anyFilter = !!(dq || type || year || disclosed || sideActive(target) || sideActive(buyer));
+	const anyFilter = !!(dq || type || year || disclosed || sideActive(target, adv.hasAccess) || sideActive(buyer, adv.hasAccess));
 
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
