@@ -37,7 +37,7 @@ const EXPECTED: Record<Tier, Shape> = {
 		top: ['Home', 'Chat', 'Interests', 'Pitch Deck'],
 		sections: [
 			['Intelligence', ['Framework', 'Reports', 'Newsletter']],
-			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Investors']],
+			['Market', ['Analysis', 'Monthly Roundup', 'Companies', 'Events', 'Programs', 'Investors']],
 		],
 		bottom: [],
 	},
@@ -272,6 +272,9 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 	// handed those chips; pipeline / my-market stay genuinely Raise-only.
 	check(navigable('investors', 'scout') && navigable('programs', 'scout'),
 		'navigable: the ecosystem directories are offered to Scout');
+	// Programs is free like Events, so even Explore may be handed the chip.
+	check(navigable('programs', 'explore') && navigable('events', 'explore'),
+		'navigable: Programs is offered to Explore, like Events');
 	check(!navigable('pipeline', 'scout'),
 		'navigable: a genuinely Raise-only chip (pipeline) is still dropped for Scout');
 	check(navigable('thesis', 'scout') && !navigable('thesis', 'raise'),
