@@ -53,7 +53,7 @@ const CATEGORY_OPTIONS: [string, string][] = [
 	['sovereign_wealth_fund', 'Sovereign Wealth Fund'], ['angel', 'Angel'], ['other', 'Other'],
 ];
 /** The API sends the raw enum ('venture_capital'); show the label. Unknown values pass through. */
-const categoryLabel = (c: string | null | undefined) => (c ? CATEGORY_OPTIONS.find(([v]) => v === c)?.[1] ?? c : null);
+export const categoryLabel = (c: string | null | undefined) => (c ? CATEGORY_OPTIONS.find(([v]) => v === c)?.[1] ?? c : null);
 const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
 /** Which investors are already in one of the founder's watchlists.
