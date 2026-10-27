@@ -17,8 +17,8 @@ interface TreeLeaf { sector_id: string; sector_name: string; total_amount: numbe
 interface TreeNode extends TreeLeaf { children: TreeLeaf[] }
 interface BizRow { business_model: string; deal_count: number; total_amount: number }
 interface GeoRow { country: string; deal_count: number; total_amount: number }
-interface TopFunded { company_id: string; name: string; slug: string | null; custom_logo_url: string | null; total_raised: number; deal_count: number }
-interface TopAcquirer { acquirer_name: string; acquirer_country: string | null; deal_count: number; total_value: number }
+interface TopFunded { company_id: string; name: string; slug: string | null; website?: string | null; custom_logo_url: string | null; total_raised: number; deal_count: number }
+interface TopAcquirer { acquirer_name: string; acquirer_country: string | null; acquirer_website?: string | null; acquirer_logo?: string | null; acquirer_slug?: string | null; deal_count: number; total_value: number }
 
 const rangeToPeriod: Record<Range, Period> = { '10y': 'all', '5y': '12m', ytd: 'ytd' };
 const BAR_TOP = 'var(--a-chart-bar-top)';
@@ -179,7 +179,7 @@ export function MarketAnalysis() {
 									<Link className="atlas-table__row" key={c.company_id} href={companyHref(c.slug ?? c.company_id)}>
 										<span className="atlas-table__rank">{i + 1}</span>
 										<div className="atlas-table__name">
-											<Logo co={{ name: c.name, website: null, custom_logo_url: c.custom_logo_url }} size={28} />
+											<Logo co={{ name: c.name, website: c.website ?? null, custom_logo_url: c.custom_logo_url }} size={28} />
 											<div className="atlas-table__name-main"><div className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{c.name}</div></div>
 										</div>
 										<span className="atlas-table__col hide-sm">{fmtCount(c.deal_count)} rounds</span>
@@ -189,7 +189,9 @@ export function MarketAnalysis() {
 								: (topAcq.data ?? []).map((a, i) => (
 									<div className="atlas-table__row" key={`${a.acquirer_name}-${i}`}>
 										<span className="atlas-table__rank">{i + 1}</span>
-										<div className="atlas-table__name"><div className="atlas-table__name-main"><div className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{a.acquirer_name}</div>{a.acquirer_country && <div style={{ fontFamily: 'var(--a-body)', fontSize: 10, color: 'var(--a-muted)', marginTop: 3 }}>{a.acquirer_country}</div>}</div></div>
+										<div className="atlas-table__name"><Logo co={{ name: a.acquirer_name, website: a.acquirer_website ?? null, custom_logo_url: a.acquirer_logo ?? null }} size={28} /><div className="atlas-table__name-main">{a.acquirer_slug
+											? <Link href={companyHref(a.acquirer_slug)} className="atlas-ellipsis" style={{ display: 'block', fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15, color: 'inherit', textDecoration: 'none' }}>{a.acquirer_name}</Link>
+											: <div className="atlas-ellipsis" style={{ fontFamily: 'var(--a-font)', fontWeight: 700, fontSize: 15 }}>{a.acquirer_name}</div>}{a.acquirer_country && <div style={{ fontFamily: 'var(--a-body)', fontSize: 10, color: 'var(--a-muted)', marginTop: 3 }}>{a.acquirer_country}</div>}</div></div>
 										<span className="atlas-table__col hide-sm">{fmtCount(a.deal_count)} deals</span>
 										<span className="atlas-table__amount">{fmtUsd(a.total_value)}</span>
 									</div>
