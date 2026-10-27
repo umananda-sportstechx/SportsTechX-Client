@@ -10,7 +10,8 @@ import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { companyHref, hrefOf } from '@/lib/routes';
 import { fmtUsd } from '@/components/features/market/format';
-import './recommended.css';
+import './recommended.css';
+import { toast } from 'sonner';
 
 /**
  * Discover → Recommended, from `GET /api/scout/recommended`.
@@ -74,16 +75,21 @@ export function Recommended() {
 
 	const rows = data?.data ?? [];
 
+	const refresh = () => mutate((k: unknown) => Array.isArray(k) && typeof k[0] === 'string' && k[0].startsWith('/api/scout/recommended'));
 	const dismiss = async (id: string, name: string) => {
-		setLastDismissed({ id, name });
-		await apiRequest('POST', `/api/scout/recommended/${id}/dismiss`);
-		void mutate((k: unknown) => Array.isArray(k) && typeof k[0] === 'string' && k[0].startsWith('/api/scout/recommended'));
+		try {
+			await apiRequest('POST', `/api/scout/recommended/${id}/dismiss`);
+			setLastDismissed({ id, name });
+			void refresh();
+		} catch { toast.error("Couldn't dismiss that company. Please try again."); }
 	};
 	const undoDismiss = async () => {
 		if (!lastDismissed) return;
-		await apiRequest('DELETE', `/api/scout/recommended/${lastDismissed.id}/dismiss`);
-		setLastDismissed(null);
-		void mutate((k: unknown) => Array.isArray(k) && typeof k[0] === 'string' && k[0].startsWith('/api/scout/recommended'));
+		try {
+			await apiRequest('DELETE', `/api/scout/recommended/${lastDismissed.id}/dismiss`);
+			setLastDismissed(null);
+			void refresh();
+		} catch { toast.error("Couldn't undo. Please try again."); }
 	};
 
 	return (

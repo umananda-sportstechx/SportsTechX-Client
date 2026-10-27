@@ -62,7 +62,11 @@ export function DealDetail({ id }: { id: string }) {
 		const legacy = readLegacy<string[]>('watched');
 		if (!legacy?.length) return;
 		void Promise.allSettled(legacy.filter((x) => UUID.test(x)).map((x) => apiRequest('PUT', `/api/scout/dealflow/${x}/watch`)))
-			.then(() => { clearLegacy('watched'); void mutate(); });
+			.then((rs) => {
+				// Keep the list if anything failed for a reason other than "deal gone" (404).
+				if (rs.every((r) => r.status === 'fulfilled' || (r.reason as { status?: number })?.status === 404)) clearLegacy('watched');
+				void mutate();
+			});
 	}, [mutate]);
 
 	useEffect(() => {
