@@ -13,6 +13,7 @@ import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { SaveInvestorToWatchlist } from '@/components/raise/save-investor-to-watchlist';
+import { categoryLabel } from '@/components/raise/investors';
 
 /**
  * Atlas Raise — Investor profile (mock-ups 12/13 / canvas isProfileBaseline &
@@ -87,7 +88,7 @@ export default function InvestorProfilePage() {
 					<div style={{ minWidth: 0 }}>
 						<h1 className="atlas-h1" style={{ fontSize: 30, lineHeight: 1.15 }}>{inv.name}</h1>
 						<div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontFamily: 'var(--a-mono)', fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--a-muted)', marginTop: 10 }}>
-							{inv.category && <span>{inv.category}</span>}
+							{inv.category && <span>{categoryLabel(inv.category)}</span>}
 							{inv.category && geoOf(inv) !== '—' && <span>·</span>}
 							{inv.hq_country && <Flag cc={inv.hq_country} size={15} />}
 							{geoOf(inv) !== '—' && <span>{geoOf(inv)}</span>}
