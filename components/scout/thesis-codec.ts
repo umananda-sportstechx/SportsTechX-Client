@@ -32,6 +32,8 @@ export interface ServerThesis {
 	traction_floor: string | null;
 	invest_style: string | null;
 	exclusions: string | null;
+	/** Include chips with no taxonomy column (SaaS, Fans, themes …). */
+	include_tags?: string[];
 }
 
 export interface ScoutProfile {

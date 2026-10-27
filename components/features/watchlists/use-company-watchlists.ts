@@ -8,7 +8,7 @@ import { apiRequest } from '@/lib/query-client';
  * Company watchlists (backend: /api/user-watchlists) — several named lists of
  * companies per user. Separate from Raise's investor board (/api/raise/pipeline).
  */
-export interface CompanyWatchlist { id: string; name: string; description: string | null; color: string | null; company_count?: number }
+export interface CompanyWatchlist { id: string; name: string; description: string | null; color: string | null; company_count?: number; view_mode?: 'list' | 'board' }
 export interface WatchlistCompany {
 	id: string; name: string; slug: string | null; website: string | null; custom_logo_url: string | null;
 	description: string | null; primary_sector: string | null; hq_city: string | null; hq_country: string | null;
@@ -34,6 +34,16 @@ export function useWatchlistCompanies(id: string | null | undefined) {
 }
 
 const refreshLists = () => globalMutate(qk.userWatchlists.list());
+
+/** Save a watchlist's List/Board view (Scout). Optimistic; rolls back on failure. */
+export async function setWatchlistView(id: string, view_mode: 'list' | 'board'): Promise<boolean> {
+	const key = qk.userWatchlists.list();
+	const patchView = (d?: { data: CompanyWatchlist[] }) => d && ({ ...d, data: d.data.map((l) => (l.id === id ? { ...l, view_mode } : l)) });
+	await globalMutate(key, patchView, { revalidate: false });
+	const res = await apiRequest('PATCH', `/api/user-watchlists/${id}`, { view_mode }).catch(() => null);
+	if (!res?.ok) { await refreshLists(); return false; }
+	return true;
+}
 
 export async function addToWatchlist(watchlistId: string, companyId: string) {
 	await apiRequest('POST', `/api/user-watchlists/${watchlistId}/companies/${companyId}`);

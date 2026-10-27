@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { Empty, Loading, Logo, cx } from '@/components/atlas';
-import { usePlaceholderState } from '@/hooks/use-placeholder-state';
+import { clearLegacy, readLegacy } from '@/hooks/legacy-local';
 import { apiRequest } from '@/lib/query-client';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
@@ -52,10 +52,18 @@ export function DealDetail({ id }: { id: string }) {
 	const valid = UUID.test(id);
 	const { data: d, error, isLoading, mutate } = useSWR<DealRow>(valid ? qk.scout.deal(id) : null);
 
-	const [watched, setWatched] = usePlaceholderState<string[]>('watched', NONE);
+	const [watchBusy, setWatchBusy] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [note, setNote] = useState('');
 	const [busy, setBusy] = useState(false);
+
+	// Watches used to live in this browser only — push any left there to the server once.
+	useEffect(() => {
+		const legacy = readLegacy<string[]>('watched');
+		if (!legacy?.length) return;
+		void Promise.allSettled(legacy.filter((x) => UUID.test(x)).map((x) => apiRequest('PUT', `/api/scout/dealflow/${x}/watch`)))
+			.then(() => { clearLegacy('watched'); void mutate(); });
+	}, [mutate]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -81,7 +89,7 @@ export function DealDetail({ id }: { id: string }) {
 	}
 
 	const isCircle = d.source === 'circle';
-	const isWatched = watched.includes(d.id);
+	const isWatched = !!d.is_watched;
 	const label = d.is_featured ? 'Featured deal' : isCircle ? 'From the Circle' : 'Verified raise';
 	const name = companyLabel(d);
 
@@ -96,6 +104,17 @@ export function DealDetail({ id }: { id: string }) {
 		// to the status, which is never redacted.
 		['Lead', d.lead_investor ?? leadLabel(d.lead_status) ?? '—'],
 	];
+
+	const toggleWatch = async () => {
+		setWatchBusy(true);
+		try {
+			const res = await apiRequest(isWatched ? 'DELETE' : 'PUT', `/api/scout/dealflow/${d.id}/watch`);
+			if (!res.ok) throw new Error(String(res.status));
+			await mutate({ ...d, is_watched: !isWatched }, { revalidate: false });
+		} catch {
+			toast.error("Couldn't update your watch. Please try again.");
+		} finally { setWatchBusy(false); }
+	};
 
 	const requestIntro = async () => {
 		setBusy(true);
@@ -132,8 +151,8 @@ export function DealDetail({ id }: { id: string }) {
 				</div>
 				<div className="scout-dd-head__actions">
 					<button
-						type="button" className="scout-df-pill" aria-pressed={isWatched}
-						onClick={() => setWatched((prev) => (prev.includes(d.id) ? prev.filter((x) => x !== d.id) : [...prev, d.id]))}
+						type="button" className="scout-df-pill" aria-pressed={isWatched} disabled={watchBusy}
+						onClick={toggleWatch}
 					>
 						{isWatched ? 'Watching ✓' : 'Watch'}
 					</button>
@@ -230,8 +249,6 @@ export function DealDetail({ id }: { id: string }) {
 	);
 }
 
-/** Hoisted: `usePlaceholderState` keeps `fallback` in a dependency list. */
-const NONE: string[] = [];
 
 /**
  * The real documents panel.
