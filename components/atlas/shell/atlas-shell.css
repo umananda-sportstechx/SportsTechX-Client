@@ -229,8 +229,11 @@
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* ── Mobile: top bar + left drawer ─────────────────────────────────────────*/
-@media (max-width: 720px) {
+/* ── Phone + tablet: top bar + left drawer ─────────────────────────────────
+   Up to 1024px, not 720: between the two the 261px rail left the page ~450px,
+   and desktop layouts (company table, roundup KPIs) ran off the edge or crushed
+   their name column. Tablets get the drawer and the full width instead. */
+@media (max-width: 1024px) {
   .atlas-shell { grid-template-columns: 1fr; }
 
   .atlas-topbar {
