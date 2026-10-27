@@ -75,7 +75,10 @@ export function SetupModalHost() {
 			if (!setupParam) setOpen(false);
 			return;
 		}
-		if (isLoading) return;
+		// Not `isLoading` alone: until the auth session is ready the profile query
+		// is disabled — isLoading false, no data — so the tier read as 'explore'
+		// and a cold load of `?setup=thesis` stripped its own param.
+		if (isLoading || !profile) return;
 		if (allows(setupParam)) {
 			setWizard(setupParam);
 			setOpen(true);
@@ -86,7 +89,7 @@ export function SetupModalHost() {
 		}
 		// `allows` is derived from `tier`, which is in the deps.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [setupParam, isLoading, tier, setSetupParam]);
+	}, [setupParam, isLoading, profile, tier, setSetupParam]);
 
 	// Nothing rendered, and neither wizard's chunk requested, until asked for.
 	if (!wizard) return null;

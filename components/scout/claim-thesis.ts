@@ -66,7 +66,9 @@ export function claimFromThesis(t: Thesis): Partial<ClaimForm> {
 	const p: Partial<ClaimForm> = {
 		first, last: rest.join(' '), email: t.email, position: t.role, linkedin: t.linkedin,
 		name: t.fundName, website: t.website.replace(/^https?:\/\//, ''),
-		coCity: t.city, coCountry: t.country,
+		// The claimant's own location defaults to the fund's — almost always the
+		// same for an investor, and editable in the modal if not.
+		city: t.city, country: t.country, coCity: t.city, coCountry: t.country,
 		invCategory: TYPE_TO_CATEGORY[t.investorType] ?? '',
 		aum: digits(t.aum),
 		continents, thesisSectors: sectors, fundingStages: stages, minInv, maxInv,
