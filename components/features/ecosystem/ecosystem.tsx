@@ -41,7 +41,7 @@ type EventView = 'calendar' | 'table' | 'cards';
 
 /** Programs catalogue (accelerators, incubators…): filter toolbar + card grid + pager. */
 export function ProgramsList() {
-	const [view, setView] = useState<ViewMode>('cards');
+	const [view, setView] = useState<ViewMode>('table'); // list is the default for every database
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState('');
@@ -158,7 +158,7 @@ export function EventsList() {
 	const [region, setRegion] = useState('');
 	const [upcoming, setUpcoming] = useState(true);
 	const [page, setPage] = useState(1);
-	const [view, setView] = useState<EventView>('calendar');
+	const [view, setView] = useState<EventView>('table'); // list is the default for every database
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
 	const countryOptions = useCountryOptions();
