@@ -87,7 +87,7 @@ export function WatchlistDetail({ id, backHref, companyHref }: { id: string; bac
 								<span className="atlas-table__col hide-sm" style={{ width: 130 }}>{hq || '—'}</span>
 								<span className="atlas-table__col" style={{ width: 90 }}>{raised}</span>
 								<span className="atlas-table__col" style={{ width: 70 }}>
-									<button type="button" disabled={busy === c.id} onClick={(e) => { e.preventDefault(); void remove(c.id, c.name); }}
+									<button type="button" aria-label={`Remove ${c.name}`} title={`Remove ${c.name}`} disabled={busy === c.id} onClick={(e) => { e.preventDefault(); void remove(c.id, c.name); }}
 										style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-muted)', padding: 4 }}><X size={14} /></button>
 								</span>
 							</Link>
