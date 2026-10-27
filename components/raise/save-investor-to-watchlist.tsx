@@ -25,7 +25,12 @@ interface PipeRef { id: string; investor_id: string | null; watchlist_id: string
  * investor list). Picking another list moves it, keeping its stage and notes;
  * "+ New watchlist" creates an investor list and files it there.
  */
-export function SaveInvestorToWatchlist({ investorId, investorName }: { investorId: string; investorName: string }) {
+export function SaveInvestorToWatchlist({ investorId, investorName, align = 'start' }: {
+	investorId: string; investorName: string;
+	/** Which edge the menu hangs from: 'start' for a card's left-hand action row,
+	 *  'end' for a button at the right of a header (else it clips off-screen). */
+	align?: 'start' | 'end';
+}) {
 	const [open, setOpen] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const [newName, setNewName] = useState('');
@@ -77,7 +82,7 @@ export function SaveInvestorToWatchlist({ investorId, investorName }: { investor
 				{row ? `In ${currentName}` : 'Add to watchlist'}
 			</button>
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-wl-menu atlas-menu--sheet" role="dialog" aria-label={row ? 'Move to watchlist' : 'Add to watchlist'}>
+				<div className={cx('atlas-menu', align === 'end' && 'atlas-menu--end', 'atlas-wl-menu', 'atlas-menu--sheet')} role="dialog" aria-label={row ? 'Move to watchlist' : 'Add to watchlist'}>
 					<div className="atlas-menu__head"><span>{row ? 'Move to watchlist' : 'Add to watchlist'}</span></div>
 					<div className="atlas-menu__list atlas-menu__list--scroll">
 						{isLoading && <div className="atlas-menu__empty">Loading…</div>}
