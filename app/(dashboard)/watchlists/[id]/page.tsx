@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Loading, Screen, Seg, SectionHeader } from '@/components/atlas';
+import { Empty, Loading, Screen, Seg, SectionHeader } from '@/components/atlas';
 import { WatchlistDetail } from '@/components/features/watchlists/watchlist-detail';
 import { WatchlistBoard } from '@/components/scout/watchlist-board';
 import { InvestorBoard } from '@/components/raise/investor-board';
@@ -32,7 +32,12 @@ export default function Page() {
 	const board = isScout && view === 'board';
 	// Wait for the kind, or a company view would flash before the investor board.
 	if (isLoading) return <Screen><Loading /></Screen>;
-	if (list && isInvestorList(list)) return <InvestorBoard listId={id} />;
+	if (list && isInvestorList(list)) {
+		// The board reads the Raise-only pipeline; anywhere else it would just 403.
+		return getUserType(profile) === 'raise'
+			? <InvestorBoard listId={id} />
+			: <Screen><Empty>Investor watchlists are part of Atlas Raise.</Empty></Screen>;
+	}
 	return (
 		<Screen>
 			<SectionHeader
