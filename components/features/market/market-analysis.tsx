@@ -92,7 +92,9 @@ export function MarketAnalysis() {
 	const loadingCore = funding.isLoading || ma.isLoading;
 
 	return (
-		<div style={{ display: 'grid', gap: 22 }}>
+		// minmax(0, 1fr): an implicit `auto` track grows to its widest child's
+		// min-content, which pushed the whole page to 513px on a 390px phone.
+		<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
 			{/* Controls */}
 			<div className="atlas-controls">
 				<Seg<Series>
