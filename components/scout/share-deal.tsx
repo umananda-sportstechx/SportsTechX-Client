@@ -14,6 +14,7 @@ import { LocationSelect } from '@/components/features/location/location-select';
 import { BLANK, fromRow, toPayload, num, fmtValuation, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
+import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import { openClaim } from '@/lib/claim-events';
@@ -318,7 +319,6 @@ function Block({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const BUCKET = 'user-uploads';
-const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED_EXT = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
 
 /**
@@ -345,8 +345,8 @@ function DocField({ label, path, onPath }: {
 
 	const pick = async (file: File) => {
 		const ext = (file.name.split('.').pop() ?? '').toLowerCase();
-		if (!ALLOWED_EXT.includes(ext)) { toast.error('Upload a PDF, PPT/PPTX or DOC/DOCX.'); return; }
-		if (file.size > MAX_BYTES) { toast.error('File too large (max 25 MB).'); return; }
+		const bad = deckFileError(file, ALLOWED_EXT);
+		if (bad) { toast.error(bad); return; }
 		setBusy(true);
 		try {
 			const supabase = getSupabaseBrowser();
@@ -355,9 +355,9 @@ function DocField({ label, path, onPath }: {
 			if (!uid) throw new Error('Not signed in');
 			const key = `${uid}/deals/${crypto.randomUUID()}.${ext}`;
 			const { error } = await supabase.storage.from(BUCKET).upload(key, file, {
-				upsert: false, contentType: file.type || 'application/octet-stream',
+				upsert: false, contentType: deckContentType(file),
 			});
-			if (error) throw error;
+			if (error) throw new Error(deckUploadError(error.message, file, ALLOWED_EXT));
 			// `bucket/key` — the server splits on the first slash to sign it.
 			onPath(`${BUCKET}/${key}`);
 			toast.success('Uploaded');
@@ -387,6 +387,7 @@ function DocField({ label, path, onPath }: {
 					<Button variant="outline" disabled={busy} onClick={() => ref.current?.click()}>
 						{busy ? <><Loader2 className="animate-spin" size={13} /> Uploading…</> : 'Choose a file'}
 					</Button>
+					<span style={{ marginLeft: 10, fontSize: 11, color: 'var(--a-faint)' }}>PDF, PPT/PPTX or DOC/DOCX · max {MAX_DECK_MB} MB</span>
 				</>
 			)}
 		</Field>

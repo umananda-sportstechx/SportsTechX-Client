@@ -1,4 +1,8 @@
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { deckContentType, deckUploadError } from '@/lib/deck-upload';
+
+/** Pitch-deck formats the claim form takes (the claim analyzer converts PPT/PPTX). */
+export const CLAIM_DECK_EXTS = ['pdf', 'ppt', 'pptx'];
 import type { ClaimForm } from './claim-form';
 import { OP_TYPE_TO_ENTITY } from './claim-form';
 import type { ClaimReference } from './use-claim-reference';
@@ -53,9 +57,11 @@ export async function uploadPitchDeck(file: File, userId: string): Promise<strin
   const key = `${userId}/${Date.now()}_${safeName}`;
   const { error } = await supabase.storage.from('claim-decks').upload(key, file, {
     upsert: false,
-    contentType: file.type || undefined,
+    contentType: deckContentType(file),
   });
-  if (error) throw new Error(error.message);
+  // Say what went wrong ("Your pitch deck is 63.2 MB — the maximum is 50 MB"),
+  // not storage's "The object exceeded the maximum allowed size".
+  if (error) throw new Error(deckUploadError(error.message, file, CLAIM_DECK_EXTS));
   return key;
 }
 
