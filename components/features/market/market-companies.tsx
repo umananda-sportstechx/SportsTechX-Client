@@ -42,7 +42,9 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 	// unmounts this list; the URL is all the browser keeps) and so the page is
 	// shareable. Deep links (framework/Scout) can preselect ?q=, ?sector= etc.
 	const url = useUrlReader();
-	const [view, setView] = useState<ViewMode>('cards');
+	// List is the default for every database; a chosen view lives in the URL
+	// with the filters, so it survives Back/Forward, links and any remount.
+	const [view, setView] = useState<ViewMode>(() => url.oneOf('view', ['table', 'cards'] as const, 'table'));
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
 	const [model, setModel] = useState(() => url.oneOf('model', BUSINESS_MODELS.map(([v]) => v), ''));
@@ -70,6 +72,7 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 
 	// Mirror the whole view-state into the URL (defaults omitted to keep it short).
 	useUrlSync({
+		view: view !== 'table' ? view : undefined,
 		q: dq, model, sector, sub: subSector, subsub: subSubSector, sport, country,
 		city, continent, region, tech: techTag, funding, founded,
 		verified, raising, unicorn,
