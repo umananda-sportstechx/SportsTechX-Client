@@ -22,8 +22,8 @@ export interface NavWatchlist { id: string; name: string }
  * chip or a programmatic push is an action, so it must only offer routes that
  * really open. Two ways one goes dead, and the chat agent can know neither:
  * the route belongs to the other product (Investors, Programs, Pipeline and the
- * Fundraising Guide are `tier: 'raise'`), or it is still coming soon (every Deal
- * Flow route, and Scout's view of the Deck Screener, are `placeholder`).
+ * Fundraising Guide are `tier: 'raise'`), or it is flagged
+ * `placeholder` (no backend yet — no route is today).
  *
  * `isAdmin` is not taken: an admin bypasses `access()` entirely, and a chip is a
  * suggestion for *this* workspace, not proof of what they may open directly.

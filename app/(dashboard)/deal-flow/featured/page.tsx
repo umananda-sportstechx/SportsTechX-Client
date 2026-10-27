@@ -3,7 +3,7 @@
 import { Screen, SectionHeader } from '@/components/atlas';
 import { DealFlow } from '@/components/scout/deal-flow';
 
-/** Deal Flow → Featured (Backend Not Connected). */
+/** Deal Flow → Featured. */
 export default function Page() {
 	return (
 		<Screen>
