@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
 import { ArrowUpRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -164,6 +165,7 @@ export function AllInvestors() {
 
 /** The "All investors" tab — search + filters + sort + pagination over /api/investors. */
 function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>; canWatchlist: boolean }) {
+	const router = useRouter();
 	// View-state mirrored into the URL (Back/Forward restore, shareable links).
 	const url = useUrlReader();
 	// List is the default for every database; a chosen view lives in the URL
@@ -309,14 +311,18 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 							<span className="atlas-table__col hide-sm" style={{ width: 60 }}>Deals</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Investments</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Launched</span>
-							<span className="atlas-table__col" style={{ width: 90 }}>Status</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Status</span>
+							{canWatchlist && <span className="atlas-table__col" style={{ width: 190 }}>Watchlist</span>}
 						</div>
+						{/* List is the default view, so the watchlist picker the cards carry
+						    has to be on the row too. A row can't be a <Link> around a menu,
+						    so the row navigates on click and the name is the real link. */}
 						{rows.map((inv) => (
-							<Link key={inv.id} className="atlas-table__row" href={`${hrefOf('investors')}/${inv.id}`}>
+							<div key={inv.id} className="atlas-table__row" style={{ cursor: 'pointer' }} onClick={() => router.push(`${hrefOf('investors')}/${inv.id}`)}>
 								<div className="atlas-table__name">
 									<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={28} radius={5} />
 									<div className="atlas-table__name-main">
-										<div className="atlas-ellipsis" style={{ fontWeight: 600 }}>{inv.name}</div>
+										<Link href={`${hrefOf('investors')}/${inv.id}`} onClick={(e) => e.stopPropagation()} className="atlas-ellipsis" style={{ display: 'block', fontWeight: 600, color: 'inherit', textDecoration: 'none' }}>{inv.name}</Link>
 										{inv.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{inv.description}</div>}
 									</div>
 								</div>
@@ -325,8 +331,13 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 								<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
-								<span className="atlas-table__col" style={{ width: 90 }}>{inv.actively_investing ? 'Active' : inPipeline.has(inv.id) ? 'Watchlist' : '—'}</span>
-							</Link>
+								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.actively_investing ? 'Active' : '—'}</span>
+								{canWatchlist && (
+									<span className="atlas-table__col" style={{ width: 190 }} onClick={(e) => e.stopPropagation()}>
+										<SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} align="end" portal />
+									</span>
+								)}
+							</div>
 						))}
 					</div>
 					)}
