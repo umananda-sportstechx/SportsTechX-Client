@@ -9,7 +9,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useSectorTierData, useCountryOptions, useSportOptions, useLocationFacetOptions } from '@/hooks/use-catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 
-import { BUSINESS_MODELS, SINCE_YEARS, canonicalCountry } from '@/lib/catalog-options';
+import { BUSINESS_MODELS, MONTHS, SINCE_YEARS, canonicalCountry } from '@/lib/catalog-options';
 import { Empty, FilterBar, Loading, Logo, Flag, Pager, type FilterDef, lockedFiltersNote } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import { companyHref } from '@/lib/routes';
@@ -54,6 +54,10 @@ export interface MaDeal {
 const PAGE_SIZE = 25;
 const TYPE_OPTIONS: [string, string][] = [['acquisition', 'Acquisition'], ['merger', 'Merger'], ['asset_purchase', 'Asset purchase']];
 const TYPE_LABEL = new Map(TYPE_OPTIONS);
+// Deal-value range as two bucket selects (the filter bar has no free-number
+// input). Steps follow the disclosed values: median ~$90M, 22 deals ≥ $1B.
+const VALUE_MIN: [string, string][] = [['10000000', '$10M+'], ['50000000', '$50M+'], ['100000000', '$100M+'], ['500000000', '$500M+'], ['1000000000', '$1B+']];
+const VALUE_MAX: [string, string][] = [['10000000', 'Up to $10M'], ['50000000', 'Up to $50M'], ['100000000', 'Up to $100M'], ['500000000', 'Up to $500M'], ['1000000000', 'Up to $1B']];
 const SORTS: [string, string][] = [['-acquisition_date', 'Newest'], ['-amount_usd', 'Largest value'], ['acquiree_name', 'Company A–Z']];
 const fmtMonth = (d?: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '—');
 const fmtValue = (n: MaDeal['amount_usd']) => (n == null || Number(n) === 0 ? 'Undisclosed' : fmtUsd(Number(n)));
@@ -89,6 +93,9 @@ export function MaDeals() {
 	const [target, setTarget] = useState<Side>(() => readSide(url, ''));
 	const [buyer, setBuyer] = useState<Side>(() => readSide(url, 'acq_'));
 	const [year, setYear] = useState(() => url.oneOf('year', SINCE_YEARS.map(([v]) => v), ''));
+	const [month, setMonth] = useState(() => url.oneOf('month', MONTHS.map(([v]) => v), ''));
+	const [valueMin, setValueMin] = useState(() => url.oneOf('vmin', VALUE_MIN.map(([v]) => v), ''));
+	const [valueMax, setValueMax] = useState(() => url.oneOf('vmax', VALUE_MAX.map(([v]) => v), ''));
 	const [disclosed, setDisclosed] = useState(() => url.bool('disclosed'));
 	const [sort, setSort] = useState(() => url.oneOf('sort', SORTS.map(([v]) => v), '-acquisition_date'));
 	const [page, setPage] = useState(() => url.num('page', 1));
@@ -97,7 +104,7 @@ export function MaDeals() {
 	const [dealId, setDealId] = useUrlModal('deal', { validate: isUuid });
 	const reset = () => setPage(1);
 	useUrlSync({
-		q: dq, type, year, disclosed, ...sideUrl(target, ''), ...sideUrl(buyer, 'acq_'),
+		q: dq, type, year, month, vmin: valueMin, vmax: valueMax, disclosed, ...sideUrl(target, ''), ...sideUrl(buyer, 'acq_'),
 		sort: sort !== '-acquisition_date' ? sort : undefined,
 		page: page > 1 ? page : undefined,
 	});
@@ -115,6 +122,10 @@ export function MaDeals() {
 		if (term) p.q = term;
 		if (type) p.acquisition_type = type;
 		if (year) p.year_min = year;
+		if (month) p.month = month;
+		// A value range only matches disclosed deals — an undisclosed amount is unknown.
+		if (valueMin) p.amount_usd_min = valueMin;
+		if (valueMax) p.amount_usd_max = valueMax;
 		if (disclosed) p.disclosed_only = true;
 		// Per side. The API's location params are bare for the acquired company
 		// (`country`) and `acquirer_*` for the buyer.
@@ -132,7 +143,7 @@ export function MaDeals() {
 			}
 		}
 		return p;
-	}, [page, sort, dq, type, year, disclosed, sectors, target, buyer, adv.hasAccess]);
+	}, [page, sort, dq, type, year, month, valueMin, valueMax, disclosed, sectors, target, buyer, adv.hasAccess]);
 
 	// Only wait on the async sector catalog when a sector is actually selected —
 	// with no sector the key is stable and SWR can fetch immediately.
@@ -149,7 +160,7 @@ export function MaDeals() {
 	const inRows = useMemo(() => rows.find((r) => r.id === dealId) ?? null, [rows, dealId]);
 	const detail = useSWR<MaDeal>(dealId && !inRows ? qk.acquisitions.detail(dealId) : null);
 	const selected = inRows ?? detail.data ?? null;
-	const anyFilter = !!(dq || type || year || disclosed || sideActive(target, adv.hasAccess) || sideActive(buyer, adv.hasAccess));
+	const anyFilter = !!(dq || type || year || month || valueMin || valueMax || disclosed || sideActive(target, adv.hasAccess) || sideActive(buyer, adv.hasAccess));
 
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
@@ -181,13 +192,16 @@ export function MaDeals() {
 					{ label: 'Deal', filters: [
 						sel('type', 'Type', type, TYPE_OPTIONS, setType),
 						sel('year', 'Since', year, SINCE_YEARS, setYear),
+						sel('month', 'Month', month, MONTHS, setMonth),
+						sel('vmin', 'Value at least', valueMin, VALUE_MIN, setValueMin),
+						sel('vmax', 'Value up to', valueMax, VALUE_MAX, setValueMax),
 						{ kind: 'toggle', key: 'disclosed', label: 'Disclosed value only', value: disclosed, onChange: (v) => { setDisclosed(v); reset(); } },
 					] },
 					...(adv.isLocked ? [{ label: 'Advanced', filters: [], locked: lockedFiltersNote(adv.requiredTier) }] : []),
 				]}
 				sort={{ value: sort, options: SORTS, onChange: (v) => { setSort(v); reset(); } }}
 				canClear={anyFilter}
-				onClear={() => { setQ(''); setType(''); setTarget(NO_SIDE); setBuyer(NO_SIDE); setYear(''); setDisclosed(false); setSort('-acquisition_date'); reset(); }}
+				onClear={() => { setQ(''); setType(''); setTarget(NO_SIDE); setBuyer(NO_SIDE); setYear(''); setMonth(''); setValueMin(''); setValueMax(''); setDisclosed(false); setSort('-acquisition_date'); reset(); }}
 				count={`${total.toLocaleString()} deal${total === 1 ? '' : 's'}`}
 				actions={<ExportButton entity="acquisitions" search={dq} params={params} />}
 			/>
