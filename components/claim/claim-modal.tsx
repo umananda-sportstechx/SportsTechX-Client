@@ -33,7 +33,8 @@ import {
 import { useClaimReference } from './use-claim-reference';
 import { decodeClaimForm } from './decode-claim-form';
 import { useClaimSearch } from './use-claim-search';
-import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck } from './build-claim-dto';
+import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck, CLAIM_DECK_EXTS } from './build-claim-dto';
+import { MAX_DECK_MB, deckFileError } from '@/lib/deck-upload';
 
 const initials = (n: string) => (n || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
@@ -754,11 +755,18 @@ export function ClaimModal({
                     <div className="cm-field"><label className="cm-label">Valuation (USD)</label><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.valuation} onChange={(e) => set('valuation', e.target.value)} placeholder="e.g. 5000000" /><div className="cm-hint">Optional: numeric value of your pre-money or post-money valuation.</div></div>
                     <div className="cm-field" style={{ marginBottom: 0 }}>
                       <label className="cm-label">Pitch deck <span className="cm-opt">(PDF / PPT / PPTX)</span></label>
-                      <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0] ?? null; setForm((s) => ({ ...s, deckFile: f, deckName: f?.name ?? null })); }} />
+                      <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx" style={{ display: 'none' }} onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        e.target.value = ''; // re-picking the same file must fire again
+                        // Refuse it now, with the reason — not at Submit with a storage error.
+                        const err = f ? deckFileError(f, CLAIM_DECK_EXTS) : null;
+                        if (err) { toast.error(err); return; }
+                        setForm((s) => ({ ...s, deckFile: f, deckName: f?.name ?? null }));
+                      }} />
                       {form.deckName ? (
                         <div className="cm-drop has-file"><FileText size={18} style={{ color: 'var(--a-ok)' }} /><span className="cm-drop-file">{form.deckName}</span><button className="cm-drop-clear" onClick={() => setForm((s) => ({ ...s, deckFile: null, deckName: null }))} aria-label="Remove file"><X size={14} /></button></div>
                       ) : (
-                        <button className="cm-drop" onClick={() => fileRef.current?.click()}><span className="cm-drop-ico"><UploadCloud size={20} /></span><span className="cm-drop-h">Choose file</span><span className="cm-drop-p">Max 10MB · PDF, PPT, PPTX</span></button>
+                        <button className="cm-drop" onClick={() => fileRef.current?.click()}><span className="cm-drop-ico"><UploadCloud size={20} /></span><span className="cm-drop-h">Choose file</span><span className="cm-drop-p">Max {MAX_DECK_MB} MB · PDF, PPT, PPTX</span></button>
                       )}
                     </div>
                   </div>
