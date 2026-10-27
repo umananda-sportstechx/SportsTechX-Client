@@ -4,27 +4,52 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Newspaper, Files, CalendarDays, UserRound, SlidersHorizontal } from 'lucide-react';
-import { AgentComposer, FeedCard, H1, PlaceholderTag, SectionHead } from '@/components/atlas';
+import { AgentComposer, FeedCard, H1, SectionHead } from '@/components/atlas';
 import useSWR from 'swr';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import type { SectorRef } from '@/hooks/use-sector-tiers';
 import { qk } from '@/lib/query-keys';
 import type { NewsletterArticle, Page, ReportListItem } from '@/types/api';
-import { useInterests } from './interests';
+import { useInterests, type Interests } from './interests';
 import { hrefOf } from '@/lib/routes';
 
 /**
  * Explore Home (Claude Design "Home"): greeting, interests count, a search bar
- * (searches the live company database) and "What needs your attention". The
- * roundup, newsletter and report cards are live; "For you" (interests) is
- * Backend Not Connected.
+ * (searches the live company database) and "What needs your attention". Every
+ * card is live; "For you" reads the interests saved via `/api/explore/interests`.
  */
 const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 const COMPANIES = hrefOf('companies');
 
+/**
+ * "For you" links to a filter the Companies page really applies — a top sector
+ * (`?sector=<slug>`) or a sport (`?sport=<id>`) — and its title names that
+ * filter. It used to send the sector *name* as `?q=`, a company-name search.
+ * A sub-sector maps to its pillar (sub filters are an advanced-filter feature);
+ * regions have no single company filter, so they get the whole list. Null while
+ * the taxonomy loads, so the title never shows a raw id.
+ */
+function forYouLink(v: Interests, sectors: SectorRef[], picked: string[]): { title: string; href: string } | null {
+	const byId = new Map(sectors.map((s) => [s.id, s]));
+	const sectorId = v.sectors[0] ?? v.subs[0];
+	if (sectorId) {
+		let s = byId.get(sectorId);
+		for (let d = 0; s?.parent_id && byId.has(s.parent_id) && d < 6; d++) s = byId.get(s.parent_id);
+		return s ? { title: `Companies in ${s.name}`, href: `${COMPANIES}?sector=${encodeURIComponent(s.slug)}` } : null;
+	}
+	const sport = v.sports[0];
+	// With no sector picked, picked[0] is the first sport's name (or its id until sports load).
+	if (sport) return picked[0] && picked[0] !== sport ? { title: `Companies in ${picked[0]}`, href: `${COMPANIES}?sport=${encodeURIComponent(sport)}` } : null;
+	return { title: 'Browse the company database', href: COMPANIES };
+}
+
 export function ExploreHome() {
 	const router = useRouter();
 	const { data: profile } = useUserProfile();
-	const { picked } = useInterests();
+	const { value: interests, picked } = useInterests();
+	// Same key (and hour-long dedupe) as the interest options — no extra request.
+	const { data: sectorData } = useSWR<SectorRef[] | { data: SectorRef[] }>(qk.reference.sectors(), { dedupingInterval: 60 * 60_000 });
+	const forYou = forYouLink(interests, Array.isArray(sectorData) ? sectorData : (sectorData?.data ?? []), picked);
 	const [q, setQ] = useState('');
 	// Shares its SWR key with the Newsletter page, so visiting both costs one
 	// request. Editions arrive newest-first from the feed, but sort rather than
@@ -93,12 +118,12 @@ export function ExploreHome() {
 					<FeedCard tag="Monthly roundup" icon={CalendarDays} title={`${lastMonth} market roundup`} body="The month’s most relevant funding rounds, acquisitions and industry developments in one read." href={hrefOf('roundup')} />
 					{picked.length === 0 ? (
 						<FeedCard tag="For you" icon={UserRound} title="Your market view is broad" body="Select sectors, sports or countries to make these recommendations sharper." href={hrefOf('interests')} actionLabel="Choose" />
-					) : (
+					) : forYou && (
 						<FeedCard
 							tag="For you" icon={UserRound}
-							title={<>Companies in {picked[0]}<PlaceholderTag /></>}
+							title={forYou.title}
 							body={`Because you follow ${picked.slice(0, 3).join(', ')}${picked.length > 3 ? ` and ${picked.length - 3} more` : ''}.`}
-							href={`${COMPANIES}?q=${encodeURIComponent(picked[0] ?? '')}`}
+							href={forYou.href}
 							actionLabel="Explore"
 						/>
 					)}
