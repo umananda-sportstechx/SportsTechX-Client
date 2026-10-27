@@ -97,7 +97,10 @@
 .atlas-nav-ico { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none; }
 .atlas-nav-item:hover { background: color-mix(in srgb, var(--a-ink) 3%, transparent); color: var(--a-ink-2); }
 .atlas-nav-item.active { background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: color-mix(in srgb, var(--a-ink) 85%, transparent); }
-.atlas-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The item's Figma line-height of 1 gives a 14px line box, and the ellipsis
+   clip (overflow: hidden) cut off descenders — the "g" in Programs / Signals.
+   A taller line box inside the centred 32px row keeps the text where it was. */
+.atlas-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
 
 /* Collapsible nav sections (Figma "Menu Section Title / Toggle") */
 .atlas-nav-section { display: flex; flex-direction: column; }
