@@ -21,13 +21,18 @@ import { cx } from '../ui/cx';
  * View + Download while an edition offers View alone.
  */
 
+/** Flags a cover as loaded so its frame can drop the 16:9 placeholder and take
+ *  the image's own shape (see .atlas-post__cover--tall). `complete` catches an
+ *  image that finished before hydration, whose load event React never sees. */
+const markLoaded = (img: HTMLImageElement | null) => { if (img?.complete && img.naturalWidth) img.dataset.loaded = ''; };
+
 /** Cover image, or the blank white frame the design shows when there is none. */
 function Cover({ src, alt, className, eager }: { src?: string | null; alt: string; className: string; eager?: boolean }) {
 	return (
 		<div className={className}>
 			{src ? (
 				// eslint-disable-next-line @next/next/no-img-element
-				<img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} />
+				<img key={src} src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} ref={markLoaded} onLoad={(e) => markLoaded(e.currentTarget)} />
 			) : null}
 		</div>
 	);
