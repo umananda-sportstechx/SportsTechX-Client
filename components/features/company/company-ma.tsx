@@ -9,7 +9,7 @@ import { companyHref } from '@/lib/routes';
 import { Logo } from '@/components/atlas';
 import { fmtUsd } from '@/components/features/market/format';
 import { MaDealPanel } from '@/components/features/market/ma-deal-panel';
-import type { MaDeal } from '@/components/features/market/ma-deals';
+import { partyLogo, type MaDeal } from '@/components/features/market/ma-deals';
 
 /**
  * M&A activity for one company — the hub's M&A Tracker, scoped to deals this
@@ -63,8 +63,8 @@ export function CompanyMa({ companyId }: { companyId: string }) {
 					const bought = role === 'acquiree';
 					const cpName = bought ? d.acquirer_name : d.acquiree_name;
 					const cpSlug = bought ? d.acquirer_slug : d.acquiree_slug;
-					const cpWebsite = bought ? d.acquirer_website_snapshot : (d.acquiree_website ?? d.acquiree_website_snapshot);
-					const cpLogo = bought ? null : d.acquiree_logo;
+					// Same logo rule as the M&A list and deal panel (linked site, else the deal's, plus custom logo).
+					const { website: cpWebsite, custom_logo_url: cpLogo } = partyLogo(d, bought ? 'acquirer' : 'acquiree');
 					return (
 						<div key={d.id} className="atlas-co__deal" role="row" tabIndex={0}
 							aria-label={`${bought ? 'Acquired by' : 'Acquired'} ${cpName ?? 'undisclosed party'} — open details`}
