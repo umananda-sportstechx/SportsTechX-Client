@@ -89,7 +89,7 @@ assert.deepEqual(back.include, ['B2B', 'Football'], 'enum back to label, sports 
 assert.deepEqual(back.exclude, ['Web3 & crypto', 'Betting & prediction']);
 assert.equal(back.invStyle, 'Either');
 assert.equal(back.investorType, 'Venture capital');
-assert.equal(back.chequeMin, '€250k');
+assert.equal(back.chequeMin, '250000', 'plain digits — the cheque input is type="number"');
 console.log('  ok    API → form restores every label');
 
 // Both URL fields must leave as absolute URLs. The server validates them with
