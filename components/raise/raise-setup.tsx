@@ -191,7 +191,8 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	const back = async () => {
 		setSaving(true);
 		try { await saveStep(step); void mutate(); }
-		catch { /* a failed save must not trap them on the step */ }
+		// A failed save must not trap them on the step — but it must not be silent either.
+		catch (e) { toast.error((e as Error).message ?? "Couldn't save this step"); }
 		finally { setSaving(false); setStep((x) => Math.max(x - 1, 0)); resetScroll(); }
 	};
 

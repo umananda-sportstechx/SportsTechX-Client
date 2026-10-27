@@ -42,6 +42,8 @@ export interface ScoutProfile {
 	linkedin_url: string | null;
 	fund_name: string | null;
 	investor_type: string | null;
+	/** The picker label the Scout chose; several labels share one enum value. */
+	investor_type_label?: string | null;
 	fund_website: string | null;
 	hq_country: string | null;
 	hq_city: string | null;
@@ -117,7 +119,12 @@ export function toForm(
 		role: p?.role_title ?? fallback.role,
 		linkedin: p?.linkedin_url ?? '',
 		fundName: p?.fund_name ?? '',
-		investorType: p?.investor_type ? (flip(INVESTOR_TYPE)[p.investor_type] ?? '') : '',
+		// Prefer the saved label while it still agrees with the enum (a linked
+		// investor row can override the type); flip() alone can't tell
+		// Corporate VC from Accelerator — both are `other`.
+		investorType: p?.investor_type_label && INVESTOR_TYPE[p.investor_type_label] === p.investor_type
+			? p.investor_type_label
+			: p?.investor_type ? (flip(INVESTOR_TYPE)[p.investor_type] ?? '') : '',
 		website: p?.fund_website ?? '',
 		country: p?.hq_country ?? '',
 		city: p?.hq_city ?? '',
@@ -169,6 +176,7 @@ export function toProfileDto(t: Thesis) {
 		linkedin_url: t.linkedin?.trim() ? absolute(t.linkedin.trim()) : null,
 		fund_name: t.fundName || null,
 		investor_type: INVESTOR_TYPE[t.investorType] ?? null,
+		investor_type_label: INVESTOR_TYPE[t.investorType] ? t.investorType : null,
 		// The schema demands a URL; the form collects "northline.vc".
 		fund_website: t.website?.trim() ? absolute(t.website.trim()) : null,
 		hq_country: t.country || null,

@@ -86,9 +86,9 @@ export function useThesisState(): ThesisState {
 		const legacy = readLegacy<string[]>('scout-thesis-extras');
 		if (!legacy) return;
 		if (!legacy.length || loaded.include_tags?.length) { clearLegacy('scout-thesis-extras'); return; }
-		void apiRequest('PUT', '/api/scout/thesis', { include_tags: legacy }).then((r) => {
-			if (r.ok) { clearLegacy('scout-thesis-extras'); void refetchThesis(); }
-		});
+		void apiRequest('PUT', '/api/scout/thesis', { include_tags: legacy })
+			.then(() => { clearLegacy('scout-thesis-extras'); void refetchThesis(); })
+			.catch(() => { /* kept locally; retried next load */ });
 	}, [loaded, refetchThesis]);
 
 	const value = useMemo<Thesis>(() => {

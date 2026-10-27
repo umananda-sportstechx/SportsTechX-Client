@@ -26,8 +26,8 @@ export function WatchlistBoard({ id }: { id: string }) {
 	const [over, setOver] = useState<BoardStage | null>(null);
 	const stageOf = (c: { id: string; stage?: string | null }): BoardStage =>
 		(c.stage ? API_TO_STAGE[c.stage] : null) ?? 'Identified';
-	// apiRequest resolves on any status, so a refused move (e.g. 403 SCOUT_NOT_SET_UP)
-	// used to just snap the card back with no word why.
+	// A refused move (e.g. 403 SCOUT_NOT_SET_UP) throws; it used to be an
+	// unhandled rejection that snapped the card back with no word why.
 	const move = async (cid: string, s: BoardStage) => {
 		try {
 			const res = await apiRequest('PATCH', `/api/scout/watchlists/${id}/companies/${cid}/stage`, { stage: STAGE_TO_API[s] });
