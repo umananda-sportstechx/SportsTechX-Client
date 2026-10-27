@@ -39,6 +39,9 @@ export interface MaDeal {
 	acquirer_name: string | null;
 	acquirer_slug: string | null;
 	acquirer_website_snapshot: string | null;
+	/** Linked acquirer company's site, falling back to the snapshot (server COALESCE). */
+	acquirer_website?: string | null;
+	acquirer_logo?: string | null;
 	acquirer_business_model: string | null;
 	primary_sector: string | null;
 	hq_country: string | null;
@@ -49,6 +52,18 @@ export interface MaDeal {
 	amount_usd: number | string | null;
 	currency_code: string | null;
 	source_url: string | null;
+}
+
+/**
+ * The logo inputs for one side of a deal — the list and the detail panel both
+ * use this, so they can't disagree again. The linked company's site wins, else
+ * the website captured on the deal (88 acquirees and most acquirers have only
+ * that), plus any uploaded custom logo.
+ */
+export function partyLogo(d: MaDeal, side: 'acquiree' | 'acquirer'): { website: string | null; custom_logo_url: string | null } {
+	return side === 'acquiree'
+		? { website: d.acquiree_website ?? d.acquiree_website_snapshot, custom_logo_url: d.acquiree_logo }
+		: { website: d.acquirer_website ?? d.acquirer_website_snapshot, custom_logo_url: d.acquirer_logo ?? null };
 }
 
 const PAGE_SIZE = 25;
@@ -228,7 +243,7 @@ export function MaDeals() {
 								onClick={(e) => { if ((e.target as HTMLElement).closest('a')) return; setDealId(d.id); }}
 								onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDealId(d.id); } }}>
 								<div className="atlas-table__name">
-									<Logo co={{ name, website: d.acquiree_website, custom_logo_url: d.acquiree_logo }} size={28} radius={5} />
+									<Logo co={{ name, ...partyLogo(d, 'acquiree') }} size={28} radius={5} />
 									<div className="atlas-table__name-main">
 										{d.acquiree_slug
 											? <Link href={companyHref(d.acquiree_slug)} className="atlas-ellipsis" style={{ fontWeight: 600 }}>{name}</Link>
@@ -242,7 +257,7 @@ export function MaDeals() {
 								</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 200, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
 									{d.acquirer_name ? <>
-										<Logo co={{ name: d.acquirer_name, website: null, custom_logo_url: null }} size={24} radius={5} />
+										<Logo co={{ name: d.acquirer_name, ...partyLogo(d, 'acquirer') }} size={24} radius={5} />
 										{d.acquirer_slug
 											? <Link href={companyHref(d.acquirer_slug)} className="atlas-ellipsis" style={{ fontWeight: 500 }}>{d.acquirer_name}</Link>
 											: <span className="atlas-ellipsis">{d.acquirer_name}</span>}

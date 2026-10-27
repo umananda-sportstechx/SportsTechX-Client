@@ -9,7 +9,7 @@ import { Logo, Flag } from '@/components/atlas';
 import { canonicalCountry } from '@/lib/catalog-options';
 import { companyHref } from '@/lib/routes';
 import { fmtUsd } from '@/components/features/market/format';
-import type { MaDeal } from '@/components/features/market/ma-deals';
+import { partyLogo, type MaDeal } from '@/components/features/market/ma-deals';
 
 /**
  * M&A detail — a right-side slide-over for one acquisition, opened from a table
@@ -36,8 +36,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 	);
 }
 
-function Party({ role, name, website, slug, sector, city, country, businessModel, sports }: {
-	role: string; name: string | null; website: string | null; slug: string | null;
+function Party({ role, name, website, logo, slug, sector, city, country, businessModel, sports }: {
+	role: string; name: string | null; website: string | null; logo: string | null; slug: string | null;
 	sector?: string | null; city?: string | null; country?: string | null;
 	businessModel: string | null; sports: string[];
 }) {
@@ -46,7 +46,7 @@ function Party({ role, name, website, slug, sector, city, country, businessModel
 		<div className="atlas-card" style={{ padding: 16 }}>
 			<div style={{ fontFamily: 'var(--a-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--a-muted)', marginBottom: 10 }}>{role}</div>
 			<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-				<Logo co={{ name: name ?? '—', website, custom_logo_url: null }} size={40} radius={7} />
+				<Logo co={{ name: name ?? '—', website, custom_logo_url: logo }} size={40} radius={7} />
 				<div style={{ minWidth: 0 }}>
 					{slug
 						? <Link href={companyHref(slug)} style={{ fontWeight: 600, fontSize: 15 }} className="atlas-ellipsis">{name ?? '—'}</Link>
@@ -127,12 +127,12 @@ export function MaDealPanel({ deal, onClose }: { deal: MaDeal | null; onClose: (
 								</div>
 
 								<Party role="Acquiree" name={deal.acquiree_name} slug={deal.acquiree_slug}
-									website={deal.acquiree_website ?? deal.acquiree_website_snapshot}
+									website={partyLogo(deal, 'acquiree').website} logo={partyLogo(deal, 'acquiree').custom_logo_url}
 									sector={deal.primary_sector} city={deal.hq_city} country={deal.hq_country}
 									businessModel={deal.acquiree_business_model} sports={party('acquiree')} />
 
 								<Party role="Acquirer" name={deal.acquirer_name} slug={deal.acquirer_slug}
-									website={deal.acquirer_website_snapshot}
+									website={partyLogo(deal, 'acquirer').website} logo={partyLogo(deal, 'acquirer').custom_logo_url}
 									businessModel={deal.acquirer_business_model} sports={party('acquirer')} />
 							</div>
 						</>;
