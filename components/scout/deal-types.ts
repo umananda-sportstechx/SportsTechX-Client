@@ -70,6 +70,8 @@ export interface DealRow {
 	disclosed: boolean;
 	/** Per-viewer: my own interest request's status, or null if I never asked. */
 	interest_status: string | null;
+	/** This viewer has the deal on watch (server-side since Oct 2026). */
+	is_watched?: boolean;
 }
 
 export const LEAD_LABEL: Record<string, string> = {
