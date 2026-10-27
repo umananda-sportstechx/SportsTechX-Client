@@ -851,3 +851,30 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 .atlas-empty__title { font-family: var(--a-font); font-size: 15px; font-weight: 700; color: var(--a-ink); }
 .atlas-empty__text { font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-muted); max-width: 420px; }
 .atlas-empty__action { margin-top: 8px; }
+
+/* ── Phone: actions without chrome ──────────────────────────────────────────
+   Space is short on a phone, so an action is its glyph: no pill around the
+   icon. In repeated items (table rows, cards, watchlist rows) and on every save
+   button the label goes too — the bookmark alone says "save", and a row of
+   "ADD TO WATCHLIST · VIEW COMPANY" pills crowded out the content. The label
+   stays in the accessibility tree as the button's name. Standalone actions
+   (View report, Website, Return to results) keep their words. Placed last so it
+   beats the cards' hover fills at equal specificity. */
+@media (max-width: 640px) {
+	.atlas .atlas-action .atlas-action__icon,
+	.atlas .atlas-action:hover .atlas-action__icon {
+		width: auto; height: auto; background: none; border: 0; color: var(--a-ink);
+	}
+	.atlas .atlas-action .atlas-action__icon svg { width: 17px; height: 17px; }
+	.atlas .atlas-action--save,
+	.atlas :is(.atlas-table__row, .atlas-entity-card__actions, .mkt-co-actions, .atlas-wl-actions, .atlas-sig__actions, .atlas-rec__actions) .atlas-action {
+		min-width: 40px; min-height: 40px; justify-content: center; gap: 0;
+	}
+	.atlas .atlas-action--save .atlas-action__label,
+	.atlas :is(.atlas-table__row, .atlas-entity-card__actions, .mkt-co-actions, .atlas-wl-actions, .atlas-sig__actions, .atlas-rec__actions) .atlas-action__label {
+		position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+	}
+	/* An action column shrinks to its icon; its header text goes with the label. */
+	.atlas .atlas-table__col--action { width: 40px !important; text-align: center; }
+	.atlas .atlas-table__head .atlas-table__col--action { font-size: 0; }
+}

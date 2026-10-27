@@ -314,7 +314,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 							<span className="atlas-table__col hide-sm hide-md" style={{ width: 80 }}>Investments</span>
 							<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>Launched</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Status</span>
-							{canWatchlist && <span className="atlas-table__col" style={{ width: 190 }}>Watchlist</span>}
+							{canWatchlist && <span className="atlas-table__col atlas-table__col--action" style={{ width: 190 }}>Watchlist</span>}
 						</div>
 						{/* List is the default view, so the watchlist picker the cards carry
 						    has to be on the row too. A row can't be a <Link> around a menu,
@@ -335,7 +335,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 								<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.actively_investing ? 'Active' : '—'}</span>
 								{canWatchlist && (
-									<span className="atlas-table__col" style={{ width: 190 }} onClick={(e) => e.stopPropagation()}>
+									<span className="atlas-table__col atlas-table__col--action" style={{ width: 190 }} onClick={(e) => e.stopPropagation()}>
 										<SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} align="end" portal />
 									</span>
 								)}
