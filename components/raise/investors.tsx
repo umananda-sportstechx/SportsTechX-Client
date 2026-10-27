@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
-import { Check, Plus, ArrowUpRight, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExportButton } from '@/components/features/exports/export-button';
 import { qk } from '@/lib/query-keys';
 import type { InvestorListItem as Investor } from '@/types/api';
@@ -16,6 +16,7 @@ import { SINCE_YEARS, DEALS_BUCKETS, canonicalCountry } from '@/lib/catalog-opti
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useUrlSync, useUrlReader } from '@/hooks/use-url-state';
+import { SaveInvestorToWatchlist } from './save-investor-to-watchlist';
 import { hrefOf } from '@/lib/routes';
 
 /**
@@ -24,7 +25,8 @@ import { hrefOf } from '@/lib/routes';
  *   • RecommendedInvestors — the investor-matching engine (/api/recommendations/investors),
  *     leading with the *reasons* Atlas matched them, not a mystery % score.
  *   • AllInvestors — the investor database with search + filters + pagination.
- * "Add to watchlist" posts to the raise pipeline (/api/raise/pipeline).
+ * "Add to watchlist" files the investor in one of the founder's investor
+ * watchlists (Main or a named list) — see SaveInvestorToWatchlist.
  */
 interface Match { id: string; name: string; slug: string | null; website: string | null; logo_url?: string | null; hq_country?: string | null; category: string | null; description: string | null; score: number; match_reasons: string[] }
 interface MatchResult { company: { id: string; name: string } | null; reason?: string; results: Match[] }
@@ -51,26 +53,18 @@ const CATEGORY_OPTIONS: [string, string][] = [
 ];
 const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
-/** Which investors are already on the watchlist, plus an add action that refreshes it.
+/** Which investors are already in one of the founder's watchlists.
  *  The watchlist (raise pipeline) is a Raise-only feature — the endpoint is
  *  `@RequireTier('raise')`, so a Scout browsing the shared Investors directory
  *  passes `enabled: false` and gets the directory without the add action. */
 function useWatchlistAdd(enabled = true) {
 	const pipe = useSWR<{ data: Array<{ investor_id: string | null }> }>(enabled ? qk.raise.pipeline() : null);
 	const inPipeline = useMemo(() => new Set((pipe.data?.data ?? []).map((r) => r.investor_id).filter(Boolean) as string[]), [pipe.data]);
-	const add = async (investorId: string) => {
-		if (!enabled) return;
-		try {
-			await apiRequest('POST', '/api/raise/pipeline', { investor_id: investorId, stage: 'target' });
-			toast.success('Added to watchlist');
-			void pipe.mutate();
-		} catch (e) { toast.error((e as Error).message); }
-	};
-	return { inPipeline, add };
+	return { inPipeline };
 }
 
 export function RecommendedInvestors() {
-	const { inPipeline, add } = useWatchlistAdd();
+	const { inPipeline } = useWatchlistAdd();
 	const [view, setView] = useState<ViewMode>('cards');
 	// Hidden at once, saved server-side (`raise_investor_dismissals`) so a
 	// "Not relevant" investor stays out of matches after a reload, on any device.
@@ -125,7 +119,7 @@ export function RecommendedInvestors() {
 					{view === 'cards' ? (
 					<Grid>
 						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
-							<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
+							<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} reasons={m.match_reasons}
 								onDismiss={() => void dismiss(m.id, m.name)} />
 						))}
 					</Grid>
@@ -164,12 +158,12 @@ export function AllInvestors() {
 	// Scout gets the same directory with the add action and status column dropped.
 	const { data: profile } = useUserProfile();
 	const canWatchlist = getUserType(profile) === 'raise';
-	const { inPipeline, add } = useWatchlistAdd(canWatchlist);
-	return <AllInvestorsTab inPipeline={inPipeline} onAdd={add} canWatchlist={canWatchlist} />;
+	const { inPipeline } = useWatchlistAdd(canWatchlist);
+	return <AllInvestorsTab inPipeline={inPipeline} canWatchlist={canWatchlist} />;
 }
 
 /** The "All investors" tab — search + filters + sort + pagination over /api/investors. */
-function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<string>; onAdd: (id: string) => void; canWatchlist: boolean }) {
+function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>; canWatchlist: boolean }) {
 	// View-state mirrored into the URL (Back/Forward restore, shareable links).
 	const url = useUrlReader();
 	const [view, setView] = useState<ViewMode>('cards');
@@ -302,7 +296,7 @@ function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<
 			{(all.isLoading || !filtersReady) && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No investors match your filters.</Empty>
 				: view === 'cards'
-					? <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} onAdd={() => onAdd(inv.id)} canAdd={canWatchlist} />)}</Grid>
+					? <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} canAdd={canWatchlist} />)}</Grid>
 					: (
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
@@ -345,9 +339,7 @@ function AllInvestorsTab({ inPipeline, onAdd, canWatchlist }: { inPipeline: Set<
 	);
 }
 
-function InvestorCard({ inv, added, onAdd, reasons, onDismiss, canAdd = true }: { inv: InvestorCardData; added: boolean; onAdd: () => void; reasons?: string[]; onDismiss?: () => void; canAdd?: boolean }) {
-	const [busy, setBusy] = useState(false);
-	const doAdd = async () => { setBusy(true); await onAdd(); setBusy(false); };
+function InvestorCard({ inv, added, reasons, onDismiss, canAdd = true }: { inv: InvestorCardData; added: boolean; reasons?: string[]; onDismiss?: () => void; canAdd?: boolean }) {
 	return (
 		<div className="atlas-card atlas-entity-card">
 			<div className="atlas-entity-card__head">
@@ -367,9 +359,7 @@ function InvestorCard({ inv, added, onAdd, reasons, onDismiss, canAdd = true }: 
 				</div>
 			)}
 			<div className="atlas-entity-card__actions">
-				{canAdd && (added
-					? <Action icon={<Check />} disabled>In watchlist</Action>
-					: <Action icon={busy ? <Loader2 className="animate-spin" /> : <Plus />} disabled={busy} onClick={() => void doAdd()}>Add to watchlist</Action>)}
+				{canAdd && <SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} />}
 				<Action icon={<ArrowUpRight />} href={`${hrefOf('investors')}/${inv.id}`}>View profile</Action>
 				{!added && onDismiss && <Action icon={<X />} onClick={onDismiss}>Not relevant</Action>}
 			</div>

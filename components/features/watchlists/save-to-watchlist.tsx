@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Bookmark, BookmarkCheck, Check, Loader2, Plus, Search } from 'lucide-react';
 import { cx, useDismiss } from '@/components/atlas';
-import { useCompanyWatchlists, useWatchlistsContaining, addToWatchlist, removeFromWatchlist, createWatchlist } from './use-company-watchlists';
+import { useCompanyWatchlists, useWatchlistsContaining, addToWatchlist, removeFromWatchlist, createWatchlist, isInvestorList } from './use-company-watchlists';
 import './watchlists.css';
 
 /**
@@ -22,7 +22,9 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 	const close = useCallback(() => { setOpen(false); setQ(''); setCreating(false); setNewName(''); }, []);
 	useDismiss(ref, open, close);
 
-	const { lists, isLoading } = useCompanyWatchlists();
+	// Company lists only — a Raise investor list can't hold companies.
+	const { lists: all, isLoading } = useCompanyWatchlists();
+	const lists = all.filter((l) => !isInvestorList(l));
 	const { ids } = useWatchlistsContaining(companyId);
 	const inCount = ids.length;
 	const term = q.trim().toLowerCase();

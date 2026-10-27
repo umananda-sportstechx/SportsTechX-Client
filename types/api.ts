@@ -391,6 +391,8 @@ export interface PipelineUpdate {
 	next_step_due?: string | null;
 	notes?: string | null;
 	is_archived?: boolean;
+	/** Move to another investor watchlist; null = Main watchlist. */
+	watchlist_id?: string | null;
 }
 
 /**
