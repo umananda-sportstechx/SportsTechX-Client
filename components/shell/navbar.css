@@ -86,22 +86,38 @@
 /* ── Responsive ────────────────────────────────────────────────────────────*/
 @media (max-width: 1100px) { .atlas .atlas-navbar { padding: 0 20px; } }
 @media (max-width: 720px) {
-	/* Below the mobile top bar, which already holds the logo and hamburger. */
-	.atlas .atlas-navbar { position: static; padding: 0 16px; min-height: 46px; gap: 10px; }
-	/* The trail is the first thing to go: at this width it would eat the row,
-	   and the mobile top bar already names where you are. */
-	.atlas .atlas-crumbs { display: none; }
-	.atlas .atlas-navsearch__label { display: none; }
-	/* Collapse the search to an icon button: the 190px min-width + the no-shrink
-	   right cluster used to push the row past a ~360px phone. */
-	.atlas .atlas-navsearch__btn { padding: 0 9px; min-width: 0; }
-	.atlas .atlas-navsearch__menu { left: auto; right: 0; }
-	/* Let the right cluster wrap/shrink as a last resort so the bar never overflows. */
-	.atlas .atlas-navbar__right { flex-wrap: wrap; row-gap: 6px; min-width: 0; gap: 8px; }
-	/* Collapse the Get-verified pill to just its tick on mobile — the full action
-	   still lives in the account menu. This is the main de-clutter for the header. */
-	.atlas .atlas-navbar__right .atlas-verify-btn__label { display: none; }
-	.atlas .atlas-navbar__right .atlas-verify-btn { padding: 0 9px; }
+	/* Phones: no second header row. The bar's three working icons — search,
+	   theme, notifications — sit in the top bar beside the hamburger. It is the
+	   same navbar (one search button, one ⌘K listener), lifted into that row:
+	   fixed over the sticky top bar, so it stays put while the page scrolls.
+	   right: 16px gutter + 36px hamburger + 8px gap. */
+	.atlas .atlas-navbar {
+		position: fixed; top: 0; right: 60px; z-index: 41;
+		height: 58px; min-height: 0; padding: 0; gap: 0;
+		border: 0; background: none; justify-content: flex-end;
+	}
+	/* Breadcrumbs (the top bar names the product), Get verified and the avatar
+	   stay off the phone bar: the drawer's foot is the account (profile + log
+	   out), and Get verified is in ⌘K search, the Account page and on profiles. */
+	.atlas .atlas-navbar__left,
+	.atlas .atlas-navbar__right .atlas-verify-btn,
+	.atlas .atlas-navbar__right .atlas-navbar__anchor:has(> .atlas-avatar) { display: none; }
+	.atlas .atlas-navbar__right { gap: 2px; min-width: 0; }
+	/* Bare icons, no circles — the space is tight and the glyph is the control.
+	   The 36px box stays as the touch target. */
+	.atlas .atlas-navsearch__btn,
+	.atlas .atlas-navbar__iconbtn,
+	.atlas .atlas-bell {
+		width: 36px; height: 36px; min-width: 0; padding: 0; justify-content: center;
+		border: 0; border-radius: var(--a-radius-xs); background: none; color: var(--a-ink);
+	}
+	.atlas .atlas-navsearch__btn svg, .atlas .atlas-navbar__iconbtn svg, .atlas .atlas-bell svg { width: 18px; height: 18px; }
+	/* The hamburger beside them, matched: a bare glyph. */
+	.atlas .atlas-hamburger { border: 0; background: none; }
+	.atlas .atlas-navsearch__label, .atlas .atlas-navsearch__kbd { display: none; }
+	/* The bell sits ~100px from the right edge, so a right-aligned 330px panel
+	   would start off-screen. Pin it across the viewport under the bar instead. */
+	.atlas .atlas-notif { position: fixed; top: 60px; left: 8px; right: 8px; min-width: 0; }
 }
 
 /* ── Notifications ─────────────────────────────────────────────────────────*/

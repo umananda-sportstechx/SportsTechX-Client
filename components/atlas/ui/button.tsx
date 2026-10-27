@@ -31,7 +31,7 @@ export function Button(props: ButtonProps | LinkBtnProps) {
 export function Action({ icon, children, href, external, onClick, disabled }: {
 	icon: ReactNode; children: ReactNode; href?: string; external?: boolean; onClick?: () => void; disabled?: boolean;
 }) {
-	const inner = <><span className="atlas-action__icon">{icon}</span>{children}</>;
+	const inner = <><span className="atlas-action__icon">{icon}</span><span className="atlas-action__label">{children}</span></>;
 	if (href && external) return <a className="atlas-action" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
 	if (href) return <Link className="atlas-action" href={href}>{inner}</Link>;
 	return <button type="button" className="atlas-action" onClick={onClick} disabled={disabled}>{inner}</button>;

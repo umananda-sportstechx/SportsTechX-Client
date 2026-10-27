@@ -172,7 +172,7 @@ export function Recommended() {
 									<button type="button" className="atlas-rec__dismiss" onClick={() => void dismiss(c.id, c.name)}>Not relevant</button>
 									<SaveToWatchlist companyId={c.id} companyName={c.name} />
 									<Link className="atlas-action" href={companyHref(c.slug ?? c.id)}>
-										<span className="atlas-action__icon"><ArrowUpRight /></span>View company
+										<span className="atlas-action__icon"><ArrowUpRight /></span><span className="atlas-action__label">View company</span>
 									</Link>
 								</div>
 							</article>

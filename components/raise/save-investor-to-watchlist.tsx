@@ -110,9 +110,9 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 
 	return (
 		<div className="atlas-fbar__anchor" ref={ref}>
-			<button type="button" className="atlas-action" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
+			<button type="button" className="atlas-action atlas-action--save" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
 				<span className="atlas-action__icon">{row ? <BookmarkCheck /> : <Bookmark />}</span>
-				{row ? `In ${currentName}` : 'Add to watchlist'}
+				<span className="atlas-action__label">{row ? `In ${currentName}` : 'Add to watchlist'}</span>
 			</button>
 			{open && (() => {
 				const menu = (
