@@ -52,6 +52,8 @@ const CATEGORY_OPTIONS: [string, string][] = [
 	['private_equity', 'Private Equity'], ['family_investment_office', 'Family Office'],
 	['sovereign_wealth_fund', 'Sovereign Wealth Fund'], ['angel', 'Angel'], ['other', 'Other'],
 ];
+/** The API sends the raw enum ('venture_capital'); show the label. Unknown values pass through. */
+const categoryLabel = (c: string | null | undefined) => (c ? CATEGORY_OPTIONS.find(([v]) => v === c)?.[1] ?? c : null);
 const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
 
 /** Which investors are already in one of the founder's watchlists.
@@ -142,7 +144,7 @@ export function RecommendedInvestors() {
 										{m.match_reasons?.[0] && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{m.match_reasons[0]}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{m.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{categoryLabel(m.category) ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{m.hq_country ? canonicalCountry(m.hq_country) : '—'}</span>
 								<span className="atlas-table__col" style={{ width: 60 }}>{m.score}%</span>
 								<span className="atlas-table__col" style={{ width: 90 }}>{inPipeline.has(m.id) ? 'In watchlist' : '—'}</span>
@@ -326,7 +328,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 										{inv.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{inv.description}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.category ?? '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{categoryLabel(inv.category) ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
@@ -359,7 +361,7 @@ function InvestorCard({ inv, added, reasons, onDismiss, canAdd = true }: { inv: 
 			<div className="atlas-entity-card__head">
 				<Logo co={{ name: inv.name, website: inv.website, custom_logo_url: inv.logo_url }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
-					{inv.category && <div className="atlas-entity-card__eyebrow">{inv.category}</div>}
+					{inv.category && <div className="atlas-entity-card__eyebrow">{categoryLabel(inv.category)}</div>}
 					<Link href={`${hrefOf('investors')}/${inv.id}`} className="atlas-entity-card__name" style={{ textDecoration: 'none', color: 'inherit' }}>{inv.name}</Link>
 					{inv.hq_country && (
 						<div className="atlas-entity-card__meta"><Flag cc={inv.hq_country} size={11} /><span>{canonicalCountry(inv.hq_country)}</span></div>
