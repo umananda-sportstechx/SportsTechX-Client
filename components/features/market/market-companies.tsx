@@ -195,8 +195,8 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 										<span className="atlas-table__col hide-sm" style={{ width: 160 }}>Sector</span>
 										<span className="atlas-table__col hide-sm" style={{ width: 140 }}>Location</span>
 										<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Founded</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 100 }}>Sport</span>
-										<span className="atlas-table__col hide-sm" style={{ width: 66 }}>Model</span>
+										<span className="atlas-table__col hide-sm hide-md" style={{ width: 100 }}>Sport</span>
+										<span className="atlas-table__col hide-sm hide-md" style={{ width: 66 }}>Model</span>
 										<span className="atlas-table__col" style={{ width: 96, textAlign: 'right' }}>Funding</span>
 									</div>
 									{rows.map((c) => {
@@ -214,8 +214,8 @@ export function MarketCompanies({ companyHref }: { companyHref?: (idOrSlug: stri
 											<span className="atlas-table__col hide-sm" style={{ width: 160 }}>{c.primary_sector ?? DASH}</span>
 											<span className="atlas-table__col hide-sm" style={{ width: 140 }}>{hq || DASH}</span>
 											<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{c.founded_year ?? DASH}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 100 }}>{c.primary_sport ?? DASH}</span>
-											<span className="atlas-table__col hide-sm" style={{ width: 66 }}>{c.business_model ? <span className="atlas-chip-sm">{c.business_model.toUpperCase()}</span> : DASH}</span>
+											<span className="atlas-table__col hide-sm hide-md" style={{ width: 100 }}>{c.primary_sport ?? DASH}</span>
+											<span className="atlas-table__col hide-sm hide-md" style={{ width: 66 }}>{c.business_model ? <span className="atlas-chip-sm">{c.business_model.toUpperCase()}</span> : DASH}</span>
 											<span className="atlas-table__col" style={{ width: 96, textAlign: 'right', fontWeight: funding === '—' ? 400 : 600, color: funding === '—' ? undefined : 'var(--a-ink)' }}>{funding === '—' ? DASH : funding}</span>
 										</>;
 										return href
