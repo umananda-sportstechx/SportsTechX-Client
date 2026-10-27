@@ -94,8 +94,12 @@ export default function InvestorProfilePage() {
 						</div>
 					</div>
 				</div>
-				{record && <Badge tone="navy">{STAGE_LABEL[record.stage] ?? record.stage}</Badge>}
-				{isRaise && <SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} />}
+				{(record || isRaise) && (
+					<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+						{record && <Badge tone="navy">{STAGE_LABEL[record.stage] ?? record.stage}</Badge>}
+						{isRaise && <SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} align="end" />}
+					</div>
+				)}
 			</div>
 
 			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
