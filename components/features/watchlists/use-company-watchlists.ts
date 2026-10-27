@@ -8,7 +8,14 @@ import { apiRequest } from '@/lib/query-client';
  * Company watchlists (backend: /api/user-watchlists) — several named lists of
  * companies per user. Separate from Raise's investor board (/api/raise/pipeline).
  */
-export interface CompanyWatchlist { id: string; name: string; description: string | null; color: string | null; company_count?: number; view_mode?: 'list' | 'board' }
+export interface CompanyWatchlist {
+	id: string; name: string; description: string | null; color: string | null;
+	/** Item count — companies, or (investor lists) pipeline investors. */
+	company_count?: number; view_mode?: 'list' | 'board';
+	/** Raise investor lists live alongside company lists; absent = companies. */
+	kind?: 'companies' | 'investors';
+}
+export const isInvestorList = (l: Pick<CompanyWatchlist, 'kind'>) => l.kind === 'investors';
 export interface WatchlistCompany {
 	id: string; name: string; slug: string | null; website: string | null; custom_logo_url: string | null;
 	description: string | null; primary_sector: string | null; hq_city: string | null; hq_country: string | null;
@@ -55,8 +62,8 @@ export async function removeFromWatchlist(watchlistId: string, companyId: string
 	await Promise.all([refreshLists(), globalMutate(qk.userWatchlists.containing(companyId)), globalMutate(qk.userWatchlists.companies(watchlistId))]);
 }
 
-export async function createWatchlist(name: string): Promise<CompanyWatchlist> {
-	const res = await apiRequest('POST', '/api/user-watchlists', { name: name.trim() });
+export async function createWatchlist(name: string, kind: 'companies' | 'investors' = 'companies'): Promise<CompanyWatchlist> {
+	const res = await apiRequest('POST', '/api/user-watchlists', { name: name.trim(), kind });
 	const created = (await res.json()) as CompanyWatchlist;
 	await refreshLists();
 	return created;
@@ -69,5 +76,6 @@ export async function renameWatchlist(id: string, name: string) {
 
 export async function deleteWatchlist(id: string) {
 	await apiRequest('DELETE', `/api/user-watchlists/${id}`);
-	await refreshLists();
+	// An investor list's investors fall back to Main server-side — refresh those views too.
+	await Promise.all([refreshLists(), globalMutate((k: unknown) => Array.isArray(k) && k[0] === qk.raise.pipeline()[0])]);
 }
