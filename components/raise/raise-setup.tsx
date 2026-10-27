@@ -17,6 +17,8 @@ import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { InvestorExclude } from '@/components/raise/investor-exclude';
 import { useVerifyState, type VerifyState } from '@/components/features/verify/verify-cta';
 import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
+import { decodeClaimForm } from '@/components/claim/decode-claim-form';
+import { useClaimReference } from '@/components/claim/use-claim-reference';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
@@ -123,6 +125,29 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 		const label = sectorOptions.find(([v]) => v === id)?.[1];
 		set('company_category', id && label ? label.split(' → ') : null);
 	};
+
+	// Claimed the company first (pending or verified)? Start Step 1 from what the
+	// claim already says instead of making the founder type it twice. Checked
+	// against the saved draft, not `form` — this can run in the same commit as
+	// the hydrate above, before its setForm lands — and only fills blanks.
+	const { claim: coClaim, state: coClaimState } = useVerifyState();
+	const coClaimId = coClaim?.claim_type === 'company' && coClaimState !== 'none' ? coClaim.id : null;
+	const { data: coClaimForm } = useSWR<Record<string, unknown>>(coClaimId ? qk.claims.form(coClaimId) : null, { shouldRetryOnError: false });
+	const claimRef = useClaimReference();
+	const claimSeeded = useRef(false);
+	useEffect(() => {
+		if (claimSeeded.current || !data || !coClaimForm || !claimRef.sectors.length) return;
+		claimSeeded.current = true;
+		const draft = data.raise ?? {};
+		const c = decodeClaimForm(coClaimForm, claimRef);
+		const fill: Rec = { company_name: c.name, company_website: c.website, company_description: c.description, hq_city: c.coCity, hq_country: c.coCountry };
+		for (const [k, v] of Object.entries(fill)) if (v && isEmpty(draft[k])) set(k, v);
+		const sectorId = claimRef.resolveSector(c.sector);
+		if (sectorId && isEmpty(draft.company_sector_id)) pickSector(sectorId);
+		const companyId = coClaimForm.target_company_id;
+		if (companyId && isEmpty(draft.company_id)) { set('company_id', companyId); setLinked({ id: String(companyId), name: c.name || 'your company' }); }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [data, coClaimForm, claimRef.sectors.length]);
 
 	// Link an existing master company: prefill the company facts into the raise
 	// snapshot + store company_id. Editing them afterwards only touches the raise
