@@ -729,10 +729,13 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 /* Featured cover: a fixed width, with the height following the image. The old
    fixed 4:3 frame letterboxed every report — all 33 covers are 1.7–2:1 — into
    empty bands above and below. A portrait cover (a few newsletters) is capped
-   and centred rather than stretching the card. No image: a 16:9 blank frame. */
+   and centred rather than stretching the card. Until the image loads (or if it
+   never does, or there is none) the frame holds a 16:9 placeholder, so the
+   library below doesn't jump when the cover arrives — most covers are ~16:9. */
 .atlas-post__cover--tall { width: 340px; align-self: flex-start; }
 .atlas-post__cover--tall img { height: auto; max-height: 340px; object-fit: contain; }
-.atlas-post__cover--tall:empty { aspect-ratio: 16 / 9; }
+.atlas-post__cover--tall:empty,
+.atlas-post__cover--tall:has(> img:not([data-loaded])) { aspect-ratio: 16 / 9; }
 /* Library card: a full-width band across the top ~half of the card. The card
    clips it to the corner radius (overflow:hidden), so no radius of its own. */
 .atlas-post__cover--banner {
