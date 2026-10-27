@@ -12,6 +12,7 @@ import type { Deal, Investor, PipelineActivity as Activity, PipelineStage, Pipel
 import { apiRequest } from '@/lib/query-client';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
+import { SaveInvestorToWatchlist } from '@/components/raise/save-investor-to-watchlist';
 
 /**
  * Atlas Raise — Investor profile (mock-ups 12/13 / canvas isProfileBaseline &
@@ -93,9 +94,8 @@ export default function InvestorProfilePage() {
 						</div>
 					</div>
 				</div>
-				{record
-					? <Badge tone="navy">{STAGE_LABEL[record.stage] ?? record.stage}</Badge>
-					: isRaise ? <AddButton investorId={inv.id} onAdded={() => pipe.mutate()} /> : null}
+				{record && <Badge tone="navy">{STAGE_LABEL[record.stage] ?? record.stage}</Badge>}
+				{isRaise && <SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} />}
 			</div>
 
 			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
@@ -139,17 +139,6 @@ export default function InvestorProfilePage() {
 			})()}
 		</Screen>
 	);
-}
-
-function AddButton({ investorId, onAdded }: { investorId: string; onAdded: () => void }) {
-	const [busy, setBusy] = useState(false);
-	const add = async () => {
-		setBusy(true);
-		try { await apiRequest('POST', '/api/raise/pipeline', { investor_id: investorId, stage: 'target' }); toast.success('Added to pipeline'); onAdded(); }
-		catch (e) { toast.error((e as Error).message); }
-		finally { setBusy(false); }
-	};
-	return <Button disabled={busy} onClick={() => void add()}>{busy ? <Loader2 className="animate-spin" size={14} /> : 'Add to watchlist'}</Button>;
 }
 
 function PipelineRecord({ record, onChanged }: { record: Pipe; onChanged: () => void }) {

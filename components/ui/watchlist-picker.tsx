@@ -13,6 +13,7 @@ interface Watchlist {
 	description: string | null;
 	color: string | null;
 	company_count?: number;
+	kind?: 'companies' | 'investors';
 }
 
 interface WatchlistsResponse { data: Watchlist[] }
@@ -41,7 +42,8 @@ export function WatchlistPicker({
 		open && companyId ? qk.userWatchlists.containing(companyId) : null,
 	);
 
-	const lists = useMemo(() => listsResp?.data ?? [], [listsResp]);
+	// Company lists only — a Raise investor list can't hold companies.
+	const lists = useMemo(() => (listsResp?.data ?? []).filter((l) => l.kind !== 'investors'), [listsResp]);
 	const checked = useMemo(() => new Set(containingResp?.data ?? []), [containingResp]);
 
 	const [pending, setPending] = useState<Set<string>>(new Set());
