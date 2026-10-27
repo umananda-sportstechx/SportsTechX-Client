@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { H1, Sub } from '../ui/layout';
 import { cx } from '../ui/cx';
 import { PlaceholderTag } from './placeholder-tag';
+import { useActiveTabInView } from '../ui/tabs';
 
 export interface HeaderTab { label: string; href: string; active?: boolean; soon?: boolean; placeholder?: boolean }
 
@@ -20,6 +21,7 @@ export function TabbedPageHeader({ title, sub, tabs, actions }: {
 	/** Right-aligned controls beside the title (e.g. an upload button). */
 	actions?: ReactNode;
 }) {
+	const tabsRef = useActiveTabInView<HTMLElement>(tabs.find((t) => t.active)?.href);
 	return (
 		<header className="atlas-tabbed-head">
 			<div className="atlas-tabbed-head__top">
@@ -28,7 +30,7 @@ export function TabbedPageHeader({ title, sub, tabs, actions }: {
 			</div>
 			{/* A one-item section is just a page — a tab strip with a single tab
 			    reads as a mistake (Scout's Watchlists). Show the heading only. */}
-			{tabs.length > 1 && <nav className="atlas-tabs atlas-tabbed-head__tabs" aria-label={typeof title === 'string' ? `${title} sections` : 'Sections'}>
+			{tabs.length > 1 && <nav ref={tabsRef} className="atlas-tabs atlas-tabbed-head__tabs" aria-label={typeof title === 'string' ? `${title} sections` : 'Sections'}>
 				{tabs.map((t) => t.soon ? (
 					<span key={t.href} className="atlas-tab is-soon" aria-disabled="true">{t.label}<span className="atlas-soon">Soon</span></span>
 				) : (
