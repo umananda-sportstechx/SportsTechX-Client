@@ -166,7 +166,9 @@ export function AllInvestors() {
 function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>; canWatchlist: boolean }) {
 	// View-state mirrored into the URL (Back/Forward restore, shareable links).
 	const url = useUrlReader();
-	const [view, setView] = useState<ViewMode>('cards');
+	// List is the default for every database; a chosen view lives in the URL
+	// with the filters, so it survives Back/Forward, links and any remount.
+	const [view, setView] = useState<ViewMode>(() => url.oneOf('view', ['table', 'cards'] as const, 'table'));
 	const [q, setQ] = useState(() => url.str('q'));
 	const dq = useDebouncedValue(q);
 	const [category, setCategory] = useState(() => url.oneOf('category', CATEGORY_OPTIONS.map(([v]) => v), ''));
@@ -188,6 +190,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1); // any filter/search change returns to page 1
 	useUrlSync({
+		view: view !== 'table' ? view : undefined,
 		q: dq, category, round: roundType, sector, sub: subSector, subsub: subSubSector,
 		sport, country, city, continent, region, tech: techTag, launched, deals,
 		verified, active,

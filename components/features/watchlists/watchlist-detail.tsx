@@ -14,7 +14,7 @@ import './watchlists.css';
 export function WatchlistDetail({ id, backHref, companyHref }: { id: string; backHref: string; companyHref: (idOrSlug: string) => string }) {
 	const { lists, isLoading: listsLoading } = useCompanyWatchlists();
 	const { companies, isLoading } = useWatchlistCompanies(id);
-	const [view, setView] = useState<ViewMode>('cards');
+	const [view, setView] = useState<ViewMode>('table'); // list is the default for every database
 	const [busy, setBusy] = useState<string | null>(null);
 	const list = lists.find((l) => l.id === id);
 
