@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { Button } from '@/components/atlas';
-import { openClaim, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
+import { openClaim, type ClaimPrefill, type ClaimRole, type ClaimTarget } from '@/lib/claim-events';
 import { rolesForTier } from '@/lib/claim-roles';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
@@ -90,7 +90,7 @@ export function useVerifyState(entityId?: string): { state: VerifyState; isLoadi
  * `role` is optional: left out, it is inferred from the viewer's tier rather
  * than every call site repeating the same rule.
  */
-export function VerifyButton({ role = null, target = null, entityId, label, hideWhenVerifiedElsewhere = false }: {
+export function VerifyButton({ role = null, target = null, entityId, label, hideWhenVerifiedElsewhere = false, prefill }: {
 	role?: ClaimRole | null;
 	target?: ClaimTarget | null;
 	/** Scopes the pending/verified state to one entity, by id. */
@@ -100,6 +100,8 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 	 *  entirely when the viewer already holds a verified claim on something else
 	 *  — they're clearly a known user, so don't nudge them to claim this one. */
 	hideWhenVerifiedElsewhere?: boolean;
+	/** Answers already given elsewhere (e.g. the Scout thesis) so the claim form opens filled. */
+	prefill?: ClaimPrefill;
 }) {
 	const { state, claim } = useVerifyState(entityId);
 	// Global claim status (same SWR row, deduped) — "verified on anything".
@@ -145,7 +147,7 @@ export function VerifyButton({ role = null, target = null, entityId, label, hide
 	if (hideWhenVerifiedElsewhere && state === 'none' && anyVerified) return null;
 
 	return (
-		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, undefined, allowed)}>
+		<Button size="sm" variant="outline" className="atlas-verify-btn" onClick={() => openClaim(target, explicitRole, prefill, allowed)}>
 			{/* The verification tick everyone already reads as "verified", in the
 			    one place Atlas spends a hue on something that is not a status. */}
 			<VerifiedBadge size={17} className="atlas-verify-btn__tick" /><span className="atlas-verify-btn__label">{label ?? 'Get verified'}</span>

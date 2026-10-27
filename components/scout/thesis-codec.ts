@@ -100,6 +100,10 @@ export function formatMoney(n: number | null): string {
 	return `€${n}`;
 }
 
+/** "€250k – €2m" for summaries; '' when neither end is set. */
+export const chequeRange = (t: Pick<Thesis, 'chequeMin' | 'chequeMax'>) =>
+	t.chequeMin || t.chequeMax ? `${formatMoney(parseMoney(t.chequeMin)) || '—'} – ${formatMoney(parseMoney(t.chequeMax)) || '—'}` : '';
+
 /** Case-insensitive name → id, for a reference list. */
 export const indexByName = (rows: TaxonomyRef[]) =>
 	new Map(rows.filter((r) => r.name).map((r) => [r.name!.toLowerCase(), r.id]));
@@ -132,8 +136,10 @@ export function toForm(
 		sectors: names(t?.sectors ?? []),
 		stages: names(t?.round_types ?? []),
 		regions: (t?.geo ?? []).map((g) => g.scope_value),
-		chequeMin: formatMoney(t?.cheque_min ?? null),
-		chequeMax: formatMoney(t?.cheque_max ?? null),
+		// Plain digits: the cheque inputs are type="number", which renders a
+		// formatted '€250k' as blank — returning Scouts saw empty cheques.
+		chequeMin: t?.cheque_min == null ? '' : String(t.cheque_min),
+		chequeMax: t?.cheque_max == null ? '' : String(t.cheque_max),
 		traction: t?.traction_floor ?? '',
 		invStyle: (t?.invest_style
 			? ((t.invest_style[0].toUpperCase() + t.invest_style.slice(1)) as Thesis['invStyle'])

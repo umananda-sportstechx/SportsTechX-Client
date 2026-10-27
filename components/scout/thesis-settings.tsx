@@ -5,6 +5,7 @@ import { Button, Card, Loading, PageHead } from '@/components/atlas';
 import { openScoutThesis } from '@/lib/setup-events';
 import { useThesisState } from './use-thesis';
 import type { Thesis } from './sample-data';
+import { chequeRange } from './thesis-codec';
 
 /**
  * Thesis settings — a READ-ONLY summary of the saved thesis, not a form.
@@ -23,7 +24,7 @@ export function ThesisSettings() {
 	const { thesis: t, isLoading, needsSetup } = useThesisState();
 	if (isLoading) return <Loading />;
 
-	const cheque = t.chequeMin || t.chequeMax ? `${t.chequeMin || '—'} – ${t.chequeMax || '—'}` : '';
+	const cheque = chequeRange(t);
 	const hq = [t.city, t.country].filter(Boolean).join(', ');
 
 	return (

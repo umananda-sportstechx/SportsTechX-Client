@@ -11,6 +11,9 @@ import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { useSetupScrollReset } from '@/components/setup/setup-modal';
 import { SCOUT_COLOR } from './shell-config';
 import type { Thesis } from './sample-data';
+import { chequeRange } from './thesis-codec';
+import { claimFromThesis, fillEmpty } from './claim-thesis';
+import { useClaimThesis } from './use-claim-thesis';
 // `scout.css` is imported by AppShell, which this route deliberately does NOT
 // render — the onboarding group has no shell chrome. Without this import every
 // `scout-*` rule is missing here, which is not a styling nit: `ChipSet` falls
@@ -61,6 +64,9 @@ function firstIncomplete(t: Thesis): number {
 export function Onboarding({ onClose, edit = false }: { onClose: () => void; edit?: boolean }) {
 	const { isLoading: profileLoading } = useUserProfile();
 	const { thesis: saved, save, isLoading } = useThesisState();
+	// Verified (or pending) first? Start from what the claim already says, so
+	// nobody types their fund, location, type, AUM, cheque or focus twice.
+	const claim = useClaimThesis();
 	// Wait for the THESIS, not just the profile.
 	//
 	// This used to gate on `useUserProfile().isLoading` alone while reading the
@@ -68,8 +74,8 @@ export function Onboarding({ onClose, edit = false }: { onClose: () => void; edi
 	// profile usually resolves first, so the form mounted seeded with
 	// DEFAULT_THESIS, `useState` kept that seed, and a returning Scout who
 	// reopened the wizard could save an empty thesis over a real one.
-	if (profileLoading || isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
-	return <OnboardingForm initial={saved} save={save} onClose={onClose} edit={edit} />;
+	if (profileLoading || isLoading || claim.isLoading) return <Frame><Screen width={720}><Loading /></Screen></Frame>;
+	return <OnboardingForm initial={claim.prefill ? fillEmpty(saved, claim.prefill) : saved} save={save} onClose={onClose} edit={edit} />;
 }
 
 function OnboardingForm({ initial, save, onClose, edit }: { initial: Thesis; save: ThesisState['save']; onClose: () => void; edit: boolean }) {
@@ -88,7 +94,7 @@ function OnboardingForm({ initial, save, onClose, edit }: { initial: Thesis; sav
 	// Scrolls the modal's own region; a no-op anywhere else.
 	const top = useSetupScrollReset();
 
-	if (done) return <Frame width={620}><Screen width={620}><DoneScreen name={t.name} onEnter={onClose} /></Screen></Frame>;
+	if (done) return <Frame width={620}><Screen width={620}><DoneScreen t={t} onEnter={onClose} /></Screen></Frame>;
 
 	const s = STEPS[step];
 	const last = step === STEPS.length - 1;
@@ -204,8 +210,8 @@ function StepBar({ step, onPick }: { step: number; onPick: (i: number) => void }
  * investor form from the Scout tier, and the claim modal is mounted globally in
  * `app/providers.tsx`, so it works from here.
  */
-function DoneScreen({ name, onEnter }: { name: string; onEnter: () => void }) {
-	const first = name.trim().split(' ')[0];
+function DoneScreen({ t, onEnter }: { t: Thesis; onEnter: () => void }) {
+	const first = t.name.trim().split(' ')[0];
 	return (
 		<div style={{ textAlign: 'center', padding: '32px 0' }}>
 			<H1>{first ? `You’re set up, ${first}.` : 'You’re set up.'}</H1>
@@ -235,7 +241,8 @@ function DoneScreen({ name, onEnter }: { name: string; onEnter: () => void }) {
 					Verifying your fund lets the SportsTechX team confirm who you are, which is what opens Deal Flow
 					introductions and the Investor Circle. Optional, and you can do it later from Account.
 				</div>
-				<VerifyButton label="Get verified" />
+				{/* The thesis just answered most of the claim — send it along. */}
+				<VerifyButton label="Get verified" prefill={claimFromThesis(t)} />
 			</Card>
 			<Button variant="ghost" onClick={onEnter}>Go to Scout <ArrowRight size={13} /></Button>
 		</div>
@@ -263,7 +270,7 @@ function Review({ t, onEdit }: { t: Thesis; onEdit: (step: number) => void }) {
 	const groups: [string, number, [string, string | string[]][]][] = [
 		['Profile', 0, [['Name', t.name], ['Work email', t.email], ['Role', t.role], ['LinkedIn', t.linkedin]]],
 		['Fund', 1, [['Fund / organisation', t.fundName], ['Investor type', t.investorType], ['Fund size / AUM', t.aum], ['Website', t.website], ['Headquarters', [t.city, t.country].filter(Boolean).join(', ')]]],
-		['Stage & cheque', 2, [['Stages', t.stages], ['Cheque size', t.chequeMin || t.chequeMax ? `${t.chequeMin || '—'} – ${t.chequeMax || '—'}` : ''], ['Lead or follow', t.invStyle]]],
+		['Stage & cheque', 2, [['Stages', t.stages], ['Cheque size', chequeRange(t)], ['Lead or follow', t.invStyle]]],
 		['Investment focus', 3, [['Regions', t.regions], ['Sectors', t.sectors], ['Minimum traction', t.traction], ['Include', t.include], ['Exclude', t.exclude]]],
 	];
 	return (

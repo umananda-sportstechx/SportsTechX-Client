@@ -8,6 +8,7 @@ import { VerifyButton, useVerifyState } from '@/components/features/verify/verif
 import { useClaimSearch, type ClaimSearchResult } from '@/components/claim/use-claim-search';
 import { openClaim } from '@/lib/claim-events';
 import type { Thesis } from './sample-data';
+import { claimFromThesis } from './claim-thesis';
 
 /**
  * The fund identity on the thesis — a directory picker, not free text.
@@ -62,7 +63,7 @@ function FundSearch({ t, patch }: Props) {
 	};
 	const useTyped = () => { setSelected(null); patch({ fundName: q.trim() }); setQ(''); setOpen(false); };
 	const clear = () => { setSelected(null); patch({ fundName: '' }); };
-	const addNew = () => { openClaim(null, 'investor', { name: query }); setOpen(false); };
+	const addNew = () => { openClaim(null, 'investor', { ...claimFromThesis(t), name: query }); setOpen(false); };
 	const activate = (i: number) => {
 		if (i < results.length) pick(results[i]);
 		else if (i === results.length) addNew();
@@ -171,6 +172,7 @@ function FundSearch({ t, patch }: Props) {
 					role="investor"
 					target={selected ? { role: 'investor', id: selected.id, name: selected.name, website: selected.website } : null}
 					label="Verify ownership"
+					prefill={claimFromThesis(t)}
 				/>
 				<span className="fundpicker__verifynote">Optional — required only to submit deals.</span>
 			</div>
