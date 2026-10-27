@@ -310,9 +310,9 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 							<span className="atlas-table__name">Investor</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Type</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 60 }}>Deals</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 80 }}>Investments</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Launched</span>
+							<span className="atlas-table__col hide-sm hide-md" style={{ width: 60 }}>Deals</span>
+							<span className="atlas-table__col hide-sm hide-md" style={{ width: 80 }}>Investments</span>
+							<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>Launched</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Status</span>
 							{canWatchlist && <span className="atlas-table__col" style={{ width: 190 }}>Watchlist</span>}
 						</div>
@@ -330,9 +330,9 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 								</div>
 								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{categoryLabel(inv.category) ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
+								<span className="atlas-table__col hide-sm hide-md" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
+								<span className="atlas-table__col hide-sm hide-md" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
+								<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
 								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.actively_investing ? 'Active' : '—'}</span>
 								{canWatchlist && (
 									<span className="atlas-table__col" style={{ width: 190 }} onClick={(e) => e.stopPropagation()}>
