@@ -3,7 +3,8 @@
 import { useState, useCallback } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { qk } from '@/lib/query-keys';
-import { apiRequest } from '@/lib/query-client';
+import { apiRequest } from '@/lib/query-client';
+import { toast } from 'sonner';
 
 export type FavKind = 'companies' | 'investors' | 'ecosystem' | 'deals';
 
@@ -44,6 +45,8 @@ export function useFavorite(kind: FavKind, targetId: string | null | undefined):
 				wasFavorite ? undefined : {},
 			);
 			await globalMutate(qk.favorites.list(kind));
+		} catch {
+			toast.error(wasFavorite ? "Couldn't remove it from saved. Please try again." : "Couldn't save it. Please try again.");
 		} finally {
 			setPending(false);
 		}

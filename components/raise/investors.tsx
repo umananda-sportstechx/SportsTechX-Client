@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
 import { Check, Plus, ArrowUpRight, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExportButton } from '@/components/features/exports/export-button';
@@ -72,8 +72,26 @@ function useWatchlistAdd(enabled = true) {
 export function RecommendedInvestors() {
 	const { inPipeline, add } = useWatchlistAdd();
 	const [view, setView] = useState<ViewMode>('cards');
+	// Hidden at once, saved server-side (`raise_investor_dismissals`) so a
+	// "Not relevant" investor stays out of matches after a reload, on any device.
 	const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 	const matches = useSWR<MatchResult>(qk.investorMatches(24));
+	const refreshMatches = () => globalMutate((k: unknown) => Array.isArray(k) && k[0] === qk.investorMatches()[0]);
+	const hide = (id: string, on: boolean) => setDismissed((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
+	const dismiss = async (id: string, name: string) => {
+		hide(id, true);
+		try {
+			await apiRequest('POST', `/api/recommendations/investors/${id}/dismiss`);
+			toast.success(`Hid ${name}`, {
+				action: { label: 'Undo', onClick: () => void apiRequest('DELETE', `/api/recommendations/investors/${id}/dismiss`)
+					.then(() => { hide(id, false); void refreshMatches(); })
+					.catch(() => toast.error("Couldn't undo. Please try again.")) },
+			});
+		} catch {
+			hide(id, false);
+			toast.error("Couldn't hide that investor. Please try again.");
+		}
+	};
 	const criteria = useSWR<{ criteria: { investor_types?: string[]; geographies?: string[]; cheque_min?: string | null; cheque_max?: string | null } | null }>(qk.raise.current());
 
 	// Only factors the engine actually matches on (sector/stage come from the company;
@@ -108,7 +126,7 @@ export function RecommendedInvestors() {
 					<Grid>
 						{matches.data!.results.filter((m) => !dismissed.has(m.id)).map((m) => (
 							<InvestorCard key={m.id} inv={m} added={inPipeline.has(m.id)} onAdd={() => add(m.id)} reasons={m.match_reasons}
-								onDismiss={() => setDismissed((s) => new Set(s).add(m.id))} />
+								onDismiss={() => void dismiss(m.id, m.name)} />
 						))}
 					</Grid>
 					) : (

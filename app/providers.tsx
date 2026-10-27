@@ -11,7 +11,6 @@ import { AuthSessionProvider } from '@/contexts/auth-session-context';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import { FeatureAccessProvider } from '@/contexts/feature-access-context';
 import { MobileNavProvider } from '@/contexts/mobile-nav-context';
-import { PersonaProvider } from '@/contexts/persona-context';
 import { ClaimModalHost } from '@/components/claim/claim-modal-host';
 import { SetupModalHost } from '@/components/setup/setup-modal-host';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
@@ -63,7 +62,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <AuthSessionProvider>
             <FeatureAccessProvider>
               <MobileNavProvider>
-                <PersonaProvider>
                   <ConfirmProvider>
                     <AppInit />
                     {children}
@@ -75,7 +73,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <TierRequiredHost />
                     <Toaster position="top-right" theme="dark" closeButton toastOptions={{ unstyled: false }} />
                   </ConfirmProvider>
-                </PersonaProvider>
               </MobileNavProvider>
             </FeatureAccessProvider>
           </AuthSessionProvider>
