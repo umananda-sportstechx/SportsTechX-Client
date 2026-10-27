@@ -173,7 +173,9 @@ export const ROUTES: RouteDef[] = [
 	// Both paid products get the ecosystem directories (Scout browses them, Raise
 	// targets them). Explore keeps Investors as an upsell via its own nav entry.
 	{ id: 'investors', icon: 'nav-circle', name: 'Investors', path: '/investors', tier: ['raise', 'scout'] },
-	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs', tier: ['raise', 'scout'] },
+	// Every plan: Programs is a public directory like Events (same component, same
+	// public endpoint), so Explore lists it under Market beside Events.
+	{ id: 'programs', icon: 'nav-dealflow', name: 'Programs', path: '/programs' },
 	{ id: 'my-market', icon: 'nav-market', name: 'My Market', path: '/my-market', tier: 'raise' },
 	{ id: 'pipeline', icon: 'nav-list', name: 'Main watchlist', path: '/pipeline', tier: 'raise' },
 	{ id: 'raise-settings', icon: 'nav-thesis', name: 'Thesis Settings', path: '/settings', tier: 'raise' },
@@ -227,7 +229,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		// selling (ATLAS Base.dc.html `navMarket`, which has a lock flag
 		// available and deliberately does not pass it). `buildNav` keeps
 		// upsellable items; only `hidden` ones are dropped.
-		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'investors'] },
+		{ title: 'Market', items: ['analytics', 'roundup', 'companies', 'events', 'programs', 'investors'] },
 	],
 	raise: [
 		{ title: null, items: ['home', 'chat'] },
