@@ -16,7 +16,7 @@ import './atlas-shell.css';
  * AtlasShell — the product-agnostic app frame (Atlas Product UX v3 "Side Bar"):
  * sidebar with the Atlas wordmark + product tag, main nav, bottom nav, theme
  * toggle and account badge; collapsible to an icon rail on desktop; top bar +
- * slide-in drawer on mobile (≤720px). Each product (Raise, Scout, Explore…)
+ * slide-in drawer on phones and tablets (≤1024px). Each product (Raise, Scout, Explore…)
  * renders it with its own config — see components/raise/shell-config.ts.
  *
  * `nav` mixes plain items and collapsible sections (Figma "Menu Section Title /
