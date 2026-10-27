@@ -524,6 +524,12 @@ span.atlas-fbar__pill-main { cursor: default; }
 @media (max-width: 640px) {
 	.atlas .atlas-table__col.hide-sm { display: none; }
 }
+/* Tablets and small laptops (drawer up to 1024px, then a ~700–830px column
+   beside the rail): a full directory row is ~850px of fixed columns, so the
+   flexible name column was crushed to nothing. Secondary columns step out. */
+@media (max-width: 1200px) {
+	.atlas .atlas-table__col.hide-md { display: none; }
+}
 
 /* ── View toggle (cards / table) ── */
 .atlas .atlas-view-toggle {
