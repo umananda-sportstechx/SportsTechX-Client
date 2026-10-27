@@ -9,6 +9,7 @@ import { useClaimSearch, type ClaimSearchResult } from '@/components/claim/use-c
 import { openClaim } from '@/lib/claim-events';
 import type { Thesis } from './sample-data';
 import { claimFromThesis } from './claim-thesis';
+import { canonicalCountry } from '@/lib/catalog-options';
 
 /**
  * The fund identity on the thesis — a directory picker, not free text.
@@ -58,7 +59,12 @@ function FundSearch({ t, patch }: Props) {
 
 	const pick = (r: ClaimSearchResult) => {
 		setSelected(r);
-		patch({ fundName: r.name, website: r.website ?? t.website, country: r.hq ?? t.country });
+		// City → City, country → Country (it used to put the city in Country).
+		patch({
+			fundName: r.name, website: r.website ?? t.website,
+			city: r.hq ?? t.city,
+			country: r.country ? canonicalCountry(r.country) : t.country,
+		});
 		setQ(''); setOpen(false);
 	};
 	const useTyped = () => { setSelected(null); patch({ fundName: q.trim() }); setQ(''); setOpen(false); };
@@ -119,7 +125,7 @@ function FundSearch({ t, patch }: Props) {
 				<div className="fundpicker__selected">
 					{selected?.verified && <VerifiedBadge size={15} />}
 					<span className="fundpicker__selname">{chosen}</span>
-					{selected?.hq && <span className="fundpicker__selmeta">{selected.hq}</span>}
+					{(selected?.hq || selected?.country) && <span className="fundpicker__selmeta">{[selected.hq, selected.country].filter(Boolean).join(', ')}</span>}
 					<button type="button" className="fundpicker__change" onClick={clear}>Change</button>
 				</div>
 			) : (

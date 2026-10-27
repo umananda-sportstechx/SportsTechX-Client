@@ -9,7 +9,11 @@ export interface ClaimSearchResult {
   id: string;
   name: string;
   website: string | null;
+  /** HQ city. */
   hq: string | null;
+  /** HQ country — the API sends the name (`hq_country`), e.g. "United States". */
+  country: string | null;
+  /** Country for the flag: a code if the API sent one, else the country name (Flag takes either). */
   cc: string | null;
   verified: boolean;
   /** Extra meta line suffix, e.g. investor type or "Program". */
@@ -20,6 +24,7 @@ interface RawRow {
   id?: string; slug?: string; name?: string; website?: string | null;
   hq_city?: string | null; city?: string | null; location?: string | null;
   country_code?: string | null; cc?: string | null; hq_country_code?: string | null;
+  hq_country?: string | null; country?: string | null;
   is_verified?: boolean; verified?: boolean;
   type?: string | null; investor_type?: string | null; entity_type?: string | null;
 }
@@ -36,7 +41,10 @@ function normalize(r: RawRow): ClaimSearchResult {
     name: r.name ?? '',
     website: r.website ?? null,
     hq: r.hq_city ?? r.city ?? r.location ?? null,
-    cc: r.cc ?? r.country_code ?? r.hq_country_code ?? null,
+    // The list endpoints send `hq_country` (a name), never a code — reading only
+    // code fields left the country empty, so pickers used the city instead.
+    country: r.hq_country ?? r.country ?? null,
+    cc: r.cc ?? r.country_code ?? r.hq_country_code ?? r.hq_country ?? r.country ?? null,
     verified: Boolean(r.is_verified ?? r.verified),
     kind: r.type ?? r.investor_type ?? r.entity_type ?? null,
   };

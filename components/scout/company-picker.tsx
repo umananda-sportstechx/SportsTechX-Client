@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Building2, Search } from 'lucide-react';
 import { useClaimSearch, type ClaimSearchResult } from '@/components/claim/use-claim-search';
 import type { Draft } from './deal-draft-codec';
+import { canonicalCountry } from '@/lib/catalog-options';
 
 /**
  * Company picker for Share-a-deal — a directory search, not free text.
@@ -35,7 +36,8 @@ export function CompanyPicker({ d, patch }: Props) {
 	const navCount = results.length + 1; // results, then "use as a new company"
 
 	const pick = (r: ClaimSearchResult) => {
-		patch({ company: r.name, companyId: r.id, website: r.website ?? d.website, hq: r.hq ?? d.hq });
+		// "Headquarters" is a country/region select — give it the country, not the city.
+		patch({ company: r.name, companyId: r.id, website: r.website ?? d.website, hq: r.country ? canonicalCountry(r.country) : d.hq });
 		setQ(''); setOpen(false);
 	};
 	const useNew = () => { patch({ company: query, companyId: '' }); setQ(''); setOpen(false); };
