@@ -6,6 +6,8 @@ import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
 import { useVerifyState } from '@/components/features/verify/verify-cta';
 import { FundPicker } from './fund-picker';
+import { fillEmpty } from './claim-thesis';
+import { useClaimThesis } from './use-claim-thesis';
 import { ChipSet, AddButton, PickerDialog, toggleIn, withSelected } from './thesis-fields';
 import { PILLAR_SECTORS, THESIS_OPTIONS, type Thesis } from './sample-data';
 
@@ -43,14 +45,17 @@ export function FundFields({ t, patch }: Props) {
 	const linked = (state === 'verified' || state === 'pending') && claim?.claim_type === 'investor';
 	const name = claim?.claim_type === 'investor' ? (claim.target_name_snapshot ?? '') : '';
 	const website = claim?.claim_type === 'investor' ? (claim.target_website_snapshot ?? '') : '';
+	// Also covers a claim filed mid-wizard: everything else the claim answered
+	// (location, type, AUM, cheque, stages, focus) fills whatever is still empty.
+	const { prefill } = useClaimThesis();
 	useEffect(() => {
 		if (!linked) return;
-		const next: Partial<Thesis> = {};
-		if (name && t.fundName !== name) next.fundName = name;
-		if (website && t.website !== website) next.website = website;
-		if (Object.keys(next).length) patch(next);
+		const next = fillEmpty(t, prefill ?? {});
+		if (name) next.fundName = name;
+		if (website) next.website = website;
+		if (JSON.stringify(next) !== JSON.stringify(t)) patch(next);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [linked, name, website]);
+	}, [linked, name, website, prefill]);
 
 	return (
 		<>
