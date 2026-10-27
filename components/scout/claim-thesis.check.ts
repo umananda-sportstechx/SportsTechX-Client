@@ -54,6 +54,8 @@ assert.equal(c.first, 'Asha');
 assert.equal(c.last, 'Rao');
 assert.equal(c.website, 'shnuvc.com', 'scheme stripped like the claim form expects');
 assert.equal(c.invCategory, 'Accelerator');
+assert.equal(c.city, 'Bengaluru', 'claimant location defaults to the fund HQ');
+assert.equal(c.coCountry, 'India');
 assert.equal(c.minInv, '$250K', 'exact bucket');
 assert.equal('maxInv' in c, false, '3m is not a bucket — left for the user, never rounded');
 assert.deepEqual(c.fundingStages, ['Pre-Seed', 'Series C+']);
