@@ -11,7 +11,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Loading, Empty, Action, FilterBar, type FilterDef, Logo, Flag, Pager, ViewToggle, type ViewMode, lockedFiltersNote } from '@/components/atlas';
 import { VerifiedBadge } from '@/components/atlas/icons/verified-badge';
 import { ExportButton } from '@/components/features/exports/export-button';
-import { FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
+import { BUSINESS_MODELS, FUNDING_BUCKETS, SINCE_YEARS } from '@/lib/catalog-options';
 import { useSectorTierData, useSportOptions, useLocationFacetOptions, useTechTagOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { fmtUsd } from './format';
 import { ResultCapNote } from './result-cap-note';
@@ -26,7 +26,6 @@ import './market.css';
 
 
 const PAGE_SIZE = 24;
-const BUSINESS_MODELS: [string, string][] = [['b2b', 'B2B'], ['b2c', 'B2C'], ['b2b2c', 'B2B2C'], ['d2c', 'D2C'], ['b2g', 'B2G'], ['other', 'Other']];
 const COMPANY_SORTS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-total_funding', 'Most funded']];
 // A faint em-dash for empty cells, so real values stand out against the many gaps.
 const DASH = <span className="atlas-dash">—</span>;
