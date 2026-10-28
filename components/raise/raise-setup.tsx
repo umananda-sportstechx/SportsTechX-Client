@@ -135,17 +135,23 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	const { data: coClaimForm } = useSWR<Record<string, unknown>>(coClaimId ? qk.claims.form(coClaimId) : null, { shouldRetryOnError: false });
 	const claimRef = useClaimReference();
 	const claimSeeded = useRef(false);
+	// The live form, for the "only fill blanks" check below: the claim's form data
+	// can arrive after the founder has started typing a field.
+	const formRef = useRef(form);
+	useEffect(() => { formRef.current = form; }, [form]); // declared before the seeding effect, so it runs first
 	useEffect(() => {
 		if (claimSeeded.current || !data || !coClaimForm || !claimRef.sectors.length) return;
 		claimSeeded.current = true;
 		const draft = data.raise ?? {};
 		const c = decodeClaimForm(coClaimForm, claimRef);
 		const fill: Rec = { company_name: c.name, company_website: c.website, company_description: c.description, hq_city: c.coCity, hq_country: c.coCountry };
-		for (const [k, v] of Object.entries(fill)) if (v && isEmpty(draft[k])) set(k, v);
+		// Blank in the saved draft AND in what is on screen now.
+		const blank = (k: string) => isEmpty(draft[k]) && isEmpty(formRef.current[k]);
+		for (const [k, v] of Object.entries(fill)) if (v && blank(k)) set(k, v);
 		const sectorId = claimRef.resolveSector(c.sector);
-		if (sectorId && isEmpty(draft.company_sector_id)) pickSector(sectorId);
+		if (sectorId && blank('company_sector_id')) pickSector(sectorId);
 		const companyId = coClaimForm.target_company_id;
-		if (companyId && isEmpty(draft.company_id)) { set('company_id', companyId); setLinked({ id: String(companyId), name: c.name || 'your company' }); }
+		if (companyId && blank('company_id')) { set('company_id', companyId); setLinked({ id: String(companyId), name: c.name || 'your company' }); }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [data, coClaimForm, claimRef.sectors.length]);
 

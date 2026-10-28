@@ -85,6 +85,12 @@
 
 /* ── Responsive ────────────────────────────────────────────────────────────*/
 @media (max-width: 1100px) { .atlas .atlas-navbar { padding: 0 20px; } }
+/* 721–1024px shows the drawer's top bar (atlas-shell.css) above this navbar,
+   and both are sticky at top: 0 — so on scroll the navbar slid over the top bar
+   and covered the hamburger, the only way into the menu at that width. Stick
+   just below it instead (top bar: 14 + 34 + 10 padding/content + 1px border).
+   Phones (≤720) lift the navbar into the top bar; the block below overrides. */
+@media (max-width: 1024px) { .atlas .atlas-navbar { top: 59px; } }
 @media (max-width: 720px) {
 	/* Phones: no second header row. The bar's three working icons — search,
 	   theme, notifications — sit in the top bar beside the hamburger. It is the
