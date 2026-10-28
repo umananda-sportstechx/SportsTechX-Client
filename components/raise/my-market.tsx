@@ -17,7 +17,7 @@ import { companyHref, hrefOf } from '@/lib/routes';
  * analytics took that slot.
  */
 interface Grounded { sector?: string; total_funding_usd?: number; funded_companies?: number; companies_tracked?: number; deals?: number; funding_cagr_pct?: number | null }
-interface Methodology { approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
+interface Methodology { estimating?: boolean; approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
 interface Competitor { id: string; name: string; website?: string | null; custom_logo_url?: string | null; hq_country: string | null; funding: string }
 interface Market {
 	unavailable?: boolean; reason?: string;
@@ -38,12 +38,15 @@ const usd = (n?: number | null) => (n == null ? '—' : n >= 1e9 ? `$${d1(n / 1e
 export function MyMarket() {
 	const [tab, setTab] = useState<'size' | 'competitors'>('size');
 	const [recomputing, setRecomputing] = useState(false);
-	const [attempts, setAttempts] = useState(0);
+	// The server flags a running TAM/SAM estimate (and clears the flag when it
+	// lands, fails, or times out) — poll on that, and keep the previous figures up.
+	// Interval refreshes are deduped, and the global 5-min dedupe made this poll a no-op.
 	const { data, isLoading, mutate } = useSWR<Market>(qk.raise.market(), {
-		refreshInterval: (d) => (d && !d.unavailable && d.tam == null && attempts < 6 ? 8000 : 0),
-		onSuccess: (d) => setAttempts((a) => (d && !d.unavailable && d.tam == null ? a + 1 : 0)),
+		dedupingInterval: 2000,
+		refreshInterval: (d) => (d && !d.unavailable && d.methodology?.estimating ? 8000 : 0),
 	});
-	const estimating = !!data && !data.unavailable && data.tam == null && attempts < 6;
+	const estimating = !!data && !data.unavailable && !!data.methodology?.estimating;
+	const sizeNote = (v: string | null) => (estimating || recomputing ? (v != null ? 'Updating estimate…' : 'Estimating…') : v != null ? 'Estimate' : 'Not available — try Recompute');
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
 
@@ -52,7 +55,6 @@ export function MyMarket() {
 		try {
 			const res = await apiRequest('GET', '/api/raise/market?force=1');
 			if (!res.ok) throw new Error('Could not recompute');
-			setAttempts(0);
 			await mutate((await res.json()) as Market, { revalidate: false });
 			toast.success('Market analysis recomputed');
 		} catch (e) { toast.error((e as Error).message ?? 'Recompute failed'); }
@@ -74,8 +76,8 @@ export function MyMarket() {
 			</div>
 
 			<div className="atlas-kpis">
-				<Kpi label="Total market (TAM)" value={estimating || recomputing ? '—' : eur(data.tam)} note={estimating || recomputing ? 'Estimating…' : data.tam != null ? 'Estimate' : undefined} />
-				<Kpi label="Addressable market (SAM)" value={estimating || recomputing ? '—' : eur(data.sam)} note={estimating || recomputing ? 'Estimating…' : data.sam != null ? 'Estimate' : undefined} />
+				<Kpi label="Total market (TAM)" value={eur(data.tam)} note={sizeNote(data.tam)} />
+				<Kpi label="Addressable market (SAM)" value={eur(data.sam)} note={sizeNote(data.sam)} />
 				<Kpi label="Market growth" value={data.cagr != null ? `${Number(data.cagr).toFixed(1)}% CAGR` : '—'} />
 				<Kpi label="Competitors tracked" value={String(g?.companies_tracked ?? competitors.length)} />
 				<Kpi label="Total funding raised" value={usd(g?.total_funding_usd)} />
