@@ -82,7 +82,7 @@
 .atlas .export-modal__format { width: auto; min-width: 104px; }
 
 @media (max-width: 640px) {
-	.atlas.export-overlay { padding: 0; place-items: stretch; }
-	.atlas .export-modal { width: 100%; max-height: 100dvh; border-radius: 0; }
+	.atlas.export-overlay { padding: 12px; place-items: center; }
+	.atlas .export-modal { width: 100%; max-height: calc(100dvh - 24px); }
 	.atlas .export-modal__cols { grid-template-columns: 1fr; }
 }

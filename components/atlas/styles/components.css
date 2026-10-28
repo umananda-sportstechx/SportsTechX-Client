@@ -366,26 +366,24 @@ span.atlas-fbar__pill-main { cursor: default; }
   /* Toolbar buttons beside the filters go icon-only — Export (download),
      Sort (sliders). The words stay as the accessible name. "Add filter" keeps
      its text: it is the bar's primary action. */
-  .atlas-fbar__right .atlas-btn { width: 38px; padding: 0; justify-content: center; gap: 0; }
-  .atlas-fbar__right .atlas-btn__label {
+  .atlas-fbar__right > .atlas-btn,
+  .atlas-fbar__right > .atlas-fbar__anchor > .atlas-btn { width: 38px; padding: 0; justify-content: center; gap: 0; }
+  .atlas-fbar__right > .atlas-btn .atlas-btn__label,
+  .atlas-fbar__right > .atlas-fbar__anchor > .atlas-btn .atlas-btn__label {
     position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
   }
   .atlas-menu--wide .atlas-menu__groups { grid-template-columns: 1fr; }
-  /* Opt-in bottom sheet for filter/sort/watchlist menus: an absolute dropdown
-     anchored to a left/right-edge button ran off the viewport on phones. Pin it
-     to the bottom of the screen instead. Navbar account/notification menus do
-     NOT get this (they aren't `--sheet`). A flex column so the header/search stay
-     pinned and only the list scrolls. */
+  /* Filter / sort / watchlist menus (`--sheet`) stay dropdowns under their
+     button on phones — they used to become bottom sheets, which read as
+     detached from the control the user tapped. They are capped to the screen
+     width and to 70% of its height; useKeepInViewport nudges one back on-screen
+     sideways and trims its height to the room below. A flex column so the
+     header/search stay put and only the list scrolls. */
   .atlas-menu.atlas-menu--sheet {
-    position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
-    width: auto; min-width: 0; max-width: none;
-    max-height: 72vh; overflow: hidden;
+    max-width: calc(100vw - 16px); max-height: min(70vh, 520px); overflow: hidden;
     display: flex; flex-direction: column;
   }
-  /* The "Add filter" menu drills root -> group options. Give it a FIXED height so
-     the sheet frame doesn't leap up the screen when the taller options list
-     replaces the short group grid — the reported "doesn't hold its position" bug. */
-  .atlas-menu.atlas-menu--drill { height: min(72vh, 520px); }
+  .atlas-menu--sheet.atlas-menu--wide { min-width: min(calc(100vw - 16px), 340px); }
   .atlas-menu--sheet .atlas-menu__head,
   .atlas-menu--sheet .atlas-menu__search { flex: none; }
   .atlas-menu--sheet .atlas-menu__groups,
@@ -882,6 +880,9 @@ h1 .atlas-soon--inline, h2 .atlas-soon--inline, .atlas-h1 .atlas-soon--inline, .
 		width: auto; height: auto; background: none; border: 0; color: var(--a-ink);
 	}
 	.atlas .atlas-action .atlas-action__icon svg { width: 17px; height: 17px; }
+	/* Without the 24px pill the action shrank to its 17px label line — too small
+	   a target for a thumb. Keep a 40px tap height. */
+	.atlas .atlas-action { min-height: 40px; }
 	.atlas .atlas-action--save,
 	.atlas :is(.atlas-table__row, .atlas-entity-card__actions, .mkt-co-actions, .atlas-wl-actions, .atlas-sig__actions, .atlas-rec__actions) .atlas-action {
 		min-width: 40px; min-height: 40px; justify-content: center; gap: 0;
