@@ -184,6 +184,10 @@ export const ROUTES: RouteDef[] = [
 	// reached from the home composer and the FAB.
 	{ id: 'chat', icon: 'nav-chat', name: 'Chat', path: '/chat' },
 	{ id: 'strategy', icon: 'nav-onboarding', name: 'Strategy', path: '/strategy', tier: 'raise' },
+	// Guides, templates and checklists across Prepare → Connect → Close (content in
+	// raise_resources, edited in admin). Back with real content after the October
+	// removal of the "Coming soon" placeholder.
+	{ id: 'guide', icon: 'nav-onboarding', name: 'Fundraising Guide', path: '/resources', tier: 'raise' },
 
 	// ── Scout ───────────────────────────────────────────────────────────────
 	{ id: 'deal-flow', icon: 'nav-dealflow', name: 'All', path: '/deal-flow', tier: 'scout' },
@@ -237,7 +241,7 @@ export const NAV_LAYOUT: Record<Tier, NavGroup[]> = {
 		{ title: 'Discover', items: ['companies', 'recommended', 'signals'] },
 		{ title: 'Intelligence', items: ['analytics', 'roundup', 'my-market', 'recently-funded', 'ma'] },
 		{ title: 'Watchlists', items: ['pipeline', 'watchlists'] },
-		{ title: 'Resources', items: ['framework', 'reports', 'events', 'newsletter'] },
+		{ title: 'Resources', items: ['guide', 'framework', 'reports', 'events', 'newsletter'] },
 	],
 	scout: [
 		{ title: null, items: ['home', 'chat'] },
