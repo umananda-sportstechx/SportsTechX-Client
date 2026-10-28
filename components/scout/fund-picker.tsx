@@ -47,15 +47,19 @@ function FundSearch({ t, patch }: Props) {
 	const [selected, setSelected] = useState<ClaimSearchResult | null>(null);
 	const [active, setActive] = useState(0);
 	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
-	const { results } = useClaimSearch('investor', q);
+	const { results, isLoading, enabled, query: searched } = useClaimSearch('investor', q);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
 	const query = q.trim();
 	const chosen = selected?.name ?? t.fundName;
 	const showPanel = open && !chosen && query.length >= 2;
-	// Nav items: each result, then "Add" and "Use as entered".
-	const navCount = results.length + 2;
+	// "Add" unlocks only once the search for exactly this text came back without a
+	// fund of that name — a fund not in the directory is added by claiming it.
+	const canAdd = enabled && !isLoading && searched === query
+		&& !results.some((r) => r.name.trim().toLowerCase() === query.toLowerCase());
+	// Nav items: each result, then "Add" when it's available.
+	const navCount = results.length + (canAdd ? 1 : 0);
 
 	const pick = (r: ClaimSearchResult) => {
 		setSelected(r);
@@ -67,15 +71,13 @@ function FundSearch({ t, patch }: Props) {
 		});
 		setQ(''); setOpen(false);
 	};
-	const useTyped = () => { setSelected(null); patch({ fundName: q.trim() }); setQ(''); setOpen(false); };
 	const clear = () => { setSelected(null); patch({ fundName: '' }); };
 	// A target without an id = "this is a new listing": the claim opens on the
 	// form, not a second search (the user just searched here).
 	const addNew = () => { openClaim({ role: 'investor' }, 'investor', { ...claimFromThesis(t), name: query }); setOpen(false); };
 	const activate = (i: number) => {
 		if (i < results.length) pick(results[i]);
-		else if (i === results.length) addNew();
-		else useTyped();
+		else if (canAdd) addNew();
 	};
 
 	// Position the portalled panel under the input, flipping up when there's no
@@ -162,14 +164,14 @@ function FundSearch({ t, patch }: Props) {
 								{r.hq && <span className="fundpicker__optmeta">{r.hq}{r.kind ? ` · ${r.kind}` : ''}</span>}
 							</button>
 						))}
-						<button type="button" data-ci={results.length} className={`fundpicker__add${active === results.length ? ' is-active' : ''}`}
-							onMouseEnter={() => setActive(results.length)} onClick={addNew}>
-							<Plus size={15} aria-hidden="true" /> Add “{query}” to the directory — we’ll verify it
-						</button>
-						<button type="button" data-ci={results.length + 1} className={`fundpicker__usetyped${active === results.length + 1 ? ' is-active' : ''}`}
-							onMouseEnter={() => setActive(results.length + 1)} onClick={useTyped}>
-							Use “{query}” as entered
-						</button>
+						{canAdd ? (
+							<button type="button" data-ci={results.length} className={`fundpicker__add${active === results.length ? ' is-active' : ''}`}
+								onMouseEnter={() => setActive(results.length)} onClick={addNew}>
+								<Plus size={15} aria-hidden="true" /> Add “{query}” and claim it — we’ll verify it
+							</button>
+						) : !results.length && (
+							<div className="fundpicker__usetyped" aria-live="polite">Searching…</div>
+						)}
 					</div>
 				</div>,
 				document.body,

@@ -73,5 +73,7 @@ export function useClaimSearch(role: ClaimRole | null, query: string) {
     results: rows(data).map(normalize).filter((r) => r.id && r.name).slice(0, 7),
     isLoading: enabled && isLoading,
     enabled,
+    /** The (debounced) query the results are for — lags the input while typing. */
+    query: q,
   };
 }

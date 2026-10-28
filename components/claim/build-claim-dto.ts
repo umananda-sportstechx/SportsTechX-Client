@@ -3,7 +3,7 @@ import { deckContentType, deckUploadError } from '@/lib/deck-upload';
 
 /** Pitch-deck formats the claim form takes (the claim analyzer converts PPT/PPTX). */
 export const CLAIM_DECK_EXTS = ['pdf', 'ppt', 'pptx'];
-import type { ClaimForm } from './claim-form';
+import type { ClaimForm, EntityPick, NewEntity } from './claim-form';
 import { OP_TYPE_TO_ENTITY } from './claim-form';
 import type { ClaimReference } from './use-claim-reference';
 
@@ -43,6 +43,20 @@ const trimOrNull = (s: string): string | null => {
   const v = s.trim();
   return v ? v : null;
 };
+
+// ─── user-added companies / investors ─────────────────────────────────────
+// A picked Atlas record sends its id; one the user added sends its details
+// (created when the claim is verified). Plain text with neither is dropped.
+
+const newCompany = (n: NewEntity) => ({
+  website: n.website.trim(), hq_country: n.country.trim(), hq_city: trimOrNull(n.city),
+  sector_id: n.sectorId, description: n.description.trim(), founded_year: intOrNull(n.founded), linkedin_url: trimOrNull(n.linkedin),
+});
+const newInvestor = (n: NewEntity) => ({
+  website: n.website.trim(), hq_country: n.country.trim(), hq_city: trimOrNull(n.city),
+  category: n.category, linkedin_url: trimOrNull(n.linkedin),
+});
+const linked = (p: EntityPick | null | undefined): p is EntityPick => !!p && (!!p.id || !!p.added);
 
 // ─── pitch-deck upload ─────────────────────────────────────────────────────
 
@@ -105,20 +119,29 @@ export function buildCompanyDto(form: ClaimForm, ref: ClaimReference, targetId: 
       contact_email: trimOrNull(form.contactEmail),
       contact_linkedin: trimOrNull(form.contactLinkedin),
     },
-    funding_rounds: form.rounds.map((r) => ({
-      round_type_id: ref.resolveRoundType(r.roundType),
-      round_label: trimOrNull(r.roundType),
-      amount_usd: parseAmount(r.amount),
-      round_date: trimOrNull(r.date),
-      investors: trimOrNull(r.investors),
-      source_url: trimOrNull(r.source),
-    })),
-    mna: form.mna.map((m) => ({
-      deal_type: trimOrNull(m.dealType),
-      counterparty: trimOrNull(m.counterparty),
-      amount_usd: parseAmount(m.amount),
-      deal_date: trimOrNull(m.date),
-    })),
+    funding_rounds: form.rounds.map((r) => {
+      const invs = (r.invs ?? []).filter(linked);
+      return {
+        round_type_id: ref.resolveRoundType(r.roundType),
+        round_label: trimOrNull(r.roundType),
+        amount_usd: parseAmount(r.amount),
+        round_date: trimOrNull(r.date),
+        investors: invs.length ? invs.map((p) => p.name.trim()).join(', ') : trimOrNull(r.investors),
+        investor_refs: invs.map((p) => ({ investor_id: p.id, name: p.name.trim(), new_investor: p.added ? newInvestor(p.added) : null })),
+        source_url: trimOrNull(r.source),
+      };
+    }),
+    mna: form.mna.map((m) => {
+      const cp = linked(m.cp) ? m.cp : null;
+      return {
+        deal_type: trimOrNull(m.dealType),
+        counterparty: cp ? cp.name.trim() : trimOrNull(m.counterparty),
+        counterparty_company_id: cp?.id ?? null,
+        new_counterparty: cp?.added ? newCompany(cp.added) : null,
+        amount_usd: parseAmount(m.amount),
+        deal_date: trimOrNull(m.date),
+      };
+    }),
   };
 }
 
@@ -159,11 +182,16 @@ export function buildInvestorDto(form: ClaimForm, ref: ClaimReference, targetId:
       fund_year: intOrNull(f.year),
       size_usd: parseAmount(f.size),
     })),
-    portfolio: form.portfolio.map((p) => ({
-      company_name: trimOrNull(p.name),
-      stage: trimOrNull(p.stage),
-      invest_year: intOrNull(p.year),
-    })),
+    portfolio: form.portfolio.map((p) => {
+      const co = linked(p.co) ? p.co : null;
+      return {
+        company_name: co ? co.name.trim() : trimOrNull(p.name),
+        company_id: co?.id ?? null,
+        new_company: co?.added ? newCompany(co.added) : null,
+        stage: trimOrNull(p.stage),
+        invest_year: intOrNull(p.year),
+      };
+    }),
   };
 }
 
