@@ -91,7 +91,7 @@ export const PRIVATE_PREFIXES = [
   '/account', '/analytics', '/billing', '/chat', '/companies', '/credits', '/deal-flow',
   '/deck', '/events', '/framework', '/home', '/interests',
   '/investors', '/ma', '/my-market', '/newsletter', '/pipeline', '/programs',
-  '/recently-funded', '/recommended', '/reports', '/roundup', '/settings',
+  '/recently-funded', '/recommended', '/reports', '/resources', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
   // Not in ROUTES: the onboarding tree, the integration docs, and the
   // verified-company report (reached from an email, not the sidebar).

@@ -1,0 +1,57 @@
+/* Atlas Raise — Fundraising Guide (index + item). On the Atlas tokens. */
+.fg { display: grid; gap: 40px; }
+.fg-phase__head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.fg-phase__head .atlas-h2 { margin: 0; }
+.fg-phase__blurb { font-size: 13px; color: var(--a-muted); }
+.fg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+
+.fg-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; text-decoration: none; color: inherit; min-height: 150px; transition: border-color .15s; }
+.fg-card:hover { border-color: var(--a-border-strong); }
+.fg-card:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 2px; }
+.fg-card__title { font-family: var(--a-font); font-size: 16px; font-weight: 700; color: var(--a-ink); padding-right: 34px; }
+.fg-card__summary { font-size: 13px; line-height: 1.5; color: var(--a-muted); }
+.fg-card__progress { margin-top: auto; display: grid; gap: 6px; font-size: 11px; color: var(--a-muted); }
+.fg-card__go {
+  position: absolute; top: 16px; right: 16px; display: inline-grid; place-items: center; width: 28px; height: 22px;
+  border-radius: var(--a-radius-pill); background: var(--a-field); border: 1px solid var(--a-border); color: var(--a-ink);
+}
+.fg-card:hover .fg-card__go { background: var(--a-primary); color: var(--a-primary-ink); }
+
+.fg-kind {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--a-mono); font-size: 10px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted);
+}
+
+.fg-item { max-width: 820px; }
+.fg-item__head { margin: 24px 0 20px; display: grid; gap: 10px; }
+.fg-item__title { margin: 0; }
+.fg-item__summary { margin: 0; font-size: 15px; color: var(--a-muted); line-height: 1.5; }
+.fg-item__progress { display: grid; gap: 6px; max-width: 320px; font-size: 12px; color: var(--a-muted); }
+.fg-item__body { padding: 24px 28px; display: grid; gap: 8px; font-size: 14px; line-height: 1.65; }
+.fg-item__body h2 { font-family: var(--a-font); font-size: 17px; margin: 14px 0 4px; }
+
+.fg-checks { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 2px; }
+.fg-check {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--a-ink); text-align: left; font: inherit; cursor: pointer;
+}
+.fg-check:hover { background: var(--a-field); }
+.fg-check:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 1px; }
+.fg-check__box {
+  flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-top: 2px;
+  border-radius: 5px; border: 1.5px solid var(--a-border-strong); color: var(--a-primary-ink);
+}
+.fg-check.is-on .fg-check__box { background: var(--a-primary); border-color: var(--a-primary); }
+.fg-check.is-on .fg-check__text { color: var(--a-muted); text-decoration: line-through; text-decoration-color: var(--a-faint); }
+
+.fg-template { position: relative; margin: 4px 0 10px; border: 1px solid var(--a-border); border-radius: 10px; background: var(--a-field); }
+.fg-template pre {
+  margin: 0; padding: 16px 18px; padding-right: 92px; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--a-body); font-size: 13px; line-height: 1.6; color: var(--a-ink);
+}
+.fg-template__copy { position: absolute; top: 10px; right: 10px; }
+
+@media (max-width: 640px) {
+  .fg-item__body { padding: 18px 16px; }
+  .fg-template pre { padding-right: 18px; padding-top: 48px; }
+}
