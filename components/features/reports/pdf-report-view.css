@@ -1,0 +1,44 @@
+/* In-app PDF report reader (chrome-less report route, so it sets its own page). */
+/* globals.css sets `html, body { height: 100%; overflow-x: hidden }`, which makes
+   <body> the scroll container: window scroll events and scrollY never move, so
+   the page counter froze on 1. Same fix as the landing (landing.css): clip
+   instead of hidden, and let the document grow so the viewport scrolls. */
+html:has(.pdfv),
+body:has(.pdfv) { overflow-x: clip; height: auto; min-height: 100%; }
+
+.pdfv { min-height: 100vh; background: var(--a-page); color: var(--a-ink); }
+
+.pdfv-bar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  height: 56px; padding: 0 16px;
+  background: color-mix(in srgb, var(--a-page) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--a-border);
+}
+.pdfv-back { display: inline-flex; align-items: center; gap: 6px; color: var(--a-ink-2); text-decoration: none; font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+.pdfv-back:hover { color: var(--a-ink); }
+.pdfv-title { flex: 1; min-width: 0; font-family: var(--a-font); font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdfv-select { height: 32px; padding: 0 8px; border-radius: var(--a-radius-sm); border: 1px solid var(--a-border-strong); background: var(--a-field); color: var(--a-ink); font: inherit; font-size: 12px; }
+.pdfv-count { font-family: var(--a-mono); font-size: 12px; color: var(--a-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.pdfv-zoom { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.pdfv-zoom span { font-family: var(--a-mono); font-size: 11px; color: var(--a-muted); min-width: 40px; text-align: center; }
+.pdfv-zoom button { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: var(--a-radius-sm); background: transparent; color: var(--a-ink-2); cursor: pointer; }
+.pdfv-zoom button:hover:not(:disabled) { background: var(--a-inset); color: var(--a-ink); }
+.pdfv-zoom button:disabled { opacity: 0.35; cursor: default; }
+
+.pdfv-body { padding: 24px 16px 48px; display: flex; justify-content: center; overflow-x: auto; }
+.pdfv-body .react-pdf__Document { display: flex; flex-direction: column; align-items: center; }
+.pdfv-page { position: relative; margin: 0 auto; background: #fff; border-radius: 4px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25); overflow: hidden; }
+.pdfv-page canvas { display: block; }
+
+.pdfv-msg { min-height: 60vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; padding: 24px; }
+.pdfv-msg h2 { margin: 0; font-family: var(--a-font); font-size: 20px; }
+.pdfv-msg p { margin: 0; color: var(--a-muted); font-size: 13px; }
+.pdfv-msg-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
+@media (max-width: 640px) {
+  .pdfv-hide-sm { display: none !important; }
+  .pdfv-bar { gap: 8px; padding: 0 12px; }
+  .pdfv-body { padding: 12px 8px 32px; }
+}
