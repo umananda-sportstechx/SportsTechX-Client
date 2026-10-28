@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Users } from 'lucide-react';
 import { Badge, Button } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
+import { refreshRaise } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { openRaiseSetup } from '@/lib/setup-events';
 
@@ -52,6 +53,7 @@ export function DealflowOptIn() {
 			if (!res.ok) throw new Error(String(res.status));
 			toast.success(okMsg);
 			void mutate();
+			void refreshRaise(); // Raise home's "share your round" card reads this too
 		} catch {
 			toast.error('That did not go through. Please try again.');
 		} finally { setBusy(false); }

@@ -291,3 +291,6 @@
 	   `.open`); the launcher is a following sibling of the rail in AtlasShell. */
 	.atlas-rail.open ~ .raise-chat-fab { display: none; }
 }
+
+/* Opening a conversation that isn't cached yet (shared chat session → loading). */
+.raise-chatpage-loading { padding: 24px 4px; font-size: 13px; color: var(--a-muted); }

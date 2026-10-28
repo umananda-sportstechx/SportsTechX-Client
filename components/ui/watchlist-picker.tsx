@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import useSWR, { mutate as globalMutate } from 'swr';
+import useSWR from 'swr';
 import { X, Plus, Check } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { useFormDraft } from '@/hooks/use-form-draft';
+import { toast } from 'sonner';
+import { addToWatchlist, removeFromWatchlist } from '@/components/features/watchlists/use-company-watchlists';
+import { refreshWatchlists } from '@/lib/invalidate';
 
 interface Watchlist {
 	id: string;
@@ -87,13 +90,13 @@ export function WatchlistPicker({
 		if (!companyId) return;
 		const isOn = checked.has(id);
 		setPending((p) => new Set(p).add(id));
+		// The shared helpers: optimistic, and they refresh every view of the list
+		// (this used to miss the list's own page and swallow failures).
 		try {
-			await apiRequest(
-				isOn ? 'DELETE' : 'POST',
-				`/api/user-watchlists/${id}/companies/${companyId}`,
-			);
-			await globalMutate(qk.userWatchlists.containing(companyId));
-			await globalMutate(qk.userWatchlists.list());
+			if (isOn) await removeFromWatchlist(id, companyId);
+			else await addToWatchlist(id, companyId);
+		} catch (err) {
+			toast.error((err as Error).message || 'Could not update the watchlist');
 		} finally {
 			setPending((p) => { const n = new Set(p); n.delete(id); return n; });
 		}
@@ -109,15 +112,13 @@ export function WatchlistPicker({
 				name, color: newColor,
 			});
 			const created = await res.json() as Watchlist;
-			await globalMutate(qk.userWatchlists.list());
-			if (companyId) {
-				await apiRequest('POST', `/api/user-watchlists/${created.id}/companies/${companyId}`);
-				await globalMutate(qk.userWatchlists.containing(companyId));
-			}
+			if (companyId) await addToWatchlist(created.id, companyId);
+			else await refreshWatchlists();
 			setNewName('');
 			clearDraft();
 			setCreating(false);
-		} catch {
+		} catch (err) {
+			toast.error((err as Error).message || 'Could not create the list');
 			setCreating(false);
 		}
 	};

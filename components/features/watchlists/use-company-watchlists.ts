@@ -3,6 +3,7 @@
 import useSWR, { mutate as globalMutate } from 'swr';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPaths, refreshWatchlists } from '@/lib/invalidate';
 
 /**
  * Company watchlists (backend: /api/user-watchlists) — several named lists of
@@ -52,15 +53,34 @@ export async function setWatchlistView(id: string, view_mode: 'list' | 'board'):
 	return true;
 }
 
-export async function addToWatchlist(watchlistId: string, companyId: string) {
-	await apiRequest('POST', `/api/user-watchlists/${watchlistId}/companies/${companyId}`);
-	await Promise.all([refreshLists(), globalMutate(qk.userWatchlists.containing(companyId)), globalMutate(qk.userWatchlists.companies(watchlistId))]);
+/**
+ * Add / remove a company. Optimistic: the bookmark (and a list page's rows)
+ * change the moment it's clicked, not after the round trip; a failure puts the
+ * real state back and rethrows for the caller's toast. Then every view that
+ * shows membership is refreshed — counts, list pages, Signals' watchlist
+ * filter, Scout home.
+ */
+async function setMembership(watchlistId: string, companyId: string, on: boolean) {
+	const containing = qk.userWatchlists.containing(companyId);
+	await globalMutate(containing, (d?: { data: string[] }) => {
+		const ids = asList<string>(d).filter((x) => x !== watchlistId);
+		return { data: on ? [...ids, watchlistId] : ids };
+	}, { revalidate: false });
+	if (!on) {
+		await globalMutate(qk.userWatchlists.companies(watchlistId),
+			(d?: { data: WatchlistCompany[] }) => d && { ...d, data: d.data.filter((c) => c.id !== companyId) }, { revalidate: false });
+	}
+	try {
+		await apiRequest(on ? 'POST' : 'DELETE', `/api/user-watchlists/${watchlistId}/companies/${companyId}`);
+	} catch (e) {
+		await refreshWatchlists(); // roll back to the server's truth
+		throw e;
+	}
+	await refreshWatchlists();
 }
 
-export async function removeFromWatchlist(watchlistId: string, companyId: string) {
-	await apiRequest('DELETE', `/api/user-watchlists/${watchlistId}/companies/${companyId}`);
-	await Promise.all([refreshLists(), globalMutate(qk.userWatchlists.containing(companyId)), globalMutate(qk.userWatchlists.companies(watchlistId))]);
-}
+export const addToWatchlist = (watchlistId: string, companyId: string) => setMembership(watchlistId, companyId, true);
+export const removeFromWatchlist = (watchlistId: string, companyId: string) => setMembership(watchlistId, companyId, false);
 
 export async function createWatchlist(name: string, kind: 'companies' | 'investors' = 'companies'): Promise<CompanyWatchlist> {
 	const res = await apiRequest('POST', '/api/user-watchlists', { name: name.trim(), kind });
@@ -76,6 +96,7 @@ export async function renameWatchlist(id: string, name: string) {
 
 export async function deleteWatchlist(id: string) {
 	await apiRequest('DELETE', `/api/user-watchlists/${id}`);
-	// An investor list's investors fall back to Main server-side — refresh those views too.
-	await Promise.all([refreshLists(), globalMutate((k: unknown) => Array.isArray(k) && k[0] === qk.raise.pipeline()[0])]);
+	// Everything that showed the list or its membership ("in 1 watchlist" on a
+	// company page), and an investor list's investors falling back to Main.
+	await Promise.all([refreshWatchlists(), refreshPaths('/api/raise/pipeline')]);
 }

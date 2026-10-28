@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import useSWR, { mutate } from 'swr';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { useChat, chatSessionId, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
+import { useChat, chatSessionId, chatSessionStreaming, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
@@ -63,7 +63,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 		insufficientCreditsMd: copy.insufficient,
 	});
 	const {
-		messages, input, setInput, streaming, stage, conversationId,
+		messages, input, setInput, streaming, stage, conversationId, loading,
 		bodyRef, send, resetConversation, loadConversation, abort,
 	} = chat;
 
@@ -91,10 +91,12 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 	useEffect(() => {
 		const live = chatSessionId();
 		if (routeId && routeId !== live) void loadConversation(routeId);
-		// Back to bare `/chat` (browser back, a nav link) means a fresh thread.
-		// Only fires when the ROUTE changes, so a new chat getting its id while
-		// still on `/chat` cannot trip it.
-		else if (!routeId && live) resetConversation();
+		// Back to bare `/chat` (browser back, a nav link) means a fresh thread —
+		// unless a reply is streaming: that's the drawer's brand-new chat being
+		// expanded before its id arrived, and the effect below takes the URL to
+		// it. Only fires when the ROUTE changes, so a new chat getting its id
+		// while still on `/chat` cannot trip it.
+		else if (!routeId && live && !chatSessionStreaming()) resetConversation();
 		// conversationId is deliberately not a dependency: when a new chat gets
 		// its id, the effect below moves the URL to match, and re-running this
 		// one in between would reload the conversation that is still streaming.
@@ -103,9 +105,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
 	// Thread → URL: a conversation that has an id lives at `/chat/<id>`, so a
 	// refresh or a shared link restores it. Also refreshes the rail.
+	// The LIVE id, not this render's: on mount the render still holds whatever the
+	// shared session had before (say the drawer's old thread) even though the
+	// effects above just reset or switched it — following that sent a fresh `?q=`
+	// question, a bare `/chat` or a `/chat/<id>` link back to the old thread.
 	useEffect(() => {
-		if (!conversationId) return;
-		if (conversationId !== routeId) router.replace(`${CHAT}/${encodeURIComponent(conversationId)}`);
+		const live = chatSessionId();
+		if (!live) return;
+		if (live !== routeId) router.replace(`${CHAT}/${encodeURIComponent(live)}`);
 		void mutate(qk.chat.conversations());
 		// routeId is read, not tracked: tracking it would re-fire on every
 		// navigation and fight the effect above.
@@ -113,7 +120,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 	}, [conversationId, router]);
 
 	const newChat = () => { resetConversation(); router.replace(CHAT); };
-	const hasThread = messages.length > 1 || streaming;
+	const hasThread = messages.length > 1 || streaming || loading;
 
 	return (
 		<div className="raise-chatpage">
@@ -122,11 +129,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 			<div className="raise-chatpage-main">
 				<div className="raise-chatpage-transcript" ref={bodyRef}>
 					<div className="raise-chatpage-thread">
-						<FounderMessages
-							messages={messages} streaming={streaming} stage={stage}
-							onAction={(href) => router.push(href)}
-							rewritePath={isScout ? scoutRewritePath : founderRewritePath}
-						/>
+						{loading
+							? <div className="raise-chatpage-loading" role="status">Loading conversation…</div>
+							: <FounderMessages
+								messages={messages} streaming={streaming} stage={stage}
+								onAction={(href) => router.push(href)}
+								rewritePath={isScout ? scoutRewritePath : founderRewritePath}
+							/>}
 						{!hasThread && (
 							<div className="raise-chatpage-suggest">
 								{(isScout ? SCOUT_SUGGESTIONS : tier === 'raise' ? RAISE_SUGGESTIONS : EXPLORE_SUGGESTIONS).map((s) => (

@@ -142,3 +142,6 @@
 	.raise-chatpage { height: auto; }
 	.raise-chatpage-main { height: calc(100dvh - 106px); }
 }
+
+/* Opening a conversation that isn't cached yet (shared chat session → loading). */
+.raise-chatpage-loading { padding: 24px 4px; font-size: 13px; color: var(--a-muted); }

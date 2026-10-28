@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Pencil } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { refreshRaise } from '@/lib/invalidate';
 import { openRaiseSetup } from '@/lib/setup-events';
 import { Screen, PageHead, Card, Button, Loading } from '@/components/atlas';
 import { AccountTabs } from '@/components/features/account/account-tabs';
@@ -45,7 +46,7 @@ export default function RaiseSettingsPage() {
 
 	const setStatus = async (status: string, label: string) => {
 		setBusy(true);
-		try { await apiRequest('PATCH', '/api/raise', { status }); void mutate(); toast.success(label); }
+		try { await apiRequest('PATCH', '/api/raise', { status }); void mutate(); void refreshRaise(); toast.success(label); }
 		catch (e) { toast.error((e as Error).message ?? 'Could not update'); }
 		finally { setBusy(false); }
 	};

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { clearLegacy, readLegacy } from '@/hooks/legacy-local';
 import { apiRequest } from '@/lib/query-client';
+import { refreshScout } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { DEFAULT_THESIS, type Thesis } from './sample-data';
 import {
@@ -125,6 +126,9 @@ export function useThesisState(): ThesisState {
 		const r = await apiRequest('PUT', '/api/scout/thesis', { ...toThesisDto(next, idx), include_tags: splitLocal(next.include, idx.sports, MODEL_LABELS) });
 		if (!r.ok) throw new Error(`thesis save failed (${r.status})`);
 		await Promise.all([scout.mutate(), thesis.mutate()]);
+		// Home's setup card, recommendations, deal flow / can-submit and Signals
+		// are all built from the thesis.
+		void refreshScout();
 	}, [idx, scout, thesis]);
 
 	return {
