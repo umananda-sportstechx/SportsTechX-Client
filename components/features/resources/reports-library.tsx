@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import useSWR from 'swr';
 import { qk } from '@/lib/query-keys';
-import { downloadReport, viewReport } from '@/lib/report-pdf';
+import { downloadReport } from '@/lib/report-pdf';
 import type { Page, ReportListItem } from '@/types/api';
 import { ResourceLibrary } from './resource-library';
 import type { Resource } from './resource-contract';
@@ -18,12 +18,10 @@ const toResource = (r: ReportListItem): Resource => ({
 	access: r.has_pro_version ? 'Premium' : 'Free',
 	tags: r.tags ?? [],
 	cover: r.cover_url,
-	// Both kinds open in a NEW TAB: section reports → the chrome-less in-app
-	// renderer, legacy cover+PDF reports → the signed PDF (viewReport already
-	// opens its own tab), so reading a report never loses the library you were on.
-	onView: r.has_sections
-		? () => window.open(`/reports/${r.slug ?? r.id}`, '_blank', 'noopener')
-		: () => void viewReport(r.slug ?? r.id),
+	// Both kinds open the in-app report page in a NEW TAB (section reports → the
+	// section renderer, PDF reports → the PDF reader), so reading never loses the
+	// library you were on and never shows a raw storage link.
+	onView: () => window.open(`/reports/${r.slug ?? r.id}`, '_blank', 'noopener'),
 	onDownload: () => void downloadReport(r.slug ?? r.id),
 });
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
@@ -12,6 +13,12 @@ import type { ReportDetail, Section } from './report-kit/types';
 import { SectionRenderer } from './section-renderer';
 import './report-kit/report-kit.css';
 
+// PDF reports read in-app; PDF.js loads only when one is opened.
+const PdfReportView = dynamic(() => import('./pdf-report-view').then((m) => m.PdfReportView), {
+	ssr: false,
+	loading: () => <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Loading /></div>,
+});
+
 /**
  * Chrome-less report page (no Atlas shell). Fetches the report + its section
  * feed, themes the whole page from `reports.theme` via --rk-* CSS vars, renders
@@ -20,7 +27,8 @@ import './report-kit/report-kit.css';
  */
 export function ReportView({ slug }: { slug: string }) {
 	const detail = useSWR<ReportDetail>(qk.reports.detail(slug));
-	const sections = useSWR<{ data: Section[] }>(qk.reports.sections(slug));
+	// A PDF report has no section feed — don't ask for one.
+	const sections = useSWR<{ data: Section[] }>(detail.data?.has_sections ? qk.reports.sections(slug) : null);
 
 	const defaultDark = detail.data?.theme?.default_dark ?? true;
 	const [isDark, setIsDark] = useState(defaultDark);
@@ -55,6 +63,7 @@ export function ReportView({ slug }: { slug: string }) {
 
 	if (detail.isLoading || sections.isLoading) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Loading /></div>;
 	if (!detail.data) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Empty>Report not found. <Link href="/reports">Back to reports</Link></Empty></div>;
+	if (!detail.data.has_sections) return <PdfReportView slug={slug} report={detail.data} />;
 
 	const rows = sections.data?.data ?? [];
 	const anchors = rows.filter((s) => s.title && s.slug).map((s) => ({ slug: s.slug as string, title: s.title as string }));
