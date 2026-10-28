@@ -339,7 +339,6 @@ export interface RaiseUpsert {
 	paying_customers?: number | string | null;
 	monthly_burn?: number | string | null;
 	runway_months?: number | string | null;
-	strongest_traction?: string | null;
 	pitch_deck_status?: 'have' | 'later' | null;
 	financial_model_status?: 'ready' | 'in_progress' | 'not_started' | null;
 	data_room_status?: 'ready' | 'in_progress' | 'not_started' | null;

@@ -204,7 +204,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	const stepFields = useMemo<(keyof RaiseUpsert)[][]>(() => [
 		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'company_stage_other', 'revenue_status'],
 		['fundraising_process', 'round_type', 'round_type_other', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
-		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
+		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months'],
 		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
 	], []);
 
@@ -378,7 +378,6 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 						<Grid><Field label="Current annual revenue / ARR" info={H.revenue}><Input type="number" min={0} value={s(form.annual_revenue)} onChange={(e) => set('annual_revenue', e.target.value)} /></Field><Field label="Monthly burn" info={H.burn}><Input type="number" min={0} value={s(form.monthly_burn)} onChange={(e) => set('monthly_burn', e.target.value)} /></Field></Grid>
 						<Grid><Field label="Revenue growth over the last 12 months (optional)"><Input type="number" placeholder="%" value={s(form.revenue_growth_pct)} onChange={(e) => set('revenue_growth_pct', e.target.value)} /></Field><Field label="Paying customers (optional)"><Input type="number" min={0} value={s(form.paying_customers)} onChange={(e) => set('paying_customers', e.target.value)} /></Field></Grid>
 						<Field label="Months of runway remaining" info={H.runway}><Input type="number" min={0} value={s(form.runway_months)} onChange={(e) => set('runway_months', e.target.value)} /></Field>
-						<Field label="Strongest traction metric (optional)" info={H.traction}><Input placeholder="e.g. 40% MoM growth" value={s(form.strongest_traction)} onChange={(e) => set('strongest_traction', e.target.value)} /></Field>
 					</>}
 
 					{step === 3 && <>

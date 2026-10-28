@@ -31,7 +31,6 @@ export const SETUP_HELP = {
 	revenue: <p>Revenue over the last 12 months. If you sell subscriptions, use ARR: annual recurring revenue, i.e. this month&apos;s recurring revenue × 12.</p>,
 	burn: <p>How much cash the company spends each month, after revenue coming in.</p>,
 	runway: <p>How many months until the money runs out at today&apos;s burn: cash in the bank ÷ monthly burn.</p>,
-	traction: <p>The one number that best proves demand — revenue growth, active users, retention, or pilots with clubs and leagues.</p>,
 	deck: <p>The short presentation (usually 10–15 slides) you send investors: problem, solution, market, traction, team, and how much you&apos;re raising.</p>,
 	targetList: <p>A shortlist of investors that fit your stage, sector and cheque size — the ones you plan to approach. Atlas can help you build it.</p>,
 	financialModel: <p>A spreadsheet projecting revenue, costs, hiring and cash for the next 3–5 years, with the assumptions behind them. Investors use it to test your plan and the amount you&apos;re asking for.</p>,
