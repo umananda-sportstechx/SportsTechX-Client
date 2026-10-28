@@ -18,11 +18,14 @@ const toResource = (r: ReportListItem): Resource => ({
 	access: r.has_pro_version ? 'Premium' : 'Free',
 	tags: r.tags ?? [],
 	cover: r.cover_url,
-	// Both kinds open the in-app report page in a NEW TAB (section reports → the
-	// section renderer, PDF reports → the PDF reader), so reading never loses the
-	// library you were on and never shows a raw storage link.
-	onView: () => window.open(`/reports/${r.slug ?? r.id}`, '_blank', 'noopener'),
-	onDownload: () => void downloadReport(r.slug ?? r.id),
+	// Only buttons that work. View opens the in-app report page in a NEW TAB
+	// (section renderer, or the PDF reader — a locked PDF shows its upgrade
+	// message there), so it needs something to read: a web report or a PDF.
+	// Download needs a PDF this plan can open. (Undefined = older API: keep both.)
+	onView: r.has_sections || r.has_pdf !== false
+		? () => window.open(`/reports/${r.slug ?? r.id}`, '_blank', 'noopener')
+		: undefined,
+	onDownload: r.can_download !== false ? () => void downloadReport(r.slug ?? r.id) : undefined,
 });
 
 export function ReportsLibrary() {

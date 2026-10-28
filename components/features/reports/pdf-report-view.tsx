@@ -40,7 +40,7 @@ export function PdfReportView({ slug, report }: { slug: string; report: ReportDe
 	const [picked, setPicked] = useState<string | null>(null);
 	const versionId = picked ?? sorted[0]?.id ?? null;
 	// One URL per visit and version: re-minting would reload the document.
-	const file = useSWR<{ url: string }>(versionId ? qk.reports.pdfUrl(versionId, 'viewer') : null,
+	const file = useSWR<{ url: string; source: 'storage' | 'external' }>(versionId ? qk.reports.pdfUrl(versionId, 'viewer') : null,
 		{ revalidateOnFocus: false, revalidateOnReconnect: false, revalidateIfStale: false, shouldRetryOnError: false });
 
 	const wrapRef = useRef<HTMLDivElement>(null);
@@ -79,7 +79,14 @@ export function PdfReportView({ slug, report }: { slug: string; report: ReportDe
 	const tracked = useRef(false);
 	const v = sorted.find((x) => x.id === versionId);
 
-	const noAccess = (versions.data && !sorted.length) || (file.error as { status?: number } | undefined)?.status === 404;
+	// No edition to open: nothing uploaded yet (the server only lists editions
+	// with a file), or none this plan can open. Distinct messages, and no
+	// Download in either — a button that can't work isn't shown.
+	const fileErr = file.error as { status?: number; code?: string } | undefined;
+	const noPdf = (versions.data && !sorted.length && report.has_pdf === false) || fileErr?.code === 'NO_PDF';
+	const noAccess = !noPdf && ((versions.data && !sorted.length) || fileErr?.status === 404);
+	// A Drive-only edition: PDF.js can't read a Drive page, so offer the link instead.
+	const external = file.data?.source === 'external';
 	const toolbar = (
 		<header className="pdfv-bar">
 			<Link href="/reports" className="pdfv-back" aria-label="Back to reports"><ArrowLeft size={16} /><span className="pdfv-hide-sm">Reports</span></Link>
@@ -96,7 +103,7 @@ export function PdfReportView({ slug, report }: { slug: string; report: ReportDe
 				<button type="button" aria-label="Zoom in" disabled={zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}><Plus size={14} /></button>
 				<button type="button" aria-label="Fit to width" disabled={zoom === 1} onClick={() => setZoom(1)}><Maximize2 size={14} /></button>
 			</div>
-			{versionId && !noAccess && (
+			{file.data?.source === 'storage' && (
 				<button type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm" onClick={() => { track('Report Downloaded', { slug, edition: v && label(v) }); void downloadReport(slug, versionId); }}>
 					<Download size={13} /><span className="pdfv-hide-sm">Download</span>
 				</button>
@@ -105,7 +112,15 @@ export function PdfReportView({ slug, report }: { slug: string; report: ReportDe
 	);
 
 	let body: React.ReactNode;
-	if (noAccess) {
+	if (noPdf) {
+		body = (
+			<div className="pdfv-msg">
+				<h2>This report isn&apos;t available yet</h2>
+				<p>Its PDF hasn&apos;t been published. Please check back soon.</p>
+				<div className="pdfv-msg-actions"><Link className="atlas-btn atlas-btn--ghost" href="/reports">Back to reports</Link></div>
+			</div>
+		);
+	} else if (noAccess) {
 		body = (
 			<div className="pdfv-msg">
 				<h2>This report is part of a paid plan</h2>
@@ -115,6 +130,14 @@ export function PdfReportView({ slug, report }: { slug: string; report: ReportDe
 		);
 	} else if (versions.error || file.error) {
 		body = <div className="pdfv-msg"><h2>This report couldn&apos;t be opened</h2><p>Please try again in a moment.</p><div className="pdfv-msg-actions"><button type="button" className="atlas-btn atlas-btn--primary" onClick={() => { void versions.mutate(); void file.mutate(); }}>Try again</button></div></div>;
+	} else if (external && file.data) {
+		body = (
+			<div className="pdfv-msg">
+				<h2>This report opens outside Atlas</h2>
+				<p>It&apos;s hosted on Google Drive.</p>
+				<div className="pdfv-msg-actions"><a className="atlas-btn atlas-btn--primary" href={file.data.url} target="_blank" rel="noopener noreferrer">Open report</a><Link className="atlas-btn atlas-btn--ghost" href="/reports">Back to reports</Link></div>
+			</div>
+		);
 	} else if (!file.data || !boxWidth) {
 		body = <div className="pdfv-msg"><Loading /></div>;
 	} else {
