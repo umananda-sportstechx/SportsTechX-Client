@@ -51,7 +51,10 @@ export function Select({ options, groups, placeholder, value, onChange, disabled
 	return (
 		<Combobox
 			options={opts}
-			groups={groups}
+			// Grouped: the placeholder stays a selectable "clear" option on top, as
+			// it is for a flat list (an optional field must be clearable).
+			groups={groups && (placeholder !== undefined ? [{ label: '', options: [['', placeholder]] }, ...groups] : groups)}
+			searchGroupLabels={!!groups}
 			placeholder={placeholder ?? 'Select…'}
 			value={value == null ? '' : String(value)}
 			disabled={disabled}

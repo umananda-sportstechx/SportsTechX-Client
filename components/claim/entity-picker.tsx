@@ -96,7 +96,7 @@ function AddedForm({ kind, value, added, onChange }: { kind: EntityKind; value: 
       {kind === 'company' ? (
         <>
           <div className="cm-row2">
-            <div className="cm-field cm-half"><label className="cm-label">Sector {req}</label><Combobox className="cm-select" value={added.sectorId} onChange={(v) => set('sectorId', v)} placeholder="Select sector…" groups={sectorGroups} /></div>
+            <div className="cm-field cm-half"><label className="cm-label">Sector {req}</label><Combobox className="cm-select" value={added.sectorId} onChange={(v) => set('sectorId', v)} placeholder="Select sector…" groups={sectorGroups} searchGroupLabels /></div>
             <div className="cm-field cm-half"><label className="cm-label">Founded year <span className="cm-opt">(optional)</span></label><input className="cm-input" value={added.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
           </div>
           <div className="cm-field"><label className="cm-label">What does it do? {req}</label><input className="cm-input" maxLength={300} value={added.description} onChange={(e) => set('description', e.target.value)} placeholder="One sentence" /></div>
