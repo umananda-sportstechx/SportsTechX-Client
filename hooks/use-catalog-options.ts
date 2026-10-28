@@ -150,3 +150,19 @@ export function useRoundTypeOptions(): [string, string][] {
 		return list.map((r) => [r.slug, r.name] as [string, string]);
 	}, [data]);
 }
+
+/** Leaf sectors (where companies sit) as [id, "Root → Sub → Leaf"] options, sorted by path. */
+export function useLeafSectorOptions(): [string, string][] {
+	const { data } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
+	return useMemo(() => {
+		const list = data ?? [];
+		const byId = new Map(list.map((s) => [s.id, s]));
+		const path = (s: { name: string; parent_id: string | null }): string => {
+			const parts = [s.name]; let p = s.parent_id;
+			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
+			return parts.join(' → ');
+		};
+		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
+		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
+	}, [data]);
+}

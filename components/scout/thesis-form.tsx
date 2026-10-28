@@ -35,8 +35,8 @@ export function ProfileFields({ t, patch }: Props) {
 }
 
 export function FundFields({ t, patch }: Props) {
-	// Fund identity is directory-backed: the picker searches investors, lets you
-	// add a new one (→ admin approval) or use what you typed, and surfaces the
+	// Fund identity is directory-backed: the picker searches investors and, when
+	// search finds nothing, lets you add yours by claiming it, and surfaces the
 	// verify step (optional; only gates deal submission). Once YOU have claimed a
 	// fund (pending or verified — other people from the same fund may be verified
 	// too), its name/website come from your claim, so we mirror them onto the

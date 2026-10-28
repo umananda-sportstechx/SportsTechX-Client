@@ -1,4 +1,4 @@
-import type { ClaimForm, RoundRow, MnaRow, FundRow, PortfolioRow } from './claim-form';
+import type { ClaimForm, RoundRow, MnaRow, FundRow, PortfolioRow, EntityPick, NewEntity } from './claim-form';
 import { RAISE_AMOUNTS } from './claim-form';
 import { parseAmount } from './build-claim-dto';
 import type { ClaimReference } from './use-claim-reference';
@@ -32,6 +32,18 @@ const amountLabel = (v: unknown): string => {
 // Reverse of build-claim-dto's REVENUE_STAGE_MAP (many→one: 'growth' picks one).
 const REVENUE_REVERSE: Record<string, string> = {
 	pre_revenue: 'Pre-Revenue', early_revenue: 'Early Revenue', growth: 'Product-Market Fit', profitable: 'Late Stage',
+};
+
+// A stored company / investor link back to a pick: an Atlas id, or the details
+// the user added (still pending, or already created — then it has an id too).
+const added = (n: unknown): NewEntity | null => {
+	if (!n || typeof n !== 'object') return null;
+	const o = n as Record<string, unknown>;
+	return { website: s(o.website), country: s(o.hq_country), city: s(o.hq_city), sectorId: s(o.sector_id), description: s(o.description), founded: numStr(o.founded_year), linkedin: s(o.linkedin_url), category: s(o.category) };
+};
+const pick = (id: unknown, name: unknown, details: unknown): EntityPick | null => {
+	const a = id ? null : added(details);
+	return id || a ? { id: id ? String(id) : null, name: s(name), added: a } : null;
 };
 
 export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReference): Partial<ClaimForm> {
@@ -71,9 +83,11 @@ export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReferen
 			rounds: arr(co.funding_rounds).map((r): RoundRow => ({
 				roundType: s(r.round_label) || (r.round_type_id ? roundName.get(String(r.round_type_id)) ?? '' : ''),
 				amount: numStr(r.amount_usd), date: s(r.round_date), investors: s(r.investors), source: s(r.source_url),
+				invs: arr(r.investor_refs).map((x) => pick(x.investor_id, x.name, x.new_investor)).filter((x): x is EntityPick => !!x),
 			})),
 			mna: arr(co.mna).map((m): MnaRow => ({
 				dealType: s(m.deal_type) || 'Acquisition', counterparty: s(m.counterparty), amount: numStr(m.amount_usd), date: s(m.deal_date),
+				cp: pick(m.counterparty_company_id, m.counterparty, m.new_counterparty),
 			})),
 		};
 	}
@@ -101,7 +115,7 @@ export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReferen
 			buildThesis: sectors.length > 0 || tech.length > 0 || continents.length > 0 || stages.length > 0
 				|| revenue.length > 0 || !!d.thesis_amount_min_usd || !!d.thesis_amount_max_usd,
 			funds: arr(inv.funds).map((f): FundRow => ({ name: s(f.name), year: numStr(f.fund_year), size: numStr(f.size_usd) })),
-			portfolio: arr(inv.portfolio).map((p): PortfolioRow => ({ name: s(p.company_name), stage: s(p.stage), year: numStr(p.invest_year) })),
+			portfolio: arr(inv.portfolio).map((p): PortfolioRow => ({ name: s(p.company_name), stage: s(p.stage), year: numStr(p.invest_year), co: pick(p.company_id, p.company_name, p.new_company) })),
 		};
 	}
 
