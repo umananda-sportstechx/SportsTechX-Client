@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import useSWR, { mutate } from 'swr';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { useChat, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
+import { useChat, chatSessionId, AI_MD_CSS, type ConversationListItem } from '@/components/chat/chat-core';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
@@ -78,17 +78,23 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 		const legacy = searchParams.get('c');
 		if (legacy && !routeId) { router.replace(`${CHAT}/${encodeURIComponent(legacy)}`); return; }
 		const q = searchParams.get('q');
-		if (!routeId && q) void send(q);
-	}, [searchParams, routeId, router, send]);
+		// A question from the home search starts its own thread, even if the
+		// co-pilot drawer had one going (the session is shared app-wide).
+		if (!routeId && q) { resetConversation(); void send(q); }
+	}, [searchParams, routeId, router, send, resetConversation]);
 
 	// URL → thread: opening `/chat/<id>` (a link, the rail, back/forward)
 	// loads that conversation unless it is already the one on screen.
+	// Reads the LIVE session, not this render's `conversationId`: the session is
+	// shared with the drawer (expanding lands here already on the right thread),
+	// and the init effect above may have just reset it for a `?q=` question.
 	useEffect(() => {
-		if (routeId && routeId !== conversationId) void loadConversation(routeId);
+		const live = chatSessionId();
+		if (routeId && routeId !== live) void loadConversation(routeId);
 		// Back to bare `/chat` (browser back, a nav link) means a fresh thread.
 		// Only fires when the ROUTE changes, so a new chat getting its id while
 		// still on `/chat` cannot trip it.
-		else if (!routeId && conversationId) resetConversation();
+		else if (!routeId && live) resetConversation();
 		// conversationId is deliberately not a dependency: when a new chat gets
 		// its id, the effect below moves the URL to match, and re-running this
 		// one in between would reload the conversation that is still streaming.
