@@ -152,6 +152,31 @@ export function useRoundTypeOptions(): [string, string][] {
 }
 
 /** Leaf sectors (where companies sit) as [id, "Root → Sub → Leaf"] options, sorted by path. */
+/** The same leaf sectors for a picker: grouped under their parent path
+ *  ("Activity & Performance → Before / After Activity") with just the leaf name
+ *  per option — the full-path labels read as a wall of arrows. The parents
+ *  still follow from the leaf (see `useLeafSectorOptions` for the path). */
+export function useLeafSectorGroups(): { label: string; options: [string, string][] }[] {
+	const { data } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
+	return useMemo(() => {
+		const list = data ?? [];
+		const byId = new Map(list.map((s) => [s.id, s]));
+		const path = (id: string | null): string => {
+			const parts: string[] = []; let p = id;
+			while (p) { const s = byId.get(p); if (!s) break; parts.unshift(s.name); p = s.parent_id; }
+			return parts.join(' → ');
+		};
+		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
+		const groups = new Map<string, [string, string][]>();
+		for (const s of list.filter((x) => isLeaf(x.id))) {
+			const g = path(s.parent_id) || 'Other';
+			groups.set(g, [...(groups.get(g) ?? []), [s.id, s.name]]);
+		}
+		return [...groups].sort(([a], [b]) => a.localeCompare(b))
+			.map(([label, options]) => ({ label, options: options.sort((a, b) => a[1].localeCompare(b[1])) }));
+	}, [data]);
+}
+
 export function useLeafSectorOptions(): [string, string][] {
 	const { data } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
 	return useMemo(() => {

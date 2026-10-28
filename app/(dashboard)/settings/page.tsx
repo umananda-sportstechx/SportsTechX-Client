@@ -88,12 +88,12 @@ export default function RaiseSettingsPage() {
 					<>
 						<SummaryCard title="Company profile" fields={[
 							['Company name', s(r.company_name)], ['Website', s(r.company_website)],
-							['Headquarters', hq], ['Stage', map(ROUND, r.company_stage)],
+							['Headquarters', hq], ['Stage', r.company_stage === 'other' && s(r.company_stage_other) ? s(r.company_stage_other) : map(ROUND, r.company_stage)],
 							['Revenue status', map(REVENUE, r.revenue_status)], ['Category', category],
 							['Description', s(r.company_description)],
 						]} />
 						<SummaryCard title="Raise details" fields={[
-							['Round type', map(ROUND, r.round_type)], ['Target raise', num(r.target_amount) ? `${num(r.target_amount)} ${cur}` : ''],
+							['Round type', r.round_type === 'other' && s(r.round_type_other) ? s(r.round_type_other) : map(ROUND, r.round_type)], ['Target raise', num(r.target_amount) ? `${num(r.target_amount)} ${cur}` : ''],
 							['Target close date', s(r.target_close_date)], ['Committed', num(r.committed_amount) ? `${num(r.committed_amount)} ${cur}` : ''],
 							['Valuation', num(r.valuation) ? `${num(r.valuation)} ${cur}` : ''], ['Prior capital raised', num(r.prior_capital_raised) ? `${num(r.prior_capital_raised)} ${cur}` : ''],
 							['Structure', map(STRUCTURE, r.structure)],

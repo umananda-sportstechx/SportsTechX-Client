@@ -320,9 +320,11 @@ export interface RaiseUpsert {
 	company_category?: string[] | null;
 	company_sector_id?: string | null;
 	company_stage?: 'pre_seed' | 'seed' | 'series_a' | 'series_b_plus' | 'other' | null;
+	company_stage_other?: string | null;
 	revenue_status?: 'pre_revenue' | 'generating' | null;
 	fundraising_process?: 'exploring' | 'preparing' | 'approaching' | 'due_diligence' | 'negotiating' | null;
 	round_type?: 'pre_seed' | 'seed' | 'series_a' | 'series_b_plus' | 'bridge' | 'other' | null;
+	round_type_other?: string | null;
 	target_amount?: number | string | null;
 	committed_amount?: number | string | null;
 	currency_code?: string | null;

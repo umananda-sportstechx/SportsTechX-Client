@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowRight, ArrowLeft, Check, Loader2, Plus, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
-import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
+import { useLeafSectorOptions, useLeafSectorGroups } from '@/hooks/use-catalog-options';
 import { apiRequest } from '@/lib/query-client';
 import { refreshRaise } from '@/lib/invalidate';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
@@ -56,6 +56,12 @@ const CRIT_KEYS: (keyof RaiseCriteria)[] = [
 	'investor_types', 'geographies', 'cheque_min', 'cheque_max', 'lead_preference',
 	'strategic_ok', 'desired_expertise', 'excluded_investor_ids', 'biggest_concern',
 ];
+/** REQUIRED plus what an "Other" choice asks for: what it means. */
+const requiredFor = (i: number, src: Rec): { key: string; label: string; kind?: 'array' | 'bool' }[] => [
+	...(REQUIRED[i] ?? []),
+	...(i === 0 && src.company_stage === 'other' ? [{ key: 'company_stage_other', label: 'Stage (please specify)' }] : []),
+	...(i === 1 && src.round_type === 'other' ? [{ key: 'round_type_other', label: 'Round (please specify)' }] : []),
+];
 const isEmpty = (v: unknown, kind?: 'array' | 'bool') =>
 	kind === 'array' ? !Array.isArray(v) || v.length === 0
 		: kind === 'bool' ? v !== true && v !== false
@@ -102,7 +108,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 		// Resume where they left off — jump to the first step still missing a required field.
 		const src = (i: number): Rec => (i === STEPS.length - 1 ? data.criteria : data.raise) ?? {};
 		for (let i = 0; i < STEPS.length; i++) {
-			if ((REQUIRED[i] ?? []).some((rr) => isEmpty(src(i)[rr.key], rr.kind))) { setStep(i); break; }
+			if (requiredFor(i, src(i)).some((rr) => isEmpty(src(i)[rr.key], rr.kind))) { setStep(i); break; }
 		}
 		hydrated.current = true;
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +125,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// full path (Root → Sub → Leaf) is stored as company_category for display, and
 	// company_sector_id drives Market + investor matching.
 	const sectorOptions = useLeafSectorOptions();
+	const sectorGroups = useLeafSectorGroups();
 	const pickSector = (id: string) => {
 		set('company_sector_id', id || null);
 		const label = sectorOptions.find(([v]) => v === id)?.[1];
@@ -195,15 +202,15 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// Typed against the DTO, so a renamed or dropped server field fails the
 	// build instead of 400-ing the step's auto-save.
 	const stepFields = useMemo<(keyof RaiseUpsert)[][]>(() => [
-		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'revenue_status'],
-		['fundraising_process', 'round_type', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
+		['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category', 'company_stage', 'company_stage_other', 'revenue_status'],
+		['fundraising_process', 'round_type', 'round_type_other', 'target_amount', 'committed_amount', 'currency_code', 'target_close_date', 'lead_investor_status', 'structure', 'valuation'],
 		['prior_capital_raised', 'last_round_date', 'annual_revenue', 'revenue_growth_pct', 'paying_customers', 'monthly_burn', 'runway_months', 'strongest_traction'],
 		['pitch_deck_status', 'financial_model_status', 'data_room_status', 'has_target_list'],
 	], []);
 
 	const validate = (i: number): { key: string; label: string }[] => {
 		const src = i === STEPS.length - 1 ? crit : form;
-		const missing = (REQUIRED[i] ?? []).filter((r) => isEmpty(src[r.key], r.kind));
+		const missing = requiredFor(i, src).filter((r) => isEmpty(src[r.key], r.kind));
 		setErrors(new Set(missing.map((r) => r.key)));
 		return missing;
 	};
@@ -320,7 +327,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 			<Card style={{ padding: 23 }}>
 				{errors.size > 0 && (
 					<div style={{ marginBottom: 16, borderRadius: 'var(--a-radius-sm)', border: '1px solid color-mix(in srgb, var(--a-danger) 22%, transparent)', background: 'var(--a-danger-bg)', color: 'var(--a-danger)', padding: '10px 14px', fontSize: 12, lineHeight: 1.55 }}>
-						Required — please complete: {(REQUIRED[step] ?? []).filter((r) => errors.has(r.key)).map((r) => r.label).join(', ')}.
+						Required — please complete: {requiredFor(step, step === STEPS.length - 1 ? crit : form).filter((r) => errors.has(r.key)).map((r) => r.label).join(', ')}.
 					</div>
 				)}
 				<div style={{ display: 'grid', gap: 16 }}>
@@ -338,20 +345,22 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field>
 						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} onPick={(h) => { if (h.country && !coLock('hq_country')) set('hq_country', h.country); }} disabled={coLock('hq_city')} geo={s(form.hq_country)} /></Field></Grid>
 						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
-						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
+						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} groups={sectorGroups} disabled={coLock('company_sector_id')} /></Field>
 						{linked && <div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: -6 }}>Company details come from the Atlas profile. Verify your company to request changes.</div>}
 						</> : (
 							<div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)' }}>Search for your company above. If it isn&apos;t in Atlas, add it — you claim it as its founder, and it goes live once our team verifies it.</div>
 						)}
 						<Grid>
-							<Field label="Stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
+							<Field label="Stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => { set('company_stage', e.target.value); if (e.target.value !== 'other') set('company_stage_other', null); }} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
+							{form.company_stage === 'other' && <Field label="Which stage? (please specify)"><Input maxLength={80} placeholder="e.g. Angel round, Grant-funded, Bootstrapped" value={s(form.company_stage_other)} onChange={(e) => set('company_stage_other', e.target.value)} /></Field>}
 							<Field label="Generating revenue?"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Yes']]} /></Field>
 						</Grid>
 					</>}
 
 					{step === 1 && <>
 						<Field label="Where are you in the fundraising process?"><Select placeholder="Select…" value={s(form.fundraising_process)} onChange={(e) => set('fundraising_process', e.target.value)} options={[['exploring', 'Exploring'], ['preparing', 'Preparing'], ['approaching', 'Actively approaching investors'], ['due_diligence', 'In due diligence'], ['negotiating', 'Negotiating terms']]} /></Field>
-						<Field label="What round are you raising?" info={H.round}><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
+						<Field label="What round are you raising?" info={H.round}><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => { set('round_type', e.target.value); if (e.target.value !== 'other') set('round_type_other', null); }} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
+						{form.round_type === 'other' && <Field label="Which round? (please specify)"><Input maxLength={80} placeholder="e.g. Angel round, Crowdfunding, Grant" value={s(form.round_type_other)} onChange={(e) => set('round_type_other', e.target.value)} /></Field>}
 						<Grid><Field label="How much are you raising?"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field><Field label="Already committed" info={H.committed}><Input type="number" min={0} value={s(form.committed_amount)} onChange={(e) => set('committed_amount', e.target.value)} /></Field></Grid>
 						<Grid>
 							<Field label="Currency"><Select value={s(form.currency_code) || 'EUR'} onChange={(e) => set('currency_code', e.target.value)} options={[['EUR', 'EUR'], ['USD', 'USD'], ['GBP', 'GBP']]} /></Field>
