@@ -27,8 +27,11 @@ body:has(.pdfv) { overflow-x: clip; height: auto; min-height: 100%; }
 .pdfv-zoom button:hover:not(:disabled) { background: var(--a-inset); color: var(--a-ink); }
 .pdfv-zoom button:disabled { opacity: 0.35; cursor: default; }
 
-.pdfv-body { padding: 24px 16px 48px; display: flex; justify-content: center; overflow-x: auto; }
-.pdfv-body .react-pdf__Document { display: flex; flex-direction: column; align-items: center; }
+/* Centred with auto margins, not flex centring: a page zoomed wider than the
+   screen then scrolls from its left edge instead of spilling off both sides
+   (flex-centred overflow left the left part unreachable). */
+.pdfv-body { padding: 24px 16px 48px; overflow-x: auto; }
+.pdfv-body .react-pdf__Document { width: max-content; min-width: 100%; }
 .pdfv-page { position: relative; margin: 0 auto; background: #fff; border-radius: 4px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25); overflow: hidden; }
 .pdfv-page canvas { display: block; }
 

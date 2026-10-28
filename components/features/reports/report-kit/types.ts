@@ -33,6 +33,8 @@ export interface ReportDetail {
 	report_month: number | null;
 	report_year: number | null;
 	has_sections: boolean;
+	/** Some edition has a PDF the server can serve (false = nothing uploaded yet). */
+	has_pdf?: boolean;
 	is_published: boolean;
 	tags: string[];
 	theme: import('./report-theme').ReportThemeOverride | null;
