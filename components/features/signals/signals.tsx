@@ -28,7 +28,8 @@ export function Signals({ companiesHref }: { companiesHref: string }) {
 	const [country, setCountry] = useState('');
 	const [watchlistOnly, setWatchlistOnly] = useState(false);
 	const sectorTiers = useSectorTierData();
-	const loc = useLocationFacetOptions();
+	// Country only (its own endpoint) — no need for the heavy location facets.
+	const loc = useLocationFacetOptions(false);
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { limit: 50 };

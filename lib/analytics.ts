@@ -1,9 +1,15 @@
 'use client';
 
-import mixpanel from 'mixpanel-browser';
+import type mixpanelType from 'mixpanel-browser';
+
+type MP = typeof mixpanelType;
 
 let initialized = false;
 let userId: string | null = null;
+let mp: MP | null = null;
+// Calls made before the SDK has loaded, replayed in order once it has.
+const queue: ((m: MP) => void)[] = [];
+const withMp = (fn: (m: MP) => void) => { if (mp) fn(mp); else if (initialized) queue.push(fn); };
 
 /**
  * Mixpanel wrapper. Initialised at app boot from the providers tree once the
@@ -25,31 +31,44 @@ export function initAnalytics(): void {
 	if (initialized) return;
 	const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
 	if (!token) return;
-	mixpanel.init(token, {
-		debug: process.env.NODE_ENV !== 'production',
-		track_pageview: false,
-		persistence: 'localStorage',
-	});
 	initialized = true;
+	// Off the critical path. The SDK was imported eagerly and, with its bundled
+	// session recorder, was the largest chunk every page shipped (~400 KB) —
+	// before anything rendered. It now loads once the browser is idle, and only
+	// the recorder-free core build: session replay was never turned on.
+	const load = () => {
+		import('mixpanel-browser/dist/mixpanel-core.cjs.js')
+			.then(({ default: m }) => {
+				m.init(token, {
+					debug: process.env.NODE_ENV !== 'production',
+					track_pageview: false,
+					persistence: 'localStorage',
+				});
+				mp = m;
+				queue.splice(0).forEach((fn) => fn(m));
+			})
+			.catch(() => { /* analytics is best-effort; a blocked script must not break the app */ });
+	};
+	if ('requestIdleCallback' in window) window.requestIdleCallback(load, { timeout: 4000 });
+	else setTimeout(load, 1500);
 }
 
 export function identify(profileId: string, traits?: Record<string, unknown>): void {
 	if (!initialized) return;
 	if (userId === profileId) return;
-	mixpanel.identify(profileId);
-	if (traits) mixpanel.people.set(traits);
 	userId = profileId;
+	withMp((m) => { m.identify(profileId); if (traits) m.people.set(traits); });
 }
 
 export function reset(): void {
 	if (!initialized) return;
-	mixpanel.reset();
 	userId = null;
+	withMp((m) => m.reset());
 }
 
 export function track(event: string, props?: Record<string, unknown>): void {
 	if (!initialized) return;
-	mixpanel.track(event, props);
+	withMp((m) => m.track(event, props));
 }
 
 export function trackPage(path: string, title?: string): void {

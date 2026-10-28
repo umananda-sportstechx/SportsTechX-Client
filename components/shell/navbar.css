@@ -102,18 +102,7 @@
 	.atlas .atlas-navbar__left,
 	.atlas .atlas-navbar__right .atlas-verify-btn,
 	.atlas .atlas-navbar__right .atlas-navbar__anchor:has(> .atlas-avatar) { display: none; }
-	.atlas .atlas-navbar__right { gap: 2px; min-width: 0; }
-	/* Bare icons, no circles — the space is tight and the glyph is the control.
-	   The 36px box stays as the touch target. */
-	.atlas .atlas-navsearch__btn,
-	.atlas .atlas-navbar__iconbtn,
-	.atlas .atlas-bell {
-		width: 36px; height: 36px; min-width: 0; padding: 0; justify-content: center;
-		border: 0; border-radius: var(--a-radius-xs); background: none; color: var(--a-ink);
-	}
-	.atlas .atlas-navsearch__btn svg, .atlas .atlas-navbar__iconbtn svg, .atlas .atlas-bell svg { width: 18px; height: 18px; }
-	/* The hamburger beside them, matched: a bare glyph. */
-	.atlas .atlas-hamburger { border: 0; background: none; }
+	.atlas .atlas-navbar__right { gap: 6px; min-width: 0; }
 	.atlas .atlas-navsearch__label, .atlas .atlas-navsearch__kbd { display: none; }
 	/* The bell sits ~100px from the right edge, so a right-aligned 330px panel
 	   would start off-screen. Pin it across the viewport under the bar instead. */
@@ -193,3 +182,22 @@
 	transition: color 0.15s, border-color 0.15s;
 }
 .atlas .atlas-navbar__iconbtn:hover { color: var(--a-ink); border-color: var(--a-ink); }
+
+/* Phone top-bar icons, last in the file on purpose: the bell and theme-button
+   base rules above set a border and fill at the same specificity, so a phone
+   override placed earlier (as it first was) lost to them and only the search
+   icon went bare. Bare glyphs, no circles; the 36px box stays the touch target. */
+@media (max-width: 720px) {
+	.atlas .atlas-navsearch__btn,
+	.atlas .atlas-navbar__iconbtn,
+	.atlas .atlas-bell {
+		width: 36px; height: 36px; min-width: 0; padding: 0; justify-content: center;
+		border: 0; border-radius: var(--a-radius-xs); background: none; color: var(--a-ink);
+	}
+	.atlas .atlas-navsearch__btn:hover, .atlas .atlas-navbar__iconbtn:hover, .atlas .atlas-bell:hover {
+		border: 0; background: color-mix(in srgb, var(--a-ink) 6%, transparent);
+	}
+	.atlas .atlas-navsearch__btn svg, .atlas .atlas-navbar__iconbtn svg, .atlas .atlas-bell svg { width: 18px; height: 18px; }
+	/* The hamburger beside them, matched. */
+	.atlas .atlas-hamburger { border: 0; background: none; }
+}

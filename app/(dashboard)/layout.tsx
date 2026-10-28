@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
-import { ProtectedRoute } from '@/components/auth/protected-route';
+import { Suspense } from 'react';
+import { AuthPlaceholder, ProtectedRoute } from '@/components/auth/protected-route';
 import { AppShell } from '@/components/shell/app-shell';
 
 export const metadata: Metadata = { title: 'Atlas' };
 
-// Every page here reads per-user data, so static pre-rendering doesn't apply.
-// This is also what lets nested client components call `useSearchParams` without
-// each one needing its own Suspense boundary — there is not a single <Suspense>
-// in the app, by design. Removing this breaks the build on the companies pages.
-export const dynamic = 'force-dynamic';
+// Built statically, served from the CDN. Every page here is client-rendered
+// behind the session check, so a per-request server render (the old
+// `force-dynamic`) produced the same "Authenticating…" HTML every time — but
+// paid a serverless cold start for it, slowest right after a deploy. The one
+// <Suspense> below is what static rendering needs for the `useSearchParams`
+// calls in the shell and pages; it covers every page under this layout.
 
 /**
  * The signed-in product, at `/app`.
@@ -28,8 +30,10 @@ export const dynamic = 'force-dynamic';
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<ProtectedRoute>
-			<AppShell>{children}</AppShell>
-		</ProtectedRoute>
+		<Suspense fallback={<AuthPlaceholder />}>
+			<ProtectedRoute>
+				<AppShell>{children}</AppShell>
+			</ProtectedRoute>
+		</Suspense>
 	);
 }
