@@ -158,16 +158,22 @@ export function ClaimModal({
   // pre-filled answers aren't discarded.
   // Editing an existing claim (capsule → edit) opens on the data step; a fresh
   // claim on a known entity opens on identity; otherwise search / role chooser.
+  // A prefill skips the search only when the caller already settled the
+  // entity: Raise Setup (its own company search ran) and an explicit "add
+  // new" both pass a target without an id. With NO target (Scout onboarding,
+  // the fund picker's Verify with nothing selected) the fund may well exist,
+  // so the search comes first — skipping it filed a duplicate new listing.
   const [step, setStep] = useState<Step>(
     target?.claimId && startRole ? EDIT_DATA_STEP[startRole]
       : target?.id ? 'identity'
-        : (hasPrefill && startRole ? 'identity' : startRole ? 'search' : 'role'),
+        : (hasPrefill && startRole && target ? 'identity' : startRole ? 'search' : 'role'),
   );
   const [selItem, setSelItem] = useState<SelectedEntity | null>(
     target ? { id: target.id ?? null, name: target.name ?? '', website: target.website ?? null } : null,
   );
   const [selMode, setSelMode] = useState<'claim' | 'add'>(target?.id ? 'claim' : 'add');
-  const [q, setQ] = useState('');
+  // Searching for the prefilled name surfaces the existing record first.
+  const [q, setQ] = useState(() => (!target && prefill?.name) || '');
   const [editTab, setEditTab] = useState<'info' | 'funding' | 'mna' | 'org' | 'thesis'>('info');
   // Seed from the target entity, then overlay any prefill (e.g. Raise Setup answers)
   // so a founder verifying right after setup only fills the remaining fields.
@@ -279,14 +285,24 @@ export function ClaimModal({
     const mine = it.id ? myVerified.get(it.id) : undefined;
     if (mine) { openClaim(claimToTarget(mine, true), role); return; }
     setSelItem(it); setSelMode('claim'); setEditTab(role === 'investor' ? 'org' : 'info');
-    setForm((f) => ({ ...blankClaimForm(it), first: f.first, last: f.last, email: f.email, linkedin: f.linkedin, city: f.city, country: f.country, position: f.position }));
+    setForm((f) => withPrefill({ ...blankClaimForm(it), first: f.first, last: f.last, email: f.email, linkedin: f.linkedin, city: f.city, country: f.country, position: f.position }, true));
     setStep('identity');
   };
   const addNew = () => {
     setSelItem(null); setSelMode('add'); setEditTab(role === 'investor' ? 'org' : 'info');
-    setForm((f) => ({ ...blankClaimForm(null), name: q, first: f.first, last: f.last, email: f.email, linkedin: f.linkedin, city: f.city, country: f.country, position: f.position }));
+    setForm((f) => withPrefill({ ...blankClaimForm(null), name: q, first: f.first, last: f.last, email: f.email, linkedin: f.linkedin, city: f.city, country: f.country, position: f.position }, false));
     setStep('identity');
   };
+  // A prefill (e.g. the Scout thesis) rides through the search: re-applied on
+  // top of whichever record is picked — which keeps its own name/website — or
+  // onto a new listing, where it fills a blank name/website.
+  function withPrefill(base: ClaimForm, existing: boolean): ClaimForm {
+    if (!prefill) return base;
+    const { name, website, ...rest } = prefill;
+    return existing
+      ? { ...base, ...rest }
+      : { ...base, ...rest, name: base.name || name || '', website: base.website || website || '' };
+  }
 
   const emailOk = /.+@.+\..+/.test(form.email);
   const richId = role === 'founder' || role === 'investor';
