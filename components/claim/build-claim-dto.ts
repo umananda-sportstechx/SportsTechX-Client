@@ -107,7 +107,12 @@ export function buildCompanyDto(form: ClaimForm, ref: ClaimReference, targetId: 
       hq_city: trimOrNull(form.coCity),
       hq_country: trimOrNull(form.coCountry),
       sport: trimOrNull(form.sport),
-      program_participation: trimOrNull(form.programs),
+      // Linked / added programs; the text column keeps a readable summary.
+      programs: form.programs.filter(named).map((p) => ({
+        program_id: p.id, name: p.name.trim(), cohort_year: intOrNull(p.year),
+        new_program: p.added && !p.id ? { website: p.added.website.trim(), hq_country: p.added.country.trim(), hq_city: trimOrNull(p.added.city) } : null,
+      })),
+      program_participation: trimOrNull(form.programs.filter(named).map((p) => (p.year ? `${p.name.trim()} (${p.year})` : p.name.trim())).join(', ').slice(0, 200)),
       twitter_url: trimOrNull(form.twitter),
       instagram_url: trimOrNull(form.instagram),
       facebook_url: trimOrNull(form.facebook),

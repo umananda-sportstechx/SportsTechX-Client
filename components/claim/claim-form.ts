@@ -38,6 +38,9 @@ export const blankNewEntity = (): NewEntity => ({ website: '', country: '', city
  *  (`added`), or — from an older claim, before entries were linked — a bare name. */
 export interface EntityPick { id: string | null; name: string; meta?: string | null; added: NewEntity | null }
 export type EntityKind = 'company' | 'investor';
+/** A program the company took part in: an Atlas program, one the user added
+ *  (only website / country / city of `added` are used), or an older claim's text. */
+export interface ProgramPick extends EntityPick { year: string }
 
 // The server's investor_category enum, with display labels.
 export const INVESTOR_CATEGORY_OPTIONS: [string, string][] = [
@@ -53,6 +56,15 @@ export const validWebsite = (w: string): boolean =>
 export const validYear = (y: string): boolean => !y.trim() || (Number(y) >= 1800 && Number(y) <= 2100);
 
 /** The required fields a user-added entry is still missing (empty = complete). */
+export function newProgramMissing(n: NewEntity, name: string): string[] {
+  const m: string[] = [];
+  if (!name.trim()) m.push('name');
+  if (!n.website.trim()) m.push('website');
+  else if (!validWebsite(n.website)) m.push('a valid website');
+  if (!n.country.trim()) m.push('country');
+  return m;
+}
+
 export function newEntityMissing(kind: EntityKind, n: NewEntity, name: string): string[] {
   const m: string[] = [];
   if (!name.trim()) m.push('name');
@@ -79,7 +91,7 @@ export interface ClaimForm {
   first: string; last: string; city: string; country: string; email: string; position: string; linkedin: string;
   // entity basics
   name: string; website: string; description: string; sector: string; businessModel: string;
-  founded: string; coCity: string; coCountry: string; sport: string; programs: string;
+  founded: string; coCity: string; coCountry: string; sport: string; programs: ProgramPick[];
   // founder funding + M&A
   rounds: RoundRow[]; mna: MnaRow[];
   // contact + social
@@ -112,7 +124,7 @@ export function blankClaimForm(item?: SelectedEntity | null): ClaimForm {
     name: item?.name ?? '',
     website: item?.website ? item.website.replace(/^https?:\/\//, '') : '',
     description: '', sector: '', businessModel: 'B2B', founded: '',
-    coCity: item?.hq ?? '', coCountry: item?.cc ?? '', sport: '', programs: '',
+    coCity: item?.hq ?? '', coCountry: item?.cc ?? '', sport: '', programs: [],
     rounds: [], mna: [],
     twitter: '', instagram: '', facebook: '', linkedin_co: '', companyEmail: '',
     contactFirst: '', contactLast: '', contactPosition: '', contactEmail: '', contactLinkedin: '',
