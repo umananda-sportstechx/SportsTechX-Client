@@ -22,7 +22,7 @@ export function InfoTip({ children, label = 'More info' }: { children: ReactNode
 					// which already opened it, so a toggle shut it again. Closing is Radix's:
 					// pointer leave, blur (tap elsewhere) or Escape.
 					onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>
-					<Info size={12} strokeWidth={2} aria-hidden="true" />
+					<Info size={14} strokeWidth={1.75} aria-hidden="true" />
 				</button>
 			</TooltipPrimitive.Trigger>
 			<TooltipPrimitive.Portal>
