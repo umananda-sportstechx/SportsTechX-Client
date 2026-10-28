@@ -55,7 +55,7 @@ function normalize(r: RawRow): ClaimSearchResult {
  * the underlying list endpoint by role (companies / investors / ecosystem).
  * The query is gated until 2+ chars so we don't hammer the API on focus.
  */
-export function useClaimSearch(role: ClaimRole | null, query: string) {
+export function useClaimSearch(role: ClaimRole | null, query: string, entityType?: string) {
   const q = useDebouncedValue(query.trim(), 250);
   const enabled = !!role && q.length >= 2;
 
@@ -65,7 +65,7 @@ export function useClaimSearch(role: ClaimRole | null, query: string) {
       ? qk.companies.list({ q, limit: 8 })
       : role === 'investor'
         ? qk.investors.list({ q, limit: 8 })
-        : qk.ecosystem.list({ q, limit: 8 });
+        : qk.ecosystem.list({ q, limit: 8, ...(entityType ? { entity_type: entityType } : {}) });
 
   const { data, isLoading, error } = useSWR<ListResp>(key);
 

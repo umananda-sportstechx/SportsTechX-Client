@@ -1,5 +1,5 @@
-import type { ClaimForm, RoundRow, MnaRow, FundRow, PortfolioRow, EntityPick, NewEntity } from './claim-form';
-import { RAISE_AMOUNTS } from './claim-form';
+import type { ClaimForm, RoundRow, MnaRow, FundRow, PortfolioRow, EntityPick, NewEntity, ProgramPick } from './claim-form';
+import { RAISE_AMOUNTS, blankNewEntity } from './claim-form';
 import { parseAmount } from './build-claim-dto';
 import type { ClaimReference } from './use-claim-reference';
 
@@ -75,7 +75,13 @@ export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReferen
 			coCity: s(d.hq_city),
 			coCountry: s(d.hq_country),
 			sport: s(d.sport),
-			programs: s(d.program_participation),
+			// Older claims only stored text: keep it as one unlinked entry.
+			programs: Array.isArray(d.programs)
+				? arr(d.programs).map((x): ProgramPick => ({
+					id: x.program_id ? String(x.program_id) : null, name: s(x.name), year: numStr(x.cohort_year),
+					added: !x.program_id && x.new_program ? { ...blankNewEntity(), website: s((x.new_program as Record<string, unknown>).website), country: s((x.new_program as Record<string, unknown>).hq_country), city: s((x.new_program as Record<string, unknown>).hq_city) } : null,
+				})).filter((p) => p.name)
+				: s(d.program_participation) ? [{ id: null, name: s(d.program_participation), year: '', added: null }] : [],
 			twitter: s(d.twitter_url), instagram: s(d.instagram_url), facebook: s(d.facebook_url),
 			linkedin_co: s(d.linkedin_url), companyEmail: s(d.public_email),
 			contactFirst: s(d.contact_first_name), contactLast: s(d.contact_last_name),
