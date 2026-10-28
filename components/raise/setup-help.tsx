@@ -36,9 +36,9 @@ export const SETUP_HELP = {
 	targetList: <p>A shortlist of investors that fit your stage, sector and cheque size — the ones you plan to approach. Atlas can help you build it.</p>,
 	financialModel: <p>A spreadsheet projecting revenue, costs, hiring and cash for the next 3–5 years, with the assumptions behind them. Investors use it to test your plan and the amount you&apos;re asking for.</p>,
 	dataRoom: <p>A shared, organised folder of the documents investors check in due diligence — company registration, cap table, key contracts, financial statements and IP.</p>,
-	investorTypes: <p>Hover a type for what it means. Pick every kind you&apos;d take money from — Atlas recommends investors of these types.</p>,
+	investorTypes: <p>Hover a type for what it means. Pick every kind you&apos;d take money from — Atlas ranks investors of these types higher in your recommendations.</p>,
 	geographies: <p>Where the investors you want are based or invest. Atlas uses it to rank the investors it recommends.</p>,
-	cheque: <p>How much a single investor would put into this round. The range you set rules out investors who write much smaller or much bigger cheques.</p>,
+	cheque: <p>How much a single investor would put into this round — the range you&apos;d accept from one investor. Investors tend to write a typical cheque size, so this shows which ones fit your round.</p>,
 	leadPreference: (
 		<ul>
 			<li><strong>Lead</strong> — sets the terms and anchors the round.</li>
