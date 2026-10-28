@@ -418,6 +418,10 @@ export interface ReportListItem {
 	show_on_dashboard: boolean;
 	has_sections: boolean;
 	is_published: boolean;
+	/** Some edition has a PDF the server can serve. Optional: older API. */
+	has_pdf?: boolean;
+	/** …and one this caller's plan can open — Download only works then. */
+	can_download?: boolean;
 	created_at: string;
 	updated_at: string;
 	/** Topic facet labels. Never null (NOT NULL DEFAULT '{}'), but empty until
