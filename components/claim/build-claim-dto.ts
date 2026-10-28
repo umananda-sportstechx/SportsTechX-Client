@@ -46,7 +46,7 @@ const trimOrNull = (s: string): string | null => {
 
 // ─── user-added companies / investors ─────────────────────────────────────
 // A picked Atlas record sends its id; one the user added sends its details
-// (created when the claim is verified). Plain text with neither is dropped.
+// (created when the claim is verified); an older bare name is kept as text.
 
 const newCompany = (n: NewEntity) => ({
   website: n.website.trim(), hq_country: n.country.trim(), hq_city: trimOrNull(n.city),
@@ -56,7 +56,7 @@ const newInvestor = (n: NewEntity) => ({
   website: n.website.trim(), hq_country: n.country.trim(), hq_city: trimOrNull(n.city),
   category: n.category, linkedin_url: trimOrNull(n.linkedin),
 });
-const linked = (p: EntityPick | null | undefined): p is EntityPick => !!p && (!!p.id || !!p.added);
+const named = (p: EntityPick | null | undefined): p is EntityPick => !!p && !!p.name.trim();
 
 // ─── pitch-deck upload ─────────────────────────────────────────────────────
 
@@ -120,19 +120,19 @@ export function buildCompanyDto(form: ClaimForm, ref: ClaimReference, targetId: 
       contact_linkedin: trimOrNull(form.contactLinkedin),
     },
     funding_rounds: form.rounds.map((r) => {
-      const invs = (r.invs ?? []).filter(linked);
+      const invs = (r.invs ?? []).filter(named);
       return {
         round_type_id: ref.resolveRoundType(r.roundType),
         round_label: trimOrNull(r.roundType),
         amount_usd: parseAmount(r.amount),
         round_date: trimOrNull(r.date),
-        investors: invs.length ? invs.map((p) => p.name.trim()).join(', ') : trimOrNull(r.investors),
+        investors: invs.length ? invs.map((p) => p.name.trim()).join(', ') : null,
         investor_refs: invs.map((p) => ({ investor_id: p.id, name: p.name.trim(), new_investor: p.added ? newInvestor(p.added) : null })),
         source_url: trimOrNull(r.source),
       };
     }),
     mna: form.mna.map((m) => {
-      const cp = linked(m.cp) ? m.cp : null;
+      const cp = named(m.cp) ? m.cp : null;
       return {
         deal_type: trimOrNull(m.dealType),
         counterparty: cp ? cp.name.trim() : trimOrNull(m.counterparty),
@@ -183,7 +183,7 @@ export function buildInvestorDto(form: ClaimForm, ref: ClaimReference, targetId:
       size_usd: parseAmount(f.size),
     })),
     portfolio: form.portfolio.map((p) => {
-      const co = linked(p.co) ? p.co : null;
+      const co = named(p.co) ? p.co : null;
       return {
         company_name: co ? co.name.trim() : trimOrNull(p.name),
         company_id: co?.id ?? null,
