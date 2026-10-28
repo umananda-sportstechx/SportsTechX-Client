@@ -7,7 +7,8 @@ import type { ReactNode } from 'react';
  * lists, hr, paragraphs). Tailwind-styled, dependency-free. Used for the streamed
  * pitch-deck analysis.
  */
-function inline(s: string): ReactNode[] {
+/** Bold / italic / inline code — also used by the Fundraising Guide renderer. */
+export function inline(s: string): ReactNode[] {
 	const nodes: ReactNode[] = [];
 	const re = /\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*|_([^_]+)_/g;
 	let last = 0;
