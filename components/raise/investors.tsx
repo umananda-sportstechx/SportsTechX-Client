@@ -207,9 +207,9 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 	const sectors = useSectorTierData();
 	const sportOptions = useSportOptions();
 	const countryOptions = useCountryOptions();
-	const loc = useLocationFacetOptions();
 	const techTags = useTechTagOptions();
 	const adv = useFeatureAccess('advanced_filters');
+	const loc = useLocationFacetOptions(adv.hasAccess);
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };

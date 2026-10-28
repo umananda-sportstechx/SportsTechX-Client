@@ -127,9 +127,9 @@ export function MaDeals() {
 	const sectors = useSectorTierData();
 	const countryOptions = useCountryOptions();
 	const sportOptions = useSportOptions();
-	const loc = useLocationFacetOptions();
 	// City / continent / region are advanced filters, as on Companies.
 	const adv = useFeatureAccess('advanced_filters');
+	const loc = useLocationFacetOptions(adv.hasAccess);
 
 	const params = useMemo(() => {
 		const p: Record<string, unknown> = { page, limit: PAGE_SIZE, sort };

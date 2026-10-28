@@ -2,8 +2,9 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Bookmark, BookmarkCheck, Check, Loader2, Plus, Search } from 'lucide-react';
+import { Bookmark, Check, Loader2, Plus, Search } from 'lucide-react';
 import { cx, useDismiss } from '@/components/atlas';
+import { useKeepInViewport } from '@/components/atlas/ui/use-keep-in-viewport';
 import { useCompanyWatchlists, useWatchlistsContaining, addToWatchlist, removeFromWatchlist, createWatchlist, isInvestorList } from './use-company-watchlists';
 import './watchlists.css';
 
@@ -19,6 +20,8 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 	const [newName, setNewName] = useState('');
 	const [busy, setBusy] = useState<string | null>(null);
 	const ref = useRef<HTMLDivElement>(null);
+	const menuRef = useRef<HTMLDivElement>(null);
+	useKeepInViewport(menuRef, open);
 	const close = useCallback(() => { setOpen(false); setQ(''); setCreating(false); setNewName(''); }, []);
 	useDismiss(ref, open, close);
 
@@ -54,11 +57,11 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 	return (
 		<div className="atlas-fbar__anchor" ref={ref}>
 			<button type="button" className="atlas-action atlas-action--save" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
-				<span className="atlas-action__icon">{inCount ? <BookmarkCheck /> : <Bookmark />}</span>
+				<span className="atlas-action__icon"><Bookmark fill={inCount ? 'currentColor' : 'none'} /></span>
 				<span className="atlas-action__label">{inCount ? `In ${inCount} watchlist${inCount === 1 ? '' : 's'}` : 'Add to watchlist'}</span>
 			</button>
 			{open && (
-				<div className="atlas-menu atlas-menu--end atlas-wl-menu atlas-menu--sheet" role="dialog" aria-label="Save to watchlist">
+				<div ref={menuRef} className="atlas-menu atlas-menu--end atlas-wl-menu atlas-menu--sheet" role="dialog" aria-label="Save to watchlist">
 					<div className="atlas-menu__head"><span>Save to watchlist</span></div>
 					{lists.length > 5 && (
 						<div className="atlas-switcher__search">
