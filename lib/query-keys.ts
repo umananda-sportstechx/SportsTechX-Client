@@ -129,9 +129,9 @@ export const qk = {
     sectionData: (sectionId: string) => [`/api/reports/sections/${sectionId}/data`] as const,
     pollResults: (pollId: string) => [`/api/reports/polls/${pollId}/results`] as const,
     // Fresh (tier-gated) PDF URL for a version. `download` uses a short TTL +
-    // Content-Disposition; inline view uses a multi-hour TTL.
-    pdfUrl: (versionId: string, download = false) =>
-      [`/api/reports/versions/${versionId}/pdf-url`, download ? { download: 1 } : {}] as const,
+    // Content-Disposition; the in-app `viewer` gets 15 min; bare view, hours.
+    pdfUrl: (versionId: string, mode?: 'download' | 'viewer') =>
+      [`/api/reports/versions/${versionId}/pdf-url`, mode ? { [mode]: 1 } : {}] as const,
   },
   verifiedReports: {
     mine: () => ['/api/verified-reports/mine'] as const,
