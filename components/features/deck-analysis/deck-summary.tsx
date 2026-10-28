@@ -150,7 +150,7 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 			<Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 				<div>
 					<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{latest.filename ?? copy.fallbackName}</div>
-					<div style={{ fontSize: 13, color: 'var(--a-muted)', marginTop: 4 }}>{latest.failure === 'too_large' ? DECK_TOO_LARGE_COPY : latest.status === 'failed' ? "The last analysis didn't finish." : "This deck hasn't been analysed yet."}</div>
+					<div style={{ fontSize: 13, color: 'var(--a-muted)', marginTop: 4 }}>{latest.failure === 'too_large' ? DECK_TOO_LARGE_COPY : latest.status === 'failed' ? "The last analysis didn't finish." : latest.overall_score != null ? "A re-run was started but didn't finish." : "This deck hasn't been analysed yet."}</div>
 				</div>
 				{/* Too large: retrying the same file can't work — "Upload new deck" (header) is the way on. */}
 				{latest.failure !== 'too_large' && <Button size="sm" onClick={() => router.push(`${DECK}/${latest.id}`)}>{latest.status === 'failed' ? 'Try again' : 'Run analysis'}</Button>}
