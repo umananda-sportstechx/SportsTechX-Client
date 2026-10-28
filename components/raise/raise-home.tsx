@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, UserRound, Hourglass } from 'lucide-react';
+import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, UserRound, Hourglass, Send, Activity, FolderCheck, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
@@ -93,6 +93,12 @@ const ATTENTION_TAG: Record<string, { tag: string; icon: LucideIcon }> = {
 	amounts: { tag: 'Watchlist', icon: Bookmark },
 	'add-first': { tag: 'Investors', icon: Presentation },
 	strategy: { tag: 'Strategy', icon: CalendarCheck },
+	outreach: { tag: 'Pipeline', icon: Send },
+	quiet: { tag: 'Momentum', icon: Activity },
+	readiness: { tag: 'Readiness', icon: FolderCheck },
+	'deck-improve': { tag: 'Pitch deck', icon: FileCheck },
+	dealflow: { tag: 'Investor Circle', icon: Sparkles },
+	matches: { tag: 'Investors', icon: Presentation },
 };
 const DEFAULT_TAG = { tag: 'For you', icon: UserRound };
 
@@ -141,6 +147,8 @@ export function RaiseHome() {
 									// on `cta_href` — the hrefs are the thing being retired.
 									{...(SETUP_CARD_WIZARD[a.id]
 										? { onAction: SETUP_CARD_WIZARD[a.id] === 'raise' ? openRaiseSetup : openScoutThesis }
+										// Readiness lives in the raise wizard: re-open it to edit.
+										: a.id === 'readiness' ? { onAction: () => openRaiseSetup({ edit: true }) }
 										: { href: a.cta_href })}
 									actionLabel={a.cta_label}
 									extra={a.count != null ? <Badge tone="danger">{a.count} overdue</Badge> : undefined}
