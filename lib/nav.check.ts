@@ -48,7 +48,7 @@ const EXPECTED: Record<Tier, Shape> = {
 			['Discover', ['Companies', 'Recommended', 'Signals']],
 			['Intelligence', ['Analytics', 'Monthly Roundup', 'My Market', 'Recently Funded', 'M&A']],
 			['Watchlists', ['Main watchlist', 'All watchlists']],
-			['Resources', ['Framework', 'Reports', 'Events', 'Newsletter']],
+			['Resources', ['Fundraising Guide', 'Framework', 'Reports', 'Events', 'Newsletter']],
 		],
 		bottom: [],
 	},
