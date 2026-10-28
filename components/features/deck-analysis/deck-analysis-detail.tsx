@@ -50,6 +50,7 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 	// server-side, so re-running the effect is the whole implementation.
 	const [reload, setReload] = useState(0);
 	const abortRef = useRef<AbortController | null>(null);
+	const gotResult = useRef(false);
 
 	const streamAnalysis = useCallback(async (ac: AbortController, cancelled: () => boolean) => {
 		const auth = await getAuthHeaders();
@@ -58,6 +59,7 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 		await consumeDeckStream(res.body, {
 			onDelta: (t) => setMd((p) => p + t),
 			onDone: (sc) => {
+				gotResult.current = true;
 				setScorecard(sc);
 				// Credits are charged when the analysis finishes; the deck list and
 				// its summary card (score, verdict) now have the new result.
@@ -85,7 +87,17 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 				}
 				// Re-running the same too-large file can't work — say so instead.
 				if (r?.failure === 'too_large') { setNotice({ kind: 'error', message: DECK_TOO_LARGE_COPY }); return; }
+				gotResult.current = false;
 				await streamAnalysis(ac, () => cancelled);
+				// A refused/failed RE-run keeps the previous analysis server-side —
+				// show it again under the notice instead of an empty page.
+				if (!gotResult.current && !cancelled) {
+					const again = await apiRequest('GET', `/api/deck-analysis/${id}`);
+					const r2 = again.ok ? ((await again.json()) as DeckRow) : null;
+					if (!cancelled && r2?.status === 'done') {
+						setRow(r2); setMd(r2.analysis_md ?? ''); setScorecard(r2.result_json ?? null);
+					}
+				}
 			} catch (e) {
 				if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Analysis failed');
 			} finally { if (!cancelled) setStreaming(false); }
@@ -161,6 +173,13 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 				</div>
 			</div>
 
+			{/* Above the analysis: after a failed re-run the previous one shows below it. */}
+			{notice && !streaming && (
+				<Card style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{notice.kind === 'credits' ? 'Not enough credits to analyse this deck. Top up, then run it again.' : notice.message}</span>
+					{notice.kind === 'credits' && <Button size="sm" onClick={() => router.push(hrefOf('credits'))}>Buy credits</Button>}
+				</Card>
+			)}
 			{streaming && !scorecard && (
 				<StagedLoader
 					title={`Analysing ${row?.filename ?? 'the deck'}`}
@@ -293,12 +312,6 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 
 			{!scorecard && !streaming && md && (
 				<Card style={{ marginTop: 24 }}><Markdown text={stripScorecardJson(md)} /></Card>
-			)}
-			{notice && !streaming && (
-				<Card style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{notice.kind === 'credits' ? 'Not enough credits to analyse this deck. Top up, then run it again.' : notice.message}</span>
-					{notice.kind === 'credits' && <Button size="sm" onClick={() => router.push(hrefOf('credits'))}>Buy credits</Button>}
-				</Card>
 			)}
 			{!row && !streaming && <Loading />}
 		</Screen>
