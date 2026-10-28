@@ -22,6 +22,8 @@ import { useClaimReference } from '@/components/claim/use-claim-reference';
 
 /** A company row from /api/companies used to prefill + link Step 1. */
 interface CoRow { id: string; name: string; website: string | null; description: string | null; sector_id: string | null; hq_country: string | null; hq_city: string | null; custom_logo_url: string | null }
+// Raise snapshot field → the linked company's field it copies.
+const CO_FIELDS: Record<string, keyof CoRow> = { company_name: 'name', company_website: 'website', hq_country: 'hq_country', hq_city: 'hq_city', company_description: 'description', company_sector_id: 'sector_id' };
 
 /**
  * Atlas Raise — first-login setup wizard (Notion "Raise Setup Questionnaire") +
@@ -170,9 +172,24 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	};
 	// Unlink → treat as a new company (admins approve it later via verification).
 	const unlinkCompany = () => { set('company_id', null); setLinked(null); };
-	// A canonical company fact is read-only when linked AND the company already has
-	// it (so gaps the company leaves empty can still be filled into the snapshot).
-	const coLock = (k: string) => !!linked && !!s(form[k]);
+	// A canonical company fact is read-only when linked AND the company itself has
+	// it; gaps it leaves empty stay editable. Judged from the company record, not
+	// the form — locking on the form value froze a gap after its first keystroke
+	// (city "b"), and locked a resumed draft's own typos.
+	const { data: linkedCo } = useSWR<CoRow>(linked ? qk.companies.detail(linked.id) : null);
+	const coFact = (k: string) => (linkedCo && linkedCo.id === linked?.id ? s(linkedCo[CO_FIELDS[k]]) : '');
+	const coLock = (k: string) => !!coFact(k);
+	// A locked field shows the company's value — a resumed draft or a claim may
+	// hold an older one the founder could no longer correct.
+	useEffect(() => {
+		for (const k of Object.keys(CO_FIELDS)) {
+			const v = coFact(k);
+			if (!v || s(formRef.current[k]) === v) continue;
+			if (k !== 'company_sector_id') set(k, v);
+			else if (sectorOptions.length) pickSector(v); // needs the taxonomy for its category path
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [linkedCo, linked?.id, sectorOptions]);
 
 	// Typed against the DTO, so a renamed or dropped server field fails the
 	// build instead of 400-ing the step's auto-save.
