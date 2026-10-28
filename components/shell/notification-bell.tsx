@@ -42,7 +42,8 @@ export function NotificationBell() {
 	// and re-read when the tab regains focus or the bell is opened.
 	const { data, mutate } = useSWR<Feed>(
 		qk.me.notifications(),
-		{ refreshInterval: POLL_MS, revalidateOnFocus: true },
+		// Interval refreshes are deduped — under the global 5-min dedupe the poll was a no-op.
+		{ refreshInterval: POLL_MS, dedupingInterval: 10_000, revalidateOnFocus: true },
 	);
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
