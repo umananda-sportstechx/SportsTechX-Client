@@ -394,3 +394,8 @@
   .cm-overlay, .cm-modal { animation: none; }
   .cm-step-num, .cm-progress-fill, .cm-btn, .cm-tab, .cm-role-card { transition: none; }
 }
+
+/* Program participation: one row per program, year beside it. */
+.cm-program-row { margin-bottom: 8px; gap: 10px; }
+.cm-program-year { width: 84px; flex: none; text-align: center; }
+.cm-pick-new .cm-program-year { width: 120px; text-align: left; }
