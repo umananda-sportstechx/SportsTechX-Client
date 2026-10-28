@@ -59,7 +59,7 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 	const router = useRouter();
 	// This page's own route; the full analysis opens at `${DECK}/${id}`.
 	const DECK = hrefOf('deck');
-	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(mode), { dedupingInterval: 10_000, refreshInterval: (d) => (d?.[0] && d[0].status !== 'done' ? 4000 : 0) });
+	const { data: list, mutate } = useSWR<DeckListItem[]>(qk.deckAnalysis.list(mode), { dedupingInterval: 10_000, refreshInterval: (d) => (d?.[0]?.status === 'processing' ? 4000 : 0) });
 	const latest = list?.[0] ?? null;
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
@@ -139,6 +139,20 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 				<hr className="atlas-divider" style={{ margin: '26px 0 24px' }} />
 				<Button onClick={trigger} disabled={uploading}>{uploading ? <Loader2 className="animate-spin" size={14} /> : <>{copy.emptyCta} <ArrowUpRight /></>}</Button>
 				<p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--a-faint)' }}>PDF, PPT/PPTX or DOC/DOCX · max {MAX_DECK_MB} MB</p>
+			</Card>
+		</Screen>
+	);
+
+	// Not started (e.g. refused for credits) or failed — nothing is running, so
+	// don't show the "Analysing…" loader (or poll); offer to run it.
+	if (latest.status === 'pending' || latest.status === 'failed') return (
+		<Screen>{head}{fileInput}
+			<Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+				<div>
+					<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{latest.filename ?? copy.fallbackName}</div>
+					<div style={{ fontSize: 13, color: 'var(--a-muted)', marginTop: 4 }}>{latest.status === 'failed' ? "The last analysis didn't finish." : "This deck hasn't been analysed yet."}</div>
+				</div>
+				<Button size="sm" onClick={() => router.push(`${DECK}/${latest.id}`)}>{latest.status === 'failed' ? 'Try again' : 'Run analysis'}</Button>
 			</Card>
 		</Screen>
 	);

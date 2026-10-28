@@ -17,7 +17,7 @@ import { companyHref, hrefOf } from '@/lib/routes';
  * analytics took that slot.
  */
 interface Grounded { sector?: string; total_funding_usd?: number; funded_companies?: number; companies_tracked?: number; deals?: number; funding_cagr_pct?: number | null }
-interface Methodology { estimating?: boolean; approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
+interface Methodology { estimating?: boolean; estimate_failed?: boolean; approach?: string; grounded?: Grounded; assumptions?: string[]; sources?: string[] }
 interface Competitor { id: string; name: string; website?: string | null; custom_logo_url?: string | null; hq_country: string | null; funding: string }
 interface Market {
 	unavailable?: boolean; reason?: string;
@@ -46,7 +46,7 @@ export function MyMarket() {
 		refreshInterval: (d) => (d && !d.unavailable && d.methodology?.estimating ? 8000 : 0),
 	});
 	const estimating = !!data && !data.unavailable && !!data.methodology?.estimating;
-	const sizeNote = (v: string | null) => (estimating || recomputing ? (v != null ? 'Updating estimate…' : 'Estimating…') : v != null ? 'Estimate' : 'Not available — try Recompute');
+	const sizeNote = (v: string | null) => (estimating || recomputing ? (v != null ? 'Updating estimate…' : 'Estimating…') : v != null ? 'Estimate' : data?.methodology?.estimate_failed ? 'Estimate failed — try Recompute' : 'Not available');
 	const competitors = useMemo(() => data?.competitors ?? [], [data]);
 	const g = data?.methodology?.grounded;
 

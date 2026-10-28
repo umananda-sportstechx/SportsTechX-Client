@@ -44,6 +44,8 @@ export interface DeckStreamHandlers {
 	onDelta: (t: string) => void;
 	onDone: (sc: DeckScorecard | null) => void;
 	onError: (m: string) => void;
+	/** Refused for credits — the global modal is already open; let the page say so inline. */
+	onCredits?: () => void;
 }
 
 /** Consume the SSE stream from POST /api/deck-analysis/:id/stream. */
@@ -76,6 +78,7 @@ export async function consumeDeckStream(stream: ReadableStream<Uint8Array>, h: D
 				// open the same out-of-credits modal apiRequest would, instead of a toast.
 				else if (event === 'error' && parsed.code === 'INSUFFICIENT_CREDITS') {
 					openCreditExhausted({ required: parsed.details?.required, available: parsed.details?.available, creditType: parsed.details?.credit_type });
+					h.onCredits?.();
 				}
 				else if (event === 'error') h.onError(parsed.message ?? 'Analysis failed');
 			} catch { /* skip malformed */ }
