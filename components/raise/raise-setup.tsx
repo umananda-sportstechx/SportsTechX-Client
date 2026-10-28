@@ -11,7 +11,8 @@ import { refreshRaise } from '@/lib/invalidate';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo } from '@/components/atlas';
+import { Screen, H1, Card, Field, Input, Select, Button, Loading, Logo, HoverTip } from '@/components/atlas';
+import { SETUP_HELP as H, INVESTOR_TYPE_HELP, EXPERTISE_OPTIONS } from '@/components/raise/setup-help';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
@@ -350,35 +351,35 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 
 					{step === 1 && <>
 						<Field label="Where are you in the fundraising process?"><Select placeholder="Select…" value={s(form.fundraising_process)} onChange={(e) => set('fundraising_process', e.target.value)} options={[['exploring', 'Exploring'], ['preparing', 'Preparing'], ['approaching', 'Actively approaching investors'], ['due_diligence', 'In due diligence'], ['negotiating', 'Negotiating terms']]} /></Field>
-						<Field label="What round are you raising?"><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
-						<Grid><Field label="How much are you raising?"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field><Field label="Already committed"><Input type="number" min={0} value={s(form.committed_amount)} onChange={(e) => set('committed_amount', e.target.value)} /></Field></Grid>
+						<Field label="What round are you raising?" info={H.round}><Select placeholder="Select…" value={s(form.round_type)} onChange={(e) => set('round_type', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['bridge', 'Bridge'], ['other', 'Other']]} /></Field>
+						<Grid><Field label="How much are you raising?"><Input type="number" min={0} value={s(form.target_amount)} onChange={(e) => set('target_amount', e.target.value)} /></Field><Field label="Already committed" info={H.committed}><Input type="number" min={0} value={s(form.committed_amount)} onChange={(e) => set('committed_amount', e.target.value)} /></Field></Grid>
 						<Grid>
 							<Field label="Currency"><Select value={s(form.currency_code) || 'EUR'} onChange={(e) => set('currency_code', e.target.value)} options={[['EUR', 'EUR'], ['USD', 'USD'], ['GBP', 'GBP']]} /></Field>
-							<Field label="Target close date"><DatePicker value={s(form.target_close_date)} onChange={(v) => set('target_close_date', v)} /></Field>
+							<Field label="Target close date" info={H.closeDate}><DatePicker value={s(form.target_close_date)} onChange={(v) => set('target_close_date', v)} /></Field>
 						</Grid>
 						<Grid>
-							<Field label="Lead investor?"><Select placeholder="Select…" value={s(form.lead_investor_status)} onChange={(e) => set('lead_investor_status', e.target.value)} options={[['yes', 'Yes'], ['no', 'No'], ['in_discussion', 'In discussion']]} /></Field>
-							<Field label="Structure"><Select placeholder="Select…" value={s(form.structure)} onChange={(e) => set('structure', e.target.value)} options={[['equity', 'Equity'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} /></Field>
+							<Field label="Lead investor?" info={H.lead}><Select placeholder="Select…" value={s(form.lead_investor_status)} onChange={(e) => set('lead_investor_status', e.target.value)} options={[['yes', 'Yes'], ['no', 'No'], ['in_discussion', 'In discussion']]} /></Field>
+							<Field label="Structure" info={H.structure}><Select placeholder="Select…" value={s(form.structure)} onChange={(e) => set('structure', e.target.value)} options={[['equity', 'Equity'], ['safe', 'SAFE'], ['convertible', 'Convertible'], ['undecided', 'Undecided'], ['other', 'Other']]} /></Field>
 						</Grid>
-						<Field label="Target valuation (optional)"><Input type="number" min={0} inputMode="numeric" placeholder="e.g. 5000000" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
+						<Field label="Target valuation (optional)" info={H.valuation}><Input type="number" min={0} inputMode="numeric" placeholder="e.g. 5000000" value={s(form.valuation)} onChange={(e) => set('valuation', e.target.value)} /></Field>
 					</>}
 
 					{step === 2 && <>
-						<Grid><Field label="Capital raised before this round"><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field><Field label="Last round date"><DatePicker value={s(form.last_round_date)} onChange={(v) => set('last_round_date', v)} /></Field></Grid>
-						<Grid><Field label="Current annual revenue / ARR"><Input type="number" min={0} value={s(form.annual_revenue)} onChange={(e) => set('annual_revenue', e.target.value)} /></Field><Field label="Monthly burn"><Input type="number" min={0} value={s(form.monthly_burn)} onChange={(e) => set('monthly_burn', e.target.value)} /></Field></Grid>
+						<Grid><Field label="Capital raised before this round" info={H.priorCapital}><Input type="number" min={0} value={s(form.prior_capital_raised)} onChange={(e) => set('prior_capital_raised', e.target.value)} /></Field><Field label="Last round date"><DatePicker value={s(form.last_round_date)} onChange={(v) => set('last_round_date', v)} /></Field></Grid>
+						<Grid><Field label="Current annual revenue / ARR" info={H.revenue}><Input type="number" min={0} value={s(form.annual_revenue)} onChange={(e) => set('annual_revenue', e.target.value)} /></Field><Field label="Monthly burn" info={H.burn}><Input type="number" min={0} value={s(form.monthly_burn)} onChange={(e) => set('monthly_burn', e.target.value)} /></Field></Grid>
 						<Grid><Field label="Revenue growth over the last 12 months (optional)"><Input type="number" placeholder="%" value={s(form.revenue_growth_pct)} onChange={(e) => set('revenue_growth_pct', e.target.value)} /></Field><Field label="Paying customers (optional)"><Input type="number" min={0} value={s(form.paying_customers)} onChange={(e) => set('paying_customers', e.target.value)} /></Field></Grid>
-						<Field label="Months of runway remaining"><Input type="number" min={0} value={s(form.runway_months)} onChange={(e) => set('runway_months', e.target.value)} /></Field>
-						<Field label="Strongest traction metric (optional)"><Input placeholder="e.g. 40% MoM growth" value={s(form.strongest_traction)} onChange={(e) => set('strongest_traction', e.target.value)} /></Field>
+						<Field label="Months of runway remaining" info={H.runway}><Input type="number" min={0} value={s(form.runway_months)} onChange={(e) => set('runway_months', e.target.value)} /></Field>
+						<Field label="Strongest traction metric (optional)" info={H.traction}><Input placeholder="e.g. 40% MoM growth" value={s(form.strongest_traction)} onChange={(e) => set('strongest_traction', e.target.value)} /></Field>
 					</>}
 
 					{step === 3 && <>
 						<Grid>
-							<Field label="Do you have a current pitch deck?"><Select placeholder="Select…" value={s(form.pitch_deck_status)} onChange={(e) => set('pitch_deck_status', e.target.value)} options={[['have', 'Yes — I’ll upload it'], ['later', 'I’ll add it later']]} /></Field>
-							<Field label="Do you have an investor target list?"><Select value={form.has_target_list === true ? 'yes' : form.has_target_list === false ? 'no' : ''} onChange={(e) => set('has_target_list', e.target.value === 'yes')} placeholder="Select…" options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
+							<Field label="Do you have a current pitch deck?" info={H.deck}><Select placeholder="Select…" value={s(form.pitch_deck_status)} onChange={(e) => set('pitch_deck_status', e.target.value)} options={[['have', 'Yes — I’ll upload it'], ['later', 'I’ll add it later']]} /></Field>
+							<Field label="Do you have an investor target list?" info={H.targetList}><Select value={form.has_target_list === true ? 'yes' : form.has_target_list === false ? 'no' : ''} onChange={(e) => set('has_target_list', e.target.value === 'yes')} placeholder="Select…" options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
 						</Grid>
 						<Grid>
-							<Field label="Do you have a financial model?"><Select placeholder="Select…" value={s(form.financial_model_status)} onChange={(e) => set('financial_model_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
-							<Field label="Do you have a data room?"><Select placeholder="Select…" value={s(form.data_room_status)} onChange={(e) => set('data_room_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
+							<Field label="Do you have a financial model?" info={H.financialModel}><Select placeholder="Select…" value={s(form.financial_model_status)} onChange={(e) => set('financial_model_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
+							<Field label="Do you have a data room?" info={H.dataRoom}><Select placeholder="Select…" value={s(form.data_room_status)} onChange={(e) => set('data_room_status', e.target.value)} options={[['ready', 'Ready'], ['in_progress', 'In progress'], ['not_started', 'Not started']]} /></Field>
 						</Grid>
 						<div style={{ fontSize: 12, color: 'var(--a-muted)', lineHeight: 1.55 }}>
 							You’ll upload your deck and build out your investor pipeline from the workspace once setup is complete — the Pitch Deck and Pipeline pages walk you through it.
@@ -386,14 +387,14 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 					</>}
 
 					{step === 4 && <>
-						<Multi label="Which investor types are you targeting?" v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={['VC', 'Angel', 'Family office', 'Strategic', 'CVC', 'Government fund']} />
-						<Multi label="Target geographies" v={crit.geographies} on={(x) => setC('geographies', x)} opts={GEO_OPTIONS} />
-						<Grid><Field label="Cheque size — minimum"><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field><Field label="Cheque size — maximum"><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field></Grid>
+						<Multi label="Which investor types are you targeting?" info={H.investorTypes} tips={INVESTOR_TYPE_HELP} v={crit.investor_types} on={(x) => setC('investor_types', x)} opts={Object.keys(INVESTOR_TYPE_HELP)} />
+						<Multi label="Target geographies" info={H.geographies} v={crit.geographies} on={(x) => setC('geographies', x)} opts={GEO_OPTIONS} />
+						<Grid><Field label="Cheque size — minimum" info={H.cheque}><Input type="number" min={0} value={s(crit.cheque_min)} onChange={(e) => setC('cheque_min', e.target.value)} /></Field><Field label="Cheque size — maximum" info={H.cheque}><Input type="number" min={0} value={s(crit.cheque_max)} onChange={(e) => setC('cheque_max', e.target.value)} /></Field></Grid>
 						<Grid>
-							<Field label="Lead, followers or both?"><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Lead'], ['followers', 'Followers'], ['both', 'Both']]} /></Field>
-							<Field label="Open to strategic investors?"><Select placeholder="Select…" value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
+							<Field label="Lead, followers or both?" info={H.leadPreference}><Select placeholder="Select…" value={s(crit.lead_preference)} onChange={(e) => setC('lead_preference', e.target.value)} options={[['lead', 'Lead'], ['followers', 'Followers'], ['both', 'Both']]} /></Field>
+							<Field label="Open to strategic investors?" info={H.strategic}><Select placeholder="Select…" value={crit.strategic_ok === true ? 'yes' : crit.strategic_ok === false ? 'no' : ''} onChange={(e) => setC('strategic_ok', e.target.value === 'yes')} options={[['yes', 'Yes'], ['no', 'No']]} /></Field>
 						</Grid>
-						<Multi label="What expertise or access would be most valuable? (optional)" v={crit.desired_expertise} on={(x) => setC('desired_expertise', x)} opts={['Commercial partnerships', 'Sports rights', 'Media', 'Product', 'International expansion', 'Other']} />
+						<Multi label="What expertise or access would be most valuable? (optional)" info={H.expertise} v={crit.desired_expertise} on={(x) => setC('desired_expertise', x)} opts={EXPERTISE_OPTIONS} />
 						<InvestorExclude label="Are there investors Atlas should exclude? (optional)" value={crit.excluded_investor_ids as string[] | undefined} onChange={(x) => setC('excluded_investor_ids', x)} />
 						<Field label="Biggest fundraising concern (optional)"><Select placeholder="Select…" value={s(crit.biggest_concern)} onChange={(e) => setC('biggest_concern', e.target.value)} options={[['story', 'Story'], ['access', 'Investor access'], ['valuation', 'Valuation'], ['timing', 'Timing'], ['diligence', 'Due diligence'], ['other', 'Other']]} /></Field>
 					</>}
@@ -515,13 +516,16 @@ function CompanySearch({ onPick, onAdd }: { onPick: (c: CoRow) => void; onAdd: (
 
 function s(v: unknown): string { return v == null ? '' : String(v); }
 function Grid({ children }: { children: React.ReactNode }) { return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16 }}>{children}</div>; }
-function Multi({ label, v, on, opts }: { label: string; v: unknown; on: (x: string[]) => void; opts: string[] }) {
+/** Chip multi-select. `tips` explains each option on hover / focus (the label's
+ *  `info` covers touch, where there's no hover). */
+function Multi({ label, info, tips, v, on, opts }: { label: string; info?: React.ReactNode; tips?: Record<string, string>; v: unknown; on: (x: string[]) => void; opts: string[] }) {
 	const sel = new Set((v as string[]) ?? []);
-	return <Field label={label}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+	return <Field label={label} info={info}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 		{opts.map((o) => {
 			const active = sel.has(o);
-			return <button key={o} type="button" aria-pressed={active} className={`atlas-btn ${active ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`}
+			const chip = <button key={o} type="button" aria-pressed={active} className={`atlas-btn ${active ? 'atlas-btn--primary' : 'atlas-btn--outline'} atlas-btn--sm`}
 				onClick={() => { const nn = new Set(sel); if (nn.has(o)) nn.delete(o); else nn.add(o); on([...nn]); }}>{o}</button>;
+			return tips?.[o] ? <HoverTip key={o} tip={tips[o]}>{chip}</HoverTip> : chip;
 		})}
 	</div></Field>;
 }
