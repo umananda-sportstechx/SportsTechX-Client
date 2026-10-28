@@ -88,6 +88,32 @@
 
 /* ── Field ──────────────────────────────────────────────────────────────── */
 .atlas-label { display: block; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 7px; }
+.atlas-label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+.atlas-label-row > .atlas-label, .atlas-label-row > .cm-label { margin-bottom: 0; }
+
+/* InfoTip — (i) beside a label; bubble is portalled (z above the claim modal's 1200). */
+.atlas-infotip {
+  display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; padding: 0;
+  border-radius: 50%; border: 1px solid var(--a-border-strong); background: transparent;
+  color: var(--a-muted); cursor: help; transition: color .15s, border-color .15s;
+  /* Taller than the 10px label: don't let it grow the row, or side-by-side inputs misalign. */
+  margin-block: -3px;
+}
+.atlas-infotip:hover, .atlas-infotip:focus-visible, .atlas-infotip[data-state$="open"] { color: var(--a-ink); border-color: var(--a-ink); }
+.atlas-infotip:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 2px; }
+/* A bigger touch target without a bigger icon. */
+@media (pointer: coarse) { .atlas-infotip { position: relative; } .atlas-infotip::after { content: ''; position: absolute; inset: -12px; } }
+.atlas-infotip__bubble {
+  z-index: 1300; max-width: min(320px, calc(100vw - 24px)); padding: 9px 12px;
+  border-radius: 8px; background: var(--a-ink); color: var(--a-page);
+  font-family: var(--a-body); font-size: 12px; line-height: 1.5; text-transform: none; letter-spacing: 0;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.atlas-infotip__bubble p { margin: 0; }
+.atlas-infotip__bubble p + p, .atlas-infotip__bubble ul { margin-top: 6px; }
+.atlas-infotip__bubble ul { margin-bottom: 0; padding-left: 16px; }
+.atlas-infotip__bubble strong { font-weight: 700; }
+.atlas-infotip__arrow { fill: var(--a-ink); }
 .atlas-label__req { color: var(--a-danger); }
 .atlas-input, .atlas-select, .atlas-textarea {
   width: 100%; height: 38px; padding: 0 14px;

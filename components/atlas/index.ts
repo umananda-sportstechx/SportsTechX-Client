@@ -18,6 +18,7 @@ export { Screen, PageHead, SectionHead, H1, H2, Sub, Eyebrow, Loading, Empty } f
 export { Card } from './ui/card';
 export { Button, Action } from './ui/button';
 export { Field, Input, Textarea, Select, ReadOnly } from './ui/form';
+export { InfoTip, HoverTip } from './ui/info-tip';
 export { Badge } from './ui/badge';
 export { Tabs, Seg, PillTabs } from './ui/tabs';
 export { ViewToggle } from './ui/view-toggle';

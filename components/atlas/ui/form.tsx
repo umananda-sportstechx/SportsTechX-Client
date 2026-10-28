@@ -5,10 +5,13 @@ import type { ChangeEvent, ReactElement, ReactNode, InputHTMLAttributes, SelectH
 import { cx } from './cx';
 import { Combobox } from './combobox';
 import { DatePicker } from './date-picker';
+import { InfoTip } from './info-tip';
 
 /** Form fields — mono uppercase labels, rounded inputs. Add `className="atlas-input--search"` for a pill search box. */
 
-export function Field({ label, required, children }: { label?: string; required?: boolean; children: ReactNode }) {
+/** `info` adds an (i) beside the label explaining it — kept outside the <label>
+ *  so it isn't read as part of the field's name. */
+export function Field({ label, required, info, children }: { label?: string; required?: boolean; info?: ReactNode; children: ReactNode }) {
 	const autoId = useId();
 	// Tie the label to a single Atlas control (screen readers + click-to-focus).
 	// Other children (button groups, read-only values) keep a plain label.
@@ -19,7 +22,12 @@ export function Field({ label, required, children }: { label?: string; required?
 		<div>
 			{/* `required` shows a `*` up front, so a mandatory field reads as one before
 			    save rather than only erroring in a toast afterwards. */}
-			{label && <label className="atlas-label" htmlFor={id}>{label}{required && <span className="atlas-label__req" aria-hidden="true"> *</span>}</label>}
+			{label && (info ? (
+				<div className="atlas-label-row">
+					<label className="atlas-label" htmlFor={id}>{label}{required && <span className="atlas-label__req" aria-hidden="true"> *</span>}</label>
+					<InfoTip label={`About: ${label}`}>{info}</InfoTip>
+				</div>
+			) : <label className="atlas-label" htmlFor={id}>{label}{required && <span className="atlas-label__req" aria-hidden="true"> *</span>}</label>)}
 			{control ? cloneElement(control, { id, ...(required ? { 'aria-required': true } : {}) }) : children}
 		</div>
 	);

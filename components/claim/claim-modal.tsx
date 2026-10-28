@@ -13,6 +13,8 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useFormDraft } from '@/hooks/use-form-draft';
 import { Flag } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
+import { InfoTip } from '@/components/atlas/ui/info-tip';
+import { SETUP_HELP } from '@/components/raise/setup-help';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
@@ -64,6 +66,19 @@ function EntityLogo({ item, size = 34 }: { item: { name?: string } | null; size?
 type Step =
   | 'role' | 'search' | 'identity' | 'dataedits' | 'fundraising' | 'review'
   | 'invdata' | 'portfolio' | 'details' | 'extra' | 'done';
+
+/** Business models in founders' terms (the (i) beside "Business model"). */
+const BIZ_HELP = (
+  <ul>
+    <li><strong>B2C</strong> — you sell to consumers, e.g. fans or athletes.</li>
+    <li><strong>B2B</strong> — you sell to businesses: clubs, leagues, brands, venues.</li>
+    <li><strong>B2B2C</strong> — you reach consumers through a business partner, e.g. a club&apos;s app.</li>
+    <li><strong>D2C</strong> — your own brand, sold direct to consumers.</li>
+    <li><strong>Marketplace</strong> — you connect buyers and sellers and take a cut.</li>
+    <li><strong>SaaS</strong> — software sold by subscription.</li>
+    <li><strong>Hardware</strong> — physical devices, often with software alongside.</li>
+  </ul>
+);
 
 // Runtime whitelists for validating a restored draft (stored blobs are untrusted).
 const STEP_VALUES: readonly Step[] = [
@@ -685,7 +700,7 @@ export function ClaimModal({
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Sector {addingNew && <span className="cm-req">*</span>}</label><Combobox className="cm-select" value={form.sector} onChange={(v) => set('sector', v)} placeholder="Select sector…" options={optE('Select…', THESIS_SECTORS)} /></div>
-                      <div className="cm-field cm-half"><label className="cm-label">Business model</label><Combobox className="cm-select" value={form.businessModel} onChange={(v) => set('businessModel', v)} options={opt(BIZ_MODELS)} /></div>
+                      <div className="cm-field cm-half"><div className="atlas-label-row"><label className="cm-label">Business model</label><InfoTip label="About: business model">{BIZ_HELP}</InfoTip></div><Combobox className="cm-select" value={form.businessModel} onChange={(v) => set('businessModel', v)} options={opt(BIZ_MODELS)} /></div>
                     </div>
                     <div className="cm-row2">
                       <div className="cm-field cm-half"><label className="cm-label">Founded year</label><input className="cm-input" value={form.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
@@ -740,7 +755,7 @@ export function ClaimModal({
                           <div key={`${i}/${form.rounds.length}`} className="cm-editcard">
                             <button className="cm-editcard-x" onClick={() => set('rounds', form.rounds.filter((_, j) => j !== i))} aria-label="Remove round"><X size={14} /></button>
                             <div className="cm-row3">
-                              <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Round type</label><Combobox className="cm-select" value={r.roundType} onChange={(v) => upd('roundType', v)} placeholder="Select…" options={optE('Select…', FUND_ROUND_NAMES)} /></div>
+                              <div className="cm-field" style={{ margin: 0 }}><div className="atlas-label-row"><label className="cm-label">Round type</label><InfoTip label="About: round type">{SETUP_HELP.round}</InfoTip></div><Combobox className="cm-select" value={r.roundType} onChange={(v) => upd('roundType', v)} placeholder="Select…" options={optE('Select…', FUND_ROUND_NAMES)} /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Amount (USD)</label><input className="cm-input" value={r.amount} onChange={(e) => upd('amount', e.target.value.replace(/[^\d]/g, ''))} placeholder="1000000" inputMode="numeric" /></div>
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Date</label><DatePicker className="cm-input" value={r.date} onChange={(v) => upd('date', v)} /></div>
                             </div>
@@ -834,7 +849,7 @@ export function ClaimModal({
                         {FUND_ROUND_NAMES.map((n) => <label key={n} className="cm-check"><input type="checkbox" checked={form.roundNames.includes(n)} onChange={() => toggleIn('roundNames', n)} /> {n}</label>)}
                       </div>
                     </div>
-                    <div className="cm-field"><label className="cm-label">Valuation (USD)</label><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.valuation} onChange={(e) => set('valuation', e.target.value)} placeholder="e.g. 5000000" /><div className="cm-hint">Optional: numeric value of your pre-money or post-money valuation.</div></div>
+                    <div className="cm-field"><div className="atlas-label-row"><label className="cm-label">Valuation (USD)</label><InfoTip label="About: valuation">{SETUP_HELP.valuation}</InfoTip></div><input className="cm-input" type="number" min={0} inputMode="numeric" value={form.valuation} onChange={(e) => set('valuation', e.target.value)} placeholder="e.g. 5000000" /><div className="cm-hint">Optional: numeric value of your pre-money or post-money valuation.</div></div>
                     <div className="cm-field" style={{ marginBottom: 0 }}>
                       <label className="cm-label">Pitch deck <span className="cm-opt">(PDF / PPT / PPTX)</span></label>
                       <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx" style={{ display: 'none' }} onChange={(e) => {
