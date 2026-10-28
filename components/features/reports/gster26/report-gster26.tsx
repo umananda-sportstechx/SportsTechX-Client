@@ -37,7 +37,7 @@ import { GSTER25_FACTS } from "./data/gster25-facts-data";
 import { GSTER25_MA_DEALS } from "./data/gster25-ma-deals-data";
 import { INNOVATORS_DATA } from "./data/gster26-innovators-data";
 import { getCountryFlag } from "./flags";
-import mixpanel from "mixpanel-browser";
+import { track } from "@/lib/analytics";
 
 // The downloadable "lite" PDF lives in Supabase storage (public_bucket), not in
 // the repo. `?download` makes Supabase serve it as an attachment — the HTML
@@ -56,7 +56,8 @@ function AuthModal() { return null; }
 
 /* ── gster26 Mixpanel helper ─────────────────────────────────────────── */
 function trackG26(event: string, props?: Record<string, any>) {
-  try { mixpanel.track(`gster26_${event}`, { report: "gster26", ...props }); } catch {}
+  // Through the shared wrapper: it loads the light SDK lazily (and is a no-op without a token).
+  track(`gster26_${event}`, { report: "gster26", ...props });
 }
 gsap.registerPlugin(ScrollTrigger);
 
