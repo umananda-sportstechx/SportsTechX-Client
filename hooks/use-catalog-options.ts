@@ -92,8 +92,14 @@ export function useCountryOptions(): [string, string][] {
 }
 
 /** City / continent / region options from the shared location facets endpoint. */
-export function useLocationFacetOptions() {
-	const { data } = useSWR<LocationFacets>(qk.reference.locationFacets(), { dedupingInterval: 60 * 60_000 });
+/**
+ * `enabled: false` skips the request. The facets payload is ~170 KB over the
+ * wire (~400 KB of JSON) and only feeds the city / continent / region filters,
+ * which are an advanced-filters feature — list pages pass `adv.hasAccess` so
+ * plans without them don't download it on every list page.
+ */
+export function useLocationFacetOptions(enabled = true) {
+	const { data } = useSWR<LocationFacets>(enabled ? qk.reference.locationFacets() : null, { dedupingInterval: 60 * 60_000 });
 	const countries = useCountryOptions();
 	return useMemo(() => {
 		const clean = (vals: string[] | undefined): [string, string][] => {

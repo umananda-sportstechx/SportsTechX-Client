@@ -55,8 +55,8 @@ export function ProgramsList() {
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
 	const countryOptions = useCountryOptions();
-	const loc = useLocationFacetOptions();
 	const adv = useFeatureAccess('advanced_filters');
+	const loc = useLocationFacetOptions(adv.hasAccess);
 	// Filter defs for the toolbar — each change resets to page 1, as before.
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
@@ -162,8 +162,8 @@ export function EventsList() {
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
 	const countryOptions = useCountryOptions();
-	const loc = useLocationFacetOptions();
 	const adv = useFeatureAccess('advanced_filters');
+	const loc = useLocationFacetOptions(adv.hasAccess);
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
 	const tog = (key: string, label: string, value: boolean, set: (v: boolean) => void): FilterDef =>

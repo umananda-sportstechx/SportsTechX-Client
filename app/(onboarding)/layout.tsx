@@ -1,10 +1,11 @@
 import '@/components/atlas/styles/tokens.css';
-import { ProtectedRoute } from '@/components/auth/protected-route';
+import { Suspense } from 'react';
+import { AuthPlaceholder, ProtectedRoute } from '@/components/auth/protected-route';
 
 // Onboarding is auth-gated (you must be signed in) but intentionally renders
 // WITHOUT the AppShell chrome (rail / topbar / ticker) so the flow is focused.
-// force-dynamic for the same reason (app)/layout uses it — per-user, no SSG.
-export const dynamic = 'force-dynamic';
+// Static + one Suspense boundary, for the same reason as (dashboard)/layout:
+// client-rendered behind the session check, so no per-request server render.
 
 /**
  * `.atlas` scopes the `--a-*` tokens that every screen in this group uses.
@@ -21,8 +22,10 @@ export const dynamic = 'force-dynamic';
  */
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<ProtectedRoute>
-			<div className="atlas min-h-screen">{children}</div>
-		</ProtectedRoute>
+		<Suspense fallback={<AuthPlaceholder />}>
+			<ProtectedRoute>
+				<div className="atlas min-h-screen">{children}</div>
+			</ProtectedRoute>
+		</Suspense>
 	);
 }

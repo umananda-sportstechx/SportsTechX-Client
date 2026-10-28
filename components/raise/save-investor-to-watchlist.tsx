@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
-import { Bookmark, BookmarkCheck, Check, Loader2, Plus } from 'lucide-react';
+import { Bookmark, Check, Loader2, Plus } from 'lucide-react';
 import { cx } from '@/components/atlas';
+import { useKeepInViewport } from '@/components/atlas/ui/use-keep-in-viewport';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { createWatchlist, isInvestorList, useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
@@ -41,13 +42,17 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 	const [busy, setBusy] = useState<string | null>(null);
 	const ref = useRef<HTMLDivElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
+	useKeepInViewport(menuRef, open);
 	const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
 	const close = useCallback(() => { setOpen(false); setCreating(false); setNewName(''); }, []);
 	const toggle = () => {
 		if (open) { close(); return; }
-		// Phones get the bottom sheet (CSS, ≤640px); desktop pins the portalled menu to the button.
-		const r = ref.current?.getBoundingClientRect();
-		setPos(portal && r && window.innerWidth > 640
+		// The portalled menu is pinned under the button at every width; the
+		// viewport hook below nudges it back on-screen when it would spill.
+		// The button, not its wrapper: in a table cell the wrapper spans the whole
+		// column, which right-aligned the menu 40-odd px past the button.
+		const r = (ref.current?.querySelector('button') ?? ref.current)?.getBoundingClientRect();
+		setPos(portal && r
 			? { top: r.bottom + 6, ...(align === 'end' ? { right: window.innerWidth - r.right } : { left: r.left }) }
 			: null);
 		setOpen(true);
@@ -111,7 +116,7 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 	return (
 		<div className="atlas-fbar__anchor" ref={ref}>
 			<button type="button" className="atlas-action atlas-action--save" aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
-				<span className="atlas-action__icon">{row ? <BookmarkCheck /> : <Bookmark />}</span>
+				<span className="atlas-action__icon"><Bookmark fill={row ? 'currentColor' : 'none'} /></span>
 				<span className="atlas-action__label">{row ? `In ${currentName}` : 'Add to watchlist'}</span>
 			</button>
 			{open && (() => {

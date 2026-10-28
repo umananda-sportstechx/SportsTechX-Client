@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Search, Plus, X, ChevronLeft, SlidersHorizontal, Lock } from 'lucide-react';
 import { cx } from '../ui/cx';
 import { useDismiss } from './use-dismiss';
+import { useKeepInViewport } from '../ui/use-keep-in-viewport';
 import { useSearchSignal } from '@/hooks/use-search-signal';
 
 /**
@@ -42,6 +43,9 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 }) {
 	const [menu, setMenu] = useState<MenuState>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
+	// One menu is open at a time, so one ref serves all three.
+	const menuRef = useRef<HTMLDivElement>(null);
+	useKeepInViewport(menuRef, menu && `${menu.at}:${menu.view}`);
 
 	// Every catalog search flows through here, so this is the one place that
 	// feeds searches into the behavioural personalization profile.
@@ -84,7 +88,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 						</button>
 					</span>
 					{menu?.at === f.key && f.kind === 'select' && (
-						<div className="atlas-menu atlas-menu--sheet" role="dialog" aria-label={f.label}>
+						<div ref={menuRef} className="atlas-menu atlas-menu--sheet" role="dialog" aria-label={f.label}>
 							<OptionsView f={f} onDone={() => setMenu(null)} />
 						</div>
 					)}
@@ -96,7 +100,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 					<Plus /> Add filter
 				</button>
 				{menu?.at === 'add' && (
-					<div className={cx('atlas-menu atlas-menu--sheet atlas-menu--drill', (groups.length > 1 || menu.view !== 'root') && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
+					<div ref={menuRef} className={cx('atlas-menu atlas-menu--sheet atlas-menu--drill', (groups.length > 1 || menu.view !== 'root') && 'atlas-menu--wide')} role="dialog" aria-label="Add filter">
 						{menu.view === 'root' ? (
 							<div className="atlas-menu__groups">
 								{groups.map((g) => (
@@ -142,7 +146,7 @@ export function FilterBar({ search, groups, sort, canClear, onClear, count, acti
 							<SlidersHorizontal /><span className="atlas-btn__label">Sort by</span>
 						</button>
 						{menu?.at === 'sort' && (
-							<div className="atlas-menu atlas-menu--end atlas-menu--sheet" role="dialog" aria-label="Sort by">
+							<div ref={menuRef} className="atlas-menu atlas-menu--end atlas-menu--sheet" role="dialog" aria-label="Sort by">
 								<div className="atlas-menu__list">
 									{sort.options.map(([v, l]) => (
 										<button key={v} type="button" className={cx('atlas-menu__item', v === sort.value && 'on')} aria-pressed={v === sort.value}

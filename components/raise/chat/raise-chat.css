@@ -287,11 +287,6 @@
 	.raise-chat-foot { padding: 10px 12px 12px; }
 	.raise-chat-hint { display: none; }
 	.raise-chat-fab { right: 16px; bottom: 16px; }
-	/* Just the mark on a phone: the labelled pill sat over the last row of every
-	   list (its save button included). The aria-label names it. */
-	.raise-chat-fab { width: 44px; height: 44px; padding: 0; justify-content: center; gap: 0; }
-	.raise-chat-fab__mark { width: 32px; height: 32px; }
-	.raise-chat-fab__label { display: none; }
 	/* Hide the launcher while the mobile nav drawer is open (the rail gets
 	   `.open`); the launcher is a following sibling of the rail in AtlasShell. */
 	.atlas-rail.open ~ .raise-chat-fab { display: none; }

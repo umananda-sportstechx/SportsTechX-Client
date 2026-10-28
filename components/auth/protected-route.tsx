@@ -35,24 +35,31 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		}
 	}, [loading, sessionValid, router, pathname]);
 
-	if (loading || !sessionValid) {
-		return (
-			<div
-				style={{
-					display: 'grid',
-					placeItems: 'center',
-					minHeight: '100vh',
-					fontFamily: 'var(--font-mono)',
-					color: 'var(--fg-muted)',
-					fontSize: 11,
-					textTransform: 'uppercase',
-					letterSpacing: '0.12em',
-				}}
-			>
-				{loading ? 'Authenticating…' : 'Redirecting…'}
-			</div>
-		);
-	}
+	if (loading || !sessionValid) return <AuthPlaceholder label={loading ? 'Authenticating…' : 'Redirecting…'} />;
 
 	return <>{children}</>;
+}
+
+/**
+ * The full-height "Authenticating…" screen. Also the Suspense fallback of the
+ * protected layouts, so a statically built page's first paint is the same
+ * screen the session check shows next — no flash between the two.
+ */
+export function AuthPlaceholder({ label = 'Authenticating…' }: { label?: string }) {
+	return (
+		<div
+			style={{
+				display: 'grid',
+				placeItems: 'center',
+				minHeight: '100vh',
+				fontFamily: 'var(--font-mono)',
+				color: 'var(--fg-muted)',
+				fontSize: 11,
+				textTransform: 'uppercase',
+				letterSpacing: '0.12em',
+			}}
+		>
+			{label}
+		</div>
+	);
 }
