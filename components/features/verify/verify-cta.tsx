@@ -29,6 +29,7 @@ export interface VerifyClaimRow {
 	id: string;
 	claim_type: 'company' | 'investor' | 'ecosystem_entity';
 	is_verified: boolean | null;
+	rejected_at?: string | null;
 	target_company_id: string | null;
 	target_investor_id: string | null;
 	target_ecosystem_entity_id: string | null;
@@ -68,7 +69,10 @@ export function useVerifyState(entityId?: string): { state: VerifyState; isLoadi
 	// admin acts on one, so a minute of staleness costs nothing and this stops
 	// being a request per page view.
 	const { data, isLoading } = useSWR<VerifyClaimRow[] | { data: VerifyClaimRow[] }>(qk.claims.mine(), { dedupingInterval: 60_000 });
-	const rows = Array.isArray(data) ? data : (data?.data ?? []);
+	// A rejected claim is neither verified nor pending: /api/claims/mine returns
+	// every claim, and counting rejected ones as "pending" showed a rejected user
+	// a pending badge and seeded Raise Setup from a company they were refused.
+	const rows = (Array.isArray(data) ? data : (data?.data ?? [])).filter((r) => !r.rejected_at);
 	const relevant = entityId
 		? rows.filter((r) => r.target_company_id === entityId
 			|| r.target_investor_id === entityId
