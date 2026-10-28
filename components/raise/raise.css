@@ -19,8 +19,20 @@
 .raise-attn { width: 100%; margin: 0; padding: 73px 0 96px; }
 .raise-attn-empty { text-align: left; color: var(--a-faint); font-size: 13px; padding: 4px 0 20px; }
 
+/* Round strip — committed vs target + countdown to the target close date. */
+.raise-round { display: flex; align-items: center; gap: 32px; padding: 22px 26px; margin-bottom: 48px; }
+.raise-round__main { flex: 1; min-width: 0; display: grid; gap: 10px; }
+.raise-round__amount { font-size: 14px; color: var(--a-muted); }
+.raise-round__amount strong { font-family: var(--a-font); font-size: 22px; font-weight: 700; color: var(--a-ink); margin-right: 4px; }
+.raise-round__clock { flex: none; min-width: 180px; text-align: right; display: grid; gap: 4px; }
+.raise-round__big { font-family: var(--a-font); font-size: 34px; font-weight: 700; line-height: 1; color: var(--a-ink); text-transform: capitalize; }
+.raise-round__muted { font-size: 12px; color: var(--a-muted); line-height: 1.5; }
+.raise-round__edit { background: none; border: 0; padding: 0; color: var(--a-navy); font: inherit; text-decoration: underline; cursor: pointer; }
+
 @media (max-width: 1100px) { .raise-home { padding: 40px 32px 0; } }
 @media (max-width: 860px) {
 	.raise-home { padding: 24px 16px 0; }
 	.raise-attn { padding-top: 48px; padding-bottom: 88px; }
+	.raise-round { flex-direction: column; align-items: stretch; gap: 18px; margin-bottom: 36px; }
+	.raise-round__clock { text-align: left; min-width: 0; }
 }
