@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
+import { noteCancellation } from '@/lib/invalidate';
 import { hrefOf, PLANS_PATH } from '@/lib/routes';
 import { useUserProfile, getUserType } from '@/hooks/use-user-profile';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
@@ -76,9 +77,10 @@ export default function BillingPage() {
 		if (!confirm('Cancel your subscription? You will keep access until the current period ends.')) return;
 		setBusy('cancel');
 		try {
-			await apiRequest('POST', '/api/billing/cancel');
+			const res = await apiRequest('POST', '/api/billing/cancel');
+			const body = (await res.json().catch(() => ({}))) as { access_until?: string | null };
 			toast.success('Subscription will cancel at the end of the billing period.');
-			void sub.mutate();
+			void noteCancellation(body.access_until ?? null);
 		} catch {
 			toast.error("Couldn't cancel. Please try again or use the billing portal.");
 		}

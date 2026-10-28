@@ -7,6 +7,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { track, Events } from '@/lib/analytics';
 import { safeRedirect } from '@/lib/safe-redirect';
 import { callPostLogin } from '@/lib/post-login';
+import { refreshAccount } from '@/lib/invalidate';
 import { logoutState } from '@/lib/logout-state';
 import { enableQueryPolling } from '@/lib/query-client';
 import { Button } from '@/components/atlas';
@@ -91,6 +92,9 @@ export default function LoginPage() {
 			if (err) { setError(err.message); return; }
 			if (data.session) {
 				await callPostLogin(data.session.access_token);
+				// Post-login can link claims, grant signup credits and settle the real
+				// tier/role — re-read anything cached before it finished.
+				void refreshAccount();
 				track(Events.signedIn, { method: 'password' });
 				router.push(redirectTo);
 			}

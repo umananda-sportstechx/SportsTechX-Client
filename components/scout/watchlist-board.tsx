@@ -8,6 +8,7 @@ import { Empty, Loading, Logo, cx } from '@/components/atlas';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { useWatchlistCompanies } from '@/components/features/watchlists/use-company-watchlists';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPaths } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { BOARD_STAGES, type BoardStage } from './sample-data';
 import { companyHref, hrefOf } from '@/lib/routes';
@@ -28,14 +29,21 @@ export function WatchlistBoard({ id }: { id: string }) {
 		(c.stage ? API_TO_STAGE[c.stage] : null) ?? 'Identified';
 	// A refused move (e.g. 403 SCOUT_NOT_SET_UP) throws; it used to be an
 	// unhandled rejection that snapped the card back with no word why.
+	// Optimistic: the card lands in its new column at once (it used to snap back
+	// until the round trip finished); the refetch after puts the truth back on a
+	// failure. Moving to or from "Passed" changes Scout's recommendations too.
 	const move = async (cid: string, s: BoardStage) => {
+		const key = qk.userWatchlists.companies(id);
+		void mutate(key, (d?: { data: Array<{ id: string; stage?: string | null }> }) =>
+			d && { ...d, data: d.data.map((c) => (c.id === cid ? { ...c, stage: STAGE_TO_API[s] } : c)) }, { revalidate: false });
 		try {
 			const res = await apiRequest('PATCH', `/api/scout/watchlists/${id}/companies/${cid}/stage`, { stage: STAGE_TO_API[s] });
 			if (!res.ok) throw new Error(String(res.status));
 		} catch {
 			toast.error("Couldn't move that company. Please try again.");
 		}
-		void mutate(qk.userWatchlists.companies(id));
+		void mutate(key);
+		void refreshPaths('/api/scout/recommended');
 	};
 
 	if (isLoading) return <Loading />;

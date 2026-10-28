@@ -14,6 +14,7 @@ import { LocationSelect } from '@/components/features/location/location-select';
 import { BLANK, fromRow, toPayload, num, fmtValuation, type Draft } from './deal-draft-codec';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPaths } from '@/lib/invalidate';
 import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
 import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
@@ -137,7 +138,9 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 
 			const sent = await apiRequest('POST', `/api/scout/dealflow/${id}/submit`);
 			if (!sent.ok) throw new Error(String(sent.status));
-			await own.mutate();   // so "Your submissions" shows the new status
+			// Not `own.mutate()`: for a new deal that hook has no key (null), so it did
+			// nothing and "Your submissions" missed the deal. Every deal-flow view.
+			await refreshPaths('/api/scout/dealflow');
 			setDone(true); window.scrollTo(0, 0);
 		} catch {
 			setErr('We couldn’t submit that. Please check the details and try again.');

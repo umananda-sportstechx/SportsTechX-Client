@@ -8,6 +8,7 @@ import { Button, Empty, Field, Input, Loading, Progress, Select } from '@/compon
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { useUrlSync, useUrlReader } from '@/hooks/use-url-state';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPaths } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { hrefOf } from '@/lib/routes';
 import {
@@ -208,7 +209,7 @@ function MySubmissions() {
 										<p className="scout-df-card__reachout">The Atlas team will reach out within 24 hours to coordinate introductions.</p>
 									)}
 									<Link href={dealHref(m.id)} className="scout-df-card__link">View listing →</Link>
-									<LiveEdit m={m} onSaved={() => void mutate()} />
+									<LiveEdit m={m} onSaved={() => { void mutate(); void refreshPaths('/api/scout/dealflow'); }} />
 								</>
 							)}
 						</article>

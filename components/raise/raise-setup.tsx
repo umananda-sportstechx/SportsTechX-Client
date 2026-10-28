@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Check, Loader2, Plus, Search } from 'lucide-reac
 import { qk } from '@/lib/query-keys';
 import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
 import { apiRequest } from '@/lib/query-client';
+import { refreshRaise } from '@/lib/invalidate';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -237,7 +238,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	 */
 	const back = async () => {
 		setSaving(true);
-		try { await saveStep(step); void mutate(); }
+		try { await saveStep(step); void mutate(); void refreshRaise(); }
 		// A failed save must not trap them on the step — but it must not be silent either.
 		catch (e) { toast.error((e as Error).message ?? "Couldn't save this step"); }
 		finally { setSaving(false); setStep((x) => Math.max(x - 1, 0)); resetScroll(); }
@@ -247,7 +248,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 		const miss = validate(step);
 		if (miss.length) { toast.error(`Please complete: ${miss.map((r) => r.label).join(', ')}`); return; }
 		setSaving(true);
-		try { await saveStep(step); void mutate(); setErrors(new Set()); setStep((x) => Math.min(x + 1, STEPS.length - 1)); resetScroll(); }
+		try { await saveStep(step); void mutate(); void refreshRaise(); setErrors(new Set()); setStep((x) => Math.min(x + 1, STEPS.length - 1)); resetScroll(); }
 		catch (e) { toast.error((e as Error).message ?? 'Could not save'); }
 		finally { setSaving(false); }
 	};
@@ -260,6 +261,9 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 			await saveCriteria();
 			await apiRequest('PATCH', '/api/raise', { setup_completed: true });
 			void mutate();
+			// The home page under this modal still says "Complete your raise setup"
+			// until its cards refetch; so do deal-flow status, market and matches.
+			void refreshRaise();
 			// Re-editing from settings: already set up, so skip the first-run
 			// transition screen — just confirm and close.
 			if (edit) { toast.success('Raise settings updated'); onClose(); return; }

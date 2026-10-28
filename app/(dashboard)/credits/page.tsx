@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/query-client';
+import { refreshCredits } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { AccountTabs } from '@/components/features/account/account-tabs';
@@ -34,10 +35,24 @@ const SECTION: React.CSSProperties = { margin: '32px 0 12px' };
 export default function CreditsPage() {
 	const { balance: bal } = useCreditBalance();
 	const packs = useSWR<{ data: Pack[] }>(['/api/billing/credit-packs']);
+	// Fresh on every visit: spends elsewhere (chat, exports, decks) can't reach an
+	// infinite list's cache (SWR's prefix mutate skips them), so don't trust it.
 	const ledger = useSWRInfinite<{ data: LedgerRow[]; nextCursor: string | null }>(
 		(index, prev) => (prev && !prev.nextCursor) ? null : qk.credits.ledger('all', index === 0 ? undefined : (prev?.nextCursor ?? undefined), PAGE_SIZE),
+		{ revalidateOnMount: true, dedupingInterval: 2_000 },
 	);
 	const [busy, setBusy] = useState<string | null>(null);
+	// Back from a pack checkout: the top-up arrives by webhook a few seconds
+	// later, so re-read the balance and history until it shows (up to ~30s).
+	useEffect(() => {
+		if (typeof window === 'undefined' || !new URLSearchParams(window.location.search).has('purchased')) return;
+		window.history.replaceState(null, '', window.location.pathname);
+		toast.success('Payment received — adding your credits…');
+		let n = 0;
+		const t = setInterval(() => { void refreshCredits(); void ledger.mutate(); if (++n >= 15) clearInterval(t); }, 2_000);
+		return () => clearInterval(t);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	// Page-based history: show one page at a time (fixed height) so the list
 	// never grows the page the way an ever-appending "Load more" would.
 	const [pageIdx, setPageIdx] = useState(0);
@@ -45,7 +60,13 @@ export default function CreditsPage() {
 	const buyPack = async (packId: string) => {
 		setBusy(packId);
 		try {
-			const res = await apiRequest('POST', '/api/billing/credit-packs/checkout', { pack_id: packId });
+			// Back to this page (not /billing/success, which waits for a plan change
+			// that a credit pack never makes) — it then watches for the top-up.
+			const res = await apiRequest('POST', '/api/billing/credit-packs/checkout', {
+				pack_id: packId,
+				success_url: `${window.location.origin}/credits?purchased=1`,
+				cancel_url: `${window.location.origin}/credits`,
+			});
 			const body = (await res.json()) as { url?: string };
 			if (body.url) { window.location.assign(body.url); return; }
 			throw new Error('no url');
