@@ -38,9 +38,11 @@ interface Feed { data: NotificationRow[]; unread_count: number }
 const POLL_MS = 120_000;
 
 export function NotificationBell() {
+	// Pushed by the realtime stream (hooks/use-realtime), polled as a fallback,
+	// and re-read when the tab regains focus or the bell is opened.
 	const { data, mutate } = useSWR<Feed>(
 		qk.me.notifications(),
-		{ refreshInterval: POLL_MS },
+		{ refreshInterval: POLL_MS, revalidateOnFocus: true },
 	);
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
@@ -96,7 +98,7 @@ export function NotificationBell() {
 				aria-haspopup="dialog"
 				aria-expanded={open}
 				aria-label={unread > 0 ? `Notifications (${unread} unread)` : 'Notifications'}
-				onClick={() => setOpen(!open)}
+				onClick={() => { if (!open) void mutate(); setOpen(!open); }}
 			>
 				<Bell size={14} strokeWidth={1.75} aria-hidden="true" />
 				{unread > 0 && <span className="atlas-bell__dot" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}

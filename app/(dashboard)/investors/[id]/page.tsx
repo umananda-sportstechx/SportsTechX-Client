@@ -10,6 +10,7 @@ import { hrefOf } from '@/lib/routes';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import type { Deal, Investor, PipelineActivity as Activity, PipelineStage, PipelineUpdate } from '@/types/api';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPipeline } from '@/lib/invalidate';
 import { Screen, Card, Badge, Button, Field, Input, Select, Loading, Empty, Logo, Flag } from '@/components/atlas';
 import { DatePicker } from '@/components/atlas/ui/date-picker';
 import { SaveInvestorToWatchlist } from '@/components/raise/save-investor-to-watchlist';
@@ -103,7 +104,9 @@ export default function InvestorProfilePage() {
 				)}
 			</div>
 
-			{record && <PipelineRecord record={record} onChanged={() => pipe.mutate()} />}
+			{/* Keyed: the form is a draft seeded from the record, so a re-added or
+			    moved record must start a fresh draft, not keep the old values. */}
+			{record && <PipelineRecord key={`${record.id}:${record.stage}`} record={record} onChanged={() => void refreshPipeline()} />}
 
 			<div className="atlas-eyebrow" style={{ margin: record ? '32px 0 14px' : '0 0 14px' }}>{record ? 'About this investor' : ''}</div>
 			<div className="atlas-kpis" style={{ marginBottom: 24 }}>

@@ -103,7 +103,7 @@ export function RaiseChat() {
 	});
 
 	const {
-		messages, input, setInput, streaming, stage, conversationId,
+		messages, input, setInput, streaming, stage, conversationId, loading,
 		showHistory, conversations, historyLoading, bodyRef,
 		send, resetConversation, toggleHistory, loadConversation, exportConversation, abort,
 	} = chat;
@@ -119,7 +119,7 @@ export function RaiseChat() {
 	// A fresh conversation is just the greeting. That state gets the intro and
 	// the suggested prompts instead of one lonely paragraph at the top of an
 	// otherwise empty panel.
-	const fresh = messages.length <= 1 && !streaming;
+	const fresh = messages.length <= 1 && !streaming && !loading;
 
 	// The composer grows with what is typed, then shrinks back once a message
 	// is sent and the field empties.
@@ -212,7 +212,9 @@ export function RaiseChat() {
 				)}
 
 				<div className="raise-chat-body" ref={bodyRef}>
-					{fresh ? (
+					{loading ? (
+						<div className="raise-chatpage-loading" role="status">Loading conversation…</div>
+					) : fresh ? (
 						<div className="raise-chat-intro">
 							<div className="raise-chat-intro__eyebrow">Atlas co-pilot</div>
 							<h2 className="raise-chat-intro__title">What can I help with?</h2>

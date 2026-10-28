@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Check, Loader2, Minus } from 'lucide-react';
 import { Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
+import { noteCancellation } from '@/lib/invalidate';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { qk } from '@/lib/query-keys';
 import { track, Events } from '@/lib/analytics';
@@ -68,7 +69,7 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 	const confirm = useConfirm();
 	// `subscription_cancel_at` is already on this payload; no new endpoint needed
 	// to know whether they have something to cancel.
-	const sub = useSWR<{ stripe_subscription_id?: string } | null>(loggedOut ? null : qk.billing.subscription());
+	const sub = useSWR<{ stripe_subscription_id?: string; subscription_cancel_at?: string | null } | null>(loggedOut ? null : qk.billing.subscription());
 	const hasPaidPlan = !loggedOut && current !== 'explore' && !!sub.data?.stripe_subscription_id;
 	// Only the signed-in in-app view marks one card as "yours".
 	const showCurrent = !onboarding && !loggedOut;
@@ -140,7 +141,7 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 			toast.success(end
 				? `Plan set to cancel on ${end}. You keep full access until then.`
 				: 'Plan set to cancel at the end of your billing period. You keep full access until then.');
-			await Promise.all([refreshProfile(), sub.mutate(), plans.mutate()]);
+			await Promise.all([refreshProfile(), noteCancellation(body.access_until)]);
 		} catch {
 			toast.error("Couldn't cancel your plan. Please try again or contact support.");
 		} finally { setBusy(null); }
@@ -164,6 +165,10 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 				: <Button size="sm" variant={tier === 'raise' ? 'primary' : 'outline'} disabled={busy !== null} onClick={() => void checkout(tier)}>{busy === tier ? spin : `Choose ${name}`}</Button>;
 		}
 		if (tier === 'explore') {
+			// Already set to cancel: say when, instead of offering to cancel again.
+			if (hasPaidPlan && sub.data?.subscription_cancel_at) {
+				return <Button size="sm" variant="outline" disabled>Moves to Explore {fmtDay(sub.data.subscription_cancel_at) ?? 'at period end'}</Button>;
+			}
 			return hasPaidPlan
 				? <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => void downgrade()}>{busy === 'explore' ? spin : 'Switch to Explore'}</Button>
 				: <span className="plans-muted">Included with every plan</span>;

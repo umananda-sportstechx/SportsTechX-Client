@@ -10,6 +10,7 @@ import { Combobox } from '@/components/atlas/ui/combobox';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useCreditBalance } from '@/hooks/use-credit-balance';
 import { apiRequest } from '@/lib/query-client';
+import { refreshCredits } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { hrefOf } from '@/lib/routes';
@@ -117,6 +118,7 @@ export function ExportModal({ entity, search, filters, onClose }: {
 			});
 			if (!res.ok) throw new Error(String(res.status));
 			const blob = await res.blob();
+			void refreshCredits(); // exports spend credits — the balance shown here and on /credits
 			const disposition = res.headers.get('Content-Disposition') ?? '';
 			const named = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)?.[1];
 			const url = URL.createObjectURL(blob);

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, FileText, HelpCircle, RefreshCw } from 'lucide-react';
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
+import { refreshCredits, refreshPaths } from '@/lib/invalidate';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
 import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
@@ -51,7 +52,17 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 		const auth = await getAuthHeaders();
 		const res = await fetch(`/api/deck-analysis/${id}/stream`, { method: 'POST', headers: { Accept: 'text/event-stream', ...auth }, credentials: 'include', signal: ac.signal });
 		if (!res.ok || !res.body) { if (!cancelled()) setMd('⚠️ Failed to start analysis.'); return; }
-		await consumeDeckStream(res.body, { onDelta: (t) => setMd((p) => p + t), onDone: (sc) => setScorecard(sc), onError: (m) => toast.error(m) }, ac.signal);
+		await consumeDeckStream(res.body, {
+			onDelta: (t) => setMd((p) => p + t),
+			onDone: (sc) => {
+				setScorecard(sc);
+				// Credits are charged when the analysis finishes; the deck list and
+				// its summary card (score, verdict) now have the new result.
+				void refreshCredits();
+				void refreshPaths('/api/deck-analysis');
+			},
+			onError: (m) => toast.error(m),
+		}, ac.signal);
 	}, [id]);
 
 	useEffect(() => {
