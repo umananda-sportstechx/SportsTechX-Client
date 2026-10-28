@@ -41,6 +41,8 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 	const [md, setMd] = useState('');
 	const [scorecard, setScorecard] = useState<DeckScorecard | null>(null);
 	const [streaming, setStreaming] = useState(true);
+	// Refused for credits: the modal closes and the page would be blank without a note.
+	const [noCredits, setNoCredits] = useState(false);
 	const [busy, setBusy] = useState<'file' | 'rerun' | null>(null);
 	// Bumped by "Run it again". The effect below already does
 	// fetch-row-then-stream, and `reanalyze` resets the row to `pending`
@@ -62,13 +64,14 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 				void refreshPaths('/api/deck-analysis');
 			},
 			onError: (m) => toast.error(m),
+			onCredits: () => setNoCredits(true),
 		}, ac.signal);
 	}, [id]);
 
 	useEffect(() => {
 		const ac = new AbortController(); abortRef.current = ac; let cancelled = false;
 		(async () => {
-			setMd(''); setScorecard(null); setStreaming(true); setRow(null);
+			setMd(''); setScorecard(null); setStreaming(true); setRow(null); setNoCredits(false);
 			try {
 				const res = await apiRequest('GET', `/api/deck-analysis/${id}`);
 				const r = res.ok ? ((await res.json()) as DeckRow) : null;
@@ -287,6 +290,12 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 
 			{!scorecard && !streaming && md && (
 				<Card style={{ marginTop: 24 }}><Markdown text={stripScorecardJson(md)} /></Card>
+			)}
+			{noCredits && !streaming && (
+				<Card style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>Not enough credits to analyse this deck. Top up, then run it again.</span>
+					<Button size="sm" onClick={() => router.push(hrefOf('credits'))}>Buy credits</Button>
+				</Card>
 			)}
 			{!row && !streaming && <Loading />}
 		</Screen>
