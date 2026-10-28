@@ -1,5 +1,7 @@
 /** Shared types + helpers for the pitch-deck analyzer (list page + [id] page). */
 
+import { openCreditExhausted } from './credit-events';
+
 export interface DeckSection { key: string; label: string; score: number | null; page_refs: number[]; quote: string | null }
 export interface DeckSuggestion { area: string; suggestion: string; page_ref: number | null; quote: string | null }
 /** Investor-mode extras (Deck Screener). Absent on a founder analysis. */
@@ -70,6 +72,11 @@ export async function consumeDeckStream(stream: ReadableStream<Uint8Array>, h: D
 				const parsed = JSON.parse(data);
 				if (event === 'delta' && typeof parsed.text === 'string') h.onDelta(parsed.text);
 				else if (event === 'done') h.onDone((parsed.scorecard ?? null) as DeckScorecard | null);
+				// A credit refusal arrives here, not as a 402 (the SSE is already a 200) —
+				// open the same out-of-credits modal apiRequest would, instead of a toast.
+				else if (event === 'error' && parsed.code === 'INSUFFICIENT_CREDITS') {
+					openCreditExhausted({ required: parsed.details?.required, available: parsed.details?.available, creditType: parsed.details?.credit_type });
+				}
 				else if (event === 'error') h.onError(parsed.message ?? 'Analysis failed');
 			} catch { /* skip malformed */ }
 		}
