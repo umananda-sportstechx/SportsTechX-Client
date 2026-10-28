@@ -17,15 +17,13 @@ import { INVESTOR_CATEGORY_OPTIONS, blankNewEntity, newEntityMissing, type Entit
  * claim, flagged as user-added, and becomes a record only when the claim is
  * verified.
  */
-export function EntityPicker({ kind, value, onChange, legacy }: {
+export function EntityPicker({ kind, value, onChange }: {
   kind: EntityKind;
   value: EntityPick | null;
   onChange: (v: EntityPick | null) => void;
-  /** Free text from an older claim, before entries were linked — seeds the search. */
-  legacy?: string;
 }) {
-  const [q, setQ] = useState(legacy ?? '');
-  const { results, isLoading, enabled, query: searched } = useClaimSearch(kind === 'company' ? 'founder' : 'investor', q);
+  const [q, setQ] = useState('');
+  const { results, isLoading, enabled, query: searched, failed } = useClaimSearch(kind === 'company' ? 'founder' : 'investor', q);
   const noun = kind === 'company' ? 'company' : 'investor';
   const query = q.trim();
   // "Add" unlocks only when the search for exactly this text has come back
@@ -37,8 +35,8 @@ export function EntityPicker({ kind, value, onChange, legacy }: {
   if (value) {
     return (
       <div className="cm-selco" style={{ marginBottom: 0 }}>
-        <span className="cm-selco-text"><span className="cm-selco-name">{value.name}</span>{value.meta && <span className="cm-selco-meta">{value.meta}</span>}</span>
-        <span className="cm-selco-mode">In Atlas</span>
+        <span className="cm-selco-text"><span className="cm-selco-name">{value.name}</span>{value.id ? value.meta && <span className="cm-selco-meta">{value.meta}</span> : <span className="cm-selco-meta">From your earlier submission — Change to pick it from Atlas or add its details.</span>}</span>
+        <span className="cm-selco-mode">{value.id ? 'In Atlas' : 'Not linked'}</span>
         <button type="button" className="cm-selco-change" onClick={() => onChange(null)}>Change</button>
       </div>
     );
@@ -49,7 +47,7 @@ export function EntityPicker({ kind, value, onChange, legacy }: {
         <span className="cm-search-ico"><Search size={15} /></span>
         <input className="cm-input cm-search-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search Atlas for the ${noun}…`} />
       </div>
-      {legacy && query === legacy.trim() && <div className="cm-hint" style={{ marginTop: 0, marginBottom: 8 }}>Previously entered as “{legacy}” — pick it from Atlas or add it.</div>}
+      {failed && <div className="cm-hint" style={{ marginTop: 0, marginBottom: 8 }}>Search isn&apos;t responding — try again in a moment.</div>}
       {enabled && results.length > 0 && (
         <div className="cm-results" style={{ maxHeight: 220 }}>
           {results.slice(0, 5).map((r) => {
@@ -90,7 +88,10 @@ function AddedForm({ kind, value, added, onChange }: { kind: EntityKind; value: 
       </div>
       <div className="cm-row2">
         <div className="cm-field cm-half"><label className="cm-label">Country {req}</label><LocationSelect className="cm-select" value={added.country} onChange={(v) => set('country', v)} placeholder="Select country" /></div>
-        <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-opt">(optional)</span></label><CityInput className="cm-input" value={added.city} onChange={(v) => set('city', v)} onPick={(h) => { if (h.country && !added.country) set('country', h.country); }} placeholder="City" geo={added.country} /></div>
+        {/* A pick fires onChange then onPick in one tick, both from this render's
+            `added` — so onPick writes city and country together, or the second
+            write would drop the city. */}
+        <div className="cm-field cm-half"><label className="cm-label">City <span className="cm-opt">(optional)</span></label><CityInput className="cm-input" value={added.city} onChange={(v) => set('city', v)} onPick={(h) => onChange({ ...value, added: { ...added, city: h.city, country: added.country || h.country || '' } })} placeholder="City" geo={added.country} /></div>
       </div>
       {kind === 'company' ? (
         <>

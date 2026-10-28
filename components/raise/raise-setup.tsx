@@ -82,6 +82,10 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// Company facts are prefilled from it; editing them here only updates the founder's
 	// raise snapshot — the master company is changed only via admin-approved verification.
 	const [linked, setLinked] = useState<{ id: string; name: string } | null>(null);
+	// A saved draft that already names a company (from before company search /
+	// claim gating) keeps its fields — judged once at load, not on the live value,
+	// so clearing the name field doesn't make the whole block vanish mid-edit.
+	const [draftCo, setDraftCo] = useState(false);
 
 	// Seed the wizard from any saved draft ONCE — later background revalidations must
 	// not clobber the founder's in-progress edits on the current step.
@@ -89,6 +93,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	useEffect(() => {
 		if (hydrated.current || !data) return;
 		if (data.raise) setForm(data.raise);
+		if (s(data.raise?.company_name)) setDraftCo(true);
 		if (data.criteria) setCrit(data.criteria);
 		// Restore the linked-company banner from a resumed draft.
 		if (data.raise?.company_id) setLinked({ id: String(data.raise.company_id), name: String(data.raise.company_name ?? 'your company') });
@@ -160,8 +165,12 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 		if (c.sector_id) pickSector(c.sector_id);
 		setLinked({ id: c.id, name: c.name });
 	};
-	// Unlink → treat as a new company (admins approve it later via verification).
-	const unlinkCompany = () => { set('company_id', null); setLinked(null); };
+	// "Not your company?" → back to the search: the linked company's facts are
+	// cleared, and a company not in Atlas is added by claiming it (never free-typed).
+	const unlinkCompany = () => {
+		for (const k of ['company_id', 'company_name', 'company_website', 'hq_country', 'hq_city', 'company_description', 'company_sector_id', 'company_category']) set(k, null);
+		setLinked(null); setDraftCo(false);
+	};
 	// A canonical company fact is read-only when linked AND the company itself has
 	// it; gaps it leaves empty stay editable. Judged from the company record, not
 	// the form — locking on the form value froze a gap after its first keystroke
@@ -273,11 +282,13 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	const addCompany = (name: string) => openClaim({ role: 'founder' }, 'founder', { ...buildVerifyPrefill(form), name });
 	// Company facts show once there's a company to describe: one picked from
 	// Atlas, one being claimed, or a draft that already has them.
-	const showCoFields = !!linked || !!coClaimId || !!s(form.company_name);
+	const showCoFields = !!linked || !!coClaimId || draftCo;
 	const verify = () => {
+		// Not linked → no target: the modal searches the prefilled name first, so
+		// a company that is in Atlas is claimed rather than added twice.
 		const target = form.company_id
 			? { role: 'founder' as const, id: String(form.company_id), name: s(form.company_name), website: s(form.company_website) || null }
-			: { role: 'founder' as const };
+			: null;
 		openClaim(target, 'founder', buildVerifyPrefill(form));
 	};
 
