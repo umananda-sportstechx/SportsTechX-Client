@@ -67,6 +67,9 @@ export function SetupModal({ open, onClose, label, children }: {
 			//    without this second test one Escape closed both.
 			if (boxRef.current?.querySelector('[role="dialog"]')) return;
 			if (document.querySelector('.cm-overlay')) return;
+			// Already handled: an open (i) explanation (Radix) closed itself with this
+			// Escape and marked it — don't close the whole wizard too.
+			if (e.defaultPrevented) return;
 			closeRef.current();
 		};
 		window.addEventListener('keydown', onKey);
