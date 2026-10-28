@@ -7,7 +7,7 @@ import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, FileText, H
 import { apiRequest, getAuthHeaders } from '@/lib/query-client';
 import { refreshCredits, refreshPaths } from '@/lib/invalidate';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
-import { consumeDeckStream, stripScorecardJson, type DeckScorecard } from '@/lib/deck-analysis';
+import { consumeDeckStream, stripScorecardJson, DECK_TOO_LARGE_COPY, type DeckFailure, type DeckScorecard } from '@/lib/deck-analysis';
 import { Markdown } from '@/components/markdown';
 import { Screen, Card, Button, Loading, Logo, StagedLoader } from '@/components/atlas';
 import { companyHref, hrefOf } from '@/lib/routes';
@@ -20,7 +20,7 @@ import { DECK_ANALYSIS_STAGES } from './deck-stages';
  * scorecard + markdown); streams on first run for a not-yet-analysed deck.
  * Rendered from the structured scorecard; markdown is the fallback.
  */
-interface DeckRow { status: string; analysis_md: string | null; result_json: DeckScorecard | null; filename?: string | null; created_at?: string | null; overall_score?: number | null }
+interface DeckRow { status: string; analysis_md: string | null; result_json: DeckScorecard | null; filename?: string | null; created_at?: string | null; overall_score?: number | null; failure?: DeckFailure }
 
 const TOPIC_GROUPS: { h: string; labels: string[] }[] = [
 	{ h: 'Story', labels: ['problem', 'solution', 'market', 'product'] },
@@ -41,8 +41,9 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 	const [md, setMd] = useState('');
 	const [scorecard, setScorecard] = useState<DeckScorecard | null>(null);
 	const [streaming, setStreaming] = useState(true);
-	// Refused for credits: the modal closes and the page would be blank without a note.
-	const [noCredits, setNoCredits] = useState(false);
+	// Why the analysis isn't showing (refused for credits, or failed) — without it
+	// the page is blank once the modal / toast is gone.
+	const [notice, setNotice] = useState<{ kind: 'credits' } | { kind: 'error'; message: string } | null>(null);
 	const [busy, setBusy] = useState<'file' | 'rerun' | null>(null);
 	// Bumped by "Run it again". The effect below already does
 	// fetch-row-then-stream, and `reanalyze` resets the row to `pending`
@@ -63,15 +64,15 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 				void refreshCredits();
 				void refreshPaths('/api/deck-analysis');
 			},
-			onError: (m) => toast.error(m),
-			onCredits: () => setNoCredits(true),
+			onError: (message) => setNotice({ kind: 'error', message }),
+			onCredits: () => setNotice({ kind: 'credits' }),
 		}, ac.signal);
 	}, [id]);
 
 	useEffect(() => {
 		const ac = new AbortController(); abortRef.current = ac; let cancelled = false;
 		(async () => {
-			setMd(''); setScorecard(null); setStreaming(true); setRow(null); setNoCredits(false);
+			setMd(''); setScorecard(null); setStreaming(true); setRow(null); setNotice(null);
 			try {
 				const res = await apiRequest('GET', `/api/deck-analysis/${id}`);
 				const r = res.ok ? ((await res.json()) as DeckRow) : null;
@@ -82,6 +83,8 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 					setScorecard(r.result_json ?? null);
 					return;
 				}
+				// Re-running the same too-large file can't work — say so instead.
+				if (r?.failure === 'too_large') { setNotice({ kind: 'error', message: DECK_TOO_LARGE_COPY }); return; }
 				await streamAnalysis(ac, () => cancelled);
 			} catch (e) {
 				if ((e as Error).name !== 'AbortError') toast.error((e as Error).message ?? 'Analysis failed');
@@ -291,10 +294,10 @@ export function DeckAnalysisDetail({ id, copy = FOUNDER_DETAIL_COPY }: { id: str
 			{!scorecard && !streaming && md && (
 				<Card style={{ marginTop: 24 }}><Markdown text={stripScorecardJson(md)} /></Card>
 			)}
-			{noCredits && !streaming && (
+			{notice && !streaming && (
 				<Card style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>Not enough credits to analyse this deck. Top up, then run it again.</span>
-					<Button size="sm" onClick={() => router.push(hrefOf('credits'))}>Buy credits</Button>
+					<span style={{ fontSize: 13, color: 'var(--a-muted)' }}>{notice.kind === 'credits' ? 'Not enough credits to analyse this deck. Top up, then run it again.' : notice.message}</span>
+					{notice.kind === 'credits' && <Button size="sm" onClick={() => router.push(hrefOf('credits'))}>Buy credits</Button>}
 				</Card>
 			)}
 			{!row && !streaming && <Loading />}
