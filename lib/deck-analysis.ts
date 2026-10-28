@@ -25,7 +25,10 @@ export interface DeckScorecard {
 	diligence_questions?: string[];
 	comparables?: DeckComparable[];
 }
-export interface DeckListItem { id: string; filename: string | null; status: string; overall_score: number | null; created_at: string }
+/** `failure`: why a failed run failed — 'too_large' means a retry can't help (re-export the deck). */
+export type DeckFailure = 'too_large' | 'failed' | null;
+export interface DeckListItem { id: string; filename: string | null; status: string; overall_score: number | null; created_at: string; failure?: DeckFailure }
+export const DECK_TOO_LARGE_COPY = 'This deck is too large to analyse as it is, and it has no readable text. Export it as a smaller PDF (under about 20 MB) and upload it again.';
 
 /**
  * Hide the trailing scorecard JSON (fenced ```json or a bare {"overall_score"…})
