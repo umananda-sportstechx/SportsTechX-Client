@@ -35,7 +35,8 @@ import { decodeClaimForm } from './decode-claim-form';
 import { useClaimSearch } from './use-claim-search';
 import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck, CLAIM_DECK_EXTS } from './build-claim-dto';
 import { EntityPicker } from './entity-picker';
-import { newEntityMissing, validWebsite, validYear, type EntityKind, type EntityPick } from './claim-form';
+import { ProgramsPicker } from './programs-picker';
+import { newEntityMissing, newProgramMissing, validWebsite, validYear, type EntityKind, type EntityPick } from './claim-form';
 import { MAX_DECK_MB, deckFileError } from '@/lib/deck-upload';
 
 const initials = (n: string) => (n || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -334,6 +335,8 @@ export function ClaimModal({
       // The server rejects the whole claim on an out-of-range year.
       if (!validYear(form.founded)) m.push('a valid founded year');
       if (form.rounds.some((r) => (r.invs ?? []).some((p) => pickGaps('investor', p).length))) m.push('details of a new round investor');
+      if (form.programs.some((p) => p.added && newProgramMissing(p.added, p.name).length)) m.push('details of a new program');
+      if (form.programs.some((p) => p.year && (Number(p.year) < 1990 || Number(p.year) > new Date().getFullYear() + 1))) m.push('a valid program year');
       if (form.mna.some((x) => !x.cp)) m.push('a counterparty for each M&A deal (or remove it)');
       else if (form.mna.some((x) => pickGaps('company', x.cp).length)) m.push('details of a new M&A company');
     }
@@ -692,7 +695,7 @@ export function ClaimModal({
                       <div className="cm-field cm-half"><label className="cm-label">Country {addingNew && <span className="cm-req">*</span>}</label><LocationSelect className="cm-select" value={form.coCountry} onChange={(v) => set('coCountry', v)} /></div>
                       <div className="cm-field cm-half"><label className="cm-label">Sport</label><Combobox className="cm-select" value={form.sport} onChange={(v) => set('sport', v)} placeholder="Select…" options={optE('Select…', SPORTS_LIST)} /></div>
                     </div>
-                    <div className="cm-field"><label className="cm-label">Program participation</label><input className="cm-input" value={form.programs} onChange={(e) => set('programs', e.target.value)} placeholder="e.g. Stadia Ventures '24" /></div>
+                    <div className="cm-field"><label className="cm-label">Program participation <span className="cm-opt">(optional)</span></label><ProgramsPicker value={form.programs} onChange={(v) => set('programs', v)} /></div>
 
                     <div className="cm-sub">Contact &amp; social</div>
                     <div className="cm-row2">
