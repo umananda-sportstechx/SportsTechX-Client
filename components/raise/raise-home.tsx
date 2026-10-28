@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, UserRound } from 'lucide-react';
+import { Loader2, Settings, FileCheck, Bookmark, Presentation, CalendarCheck, UserRound, Hourglass } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
@@ -41,9 +41,10 @@ const daysUntil = (ymd: string) => {
 	return Math.round((new Date(y!, m! - 1, d!).getTime() - today.getTime()) / 864e5);
 };
 
-/** The round at a glance: committed vs target and the countdown to the founder's
- *  target close date (both from Raise Setup). Missing pieces link back to setup. */
-function RoundStrip({ r }: { r: Round }) {
+/** The round at a glance, as the first "needs your attention" card: countdown to
+ *  the founder's target close date (title), committed vs target (body + bar).
+ *  Both come from Raise Setup; the action re-opens it to edit. */
+function RoundCard({ r }: { r: Round }) {
 	const ccy = (r.currency_code || 'EUR').toUpperCase();
 	const target = Number(r.target_amount) || 0;
 	const committed = Number(r.committed_amount) || 0;
@@ -51,34 +52,35 @@ function RoundStrip({ r }: { r: Round }) {
 	const days = r.target_close_date ? daysUntil(r.target_close_date) : null;
 	const closeOn = r.target_close_date ? new Date(`${r.target_close_date.slice(0, 10)}T00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
 	const name = ROUND_NAME[r.round_type ?? ''];
-	const editRound = () => openRaiseSetup({ edit: true });
-	const edit = <button type="button" className="raise-round__edit" onClick={editRound}>Set it</button>;
+	const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+
+	const title = ended ? `${name ?? 'Your'} round ${r.status}`
+		: days == null ? 'Set a target close date'
+		: days > 0 ? `${plural(days)} to your target close`
+		: days === 0 ? 'Your target close is today'
+		: `${plural(-days)} past your target close`;
+	const amounts = target <= 0 ? null
+		: ended && committed === 0 ? `Target ${money(target, ccy)}` // funded, nothing recorded: don't say "€0 committed"
+		: `${money(committed, ccy)} of ${money(target, ccy)} committed`;
+	const body = [
+		amounts ?? (ended ? null : 'Add how much you’re raising to track progress.'),
+		!ended && closeOn ? `Target close ${closeOn}` : null,
+		r.status === 'paused' ? 'Raise paused' : null,
+	].filter(Boolean).join(' · ');
+	// A round marked funded with nothing recorded as committed: no empty bar
+	// contradicting the title.
+	const showBar = target > 0 && !(ended && committed === 0);
+
 	return (
-		<div className="atlas-card raise-round">
-			<div className="raise-round__main">
-				<div className="atlas-eyebrow">{name ? `Your ${name} round` : 'Your round'}{r.status === 'paused' ? ' · paused' : ''}</div>
-				{target > 0 ? (
-					<>
-						<div className="raise-round__amount"><strong>{money(committed, ccy)}</strong> of {money(target, ccy)} committed</div>
-						<Progress pct={(committed / target) * 100} />
-					</>
-				) : <div className="raise-round__amount raise-round__muted">No target amount yet. {edit}</div>}
-			</div>
-			<div className="raise-round__clock">
-				{ended ? <div className="raise-round__big">Round {r.status}</div>
-					: days == null ? <div className="raise-round__muted">No target close date. {edit}</div>
-					: (
-						<>
-							<div className="raise-round__big">{days > 0 ? days : days === 0 ? 'Today' : Math.abs(days)}</div>
-							<div className="raise-round__muted">
-								{days > 0 ? `${days === 1 ? 'day' : 'days'} to your target close · ${closeOn}`
-									: days === 0 ? `is your target close · ${closeOn}`
-									: <>{Math.abs(days) === 1 ? 'day' : 'days'} past your target close · {closeOn}. <button type="button" className="raise-round__edit" onClick={editRound}>Update</button></>}
-							</div>
-						</>
-					)}
-			</div>
-		</div>
+		<FeedCard
+			tag={name ? `${name} round` : 'Your round'}
+			icon={Hourglass}
+			title={title}
+			body={body || undefined}
+			onAction={() => openRaiseSetup({ edit: true })}
+			actionLabel={days != null && days < 0 && !ended ? 'Update date' : 'Edit round'}
+			extra={showBar ? <Progress pct={(committed / target) * 100} /> : undefined}
+		/>
 	);
 }
 
@@ -108,6 +110,7 @@ export function RaiseHome() {
 	const greetName = profile?.display_name?.split(' ')[0] ?? profile?.full_name?.split(' ')[0] ?? 'there';
 	const hour = new Date().getHours();
 	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+	const showRound = !data.needs_setup && !!data.raise;
 
 	return (
 		<div className="raise-home">
@@ -120,12 +123,10 @@ export function RaiseHome() {
 			</section>
 
 			<section className="raise-attn">
-				{!data.needs_setup && data.raise && <RoundStrip r={data.raise} />}
 				<SectionHead title="What needs your attention" />
-				{data.attention.length === 0 ? (
-					<div className="raise-attn-empty">You’re all caught up. Keep your watchlist moving.</div>
-				) : (
+				{(showRound || data.attention.length > 0) && (
 					<div className="atlas-feed-grid">
+						{showRound && <RoundCard r={data.raise!} />}
 						{data.attention.map((a) => {
 							const t = ATTENTION_TAG[a.id] ?? DEFAULT_TAG;
 							return (
@@ -148,6 +149,7 @@ export function RaiseHome() {
 						})}
 					</div>
 				)}
+				{data.attention.length === 0 && <div className="raise-attn-empty">You’re all caught up. Keep your watchlist moving.</div>}
 			</section>
 		</div>
 	);
