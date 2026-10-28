@@ -90,7 +90,10 @@ function OnboardingForm({ initial, save, onClose, edit }: { initial: Thesis; sav
 	// hook, and React throws "rendered fewer hooks than expected" the moment the
 	// wizard finishes and that branch renders.
 	const [busy, setBusy] = useState(false);
-	const patch = (p: Partial<Thesis>) => { setT({ ...t, ...p }); setErr(''); };
+	// Merge into the latest state: two patches in one tick (picking a city sends
+	// the city, then its country) both built from this render's `t`, so the
+	// second wiped the first — the country filled in and the city was lost.
+	const patch = (p: Partial<Thesis>) => { setT((prev) => ({ ...prev, ...p })); setErr(''); };
 	// Scrolls the modal's own region; a no-op anywhere else.
 	const top = useSetupScrollReset();
 
