@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowUpRight, Check, ClipboardCheck, Copy, FileText, LayoutTemplate } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, ClipboardCheck, Copy, FileText, LayoutTemplate, Lightbulb } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
 import { refreshPaths } from '@/lib/invalidate';
 import { hrefOf } from '@/lib/routes';
 import { Empty, Loading, Progress } from '@/components/atlas';
-import { Markdown } from '@/components/markdown';
+import { inline } from '@/components/markdown';
 import './fundraising-guide.css';
 
 /**
@@ -18,7 +18,7 @@ import './fundraising-guide.css';
  * Prepare → Connect → Close (Product Brief). Content lives in raise_resources and
  * is edited in admin; a founder's checklist ticks are saved server-side.
  * Body conventions: "- [ ] item" is a tickable item; "> " lines in a template
- * are a block with a Copy button.
+ * are a block with a Copy button (in a guide they're a tip callout).
  */
 type Phase = 'prepare' | 'connect' | 'close';
 type Kind = 'guide' | 'template' | 'checklist';
@@ -36,6 +36,7 @@ const KIND: Record<Kind, { label: string; icon: ReactNode }> = {
 	checklist: { label: 'Checklist', icon: <ClipboardCheck size={13} strokeWidth={1.5} aria-hidden="true" /> },
 };
 const guideHref = (slug?: string) => `${hrefOf('guide')}${slug ? `/${slug}` : ''}`;
+const anchor = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 export function FundraisingGuide() {
 	const { data, isLoading } = useSWR<{ data: ResourceCard[] }>(qk.raise.resources());
@@ -76,34 +77,55 @@ export function FundraisingGuide() {
 	);
 }
 
-type Block = { t: 'md'; text: string } | { t: 'check'; items: string[] } | { t: 'template'; text: string };
+type Block =
+	| { t: 'h'; level: 2 | 3; text: string }
+	| { t: 'p'; text: string }
+	| { t: 'ul'; items: string[] }
+	| { t: 'ol'; items: [string, string][] }
+	| { t: 'tip'; lines: string[] }
+	| { t: 'check'; items: string[] }
+	| { t: 'template'; text: string };
 
-/** Split a body into markdown, checklist runs and (in templates) copyable blocks. */
-function blocks(body: string, kind: Kind): Block[] {
+/** The guide's own small markdown: headings, paragraphs, lists, tips, checklists
+ *  and (in templates) copyable blocks — real semantic elements, styled here
+ *  rather than through the deck analyser's utility classes. */
+function parse(body: string, kind: Kind): Block[] {
+	const lines = body.replace(/\r\n/g, '\n').split('\n');
 	const out: Block[] = [];
-	const push = (b: Block) => {
-		const last = out[out.length - 1];
-		if (last && last.t === b.t && b.t !== 'template') {
-			if (b.t === 'md') (last as { text: string }).text += `\n${b.text}`;
-			else (last as { items: string[] }).items.push(...b.items);
-		} else out.push(b);
+	let i = 0;
+	const at = (n: number) => (lines[n] ?? '').trim();
+	const run = (test: (t: string) => boolean, map: (t: string) => string) => {
+		const xs: string[] = [];
+		while (i < lines.length && test(at(i))) xs.push(map(at(i++)));
+		return xs;
 	};
-	let tpl: string[] | null = null;
-	const flushTpl = () => { if (tpl) { out.push({ t: 'template', text: tpl.join('\n').trim() }); tpl = null; } };
-	for (const line of body.replace(/\r\n/g, '\n').split('\n')) {
-		const item = /^\s*-\s\[\s?\]\s+(.+?)\s*$/.exec(line)?.[1];
-		if (kind === 'template' && /^\s*>/.test(line)) { (tpl ??= []).push(line.replace(/^\s*>\s?/, '')); continue; }
-		flushTpl();
-		if (item) push({ t: 'check', items: [item] });
-		else push({ t: 'md', text: line });
+	while (i < lines.length) {
+		const t = at(i);
+		if (!t) { i++; continue; }
+		const h = /^(#{1,6})\s+(.*)$/.exec(t);
+		if (h) { out.push({ t: 'h', level: h[1]!.length >= 3 ? 3 : 2, text: h[2]! }); i++; continue; }
+		if (/^-\s\[\s?\]\s+/.test(t)) { out.push({ t: 'check', items: run((x) => /^-\s\[\s?\]\s+/.test(x), (x) => x.replace(/^-\s\[\s?\]\s+/, '')) }); continue; }
+		if (t.startsWith('>')) {
+			const ls = run((x) => x.startsWith('>'), (x) => x.replace(/^>\s?/, ''));
+			out.push(kind === 'template' ? { t: 'template', text: ls.join('\n').trim() } : { t: 'tip', lines: ls.filter(Boolean) });
+			continue;
+		}
+		if (/^[-*•]\s+/.test(t)) { out.push({ t: 'ul', items: run((x) => /^[-*•]\s+/.test(x) && !/^-\s\[\s?\]/.test(x), (x) => x.replace(/^[-*•]\s+/, '')) }); continue; }
+		if (/^\d+[.)]\s+/.test(t)) {
+			out.push({ t: 'ol', items: run((x) => /^\d+[.)]\s+/.test(x), (x) => x).map((x) => { const m = /^(\d+)[.)]\s+(.*)$/.exec(x)!; return [m[1]!, m[2]!] as [string, string]; }) });
+			continue;
+		}
+		const para = run((x) => !!x && !/^(#{1,6}\s|>|[-*•]\s|\d+[.)]\s)/.test(x), (x) => x);
+		// Admin-edited content: never let an unmatched line stall the loop.
+		if (para.length) out.push({ t: 'p', text: para.join(' ') }); else out.push({ t: 'p', text: at(i++) });
 	}
-	flushTpl();
 	return out;
 }
 
 export function FundraisingGuideItem({ slug }: { slug: string }) {
-	const key = qk.raise.resource(slug);
-	const { data, isLoading, error, mutate } = useSWR<ResourceDetail>(key);
+	const { data, isLoading, error, mutate } = useSWR<ResourceDetail>(qk.raise.resource(slug));
+	// The catalogue drives "More in this phase" and "Next".
+	const { data: all } = useSWR<{ data: ResourceCard[] }>(qk.raise.resources());
 	if (isLoading && !data) return <Loading />;
 	if (error || !data) return <Empty>This resource isn&apos;t available. <Link href={guideHref()} style={{ color: 'var(--a-navy)' }}>Back to the guide</Link>.</Empty>;
 
@@ -126,47 +148,93 @@ export function FundraisingGuideItem({ slug }: { slug: string }) {
 		try { await navigator.clipboard.writeText(text); toast.success('Template copied'); }
 		catch { toast.error('Copy failed — select the text and copy it instead.'); }
 	};
+
+	const blocks = parse(data.body_md, data.kind);
+	const toc = blocks.filter((b): b is Extract<Block, { t: 'h' }> => b.t === 'h' && b.level === 2);
+	const phase = PHASES.find((p) => p.key === data.phase);
+	const siblings = (all?.data ?? []).filter((r) => r.phase === data.phase);
+	const idx = siblings.findIndex((r) => r.slug === slug);
+	const next = idx >= 0 ? siblings[idx + 1] ?? (all?.data ?? [])[(all?.data ?? []).findIndex((r) => r.slug === slug) + 1] : undefined;
 	const k = KIND[data.kind];
-	const phase = PHASES.find((p) => p.key === data.phase)?.title;
 
 	return (
 		<article className="fg-item">
 			<Link href={guideHref()} className="atlas-action"><span className="atlas-action__icon"><ArrowLeft /></span>Fundraising Guide</Link>
 			<header className="fg-item__head">
-				<span className="fg-kind">{k.icon}{k.label}{phase ? ` · ${phase}` : ''}</span>
+				<span className="fg-kind">{k.icon}{k.label}{phase ? ` · ${phase.title}` : ''}</span>
 				<h1 className="atlas-h1 fg-item__title">{data.title}</h1>
 				{data.summary && <p className="fg-item__summary">{data.summary}</p>}
 				{data.items_total > 0 && (
-					<div className="fg-item__progress">
+					<div className="fg-item__progress" aria-live="polite">
 						<Progress pct={(data.checked.length / data.items_total) * 100} />
 						<span>{data.checked.length} of {data.items_total} done</span>
 					</div>
 				)}
 			</header>
-			<div className="atlas-card fg-item__body">
-				{blocks(data.body_md, data.kind).map((b, i) => (
-					b.t === 'md' ? <Markdown key={i} text={b.text} />
-					: b.t === 'check' ? (
-						<ul key={i} className="fg-checks">
-							{b.items.map((it) => {
-								const on = checked.has(it);
-								return (
-									<li key={it}>
-										<button type="button" role="checkbox" aria-checked={on} className={`fg-check ${on ? 'is-on' : ''}`} onClick={() => void toggle(it)}>
-											<span className="fg-check__box" aria-hidden="true">{on && <Check size={12} strokeWidth={2.5} />}</span>
-											<span className="fg-check__text">{it}</span>
-										</button>
-									</li>
-								);
-							})}
-						</ul>
-					) : (
-						<div key={i} className="fg-template">
-							<pre>{b.text}</pre>
-							<button type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm fg-template__copy" onClick={() => void copy(b.text)}><Copy size={12} /> Copy</button>
-						</div>
-					)
-				))}
+
+			<div className="fg-item__layout">
+				<div className="atlas-card fg-item__body">
+					{blocks.map((b, i) => {
+						switch (b.t) {
+							case 'h': return b.level === 2
+								? <h2 key={i} id={anchor(b.text)} className="fg-h2">{inline(b.text)}</h2>
+								: <h3 key={i} className="fg-h3">{inline(b.text)}</h3>;
+							case 'p': return <p key={i} className="fg-p">{inline(b.text)}</p>;
+							case 'ul': return <ul key={i} className="fg-ul">{b.items.map((it, j) => <li key={j}>{inline(it)}</li>)}</ul>;
+							case 'ol': return <ol key={i} className="fg-ol">{b.items.map(([n, it]) => <li key={n}><span className="fg-ol__n">{n}</span><span>{inline(it)}</span></li>)}</ol>;
+							case 'tip': return (
+								<aside key={i} className="fg-tip"><Lightbulb size={16} strokeWidth={1.75} aria-hidden="true" /><div>{b.lines.map((l, j) => <p key={j}>{inline(l.replace(/^Tip:\s*/i, ''))}</p>)}</div></aside>
+							);
+							case 'check': return (
+								<ul key={i} className="fg-checks">
+									{b.items.map((it) => {
+										const on = checked.has(it);
+										return (
+											<li key={it}>
+												<button type="button" role="checkbox" aria-checked={on} className={`fg-check ${on ? 'is-on' : ''}`} onClick={() => void toggle(it)}>
+													<span className="fg-check__box" aria-hidden="true">{on && <Check size={13} strokeWidth={2.5} />}</span>
+													<span className="fg-check__text">{inline(it)}</span>
+												</button>
+											</li>
+										);
+									})}
+								</ul>
+							);
+							case 'template': return (
+								<div key={i} className="fg-template">
+									<pre>{b.text}</pre>
+									<button type="button" className="atlas-btn atlas-btn--outline atlas-btn--sm fg-template__copy" onClick={() => void copy(b.text)}><Copy size={12} /> Copy</button>
+								</div>
+							);
+						}
+					})}
+					{next && (
+						<Link href={guideHref(next.slug)} className="fg-next">
+							<span><span className="fg-next__label">Next{next.phase !== data.phase ? ` · ${PHASES.find((p) => p.key === next.phase)?.title}` : ''}</span><span className="fg-next__title">{next.title}</span></span>
+							<ArrowRight size={16} aria-hidden="true" />
+						</Link>
+					)}
+				</div>
+
+				<aside className="fg-item__aside" aria-label="About this resource">
+					{toc.length > 1 && (
+						<nav className="atlas-card fg-side" aria-label="On this page">
+							<div className="fg-side__title">On this page</div>
+							{toc.map((h) => <a key={h.text} href={`#${anchor(h.text)}`} className="fg-side__link">{h.text.replace(/\*\*/g, '')}</a>)}
+						</nav>
+					)}
+					{siblings.length > 1 && phase && (
+						<nav className="atlas-card fg-side" aria-label={`More in ${phase.title}`}>
+							<div className="fg-side__title">More in {phase.title}</div>
+							{siblings.map((r) => (
+								<Link key={r.slug} href={guideHref(r.slug)} className={`fg-side__link ${r.slug === slug ? 'is-current' : ''}`} aria-current={r.slug === slug ? 'page' : undefined}>
+									<span className="fg-side__kind">{KIND[r.kind].icon}</span>{r.title}
+									{r.items_total > 0 && <span className="fg-side__count">{r.slug === slug ? data.checked.length : r.items_done}/{r.items_total}</span>}
+								</Link>
+							))}
+						</nav>
+					)}
+				</aside>
 			</div>
 		</article>
 	);
