@@ -17,7 +17,7 @@ import { apiRequest } from '@/lib/query-client';
 import { refreshPaths } from '@/lib/invalidate';
 import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
-import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
+import { useLeafSectorOptions, useLeafSectorGroups } from '@/hooks/use-catalog-options';
 import { hrefOf } from '@/lib/routes';
 import { openClaim } from '@/lib/claim-events';
 
@@ -83,6 +83,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 	const sym = d.currency === 'USD' ? '$' : '€';
 
 	const sectorOptions = useLeafSectorOptions();
+	const sectorGroups = useLeafSectorGroups();
 
 	const needsThesis = (gate.error as { code?: string } | undefined)?.code === 'SCOUT_NOT_SET_UP';
 	if (gate.isLoading || (resumeId && own.isLoading)) return <Loading />;
@@ -193,7 +194,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 						<Field label="Sector">
 							<Select
 								value={d.sectorId} onChange={(e) => patch({ sectorId: e.target.value })}
-								options={sectorOptions} placeholder="Select a sector…"
+								options={sectorOptions} groups={sectorGroups} placeholder="Select a sector…"
 							/>
 						</Field>
 						<div className="scout-span">

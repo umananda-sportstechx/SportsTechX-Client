@@ -65,7 +65,9 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 	const q = query.trim().toLowerCase();
 	const match = (o: ComboOption) => !q || o[1].toLowerCase().includes(q);
 	const renderGroups = useMemo<{ label?: string; options: ComboOption[] }[]>(() => {
-		if (groups) return groups.map((g) => ({ label: g.label, options: g.options.filter(match) })).filter((g) => g.options.length);
+		// A query matching the group label keeps the whole group ("Fan Engagement"
+		// lists its sectors even though no option is named that).
+		if (groups) return groups.map((g) => ({ label: g.label, options: !q || g.label.toLowerCase().includes(q) ? g.options : g.options.filter(match) })).filter((g) => g.options.length);
 		return [{ options: (options ?? []).filter(match) }];
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [groups, options, q]);
