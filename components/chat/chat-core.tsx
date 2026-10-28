@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
+import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { qk } from '@/lib/query-keys';
 
 /**
@@ -77,6 +78,72 @@ export function currentFilters(): Record<string, string> | undefined {
 	return Object.keys(out).length ? out : undefined;
 }
 
+/* ─── Shared session ─────────────────────────────────────────────────────── */
+
+/*
+ * ONE agent conversation for the whole app. The co-pilot drawer and the full
+ * chat page both render it, so expanding the drawer shows the same thread at
+ * once — no refetch, no greeting flash — and a reply that is still streaming
+ * keeps streaming. It lives outside React on purpose: a component unmounting
+ * (drawer → page) must not drop the thread or abort the reply; only an explicit
+ * stop / close / new chat does.
+ */
+interface ChatSession {
+	/** The turns, without the greeting. */
+	thread: ChatMessage[];
+	/** A new chat shows the greeting above its turns; a loaded one doesn't. */
+	withGreeting: boolean;
+	conversationId: string | null;
+	streaming: boolean;
+	stage: string;
+	/** The composer draft — carried across too, so expanding keeps what was typed. */
+	input: string;
+}
+
+let session: ChatSession = { thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '', input: '' };
+const listeners = new Set<() => void>();
+let abortCtl: AbortController | null = null;
+let nextSourceIndex = 1;
+/** Bumped by every load / send / reset, so a slow load can't land on top of a newer state. */
+let loadSeq = 0;
+/** Transcripts seen this visit: reopening a conversation shows at once while it refreshes. */
+const transcripts = new Map<string, ChatMessage[]>();
+
+function update(patch: Partial<ChatSession> | ((s: ChatSession) => Partial<ChatSession>)): void {
+	session = { ...session, ...(typeof patch === 'function' ? patch(session) : patch) };
+	if (session.conversationId) transcripts.set(session.conversationId, session.thread);
+	listeners.forEach((l) => l());
+}
+const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+const getSession = () => session;
+/** The conversation on screen right now — for effects that must not act on a stale render. */
+export const chatSessionId = (): string | null => session.conversationId;
+
+/** The session is app-wide, so it must not outlive the person: signing out
+ *  stops any reply and empties it (the next sign-in on this tab starts clean). */
+let watchingAuth = false;
+function clearOnSignOut(): void {
+	if (watchingAuth || typeof window === 'undefined') return;
+	watchingAuth = true;
+	getSupabaseBrowser().auth.onAuthStateChange((event) => {
+		if (event !== 'SIGNED_OUT') return;
+		abortCtl?.abort();
+		abortCtl = null;
+		loadSeq++;
+		transcripts.clear();
+		update({ thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '', input: '' });
+	});
+}
+
+/** Replace the last assistant turn (the one streaming in), if there is one. */
+function updateLastAssistant(fn: (m: ChatMessage) => ChatMessage | null): void {
+	update((s) => {
+		const last = s.thread[s.thread.length - 1];
+		const next = last && last.role === 'assistant' ? fn(last) : null;
+		return next ? { thread: [...s.thread.slice(0, -1), next] } : {};
+	});
+}
+
 /* ─── useChat hook ───────────────────────────────────────────────────────── */
 
 export interface UseChatOptions {
@@ -96,80 +163,55 @@ export interface UseChatOptions {
 const DEFAULT_INSUFFICIENT_CREDITS = "_⚠️ You're out of AI credits._ Top up or upgrade to keep chatting.";
 
 export function useChat({ greeting, actionFromTool, pageContext, onClientAction, insufficientCreditsMd }: UseChatOptions) {
-	const greetingMsg: ChatMessage = { role: 'assistant', content: greeting };
-	const [messages, setMessages] = useState<ChatMessage[]>([greetingMsg]);
-	const [input, setInput] = useState('');
-	const [streaming, setStreaming] = useState(false);
-	const [conversationId, setConversationId] = useState<string | null>(null);
-	const [stage, setStage] = useState('');
+	useEffect(clearOnSignOut, []);
+	const s = useSyncExternalStore(subscribe, getSession, getSession);
+	// The greeting is per-product and follows the viewer's tier (which arrives a
+	// render late), so it's applied at render rather than stored in the thread.
+	const messages = useMemo<ChatMessage[]>(() => {
+		const hello: ChatMessage = { role: 'assistant', content: greeting };
+		return s.withGreeting || s.thread.length === 0 ? [hello, ...s.thread] : s.thread;
+	}, [s.thread, s.withGreeting, greeting]);
+
 	const [showHistory, setShowHistory] = useState(false);
-	const [conversations, setConversations] = useState<ConversationListItem[] | null>(null);
-
-	// The greeting is per-product, and the viewer's tier arrives one render late:
-	// `getUserType(undefined)` is 'explore' until the profile SWR resolves, so a
-	// Scout mounting before that would be stuck with the founder greeting for the
-	// whole session — `useState` captures it once and never looks again.
-	//
-	// Only an untouched transcript is refreshed: a loaded conversation or a
-	// seeded question must survive.
-	useEffect(() => {
-		if (conversationId) return;
-		setMessages((prev) => (prev.length === 1 && prev[0]?.role === 'assistant' && prev[0].content !== greeting
-			? [{ role: 'assistant', content: greeting }]
-			: prev));
-	}, [greeting, conversationId]);
-	const [historyLoading, setHistoryLoading] = useState(false);
+	// Past conversations from the shared SWR cache (the chat page's rail reads the
+	// same key), so reopening the list is instant and every surface agrees.
+	const history = useSWR<ConversationListItem[]>(showHistory ? qk.chat.conversations() : null);
 	const bodyRef = useRef<HTMLDivElement>(null);
-	// Track the in-flight fetch so we can abort it on close/unmount/new-convo.
-	const abortRef = useRef<AbortController | null>(null);
-	// Running citation counter for the current turn.
-	const nextSourceIndexRef = useRef(1);
 
+	// Pin the transcript to the bottom — also on mount, so the page opens at the
+	// latest message when the drawer expands into it.
 	useEffect(() => {
 		if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-	}, [messages, streaming]);
+	}, [s.thread, s.streaming]);
 
-	// Abort any in-flight stream on unmount (panel close, route change, hot reload).
-	useEffect(() => () => { abortRef.current?.abort(); }, []);
+	const setInput = useCallback((v: string) => update({ input: v }), []);
+	const toggleHistory = useCallback(() => setShowHistory((v) => !v), []);
 
 	const resetConversation = useCallback(() => {
-		abortRef.current?.abort();
-		setStreaming(false);
-		setConversationId(null);
-		setMessages([greetingMsg]);
-		setStage('');
+		abortCtl?.abort();
+		abortCtl = null;
+		loadSeq++;
+		nextSourceIndex = 1;
+		update({ thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '' });
 		setShowHistory(false);
-		nextSourceIndexRef.current = 1;
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [greeting]);
-
-	const toggleHistory = useCallback(async () => {
-		const next = !showHistory;
-		setShowHistory(next);
-		if (!next) return;
-		setHistoryLoading(true);
-		try {
-			const auth = await getAuthHeaders();
-			const res = await fetch('/api/chat/conversations', { headers: { ...auth }, credentials: 'include' });
-			if (res.ok) setConversations((await res.json()) as ConversationListItem[]);
-		} catch {
-			/* best-effort */
-		} finally {
-			setHistoryLoading(false);
-		}
-	}, [showHistory]);
+	}, []);
 
 	const loadConversation = useCallback(async (id: string) => {
-		abortRef.current?.abort();
-		setStreaming(false);
+		abortCtl?.abort();
+		abortCtl = null;
 		setShowHistory(false);
+		const seq = ++loadSeq;
+		// Seen this visit → show it now; the fetch below brings it up to date.
+		const cached = transcripts.get(id);
+		if (cached) update({ conversationId: id, withGreeting: false, thread: cached, streaming: false, stage: '' });
 		try {
 			const auth = await getAuthHeaders();
 			const res = await fetch(`/api/chat/conversations/${id}`, { headers: { ...auth }, credentials: 'include' });
-			if (!res.ok) return;
+			if (!res.ok || seq !== loadSeq) return;
 			const data = (await res.json()) as {
 				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; input?: unknown; ok: boolean; preview: string }> | null }>;
 			};
+			if (seq !== loadSeq) return;
 			const msgs: ChatMessage[] = data.messages.map((m, idx) => {
 				const calls = m.role === 'assistant' ? m.tool_calls ?? undefined : undefined;
 				const actions: ChatAction[] = [];
@@ -186,80 +228,30 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 					actions: actions.length > 0 ? actions : undefined,
 				};
 			});
-			setMessages(msgs.length > 0 ? msgs : [greetingMsg]);
-			setConversationId(id);
-			nextSourceIndexRef.current = 1;
+			update({ conversationId: id, withGreeting: false, thread: msgs, streaming: false, stage: '' });
+			nextSourceIndex = 1;
 		} catch {
-			/* best-effort */
+			/* best-effort — a cached transcript stays on screen */
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [actionFromTool, greeting]);
-
-	// ── Per-message mutators ──────────────────────────────────────────────
-	const appendToLastAssistant = (delta: string) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant') next[next.length - 1] = { ...last, content: last.content + delta };
-		return next;
-	});
-	const patchLastAssistant = appendToLastAssistant;
-	const addToolToLastAssistant = (entry: ToolEntry) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant') next[next.length - 1] = { ...last, tools: [...(last.tools ?? []), entry] };
-		return next;
-	});
-	const updateLastTool = (id: string, ok: boolean, preview: string) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant' && last.tools) {
-			const idx = last.tools.findIndex((t) => t.id === id);
-			if (idx === -1) return prev;
-			const tools = [...last.tools];
-			tools[idx] = { ...tools[idx]!, ok, preview };
-			next[next.length - 1] = { ...last, tools };
-		}
-		return next;
-	});
-	const appendSourcesToLastAssistant = (newSources: CitationSource[]) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant') next[next.length - 1] = { ...last, sources: mergeSources(last.sources ?? [], newSources) };
-		return next;
-	});
-	const setPlanOnLastAssistant = (strategy: string, steps: string[]) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant') next[next.length - 1] = { ...last, plan: { strategy, steps } };
-		return next;
-	});
-	const addActionToLastAssistant = (action: ChatAction) => setMessages((prev) => {
-		const next = [...prev];
-		const last = next[next.length - 1];
-		if (last && last.role === 'assistant') {
-			const existing = last.actions ?? [];
-			if (existing.some((a) => a.href === action.href)) return prev;
-			next[next.length - 1] = { ...last, actions: [...existing, action] };
-		}
-		return next;
-	});
+	}, [actionFromTool]);
 
 	const send = useCallback(async (text?: string) => {
-		const message = (text ?? input).trim();
-		if (!message || streaming) return;
-		setInput('');
-		setMessages((prev) => [
-			...prev,
-			{ role: 'user', content: message },
-			{ role: 'assistant', content: '', tools: [], sources: [] },
-		]);
-		setStreaming(true);
-		setStage('Planning');
-		nextSourceIndexRef.current = 1;
+		const message = (text ?? session.input).trim();
+		if (!message || session.streaming) return;
+		loadSeq++;
+		const conversationId = session.conversationId;
+		update((st) => ({
+			input: '',
+			thread: [...st.thread, { role: 'user', content: message }, { role: 'assistant', content: '', tools: [], sources: [] }],
+			streaming: true,
+			stage: 'Planning',
+		}));
+		nextSourceIndex = 1;
 
-		abortRef.current?.abort();
+		abortCtl?.abort();
 		const ac = new AbortController();
-		abortRef.current = ac;
+		abortCtl = ac;
+		const write = (content: (prev: string) => string) => updateLastAssistant((m) => ({ ...m, content: content(m.content) }));
 
 		try {
 			const auth = await getAuthHeaders();
@@ -273,74 +265,83 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 			if (!res.ok || !res.body) {
 				if (res.status === 402) {
 					const body = await res.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
-					patchLastAssistant(
-						body?.error?.code === 'INSUFFICIENT_CREDITS'
-							? (insufficientCreditsMd ?? DEFAULT_INSUFFICIENT_CREDITS)
-							: `_⚠️ ${body?.error?.message ?? 'Could not start the chat.'}_`,
-					);
+					const note = body?.error?.code === 'INSUFFICIENT_CREDITS'
+						? (insufficientCreditsMd ?? DEFAULT_INSUFFICIENT_CREDITS)
+						: `_⚠️ ${body?.error?.message ?? 'Could not start the chat.'}_`;
+					write((c) => c + note);
 					return;
 				}
 				const errText = await res.text().catch(() => 'request failed');
-				patchLastAssistant(`_⚠️ ${errText}_`);
+				write((c) => `${c}_⚠️ ${errText}_`);
 				return;
 			}
 			await consumeSse(res.body, {
-				onConversation: (id) => setConversationId(id),
-				onThinking: () => setStage((s) => (s === '' || s === 'Writing the answer' ? 'Thinking' : s)),
-				onPlan: (strategy, steps) => setPlanOnLastAssistant(strategy, steps),
-				onText: (delta) => { setStage('Writing the answer'); appendToLastAssistant(delta); },
+				onConversation: (id) => update({ conversationId: id }),
+				onThinking: () => update((st) => ({ stage: st.stage === '' || st.stage === 'Writing the answer' ? 'Thinking' : st.stage })),
+				onPlan: (strategy, steps) => updateLastAssistant((m) => ({ ...m, plan: { strategy, steps } })),
+				onText: (delta) => { update({ stage: 'Writing the answer' }); write((c) => c + delta); },
 				onToolCall: (id, tool, tInput) => {
-					setStage(toolStage(tool));
-					addToolToLastAssistant({ id, tool, ok: false, preview: '…' });
+					update({ stage: toolStage(tool) });
+					updateLastAssistant((m) => ({ ...m, tools: [...(m.tools ?? []), { id, tool, ok: false, preview: '…' }] }));
 					const action = actionFromTool(tool, tInput);
-					if (action) addActionToLastAssistant(action);
+					if (action) updateLastAssistant((m) => ((m.actions ?? []).some((a) => a.href === action.href) ? null : { ...m, actions: [...(m.actions ?? []), action] }));
 					else onClientAction?.(tool, tInput);
 				},
 				onToolResult: (id, ok, preview, parsed) => {
-					updateLastTool(id, ok, preview);
-					setStage('Analyzing results');
-					const webSources = extractCitations(parsed, nextSourceIndexRef.current) ?? [];
-					const knowledgeSources = extractKnowledgeCitations(parsed, nextSourceIndexRef.current + webSources.length) ?? [];
+					updateLastAssistant((m) => {
+						const idx = m.tools?.findIndex((t) => t.id === id) ?? -1;
+						if (idx === -1) return null;
+						const tools = [...m.tools!];
+						tools[idx] = { ...tools[idx]!, ok, preview };
+						return { ...m, tools };
+					});
+					update({ stage: 'Analyzing results' });
+					const webSources = extractCitations(parsed, nextSourceIndex) ?? [];
+					const knowledgeSources = extractKnowledgeCitations(parsed, nextSourceIndex + webSources.length) ?? [];
 					const sources = [...webSources, ...knowledgeSources];
 					if (sources.length > 0) {
-						nextSourceIndexRef.current += sources.length;
-						appendSourcesToLastAssistant(sources);
+						nextSourceIndex += sources.length;
+						updateLastAssistant((m) => ({ ...m, sources: mergeSources(m.sources ?? [], sources) }));
 					}
 				},
-				onError: (msg) => patchLastAssistant(`\n\n_⚠️ ${msg}_`),
+				onError: (msg) => write((c) => `${c}\n\n_⚠️ ${msg}_`),
 			}, ac.signal);
 		} catch (err) {
 			if ((err as Error).name === 'AbortError') return;
-			patchLastAssistant(`\n\n_⚠️ ${(err as Error).message}_`);
+			write((c) => `${c}\n\n_⚠️ ${(err as Error).message}_`);
 		} finally {
-			setStreaming(false);
-			abortRef.current = null;
-			setStage('');
+			// Only the stream that is still current settles the session — an aborted
+			// one finishing late must not flip a newer reply to "not streaming".
+			if (abortCtl === ac || abortCtl === null) {
+				abortCtl = null;
+				update({ streaming: false, stage: '' });
+				void mutate(qk.chat.conversations()); // new / retitled conversation in every history list
+			}
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [input, streaming, conversationId, actionFromTool, pageContext, onClientAction, insufficientCreditsMd]);
+	}, [actionFromTool, pageContext, onClientAction, insufficientCreditsMd]);
 
 	const exportConversation = useCallback(async () => {
-		if (!conversationId) return;
+		const id = session.conversationId;
+		if (!id) return;
 		const auth = await getAuthHeaders();
-		const res = await fetch(`/api/chat/conversations/${conversationId}/export`, { headers: { ...auth }, credentials: 'include' });
+		const res = await fetch(`/api/chat/conversations/${id}/export`, { headers: { ...auth }, credentials: 'include' });
 		if (!res.ok) return;
 		const blob = await res.blob();
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `conversation-${conversationId.slice(0, 8)}.md`;
+		a.download = `conversation-${id.slice(0, 8)}.md`;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
 		URL.revokeObjectURL(url);
-	}, [conversationId]);
+	}, []);
 
 	return {
-		messages, input, setInput, streaming, stage, conversationId,
-		showHistory, conversations, historyLoading, bodyRef,
+		messages, input: s.input, setInput, streaming: s.streaming, stage: s.stage, conversationId: s.conversationId,
+		showHistory, conversations: history.data ?? null, historyLoading: showHistory && history.isLoading, bodyRef,
 		send, resetConversation, toggleHistory, loadConversation, exportConversation,
-		abort: () => abortRef.current?.abort(),
+		abort: () => { abortCtl?.abort(); abortCtl = null; update({ streaming: false, stage: '' }); },
 	};
 }
 
