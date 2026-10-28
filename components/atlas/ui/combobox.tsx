@@ -38,12 +38,16 @@ interface Props {
 	/** Inline style for the trigger (e.g. a fixed width in a pill filter row). */
 	style?: React.CSSProperties;
 	ariaLabel?: string;
+	/** Typing a group's label lists that whole group — for groups that are real
+	 *  categories (sector parents). Off by default: the location picker's
+	 *  "Countries" heading would otherwise swallow a query like "tri". */
+	searchGroupLabels?: boolean;
 }
 
 const flatten = (options?: ComboOption[], groups?: ComboGroup[]): ComboOption[] =>
 	groups ? groups.flatMap((g) => g.options) : (options ?? []);
 
-export function Combobox({ value, onChange, options, groups, placeholder = 'Select…', disabled, id, className, style, ariaLabel }: Props) {
+export function Combobox({ value, onChange, options, groups, placeholder = 'Select…', disabled, id, className, style, ariaLabel, searchGroupLabels }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState('');
 	const [active, setActive] = useState(0);
@@ -65,12 +69,12 @@ export function Combobox({ value, onChange, options, groups, placeholder = 'Sele
 	const q = query.trim().toLowerCase();
 	const match = (o: ComboOption) => !q || o[1].toLowerCase().includes(q);
 	const renderGroups = useMemo<{ label?: string; options: ComboOption[] }[]>(() => {
-		// A query matching the group label keeps the whole group ("Fan Engagement"
-		// lists its sectors even though no option is named that).
-		if (groups) return groups.map((g) => ({ label: g.label, options: !q || g.label.toLowerCase().includes(q) ? g.options : g.options.filter(match) })).filter((g) => g.options.length);
+		// With searchGroupLabels, a query matching the group label keeps the whole
+		// group (a parent sector lists its sectors though no option is named that).
+		if (groups) return groups.map((g) => ({ label: g.label, options: !q || (searchGroupLabels && g.label.toLowerCase().includes(q)) ? g.options : g.options.filter(match) })).filter((g) => g.options.length);
 		return [{ options: (options ?? []).filter(match) }];
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [groups, options, q]);
+	}, [groups, options, q, searchGroupLabels]);
 	const visible = useMemo(() => renderGroups.flatMap((g) => g.options), [renderGroups]);
 
 	// Open downward by default, but flip above the trigger when there isn't room
