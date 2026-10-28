@@ -8,7 +8,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { qk } from '@/lib/query-keys';
 import { SETUP_CARD_WIZARD, openRaiseSetup, openScoutThesis } from '@/lib/setup-events';
-import { H1, Badge, SectionHead, FeedCard } from '@/components/atlas';
+import { H1, Badge, SectionHead, FeedCard, Progress } from '@/components/atlas';
 import { RaiseSearch, RAISE_SUGGESTIONS } from '@/components/raise/raise-search';
 import { hrefOf } from '@/lib/routes';
 
@@ -23,7 +23,64 @@ import { hrefOf } from '@/lib/routes';
  */
 
 interface Attention { id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number }
-interface Home { attention: Attention[] }
+interface Round {
+	round_type: string | null; target_amount: string | number | null; committed_amount: string | number | null;
+	currency_code: string | null; target_close_date: string | null; status: string | null;
+}
+interface Home { needs_setup?: boolean; raise?: Round | null; attention: Attention[] }
+
+const ROUND_NAME: Record<string, string> = { pre_seed: 'Pre-seed', seed: 'Seed', series_a: 'Series A', series_b_plus: 'Series B+', bridge: 'Bridge' };
+const money = (v: number, ccy: string) => {
+	try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: ccy, notation: 'compact', maximumFractionDigits: 1 }).format(v); }
+	catch { return `${ccy} ${v.toLocaleString()}`; } // unknown currency code
+};
+/** Whole days from today to a YYYY-MM-DD date, in the viewer's own calendar. */
+const daysUntil = (ymd: string) => {
+	const [y, m, d] = ymd.slice(0, 10).split('-').map(Number);
+	const today = new Date(); today.setHours(0, 0, 0, 0);
+	return Math.round((new Date(y!, m! - 1, d!).getTime() - today.getTime()) / 864e5);
+};
+
+/** The round at a glance: committed vs target and the countdown to the founder's
+ *  target close date (both from Raise Setup). Missing pieces link back to setup. */
+function RoundStrip({ r }: { r: Round }) {
+	const ccy = (r.currency_code || 'EUR').toUpperCase();
+	const target = Number(r.target_amount) || 0;
+	const committed = Number(r.committed_amount) || 0;
+	const ended = r.status === 'funded' || r.status === 'closed';
+	const days = r.target_close_date ? daysUntil(r.target_close_date) : null;
+	const closeOn = r.target_close_date ? new Date(`${r.target_close_date.slice(0, 10)}T00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+	const name = ROUND_NAME[r.round_type ?? ''];
+	const editRound = () => openRaiseSetup({ edit: true });
+	const edit = <button type="button" className="raise-round__edit" onClick={editRound}>Set it</button>;
+	return (
+		<div className="atlas-card raise-round">
+			<div className="raise-round__main">
+				<div className="atlas-eyebrow">{name ? `Your ${name} round` : 'Your round'}{r.status === 'paused' ? ' · paused' : ''}</div>
+				{target > 0 ? (
+					<>
+						<div className="raise-round__amount"><strong>{money(committed, ccy)}</strong> of {money(target, ccy)} committed</div>
+						<Progress pct={(committed / target) * 100} />
+					</>
+				) : <div className="raise-round__amount raise-round__muted">No target amount yet. {edit}</div>}
+			</div>
+			<div className="raise-round__clock">
+				{ended ? <div className="raise-round__big">Round {r.status}</div>
+					: days == null ? <div className="raise-round__muted">No target close date. {edit}</div>
+					: (
+						<>
+							<div className="raise-round__big">{days > 0 ? days : days === 0 ? 'Today' : Math.abs(days)}</div>
+							<div className="raise-round__muted">
+								{days > 0 ? `${days === 1 ? 'day' : 'days'} to your target close · ${closeOn}`
+									: days === 0 ? `is your target close · ${closeOn}`
+									: <>{Math.abs(days) === 1 ? 'day' : 'days'} past your target close · {closeOn}. <button type="button" className="raise-round__edit" onClick={editRound}>Update</button></>}
+							</div>
+						</>
+					)}
+			</div>
+		</div>
+	);
+}
 
 /** Category tag + icon per attention item (ids come from the raise-home service). */
 const ATTENTION_TAG: Record<string, { tag: string; icon: LucideIcon }> = {
@@ -63,6 +120,7 @@ export function RaiseHome() {
 			</section>
 
 			<section className="raise-attn">
+				{!data.needs_setup && data.raise && <RoundStrip r={data.raise} />}
 				<SectionHead title="What needs your attention" />
 				{data.attention.length === 0 ? (
 					<div className="raise-attn-empty">You’re all caught up. Keep your watchlist moving.</div>
