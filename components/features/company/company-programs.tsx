@@ -14,8 +14,8 @@ interface Participation {
 const extUrl = (u: string | null | undefined) => (u ? (/^https?:\/\//i.test(u) ? u : `https://${u}`) : undefined);
 
 /**
- * Programs (accelerators, incubators…) the company took part in, from
- * program_participations — including ones a verified claimant added. One row per
+ * Programs (accelerators, incubators, event competitions…) the company took
+ * part in, from program_participations — including ones a verified claimant added. One row per
  * program (the data has duplicates; the row with a year wins), linking to the
  * program's site as the Programs list does. Hidden when there are none.
  */
@@ -30,7 +30,7 @@ export function CompanyPrograms({ companyId }: { companyId: string }) {
 	return (
 		<section className="atlas-card atlas-co__side">
 			<h2 className="atlas-co__h">Programs</h2>
-			<p className="atlas-co__sub">Accelerators, incubators and programs it took part in</p>
+			<p className="atlas-co__sub">Accelerators, programs and events it took part in</p>
 			{rows.map((p) => {
 				const href = extUrl(p.program_website);
 				const meta = [p.cohort_year, p.participation_status === 'graduated' ? 'Graduated' : null].filter(Boolean).join(' · ');
