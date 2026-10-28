@@ -35,7 +35,7 @@ import { decodeClaimForm } from './decode-claim-form';
 import { useClaimSearch } from './use-claim-search';
 import { buildCompanyDto, buildInvestorDto, buildEntityDto, uploadPitchDeck, CLAIM_DECK_EXTS } from './build-claim-dto';
 import { EntityPicker } from './entity-picker';
-import { newEntityMissing, type EntityKind, type EntityPick } from './claim-form';
+import { newEntityMissing, validWebsite, validYear, type EntityKind, type EntityPick } from './claim-form';
 import { MAX_DECK_MB, deckFileError } from '@/lib/deck-upload';
 
 const initials = (n: string) => (n || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -227,7 +227,7 @@ export function ClaimModal({
   const loadingEdit = !!target?.claimId && !applied;
 
   const R = role ? CM_ROLES[role] : null;
-  const { results, isLoading: searching, enabled: searchOn, query: searchedQ } = useClaimSearch(role, q);
+  const { results, isLoading: searching, enabled: searchOn, query: searchedQ, failed: searchFailed } = useClaimSearch(role, q);
   // "Add" unlocks only once the search for exactly what's typed has come back
   // without a record of that name — pick the existing one instead of duplicating it.
   const canAddNew = searchOn && !searching && searchedQ === q.trim()
@@ -326,19 +326,31 @@ export function ClaimModal({
     const m: string[] = [];
     if (step === 'dataedits') {
       if (addingNew) {
+        if (form.website.trim() && !validWebsite(form.website)) m.push('a valid website');
         if (!form.coCountry.trim()) m.push('country');
         if (!form.sector) m.push('sector');
         if (!form.description.trim()) m.push('description');
       }
+      // The server rejects the whole claim on an out-of-range year.
+      if (!validYear(form.founded)) m.push('a valid founded year');
       if (form.rounds.some((r) => (r.invs ?? []).some((p) => pickGaps('investor', p).length))) m.push('details of a new round investor');
-      if (form.mna.some((x) => pickGaps('company', x.cp).length)) m.push('details of a new M&A company');
+      if (form.mna.some((x) => !x.cp)) m.push('a counterparty for each M&A deal (or remove it)');
+      else if (form.mna.some((x) => pickGaps('company', x.cp).length)) m.push('details of a new M&A company');
     }
-    if (step === 'invdata' && addingNew) {
-      if (!form.website.trim()) m.push('website');
-      if (!form.invCategory) m.push('category');
-      if (!form.coCountry.trim()) m.push('country');
+    if (step === 'invdata') {
+      if (addingNew) {
+        if (!form.website.trim()) m.push('website');
+        else if (!validWebsite(form.website)) m.push('a valid website');
+        if (!form.invCategory) m.push('category');
+        if (!form.coCountry.trim()) m.push('country');
+      }
+      if (!validYear(form.yearLaunched)) m.push('a valid launch year');
     }
-    if (step === 'portfolio' && form.portfolio.some((x) => pickGaps('company', x.co).length)) m.push('details of a new portfolio company');
+    if (step === 'portfolio') {
+      // A row with nothing picked used to submit as a blank company.
+      if (form.portfolio.some((x) => !x.co)) m.push('a company for each portfolio row (or remove it)');
+      else if (form.portfolio.some((x) => pickGaps('company', x.co).length)) m.push('details of a new portfolio company');
+    }
     return m;
   };
   const missing = stepMissing();
@@ -570,7 +582,7 @@ export function ClaimModal({
                     <ArrowRight size={14} style={{ color: 'var(--a-faint)' }} />
                   </button>
                 ) : (
-                  <div className="cm-hint">{q.trim().length < 2 ? `Type your ${R.noun}'s name. If it isn't listed, you can add it.` : searching || searchedQ !== q.trim() ? 'Searching…' : `Pick your ${R.noun} above.`}</div>
+                  <div className="cm-hint">{q.trim().length < 2 ? `Type your ${R.noun}'s name. If it isn't listed, you can add it.` : searchFailed ? "Search isn't responding — try again in a moment." : searching || searchedQ !== q.trim() ? 'Searching…' : `Pick your ${R.noun} above.`}</div>
                 )}
               </div>
             )}
@@ -722,7 +734,7 @@ export function ClaimModal({
                         const invs = r.invs ?? [];
                         const setInvs = (next: EntityPick[]) => set('rounds', form.rounds.map((x, j) => (j === i ? { ...x, invs: next } : x)));
                         return (
-                          <div key={i} className="cm-editcard">
+                          <div key={`${i}/${form.rounds.length}`} className="cm-editcard">
                             <button className="cm-editcard-x" onClick={() => set('rounds', form.rounds.filter((_, j) => j !== i))} aria-label="Remove round"><X size={14} /></button>
                             <div className="cm-row3">
                               <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Round type</label><Combobox className="cm-select" value={r.roundType} onChange={(v) => upd('roundType', v)} placeholder="Select…" options={optE('Select…', FUND_ROUND_NAMES)} /></div>
@@ -736,7 +748,7 @@ export function ClaimModal({
                                   <EntityPicker key={k} kind="investor" value={p} onChange={(v) => setInvs(v ? invs.map((x, n) => (n === k ? v : x)) : invs.filter((_, n) => n !== k))} />
                                 ))}
                                 {/* Always one empty search at the end to add the next investor. */}
-                                <EntityPicker key={`new-${invs.length}`} kind="investor" value={null} legacy={invs.length ? undefined : r.investors || undefined} onChange={(v) => { if (v) setInvs([...invs, v]); }} />
+                                <EntityPicker key={`new-${invs.length}`} kind="investor" value={null} onChange={(v) => { if (v) setInvs([...invs, v]); }} />
                               </div>
                             </div>
                             <div className="cm-field" style={{ margin: 0 }}><label className="cm-label">Source <span className="cm-opt">(optional)</span></label><input className="cm-input" type="url" value={r.source} onChange={(e) => upd('source', e.target.value)} placeholder="https://…" /></div>
@@ -758,11 +770,11 @@ export function ClaimModal({
                       {form.mna.map((m, i) => {
                         const upd = (k: 'dealType' | 'amount' | 'date', v: string) => set('mna', form.mna.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
                         return (
-                          <div key={i} className="cm-editcard">
+                          <div key={`${i}/${form.mna.length}`} className="cm-editcard">
                             <button className="cm-editcard-x" onClick={() => set('mna', form.mna.filter((_, j) => j !== i))} aria-label="Remove deal"><X size={14} /></button>
                             <div className="cm-field" style={{ marginBottom: 12 }}>
                               <label className="cm-label">Counterparty</label>
-                              <EntityPicker kind="company" value={m.cp ?? null} legacy={m.cp ? undefined : m.counterparty || undefined}
+                              <EntityPicker kind="company" value={m.cp ?? null}
                                 onChange={(v) => set('mna', form.mna.map((x, j) => (j === i ? { ...x, cp: v, counterparty: v?.name ?? '' } : x)))} />
                             </div>
                             <div className="cm-row2">
@@ -955,11 +967,11 @@ export function ClaimModal({
                   {form.portfolio.map((p, i) => {
                     const upd = (k: 'stage' | 'year', v: string) => set('portfolio', form.portfolio.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
                     return (
-                      <div key={i} className="cm-editcard">
+                      <div key={`${i}/${form.portfolio.length}`} className="cm-editcard">
                         <button className="cm-editcard-x" onClick={() => set('portfolio', form.portfolio.filter((_, j) => j !== i))} aria-label="Remove company"><X size={14} /></button>
                         <div className="cm-field" style={{ marginBottom: 12 }}>
                           <label className="cm-label">Company</label>
-                          <EntityPicker kind="company" value={p.co ?? null} legacy={p.co ? undefined : p.name || undefined}
+                          <EntityPicker kind="company" value={p.co ?? null}
                             onChange={(v) => set('portfolio', form.portfolio.map((x, j) => (j === i ? { ...x, co: v, name: v?.name ?? '' } : x)))} />
                         </div>
                         <div className="cm-row2">

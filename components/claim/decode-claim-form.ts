@@ -43,7 +43,7 @@ const added = (n: unknown): NewEntity | null => {
 };
 const pick = (id: unknown, name: unknown, details: unknown): EntityPick | null => {
 	const a = id ? null : added(details);
-	return id || a ? { id: id ? String(id) : null, name: s(name), added: a } : null;
+	return id || a || s(name).trim() ? { id: id ? String(id) : null, name: s(name), added: a } : null;
 };
 
 export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReference): Partial<ClaimForm> {
@@ -82,8 +82,11 @@ export function decodeClaimForm(data: Record<string, unknown>, ref: ClaimReferen
 			contactPosition: s(d.contact_position), contactEmail: s(d.contact_email), contactLinkedin: s(d.contact_linkedin),
 			rounds: arr(co.funding_rounds).map((r): RoundRow => ({
 				roundType: s(r.round_label) || (r.round_type_id ? roundName.get(String(r.round_type_id)) ?? '' : ''),
-				amount: numStr(r.amount_usd), date: s(r.round_date), investors: s(r.investors), source: s(r.source_url),
-				invs: arr(r.investor_refs).map((x) => pick(x.investor_id, x.name, x.new_investor)).filter((x): x is EntityPick => !!x),
+				amount: numStr(r.amount_usd), date: s(r.round_date), investors: '', source: s(r.source_url),
+				// Older rounds have only "A, B" text: one bare-name entry each, so picking
+				// or removing one doesn't drop or keep the others by accident.
+				invs: (Array.isArray(r.investor_refs) ? arr(r.investor_refs).map((x) => pick(x.investor_id, x.name, x.new_investor))
+					: s(r.investors).split(',').map((n) => pick(null, n.trim(), null))).filter((x): x is EntityPick => !!x),
 			})),
 			mna: arr(co.mna).map((m): MnaRow => ({
 				dealType: s(m.deal_type) || 'Acquisition', counterparty: s(m.counterparty), amount: numStr(m.amount_usd), date: s(m.deal_date),
