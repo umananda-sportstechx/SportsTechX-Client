@@ -23,9 +23,10 @@ import { VerifyButton } from '@/components/features/verify/verify-cta';
 /**
  * The notification preferences that actually exist.
  *
- * These are the eight `profiles.notification_*` columns — already in
- * `updateProfileSchema`, already written by `PATCH /api/me`, already returned
- * by `GET /api/me`, and genuinely read by `digest-email.processor.ts`.
+ * These are `profiles.notification_*` columns, written by `PATCH /api/me`.
+ * Only two are shown (see NOTIFICATIONS): `notification_email`, enforced for
+ * every non-essential email by the server's email outbox, and
+ * `notification_newsletter`, read by `digest-email.processor.ts`.
  *
  * What was here before was three per-tier lists of invented keys ("Weekly
  * raise recap", "Watchlist signals", "Overdue follow-up reminders") held in a
@@ -47,15 +48,14 @@ const PROVIDER_LABEL: Record<string, string> = {
 	linkedin_oidc: 'LinkedIn',
 };
 
+// Only toggles with a real email behind them. The other six columns (reports,
+// funding, M&A, programme deadlines, product updates, offers) have no sender yet
+// — showing them promised alerts that never came. Add each back with its sender.
+// The master switch is enforced for every non-essential email in the server's
+// email outbox (account and security mail always goes).
 const NOTIFICATIONS: { key: NotificationKey; label: string; sub: string }[] = [
-	{ key: 'notification_email', label: 'Email notifications', sub: 'The master switch — turn this off and we send you nothing.' },
+	{ key: 'notification_email', label: 'Email notifications', sub: 'The master switch — turn this off and we only send account and security emails (sign-in, password, verification).' },
 	{ key: 'notification_newsletter', label: 'Newsletter and digests', sub: 'Saved-search digests and the SportsTechX newsletter.' },
-	{ key: 'notification_report_releases', label: 'New reports', sub: 'When a report or monthly roundup is published.' },
-	{ key: 'notification_funding_alerts', label: 'Funding alerts', sub: 'New rounds involving companies you follow.' },
-	{ key: 'notification_ma_alerts', label: 'M&A alerts', sub: 'Acquisitions and exits across the market.' },
-	{ key: 'notification_programs_deadline', label: 'Programme deadlines', sub: 'Application windows closing for accelerators and programmes.' },
-	{ key: 'notification_updates', label: 'Product updates', sub: 'Changes and new features in Atlas.' },
-	{ key: 'notification_marketing', label: 'Offers', sub: 'Occasional news about plans and pricing.' },
 ];
 
 export function AccountSettings({ sub, extra }: { sub?: string; /** Product-specific cards before Log out (e.g. Explore's product access). */ extra?: React.ReactNode }) {
