@@ -29,6 +29,8 @@ export const qk = {
     pipeline: (params: Record<string, unknown> = {}) => ['/api/raise/pipeline', params] as const,
     pipelineActivity: (id: string) => [`/api/raise/pipeline/${id}/activity`] as const,
     market: () => ['/api/raise/market'] as const,
+    resources: () => ['/api/raise/resources'] as const,
+    resource: (slug: string) => [`/api/raise/resources/${slug}`] as const,
     dealflow: () => ['/api/raise/dealflow/opt-in'] as const,
   },
   features: () => ['/api/features'] as const,
