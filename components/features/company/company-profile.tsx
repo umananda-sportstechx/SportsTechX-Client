@@ -14,6 +14,7 @@ import { ago, fmtUsd, place } from '@/components/features/market/format';
 import { VerifyButton } from '@/components/features/verify/verify-cta';
 import { SuggestCorrection } from '@/components/features/verify/suggest-correction';
 import { CompanyMa } from '@/components/features/company/company-ma';
+import { CompanyPrograms } from '@/components/features/company/company-programs';
 import { usePrimaryContact } from '@/hooks/use-primary-contact';
 import { hrefOf } from '@/lib/routes';
 import './company-profile.css';
@@ -261,6 +262,7 @@ export function CompanyProfile({ idOrSlug, backHref, companyHref, listHref, rail
 				<aside className="atlas-co__rail">
 					{railTop}
 					<ContactCard companyId={c.id} />
+					<CompanyPrograms companyId={c.id} />
 					<section className="atlas-card atlas-co__side">
 						<h2 className="atlas-co__h">Recent signals</h2>
 						{newsRows.length === 0 ? <p className="atlas-co__empty">No recent signals for this company yet.</p> : newsRows.map((n) => (

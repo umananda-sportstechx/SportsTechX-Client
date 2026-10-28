@@ -89,6 +89,9 @@
 }
 .atlas .atlas-co__rel:hover .atlas-co__rel-go { background: var(--a-primary); color: var(--a-primary-ink); }
 .atlas .atlas-co__more { margin-top: 18px; height: 28px; font-size: 10.5px; }
+/* Programs rail card: logo beside the name/meta stack. */
+.atlas .atlas-co__rel > span.atlas-co__prog:first-child { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+.atlas .atlas-co__prog-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
 @media (max-width: 640px) {
 	.atlas .atlas-co__name { font-size: 28px; }
