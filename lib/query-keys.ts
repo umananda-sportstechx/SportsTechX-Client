@@ -83,6 +83,7 @@ export const qk = {
     listByType: (type: string, params: Record<string, unknown> = {}) =>
       ['/api/ecosystem-entities', { type, ...params }] as const,
     detail: (idOrSlug: string) => [`/api/ecosystem-entities/${idOrSlug}`] as const,
+    participations: (params: Record<string, unknown> = {}) => ['/api/program-participations', params] as const,
   },
 
   // ── Search ──────────────────────────────────────────────────────────────
