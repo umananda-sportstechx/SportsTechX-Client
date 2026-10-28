@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import { ArrowRight, ArrowLeft, Check, Loader2, Search } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Loader2, Plus, Search } from 'lucide-react';
 import { qk } from '@/lib/query-keys';
+import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
 import { apiRequest } from '@/lib/query-client';
 import type { RaiseCriteria, RaiseUpsert } from '@/types/api';
 import { openClaim, type ClaimPrefill } from '@/lib/claim-events';
@@ -110,18 +111,7 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// Atlas taxonomy (Notion Step 1 "category"): pick the most specific sector — its
 	// full path (Root → Sub → Leaf) is stored as company_category for display, and
 	// company_sector_id drives Market + investor matching.
-	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
-	const sectorOptions = useMemo<[string, string][]>(() => {
-		const list = sectors ?? [];
-		const byId = new Map(list.map((s) => [s.id, s]));
-		const path = (s: { name: string; parent_id: string | null }): string => {
-			const parts = [s.name]; let p = s.parent_id;
-			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
-			return parts.join(' → ');
-		};
-		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
-		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
-	}, [sectors]);
+	const sectorOptions = useLeafSectorOptions();
 	const pickSector = (id: string) => {
 		set('company_sector_id', id || null);
 		const label = sectorOptions.find(([v]) => v === id)?.[1];
@@ -277,6 +267,13 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 	// one company) — don't offer "Verify your company" to someone already verified
 	// or awaiting review; that click would only produce an edit request.
 	const { state: myVerifyState } = useVerifyState(form.company_id ? String(form.company_id) : undefined);
+	// Not in Atlas → the founder adds it by claiming it: the verification modal
+	// opens on a new listing, pre-filled from what they've answered. Step 1 then
+	// fills from that claim (the claim-seeding effect above).
+	const addCompany = (name: string) => openClaim({ role: 'founder' }, 'founder', { ...buildVerifyPrefill(form), name });
+	// Company facts show once there's a company to describe: one picked from
+	// Atlas, one being claimed, or a draft that already has them.
+	const showCoFields = !!linked || !!coClaimId || !!s(form.company_name);
 	const verify = () => {
 		const target = form.company_id
 			? { role: 'founder' as const, id: String(form.company_id), name: s(form.company_name), website: s(form.company_website) || null }
@@ -318,14 +315,18 @@ export function RaiseSetup({ onClose, edit = false }: { onClose: () => void; edi
 								<button type="button" className="atlas-btn atlas-btn--ghost atlas-btn--sm" onClick={unlinkCompany} style={{ flexShrink: 0 }}>Not your company?</button>
 							</div>
 						) : (
-							<CompanySearch onPick={pickCompany} />
+							<CompanySearch onPick={pickCompany} onAdd={addCompany} />
 						)}
+						{showCoFields ? <>
 						<Field label="Company name"><Input value={s(form.company_name)} onChange={(e) => set('company_name', e.target.value)} disabled={coLock('company_name')} /></Field>
 						<Field label="Website"><Input placeholder="https://" value={s(form.company_website)} onChange={(e) => set('company_website', e.target.value)} disabled={coLock('company_website')} /></Field>
 						<Grid><Field label="Country"><LocationSelect value={s(form.hq_country)} onChange={(v) => set('hq_country', v)} disabled={coLock('hq_country')} /></Field><Field label="City"><CityInput value={s(form.hq_city)} onChange={(v) => set('hq_city', v)} onPick={(h) => { if (h.country && !coLock('hq_country')) set('hq_country', h.country); }} disabled={coLock('hq_city')} geo={s(form.hq_country)} /></Field></Grid>
 						<Field label="What does the company do?"><Input placeholder="One sentence" value={s(form.company_description)} onChange={(e) => set('company_description', e.target.value)} disabled={coLock('company_description')} /></Field>
 						<Field label="Which category best describes the company?"><Select placeholder="Select the closest Atlas category…" value={s(form.company_sector_id)} onChange={(e) => pickSector(e.target.value)} options={sectorOptions} disabled={coLock('company_sector_id')} /></Field>
 						{linked && <div style={{ fontSize: 11, color: 'var(--a-faint)', marginTop: -6 }}>Company details come from the Atlas profile. Verify your company to request changes.</div>}
+						</> : (
+							<div style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--a-muted)' }}>Search for your company above. If it isn&apos;t in Atlas, add it — you claim it as its founder, and it goes live once our team verifies it.</div>
+						)}
 						<Grid>
 							<Field label="Stage"><Select placeholder="Select…" value={s(form.company_stage)} onChange={(e) => set('company_stage', e.target.value)} options={[['pre_seed', 'Pre-seed'], ['seed', 'Seed'], ['series_a', 'Series A'], ['series_b_plus', 'Series B+'], ['other', 'Other']]} /></Field>
 							<Field label="Generating revenue?"><Select placeholder="Select…" value={s(form.revenue_status)} onChange={(e) => set('revenue_status', e.target.value)} options={[['pre_revenue', 'Pre-revenue'], ['generating', 'Yes']]} /></Field>
@@ -459,13 +460,16 @@ function TransitionScreen({ onEnter, onVerify, verifyState = 'none' }: { onEnter
 	);
 }
 
-/** Step 1 typeahead over /api/companies — pick to prefill + link an existing company. */
-function CompanySearch({ onPick }: { onPick: (c: CoRow) => void }) {
+/** Step 1 typeahead over /api/companies — pick to prefill + link an existing company,
+ *  or (only when the search finds nothing by that name) add it by claiming it. */
+function CompanySearch({ onPick, onAdd }: { onPick: (c: CoRow) => void; onAdd: (name: string) => void }) {
 	const [q, setQ] = useState('');
 	const dq = useDebouncedValue(q);
 	const term = dq.trim();
 	const res = useSWR<{ data: CoRow[] }>(term.length >= 2 ? qk.companies.list({ q: term, limit: 6 }) : null);
 	const rows = res.data?.data ?? [];
+	const canAdd = term.length >= 2 && term === q.trim() && !res.isLoading && !!res.data
+		&& !rows.some((c) => c.name.trim().toLowerCase() === term.toLowerCase());
 	return (
 		<Field label="Find your company">
 			<div style={{ position: 'relative' }}>
@@ -483,7 +487,13 @@ function CompanySearch({ onPick }: { onPick: (c: CoRow) => void }) {
 					</div>
 				)}
 			</div>
-			<div style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--a-faint)', marginTop: 6 }}>Find your company to prefill its details. Can’t find it? Just fill in the form below to add it as new.</div>
+			{canAdd ? (
+				<button type="button" className="atlas-btn atlas-btn--ghost atlas-btn--sm" style={{ marginTop: 8 }} onClick={() => onAdd(term)}>
+					<Plus size={13} /> Add “{term}” and claim it as your company
+				</button>
+			) : (
+				<div style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--a-faint)', marginTop: 6 }}>Find your company to prefill its details. Not listed? Search its name and you can add it.</div>
+			)}
 		</Field>
 	);
 }

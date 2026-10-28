@@ -279,6 +279,14 @@
 .cm-selco-meta { font-family: var(--a-body); font-size: 11px; color: var(--a-muted); margin-top: 2px; }
 .cm-selco-change { background: transparent; border: 0; padding: 0; flex-shrink: 0; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-ink); cursor: pointer; }
 .cm-selco-change:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* A company / investor the user adds inside the claim (portfolio, round investor,
+   M&A counterparty) — flagged as user-added until the claim is verified. */
+.cm-pick-new { padding: 14px; border: 1px dashed var(--a-border-strong); border-radius: var(--a-radius); background: var(--a-surface); }
+.cm-pick-new-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cm-pick-new-tag { background: var(--a-warn-bg, var(--a-inset)); color: var(--a-warn, var(--a-muted)); border-color: color-mix(in srgb, var(--a-warn, var(--a-muted)) 30%, transparent); }
+.cm-pick-new-note { flex: 1; min-width: 180px; font-family: var(--a-body); font-size: 11px; color: var(--a-muted); line-height: 1.5; }
+.cm-pick-missing { color: var(--a-danger); }
+.cm-foot-missing { font-family: var(--a-body); font-size: 11px; color: var(--a-danger); margin-right: 8px; text-align: right; }
 
 .cm-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 26px 18px; background: var(--a-surface); border: 1px dashed var(--a-border-strong); border-radius: var(--a-radius); text-align: center; cursor: pointer; width: 100%; color: var(--a-ink); transition: border-color 0.15s, background 0.15s; }
 .cm-drop:hover { border-style: solid; background: var(--a-inset); }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { ArrowUpLeft, Check, Loader2, Paperclip, ShieldCheck, X } from 'lucide-react';
@@ -16,6 +16,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { apiRequest } from '@/lib/query-client';
 import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
+import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
 import { hrefOf } from '@/lib/routes';
 import { openClaim } from '@/lib/claim-events';
 
@@ -55,7 +56,6 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 	// owner-facing single-deal read, and the list is one request either way.
 	const own = useSWR<{ data: Record<string, unknown>[] }>(resumeId ? qk.scout.dealflowMine() : null);
 	const resumeRow = resumeId ? own.data?.data.find((r) => r['id'] === resumeId) : undefined;
-	const { data: sectors } = useSWR<Array<{ id: string; name: string; parent_id: string | null }>>(qk.reference.sectors());
 
 	const [step, setStep] = useState(0);
 	const [typed, setTyped] = useState<Draft>(BLANK);
@@ -81,19 +81,7 @@ export function ShareDeal({ resumeId }: { resumeId?: string }) {
 	});
 	const sym = d.currency === 'USD' ? '$' : '€';
 
-	// Leaf sectors only, shown as `Parent → Child`. Same builder as Raise setup.
-	const sectorOptions = useMemo<[string, string][]>(() => {
-		const list = sectors ?? [];
-		const byId = new Map(list.map((s) => [s.id, s]));
-		const path = (s: { name: string; parent_id: string | null }): string => {
-			const parts = [s.name]; let p = s.parent_id;
-			while (p) { const par = byId.get(p); if (!par) break; parts.unshift(par.name); p = par.parent_id; }
-			return parts.join(' → ');
-		};
-		const isLeaf = (id: string) => !list.some((x) => x.parent_id === id);
-		return list.filter((s) => isLeaf(s.id)).map((s) => [s.id, path(s)] as [string, string])
-			.sort((a, b) => a[1].localeCompare(b[1]));
-	}, [sectors]);
+	const sectorOptions = useLeafSectorOptions();
 
 	const needsThesis = (gate.error as { code?: string } | undefined)?.code === 'SCOUT_NOT_SET_UP';
 	if (gate.isLoading || (resumeId && own.isLoading)) return <Loading />;
