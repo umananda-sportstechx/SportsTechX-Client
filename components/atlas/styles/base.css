@@ -10,7 +10,8 @@
 /* ── Responsive layout helpers ─────────────────────────────────────────────*/
 .atlas-screen { padding: 57px 56px 48px; margin-inline: auto; }
 @media (max-width: 1100px) { .atlas-screen { padding: 40px 32px; } }
-@media (max-width: 640px) { .atlas-screen { padding: 24px 16px; } }
+/* Bottom room so the last row can scroll clear of the Ask Atlas launcher. */
+@media (max-width: 640px) { .atlas-screen { padding: 24px 16px 84px; } }
 
 /* Home main + aside: two columns on desktop, stacked on narrow screens. */
 .atlas-home-cols { display: grid; grid-template-columns: minmax(0, 1.63fr) minmax(280px, 1fr); gap: 32px; align-items: start; }

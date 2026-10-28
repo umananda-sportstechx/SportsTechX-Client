@@ -360,7 +360,16 @@ span.atlas-fbar__pill-main { cursor: default; }
 .atlas-menu__locked svg { margin-top: 2px; flex-shrink: 0; }
 @media (max-width: 640px) {
   .atlas-fbar__search { flex-basis: 100%; }
-  .atlas-fbar__right { margin-left: 0; width: 100%; justify-content: space-between; }
+  /* Shares the Add-filter row when it fits (it used to take a full row of its
+     own, leaving "Sort by" alone on a line); wraps right-aligned when not. */
+  .atlas-fbar__right { margin-left: auto; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  /* Toolbar buttons beside the filters go icon-only — Export (download),
+     Sort (sliders). The words stay as the accessible name. "Add filter" keeps
+     its text: it is the bar's primary action. */
+  .atlas-fbar__right .atlas-btn { width: 38px; padding: 0; justify-content: center; gap: 0; }
+  .atlas-fbar__right .atlas-btn__label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
   .atlas-menu--wide .atlas-menu__groups { grid-template-columns: 1fr; }
   /* Opt-in bottom sheet for filter/sort/watchlist menus: an absolute dropdown
      anchored to a left/right-edge button ran off the viewport on phones. Pin it
@@ -641,7 +650,14 @@ a.atlas-tab { text-decoration: none; }
   padding: 2px 6px; border-radius: 8px; border: 0.5px solid var(--a-border-strong);
   font-family: var(--a-mono); font-size: 7px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--a-muted);
 }
-@media (max-width: 640px) { .atlas-tabbed-head { margin-bottom: 27px; } .atlas-tabbed-head__tabs { margin-top: 24px; } }
+@media (max-width: 640px) {
+	.atlas-tabbed-head { margin-bottom: 27px; }
+	.atlas-tabbed-head__tabs { margin-top: 20px; }
+	/* The section's sub-line ("Your fundraise: pitch deck, investors and
+	   programs.") is a desktop nicety; on a phone the title and tabs say it and
+	   the line costs a screenful's worth of the first view. */
+	.atlas-tabbed-head .atlas-sub { display: none; }
+}
 
 /* Placeholder pill (SOON style) inside tabs / titles */
 .atlas-tab.has-pill { display: inline-flex; align-items: center; gap: 8px; }
