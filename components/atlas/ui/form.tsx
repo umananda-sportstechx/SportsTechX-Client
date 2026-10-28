@@ -41,8 +41,8 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea {...props} className={cx('atlas-textarea', props.className)} />;
 }
 
-export function Select({ options, placeholder, value, onChange, disabled, id, className, 'aria-label': ariaLabel }:
-	SelectHTMLAttributes<HTMLSelectElement> & { options: [string, string][]; placeholder?: string }) {
+export function Select({ options, groups, placeholder, value, onChange, disabled, id, className, 'aria-label': ariaLabel }:
+	SelectHTMLAttributes<HTMLSelectElement> & { options: [string, string][]; groups?: { label: string; options: [string, string][] }[]; placeholder?: string }) {
 	// Custom combobox, not a native <select> — same controlled contract, so the
 	// call sites (all reading `e.target.value`) are untouched: we hand onChange a
 	// minimal synthetic event. A provided placeholder becomes a selectable empty
@@ -51,6 +51,7 @@ export function Select({ options, placeholder, value, onChange, disabled, id, cl
 	return (
 		<Combobox
 			options={opts}
+			groups={groups}
 			placeholder={placeholder ?? 'Select…'}
 			value={value == null ? '' : String(value)}
 			disabled={disabled}

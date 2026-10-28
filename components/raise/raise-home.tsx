@@ -24,7 +24,7 @@ import { hrefOf } from '@/lib/routes';
 
 interface Attention { id: string; title: string; why: string; cta_label: string; cta_href: string; count?: number }
 interface Round {
-	round_type: string | null; target_amount: string | number | null; committed_amount: string | number | null;
+	round_type: string | null; round_type_other?: string | null; target_amount: string | number | null; committed_amount: string | number | null;
 	currency_code: string | null; target_close_date: string | null; status: string | null;
 }
 interface Home { needs_setup?: boolean; raise?: Round | null; attention: Attention[] }
@@ -51,10 +51,12 @@ function RoundCard({ r }: { r: Round }) {
 	const ended = r.status === 'funded' || r.status === 'closed';
 	const days = r.target_close_date ? daysUntil(r.target_close_date) : null;
 	const closeOn = r.target_close_date ? new Date(`${r.target_close_date.slice(0, 10)}T00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-	const name = ROUND_NAME[r.round_type ?? ''];
+	const name = ROUND_NAME[r.round_type ?? ''] ?? (r.round_type === 'other' && r.round_type_other?.trim() ? r.round_type_other.trim() : undefined);
+	// "Angel round" (typed for an "Other" round) is already a round name.
+	const roundName = name ? (/round$/i.test(name) ? name : `${name} round`) : null;
 	const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
 
-	const title = ended ? `${name ?? 'Your'} round ${r.status}`
+	const title = ended ? `${roundName ?? 'Your round'} ${r.status}`
 		: days == null ? 'Set a target close date'
 		: days > 0 ? `${plural(days)} to your target close`
 		: days === 0 ? 'Your target close is today'
@@ -73,7 +75,7 @@ function RoundCard({ r }: { r: Round }) {
 
 	return (
 		<FeedCard
-			tag={name ? `${name} round` : 'Your round'}
+			tag={roundName ?? 'Your round'}
 			icon={Hourglass}
 			title={title}
 			body={body || undefined}

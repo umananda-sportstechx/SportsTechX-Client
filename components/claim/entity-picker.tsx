@@ -5,7 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import { Combobox } from '@/components/atlas/ui/combobox';
 import { LocationSelect } from '@/components/features/location/location-select';
 import { CityInput } from '@/components/features/location/city-input';
-import { useLeafSectorOptions } from '@/hooks/use-catalog-options';
+import { useLeafSectorGroups } from '@/hooks/use-catalog-options';
 import { useClaimSearch } from './use-claim-search';
 import { INVESTOR_CATEGORY_OPTIONS, blankNewEntity, newEntityMissing, type EntityKind, type EntityPick, type NewEntity } from './claim-form';
 
@@ -71,7 +71,7 @@ export function EntityPicker({ kind, value, onChange }: {
 }
 
 function AddedForm({ kind, value, added, onChange }: { kind: EntityKind; value: EntityPick; added: NewEntity; onChange: (v: EntityPick | null) => void }) {
-  const sectors = useLeafSectorOptions();
+  const sectorGroups = useLeafSectorGroups();
   const set = (k: keyof NewEntity, v: string) => onChange({ ...value, added: { ...added, [k]: v } });
   const missing = newEntityMissing(kind, added, value.name);
   const req = <span className="cm-req">*</span>;
@@ -96,7 +96,7 @@ function AddedForm({ kind, value, added, onChange }: { kind: EntityKind; value: 
       {kind === 'company' ? (
         <>
           <div className="cm-row2">
-            <div className="cm-field cm-half"><label className="cm-label">Sector {req}</label><Combobox className="cm-select" value={added.sectorId} onChange={(v) => set('sectorId', v)} placeholder="Select sector…" options={[['', 'Select sector…'], ...sectors]} /></div>
+            <div className="cm-field cm-half"><label className="cm-label">Sector {req}</label><Combobox className="cm-select" value={added.sectorId} onChange={(v) => set('sectorId', v)} placeholder="Select sector…" groups={sectorGroups} /></div>
             <div className="cm-field cm-half"><label className="cm-label">Founded year <span className="cm-opt">(optional)</span></label><input className="cm-input" value={added.founded} onChange={(e) => set('founded', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2021" inputMode="numeric" /></div>
           </div>
           <div className="cm-field"><label className="cm-label">What does it do? {req}</label><input className="cm-input" maxLength={300} value={added.description} onChange={(e) => set('description', e.target.value)} placeholder="One sentence" /></div>
