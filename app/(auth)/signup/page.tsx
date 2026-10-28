@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { safeRedirect } from '@/lib/safe-redirect';
 import { callPostLogin } from '@/lib/post-login';
+import { refreshAccount } from '@/lib/invalidate';
 import { Button } from '@/components/atlas';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { AuthNotice, AuthOr, AuthSplit, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
@@ -68,6 +69,9 @@ export default function SignupPage() {
 				setMessage('Check your email for a confirmation link!');
 			} else if (data.session) {
 				await callPostLogin(data.session.access_token);
+				// Post-login can link claims, grant signup credits and settle the real
+				// tier/role — re-read anything cached before it finished.
+				void refreshAccount();
 				// Onboarding always runs for a new account, so this deliberately
 				// ignores `redirectTo` — that param only steers the OAuth path, where
 				// the callback resumes wherever the user was headed.

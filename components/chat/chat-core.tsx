@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import useSWR, { mutate } from 'swr';
 import { getAuthHeaders } from '@/lib/query-client';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
+import { refreshCredits, refreshPaths } from '@/lib/invalidate';
 import { qk } from '@/lib/query-keys';
 
 /**
@@ -98,9 +99,12 @@ interface ChatSession {
 	stage: string;
 	/** The composer draft — carried across too, so expanding keeps what was typed. */
 	input: string;
+	/** Opening a conversation that isn't cached yet: its id is current, its turns are on the way. */
+	loading: boolean;
 }
 
-let session: ChatSession = { thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '', input: '' };
+const EMPTY: Omit<ChatSession, 'input'> = { thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '', loading: false };
+let session: ChatSession = { ...EMPTY, input: '' };
 const listeners = new Set<() => void>();
 let abortCtl: AbortController | null = null;
 let nextSourceIndex = 1;
@@ -108,30 +112,43 @@ let nextSourceIndex = 1;
 let loadSeq = 0;
 /** Transcripts seen this visit: reopening a conversation shows at once while it refreshes. */
 const transcripts = new Map<string, ChatMessage[]>();
+const MAX_TRANSCRIPTS = 30; // a long-lived tab shouldn't keep every conversation it ever opened
 
 function update(patch: Partial<ChatSession> | ((s: ChatSession) => Partial<ChatSession>)): void {
 	session = { ...session, ...(typeof patch === 'function' ? patch(session) : patch) };
-	if (session.conversationId) transcripts.set(session.conversationId, session.thread);
+	if (session.conversationId && !session.loading) {
+		transcripts.delete(session.conversationId); // re-insert = most recent
+		transcripts.set(session.conversationId, session.thread);
+		if (transcripts.size > MAX_TRANSCRIPTS) transcripts.delete(transcripts.keys().next().value!);
+	}
 	listeners.forEach((l) => l());
 }
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 const getSession = () => session;
 /** The conversation on screen right now — for effects that must not act on a stale render. */
 export const chatSessionId = (): string | null => session.conversationId;
+/** Whether a reply is streaming right now (live, not a render's copy). */
+export const chatSessionStreaming = (): boolean => session.streaming;
 
-/** The session is app-wide, so it must not outlive the person: signing out
- *  stops any reply and empties it (the next sign-in on this tab starts clean). */
+/** The session is app-wide, so it must not outlive the person: signing out — or
+ *  a different user signing in on this tab without a sign-out in between, which
+ *  the auth context also handles — stops any reply and empties it. */
 let watchingAuth = false;
+let sessionUser: string | null = null;
 function clearOnSignOut(): void {
 	if (watchingAuth || typeof window === 'undefined') return;
 	watchingAuth = true;
-	getSupabaseBrowser().auth.onAuthStateChange((event) => {
-		if (event !== 'SIGNED_OUT') return;
+	getSupabaseBrowser().auth.onAuthStateChange((event, auth) => {
+		const uid = auth?.user?.id ?? null;
+		const switched = event === 'SIGNED_IN' && uid !== null && sessionUser !== null && uid !== sessionUser;
+		if (uid) sessionUser = uid;
+		if (event !== 'SIGNED_OUT' && !switched) return;
+		if (event === 'SIGNED_OUT') sessionUser = null;
 		abortCtl?.abort();
 		abortCtl = null;
 		loadSeq++;
 		transcripts.clear();
-		update({ thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '', input: '' });
+		update({ ...EMPTY, input: '' });
 	});
 }
 
@@ -192,7 +209,7 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 		abortCtl = null;
 		loadSeq++;
 		nextSourceIndex = 1;
-		update({ thread: [], withGreeting: true, conversationId: null, streaming: false, stage: '' });
+		update({ ...EMPTY });
 		setShowHistory(false);
 	}, []);
 
@@ -202,12 +219,19 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 		setShowHistory(false);
 		const seq = ++loadSeq;
 		// Seen this visit → show it now; the fetch below brings it up to date.
+		// Not seen → switch to it at once, empty and loading: leaving the previous
+		// thread up meant a message typed meanwhile went into THAT conversation.
 		const cached = transcripts.get(id);
-		if (cached) update({ conversationId: id, withGreeting: false, thread: cached, streaming: false, stage: '' });
+		update({ conversationId: id, withGreeting: false, thread: cached ?? [], streaming: false, stage: '', loading: !cached });
 		try {
 			const auth = await getAuthHeaders();
 			const res = await fetch(`/api/chat/conversations/${id}`, { headers: { ...auth }, credentials: 'include' });
-			if (!res.ok || seq !== loadSeq) return;
+			if (seq !== loadSeq) return;
+			if (!res.ok) {
+				// Gone or not ours: fall back to a fresh chat rather than a blank "loading" one.
+				if (!cached) update({ ...EMPTY });
+				return;
+			}
 			const data = (await res.json()) as {
 				messages: Array<{ role: 'user' | 'assistant'; content: string; tool_calls?: Array<{ tool: string; input?: unknown; ok: boolean; preview: string }> | null }>;
 			};
@@ -228,16 +252,18 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 					actions: actions.length > 0 ? actions : undefined,
 				};
 			});
-			update({ conversationId: id, withGreeting: false, thread: msgs, streaming: false, stage: '' });
+			update({ conversationId: id, withGreeting: false, thread: msgs, streaming: false, stage: '', loading: false });
 			nextSourceIndex = 1;
 		} catch {
-			/* best-effort — a cached transcript stays on screen */
+			// A cached transcript stays on screen; an uncached one falls back to a fresh chat.
+			if (seq === loadSeq && !cached) update({ ...EMPTY });
 		}
 	}, [actionFromTool]);
 
 	const send = useCallback(async (text?: string) => {
 		const message = (text ?? session.input).trim();
-		if (!message || session.streaming) return;
+		// Not while a conversation is still loading — its turns would land after this one.
+		if (!message || session.streaming || session.loading) return;
 		loadSeq++;
 		const conversationId = session.conversationId;
 		update((st) => ({
@@ -251,7 +277,11 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 		abortCtl?.abort();
 		const ac = new AbortController();
 		abortCtl = ac;
-		const write = (content: (prev: string) => string) => updateLastAssistant((m) => ({ ...m, content: content(m.content) }));
+		// A stopped request (stop / new chat / another conversation) must not write
+		// its late error text into whatever thread is on screen now.
+		const write = (content: (prev: string) => string) => {
+			if (!ac.signal.aborted) updateLastAssistant((m) => ({ ...m, content: content(m.content) }));
+		};
 
 		try {
 			const auth = await getAuthHeaders();
@@ -288,6 +318,12 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 					else onClientAction?.(tool, tInput);
 				},
 				onToolResult: (id, ok, preview, parsed) => {
+					// Tools that change the user's own data: refresh what shows it.
+					if (ok) {
+						const tool = session.thread[session.thread.length - 1]?.tools?.find((t) => t.id === id)?.tool;
+						if (tool === 'add_favorite') void refreshPaths('/api/favorites', '/api/user-watchlists');
+						if (tool === 'update_my_notification_settings') void mutate(qk.profile());
+					}
 					updateLastAssistant((m) => {
 						const idx = m.tools?.findIndex((t) => t.id === id) ?? -1;
 						if (idx === -1) return null;
@@ -316,6 +352,7 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 				abortCtl = null;
 				update({ streaming: false, stage: '' });
 				void mutate(qk.chat.conversations()); // new / retitled conversation in every history list
+				void refreshCredits(); // each reply spends AI credits
 			}
 		}
 	}, [actionFromTool, pageContext, onClientAction, insufficientCreditsMd]);
@@ -338,7 +375,7 @@ export function useChat({ greeting, actionFromTool, pageContext, onClientAction,
 	}, []);
 
 	return {
-		messages, input: s.input, setInput, streaming: s.streaming, stage: s.stage, conversationId: s.conversationId,
+		messages, input: s.input, setInput, streaming: s.streaming, stage: s.stage, conversationId: s.conversationId, loading: s.loading,
 		showHistory, conversations: history.data ?? null, historyLoading: showHistory && history.isLoading, bodyRef,
 		send, resetConversation, toggleHistory, loadConversation, exportConversation,
 		abort: () => { abortCtl?.abort(); abortCtl = null; update({ streaming: false, stage: '' }); },

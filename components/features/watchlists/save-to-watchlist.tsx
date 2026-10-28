@@ -29,7 +29,8 @@ export function SaveToWatchlist({ companyId, companyName }: { companyId: string;
 	const { lists: all, isLoading } = useCompanyWatchlists();
 	const lists = all.filter((l) => !isInvestorList(l));
 	const { ids } = useWatchlistsContaining(companyId);
-	const inCount = ids.length;
+	// Only lists that still exist count (a just-deleted one may linger in `ids`).
+	const inCount = ids.filter((id) => lists.some((l) => l.id === id)).length;
 	const term = q.trim().toLowerCase();
 	const shown = term ? lists.filter((l) => l.name.toLowerCase().includes(term)) : lists;
 

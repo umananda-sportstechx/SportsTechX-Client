@@ -79,6 +79,9 @@ export function RecommendedInvestors() {
 		hide(id, true);
 		try {
 			await apiRequest('POST', `/api/recommendations/investors/${id}/dismiss`);
+			// Into the shared cache too: the local Set dies with this page, and the
+			// cached matches would bring the investor back on the next visit.
+			void globalMutate(qk.investorMatches(24), (d?: MatchResult) => d && { ...d, results: d.results.filter((r) => r.id !== id) }, { revalidate: false });
 			toast.success(`Hid ${name}`, {
 				action: { label: 'Undo', onClick: () => void apiRequest('DELETE', `/api/recommendations/investors/${id}/dismiss`)
 					.then(() => { hide(id, false); void refreshMatches(); })

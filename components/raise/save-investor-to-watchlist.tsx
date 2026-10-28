@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import useSWR, { mutate as globalMutate } from 'swr';
+import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Bookmark, Check, Loader2, Plus } from 'lucide-react';
 import { cx } from '@/components/atlas';
 import { useKeepInViewport } from '@/components/atlas/ui/use-keep-in-viewport';
 import { qk } from '@/lib/query-keys';
 import { apiRequest } from '@/lib/query-client';
+import { refreshPipeline } from '@/lib/invalidate';
 import { createWatchlist, isInvestorList, useCompanyWatchlists } from '@/components/features/watchlists/use-company-watchlists';
 import '@/components/features/watchlists/watchlists.css';
 
-/** Every Raise pipeline view (any list / filter) plus the list counts change together. */
-export const refreshPipeline = () => Promise.all([
-	globalMutate((k: unknown) => Array.isArray(k) && k[0] === qk.raise.pipeline()[0]),
-	globalMutate(qk.userWatchlists.list()),
-]);
+/** Every Raise pipeline view (any list / filter, activity), the list counts and
+ *  the Raise home cards change together — see lib/invalidate. */
+export { refreshPipeline };
 
 const MAIN = 'Main watchlist';
 interface PipeRef { id: string; investor_id: string | null; watchlist_id: string | null }

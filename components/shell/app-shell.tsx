@@ -14,6 +14,7 @@ import { UpgradeCards } from '@/components/explore/upgrade-cards';
 import { EXPLORE_COLOR } from '@/components/explore/shell-config';
 import { SCOUT_COLOR } from '@/components/scout/shell-config';
 import { useNav } from '@/hooks/use-nav';
+import { useRealtime } from '@/hooks/use-realtime';
 import { TIER_LABEL } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
 import { hrefOf } from '@/lib/routes';
@@ -56,6 +57,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// NEXT_PUBLIC_MIXPANEL_TOKEN is set.
 	useEffect(() => { trackPage(pathname); }, [pathname]);
 	const { ready, tier, nav, homePath, accountPath } = useNav();
+	// Server pushes (claim verified, plan changed, notifications) → fresh screens.
+	useRealtime(ready);
 
 	return (
 		<>
