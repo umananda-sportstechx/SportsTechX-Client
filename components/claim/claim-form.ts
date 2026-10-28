@@ -26,10 +26,44 @@ export const OP_TYPE_TO_ENTITY: Record<string, 'organization' | 'initiative' | '
   'Venue / Facility': 'organization',
 };
 
-export interface RoundRow { roundType: string; amount: string; date: string; investors: string; source: string }
-export interface MnaRow { dealType: string; counterparty: string; amount: string; date: string }
+/**
+ * A company / investor the user adds because search didn't find it. Filled in by
+ * hand (no enrichment for users) and kept on the claim only — verifying the claim
+ * creates the record, so nothing reaches a public list before an admin approves.
+ * `sectorId` is company-only, `category` investor-only.
+ */
+export interface NewEntity { website: string; country: string; city: string; sectorId: string; description: string; founded: string; linkedin: string; category: string }
+export const blankNewEntity = (): NewEntity => ({ website: '', country: '', city: '', sectorId: '', description: '', founded: '', linkedin: '', category: '' });
+/** A linked company / investor: an Atlas record (`id`) or one the user added (`added`). */
+export interface EntityPick { id: string | null; name: string; meta?: string | null; added: NewEntity | null }
+export type EntityKind = 'company' | 'investor';
+
+// The server's investor_category enum, with display labels.
+export const INVESTOR_CATEGORY_OPTIONS: [string, string][] = [
+  ['venture_capital', 'Venture capital'], ['private_equity', 'Private equity'], ['angel', 'Angel / syndicate'],
+  ['family_investment_office', 'Family office'], ['sovereign_wealth_fund', 'Sovereign wealth fund'],
+  ['financial_services', 'Corporate / financial services'], ['other', 'Other'],
+];
+
+/** The required fields a user-added entry is still missing (empty = complete). */
+export function newEntityMissing(kind: EntityKind, n: NewEntity, name: string): string[] {
+  const m: string[] = [];
+  if (!name.trim()) m.push('name');
+  if (!n.website.trim()) m.push('website');
+  if (!n.country.trim()) m.push('country');
+  if (kind === 'company') {
+    if (!n.sectorId) m.push('sector');
+    if (!n.description.trim()) m.push('description');
+  } else if (!n.category) m.push('type');
+  return m;
+}
+
+// `investors` / `counterparty` / `name` hold the plain text (older claims had only
+// that); `invs` / `cp` / `co` are the picked or added entities.
+export interface RoundRow { roundType: string; amount: string; date: string; investors: string; source: string; invs: EntityPick[] }
+export interface MnaRow { dealType: string; counterparty: string; amount: string; date: string; cp: EntityPick | null }
 export interface FundRow { name: string; year: string; size: string }
-export interface PortfolioRow { name: string; stage: string; year: string }
+export interface PortfolioRow { name: string; stage: string; year: string; co: EntityPick | null }
 
 export interface ClaimForm {
   // identity
@@ -113,7 +147,7 @@ export const CM_ROLES: Record<ClaimRole, RoleConfig> = {
       { k: 'fundraising', label: 'Fundraising', next: 'Review & Submit' },
       { k: 'review', label: 'Review' },
     ],
-    submitClaim: 'Submit for verification', submitAdd: 'Submit for verification',
+    submitClaim: 'Claim this company', submitAdd: 'Submit & claim company',
   },
   investor: {
     id: 'investor', label: 'Investor', icon: 'wallet', free: false,
@@ -127,7 +161,7 @@ export const CM_ROLES: Record<ClaimRole, RoleConfig> = {
       { k: 'invdata', label: 'Investor data', next: 'Next: Portfolio' },
       { k: 'portfolio', label: 'Portfolio' },
     ],
-    submitClaim: 'Submit claim', submitAdd: 'Submit firm',
+    submitClaim: 'Claim this firm', submitAdd: 'Submit & claim firm',
   },
   operator: {
     id: 'operator', label: 'Operator', icon: 'zap', free: false,
@@ -141,7 +175,7 @@ export const CM_ROLES: Record<ClaimRole, RoleConfig> = {
       { k: 'details', label: 'Details' },
       { k: 'extra', label: 'Applications' },
     ],
-    submitClaim: 'Submit claim', submitAdd: 'Submit listing',
+    submitClaim: 'Claim this listing', submitAdd: 'Submit & claim listing',
   },
 };
 
