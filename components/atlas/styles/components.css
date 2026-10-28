@@ -453,13 +453,14 @@ span.atlas-fbar__pill-main { cursor: default; }
    over-pulls and content lands flush on the border. Drop the bleed there — the
    rows' own 23px padding then gives the first/last columns proper breathing room. */
 .atlas .atlas-chart-card .atlas-table { margin: 0; }
+.atlas .atlas-table__head, .atlas .atlas-table__row { display: flex; align-items: center; gap: 18px; padding: 14px 23px; }
 /* Phone: the screen gutter is 16px, so the 23px bleed ran 7px off both edges.
-   Bleed exactly to the gutter and pad rows to match. */
+   Bleed exactly to the gutter and pad rows to match. After the base row rule:
+   at equal specificity the later rule wins, and placed above it this lost. */
 @media (max-width: 640px) {
 	.atlas .atlas-table { margin: 0 -16px; }
 	.atlas .atlas-table__head, .atlas .atlas-table__row { padding-inline: 16px; }
 }
-.atlas .atlas-table__head, .atlas .atlas-table__row { display: flex; align-items: center; gap: 18px; padding: 14px 23px; }
 .atlas .atlas-table__head {
 	border-top: 1px solid var(--a-border); border-bottom: 1px solid var(--a-border);
 	font-family: var(--a-mono); font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--a-faint);

@@ -69,7 +69,9 @@ function FundSearch({ t, patch }: Props) {
 	};
 	const useTyped = () => { setSelected(null); patch({ fundName: q.trim() }); setQ(''); setOpen(false); };
 	const clear = () => { setSelected(null); patch({ fundName: '' }); };
-	const addNew = () => { openClaim(null, 'investor', { ...claimFromThesis(t), name: query }); setOpen(false); };
+	// A target without an id = "this is a new listing": the claim opens on the
+	// form, not a second search (the user just searched here).
+	const addNew = () => { openClaim({ role: 'investor' }, 'investor', { ...claimFromThesis(t), name: query }); setOpen(false); };
 	const activate = (i: number) => {
 		if (i < results.length) pick(results[i]);
 		else if (i === results.length) addNew();

@@ -42,7 +42,7 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 	const [busy, setBusy] = useState<string | null>(null);
 	const ref = useRef<HTMLDivElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
-	useKeepInViewport(menuRef, open);
+	useKeepInViewport(menuRef, open, ref); // portalled: anchor to the button's wrapper, not the menu's parent
 	const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
 	const close = useCallback(() => { setOpen(false); setCreating(false); setNewName(''); }, []);
 	const toggle = () => {
@@ -64,16 +64,20 @@ export function SaveInvestorToWatchlist({ investorId, investorName, align = 'sta
 		const inside = (t: EventTarget | null) => !!t && (ref.current?.contains(t as Node) || menuRef.current?.contains(t as Node));
 		const onDown = (e: MouseEvent) => { if (!inside(e.target)) close(); };
 		const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-		const onScroll = (e: Event) => { if (portal && !inside(e.target)) close(); };
+		// Typing in the menu (the new-list name) opens a phone's keyboard, which
+		// scrolls and/or resizes the page — that must not close the menu.
+		const typing = () => !!menuRef.current?.contains(document.activeElement);
+		const onScroll = (e: Event) => { if (portal && !inside(e.target) && !typing()) close(); };
+		const onResize = () => { if (!typing()) close(); };
 		document.addEventListener('mousedown', onDown);
 		document.addEventListener('keydown', onKey);
 		window.addEventListener('scroll', onScroll, true);
-		window.addEventListener('resize', close);
+		window.addEventListener('resize', onResize);
 		return () => {
 			document.removeEventListener('mousedown', onDown);
 			document.removeEventListener('keydown', onKey);
 			window.removeEventListener('scroll', onScroll, true);
-			window.removeEventListener('resize', close);
+			window.removeEventListener('resize', onResize);
 		};
 	}, [open, close, portal]);
 
