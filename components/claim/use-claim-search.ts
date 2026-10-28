@@ -67,13 +67,16 @@ export function useClaimSearch(role: ClaimRole | null, query: string) {
         ? qk.investors.list({ q, limit: 8 })
         : qk.ecosystem.list({ q, limit: 8 });
 
-  const { data, isLoading } = useSWR<ListResp>(key);
+  const { data, isLoading, error } = useSWR<ListResp>(key);
 
   return {
     results: rows(data).map(normalize).filter((r) => r.id && r.name).slice(0, 7),
     isLoading: enabled && isLoading,
     enabled,
-    /** The (debounced) query the results are for — lags the input while typing. */
-    query: q,
+    /** The (debounced) query the results are for — lags the input while typing,
+     *  and null until they've arrived (a failed search found nothing, it didn't
+     *  come back empty — callers must not offer "add it" on it). */
+    query: data ? q : null,
+    failed: !!error,
   };
 }

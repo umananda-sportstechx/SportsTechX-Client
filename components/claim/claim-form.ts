@@ -34,7 +34,8 @@ export const OP_TYPE_TO_ENTITY: Record<string, 'organization' | 'initiative' | '
  */
 export interface NewEntity { website: string; country: string; city: string; sectorId: string; description: string; founded: string; linkedin: string; category: string }
 export const blankNewEntity = (): NewEntity => ({ website: '', country: '', city: '', sectorId: '', description: '', founded: '', linkedin: '', category: '' });
-/** A linked company / investor: an Atlas record (`id`) or one the user added (`added`). */
+/** A linked company / investor: an Atlas record (`id`), one the user added
+ *  (`added`), or — from an older claim, before entries were linked — a bare name. */
 export interface EntityPick { id: string | null; name: string; meta?: string | null; added: NewEntity | null }
 export type EntityKind = 'company' | 'investor';
 
@@ -45,11 +46,19 @@ export const INVESTOR_CATEGORY_OPTIONS: [string, string][] = [
   ['financial_services', 'Corporate / financial services'], ['other', 'Other'],
 ];
 
+/** A domain with a dot once scheme / www are stripped ("https://" alone is not). */
+export const validWebsite = (w: string): boolean =>
+  /^[^\s/.]+(\.[^\s/.]+)+/.test(w.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, ''));
+/** Blank, or a year the server accepts (1800–2100) — "202" would 400 the whole claim. */
+export const validYear = (y: string): boolean => !y.trim() || (Number(y) >= 1800 && Number(y) <= 2100);
+
 /** The required fields a user-added entry is still missing (empty = complete). */
 export function newEntityMissing(kind: EntityKind, n: NewEntity, name: string): string[] {
   const m: string[] = [];
   if (!name.trim()) m.push('name');
   if (!n.website.trim()) m.push('website');
+  else if (!validWebsite(n.website)) m.push('a valid website');
+  if (!validYear(n.founded)) m.push('a valid founded year');
   if (!n.country.trim()) m.push('country');
   if (kind === 'company') {
     if (!n.sectorId) m.push('sector');

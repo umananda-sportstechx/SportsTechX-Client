@@ -47,7 +47,7 @@ function FundSearch({ t, patch }: Props) {
 	const [selected, setSelected] = useState<ClaimSearchResult | null>(null);
 	const [active, setActive] = useState(0);
 	const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
-	const { results, isLoading, enabled, query: searched } = useClaimSearch('investor', q);
+	const { results, isLoading, enabled, query: searched, failed } = useClaimSearch('investor', q);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 
@@ -76,8 +76,8 @@ function FundSearch({ t, patch }: Props) {
 	// form, not a second search (the user just searched here).
 	const addNew = () => { openClaim({ role: 'investor' }, 'investor', { ...claimFromThesis(t), name: query }); setOpen(false); };
 	const activate = (i: number) => {
-		if (i < results.length) pick(results[i]);
-		else if (canAdd) addNew();
+		if (i >= 0 && i < results.length) pick(results[i]);
+		else if (i === results.length && canAdd) addNew();
 	};
 
 	// Position the portalled panel under the input, flipping up when there's no
@@ -101,7 +101,7 @@ function FundSearch({ t, patch }: Props) {
 		};
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); }
-			else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(navCount - 1, i + 1)); }
+			else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.max(0, Math.min(navCount - 1, i + 1))); }
 			else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
 			else if (e.key === 'Enter') { e.preventDefault(); activate(active); }
 		};
@@ -170,7 +170,7 @@ function FundSearch({ t, patch }: Props) {
 								<Plus size={15} aria-hidden="true" /> Add “{query}” and claim it — we’ll verify it
 							</button>
 						) : !results.length && (
-							<div className="fundpicker__usetyped" aria-live="polite">Searching…</div>
+							<div className="fundpicker__usetyped" aria-live="polite">{failed ? 'Search isn’t responding — try again in a moment.' : 'Searching…'}</div>
 						)}
 					</div>
 				</div>,
