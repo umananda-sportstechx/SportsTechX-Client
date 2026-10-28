@@ -14,9 +14,14 @@ import { blankNewEntity, newProgramMissing, type ProgramPick } from './claim-for
  * website and country. An added program stays on the claim and becomes a record
  * (linked to the company) only when the claim is verified.
  */
+const PARTICIPATION_TYPES = 'program,initiative,event';
+const MAX_PROGRAMS = 20; // the server's limit per claim
+
 export function ProgramsPicker({ value, onChange }: { value: ProgramPick[]; onChange: (v: ProgramPick[]) => void }) {
   const [q, setQ] = useState('');
-  const { results, isLoading, enabled, query: searched, failed } = useClaimSearch('operator', q, 'program');
+  // Companies took part in initiatives (UEFA Innovation Hub) and event
+  // competitions too — searching programs only would push those into "add new".
+  const { results, isLoading, enabled, query: searched, failed } = useClaimSearch('operator', q, PARTICIPATION_TYPES);
   const query = q.trim();
   const picked = new Set(value.map((p) => p.id).filter(Boolean));
   const named = (n: string) => value.some((p) => p.name.trim().toLowerCase() === n.toLowerCase());
@@ -25,18 +30,22 @@ export function ProgramsPicker({ value, onChange }: { value: ProgramPick[]; onCh
   const update = (i: number, p: ProgramPick) => onChange(value.map((x, n) => (n === i ? p : x)));
   const add = (p: ProgramPick) => { onChange([...value, p]); setQ(''); };
 
+  const full = value.length >= MAX_PROGRAMS;
   return (
     <div>
       {value.map((p, i) => <ProgramRow key={`${p.id ?? 'new'}-${i}`} p={p} onChange={(v) => update(i, v)} onRemove={() => onChange(value.filter((_, n) => n !== i))} />)}
-      <div className="cm-search-wrap" style={{ marginBottom: 8 }}>
-        <span className="cm-search-ico"><Search size={15} /></span>
-        <input className="cm-input cm-search-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={value.length ? 'Add another program…' : 'Search Atlas for a program, e.g. Stadia Ventures'} />
-      </div>
+      {full ? <div className="cm-hint" style={{ marginTop: 0 }}>That&apos;s the most programs one claim can list ({MAX_PROGRAMS}).</div> : (
+        <div className="cm-search-wrap" style={{ marginBottom: 8 }}>
+          <span className="cm-search-ico"><Search size={15} /></span>
+          <input className="cm-input cm-search-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={value.length ? 'Add another program…' : 'Search Atlas for a program, e.g. Stadia Ventures'} />
+        </div>
+      )}
       {failed && <div className="cm-hint" style={{ marginTop: 0, marginBottom: 8 }}>Search isn&apos;t responding — try again in a moment.</div>}
-      {enabled && results.length > 0 && (
+      {!full && enabled && results.length > 0 && (
         <div className="cm-results" style={{ maxHeight: 220 }}>
           {results.slice(0, 5).map((r) => {
-            const meta = [r.hq, r.country].filter(Boolean).join(', ') || null;
+            const kind = r.kind && r.kind !== 'program' ? r.kind[0]!.toUpperCase() + r.kind.slice(1) : null;
+            const meta = [kind, [r.hq, r.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || null;
             const already = picked.has(r.id);
             return (
               <button key={r.id} type="button" className="cm-result" disabled={already} onClick={() => add({ id: r.id, name: r.name, meta, year: '', added: null })}>
@@ -46,7 +55,7 @@ export function ProgramsPicker({ value, onChange }: { value: ProgramPick[]; onCh
           })}
         </div>
       )}
-      {canAdd && (
+      {!full && canAdd && (
         <button type="button" className="cm-addnew" style={{ marginTop: 8 }} onClick={() => add({ id: null, name: query, year: '', added: blankNewEntity() })}>
           <span className="cm-addnew-ico"><Plus size={16} /></span>
           <span style={{ flex: 1 }}><span className="cm-addnew-h">Add “{query}” as a new program</span><span className="cm-addnew-p">Not in Atlas yet — add its basics and we&apos;ll review it with your claim.</span></span>
