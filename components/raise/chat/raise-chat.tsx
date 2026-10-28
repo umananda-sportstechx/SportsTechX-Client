@@ -109,10 +109,10 @@ export function RaiseChat() {
 	} = chat;
 
 	const close = () => { abort(); setOpen(false); };
-	// Move the current thread to the full chat page — same conversation if one
-	// exists, otherwise a fresh one.
+	// Move the current thread to the full chat page. The page renders the same
+	// shared session, so the thread is there at once and a reply that is still
+	// streaming carries on — nothing to abort or refetch.
 	const expand = () => {
-		abort();
 		setOpen(false);
 		router.push(conversationId ? `/chat/${conversationId}` : '/chat');
 	};
