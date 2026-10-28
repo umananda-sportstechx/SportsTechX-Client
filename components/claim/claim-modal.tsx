@@ -282,7 +282,9 @@ export function ClaimModal({
   }, [profile?.email]);
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // An Escape already handled (an open (i) explanation closing itself — Radix
+    // marks it) shouldn't also close the whole form.
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) onClose(); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);

@@ -93,16 +93,19 @@
 
 /* InfoTip — (i) beside a label; bubble is portalled (z above the claim modal's 1200). */
 .atlas-infotip {
+  /* Just the icon: Lucide's Info is already a circle, so no border (it read as
+     two concentric rings), and a normal pointer, not the "?" help cursor. */
   display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; padding: 0;
-  border-radius: 50%; border: 1px solid var(--a-border-strong); background: transparent;
-  color: var(--a-muted); cursor: help; transition: color .15s, border-color .15s;
+  border: 0; border-radius: 50%; background: transparent;
+  color: var(--a-muted); cursor: pointer; transition: color .15s;
   /* Taller than the 10px label: don't let it grow the row, or side-by-side inputs misalign. */
   margin-block: -3px;
 }
-.atlas-infotip:hover, .atlas-infotip:focus-visible, .atlas-infotip[data-state$="open"] { color: var(--a-ink); border-color: var(--a-ink); }
+.atlas-infotip:hover, .atlas-infotip:focus-visible, .atlas-infotip[data-state$="open"] { color: var(--a-ink); }
 .atlas-infotip:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 2px; }
 /* A bigger touch target without a bigger icon. */
-@media (pointer: coarse) { .atlas-infotip { position: relative; } .atlas-infotip::after { content: ''; position: absolute; inset: -12px; } }
+/* Wider, not taller: a taller area reached over the input under the label. */
+@media (pointer: coarse) { .atlas-infotip { position: relative; } .atlas-infotip::after { content: ''; position: absolute; inset: -4px -12px; } }
 .atlas-infotip__bubble {
   z-index: 1300; max-width: min(320px, calc(100vw - 24px)); padding: 9px 12px;
   border-radius: 8px; background: var(--a-ink); color: var(--a-page);
