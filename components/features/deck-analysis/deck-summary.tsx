@@ -11,7 +11,7 @@ import { apiRequest } from '@/lib/query-client';
 import { MAX_DECK_MB, deckContentType, deckFileError, deckUploadError } from '@/lib/deck-upload';
 import { qk } from '@/lib/query-keys';
 import { isInsufficientCreditsError } from '@/lib/credit-events';
-import type { DeckListItem, DeckScorecard } from '@/lib/deck-analysis';
+import { DECK_TOO_LARGE_COPY, type DeckListItem, type DeckScorecard } from '@/lib/deck-analysis';
 import { Screen, Card, Button, Badge, Loading, StagedLoader } from '@/components/atlas';
 import { hrefOf } from '@/lib/routes';
 import { rating } from './score-tone';
@@ -150,9 +150,10 @@ export function DeckSummary({ header, copy = FOUNDER_DECK_COPY, mode = 'founder'
 			<Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 				<div>
 					<div style={{ fontSize: 15, fontFamily: 'var(--a-font)', fontWeight: 700 }}>{latest.filename ?? copy.fallbackName}</div>
-					<div style={{ fontSize: 13, color: 'var(--a-muted)', marginTop: 4 }}>{latest.status === 'failed' ? "The last analysis didn't finish." : "This deck hasn't been analysed yet."}</div>
+					<div style={{ fontSize: 13, color: 'var(--a-muted)', marginTop: 4 }}>{latest.failure === 'too_large' ? DECK_TOO_LARGE_COPY : latest.status === 'failed' ? "The last analysis didn't finish." : "This deck hasn't been analysed yet."}</div>
 				</div>
-				<Button size="sm" onClick={() => router.push(`${DECK}/${latest.id}`)}>{latest.status === 'failed' ? 'Try again' : 'Run analysis'}</Button>
+				{/* Too large: retrying the same file can't work — "Upload new deck" (header) is the way on. */}
+				{latest.failure !== 'too_large' && <Button size="sm" onClick={() => router.push(`${DECK}/${latest.id}`)}>{latest.status === 'failed' ? 'Try again' : 'Run analysis'}</Button>}
 			</Card>
 		</Screen>
 	);
