@@ -79,7 +79,7 @@ export function HowToJoin() {
 
 						{/* Primary CTA out of the section — straight to the Atlas plans
 						    page. (Gated routes send a logged-out visitor to /login.) */}
-						<a href="/plans" className="lp-btn lp-btn--pink lp-howjoin-cta">
+						<a href="/plans" target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn--pink lp-howjoin-cta">
 							See plans &amp; pricing
 						</a>
 				</div>
