@@ -147,9 +147,7 @@ export function ClaimModal({
   /**
    * Which roles the chooser may offer, by tier — Explore gets all three, Raise
    * gets founder + operator (it owns events and programmes), Scout gets
-   * investor only. Omitted means all three, which is what
-   * `app/(onboarding)/onboarding/page.tsx` relies on: it renders this modal
-   * directly rather than through the event bus and passes no such prop.
+   * investor only. Omitted means all three.
    */
   allowedRoles?: ClaimRole[];
   onClose: () => void;

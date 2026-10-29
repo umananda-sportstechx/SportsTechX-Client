@@ -154,7 +154,7 @@ for (const tier of ['explore', 'raise', 'scout'] as Tier[]) {
 
 	// And nothing stale: a prefix that matches no route and is not one of the two
 	// non-ROUTES trees is a leftover that would gate a URL we no longer serve.
-	const EXTRA = ['/onboarding', '/docs', '/verified-reports'];
+	const EXTRA = ['/docs', '/verified-reports'];
 	const allPaths = ROUTES.flatMap((r) => (['explore', 'raise', 'scout'] as Tier[]).map((t) => forTier(r.path, t)));
 	const stalePrefixes = PRIVATE_PREFIXES
 		.filter((p) => !EXTRA.includes(p))
@@ -194,7 +194,7 @@ check(access('scout', 'raise', false) === 'hidden', 'raise user is not shown Sco
 		.filter((f) => f.endsWith('layout.tsx'))
 		.filter((f) => readFileSync(`app/${f}`, 'utf8').includes('ProtectedRoute'));
 
-	// A layout's own path is NOT its URL prefix: `(onboarding)/layout.tsx` sits
+	// A layout's own path is NOT its URL prefix: a `(group)/layout.tsx` sits
 	// at a route-group root and contributes no segment, so it would read as `/`.
 	// Derive from the pages it actually wraps instead.
 	const urlOf = (f: string) =>

@@ -53,15 +53,15 @@ export default function SignupPage() {
 				options: {
 					// Only full_name is persisted (the handle_new_user trigger copies it
 					// to profiles). Persona, company/role verification and other details
-					// are captured by the onboarding + claim ("verify") flow afterwards.
+					// are captured by the plan choice + claim ("verify") flow afterwards.
 					data: {
 						full_name: fullName,
 					},
 					// The custom auth-hook (server/src/modules/auth-hooks) treats this
 					// origin's path as the post-verify `next`, so point it straight at
-					// onboarding. New email-confirmed users land in the (skippable)
-					// onboarding flow, same as the password/OAuth paths below.
-					emailRedirectTo: `${window.location.origin}/onboarding`,
+					// the plan choice (/plans?welcome). New email-confirmed users land
+					// there, same as the password/OAuth paths below.
+					emailRedirectTo: `${window.location.origin}/plans?welcome=1`,
 				},
 			});
 			if (err) { setError(err.message); return; }
@@ -72,10 +72,10 @@ export default function SignupPage() {
 				// Post-login can link claims, grant signup credits and settle the real
 				// tier/role — re-read anything cached before it finished.
 				void refreshAccount();
-				// Onboarding always runs for a new account, so this deliberately
+				// The plan choice always runs for a new account, so this deliberately
 				// ignores `redirectTo` — that param only steers the OAuth path, where
 				// the callback resumes wherever the user was headed.
-				router.push('/onboarding');
+				router.push('/plans?welcome=1');
 			}
 		} finally {
 			setLoading(false);
