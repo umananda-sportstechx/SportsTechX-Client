@@ -6,6 +6,7 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/atlas';
 import { AuthBrand } from '@/components/auth/auth-shell';
+import { callPostLogin } from '@/lib/post-login';
 
 /**
  * Email confirmation landing — UNAUTHENTICATED route.
@@ -56,8 +57,15 @@ export default function ConfirmPage() {
 		void (async () => {
 			try {
 				const supabase = getSupabaseBrowser();
-				const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+				const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
 				if (error) throw error;
+				// This IS a sign-in (email confirm, invite, magic link), so run the
+				// same handshake the login page does: welcome credits for a new
+				// account, pending-claim linking, fresh tier. It never ran here, so
+				// email-confirmed signups got no welcome credits.
+				if (data.session && type !== 'recovery' && type !== 'email_change') {
+					await callPostLogin(data.session.access_token);
+				}
 				setStatus('ok');
 				// A recovery link is a password reset, not a sign-in: verifyOtp just
 				// minted the recovery session, so send them to /reset-password to
