@@ -14,7 +14,7 @@ import "./gster26.css";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import "@/components/landing/landing.css";
 import { BRAND } from './brand';
-import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT } from './content-defaults';
+import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT, NAV_DEFAULT, HERO_DEFAULT, TRENDS_HEADER_DEFAULT, TREND_CARDS_DEFAULT, PEAK_COPY_DEFAULT, INNOVATORS_HEADER_DEFAULT, STARTUPS_HEADER_DEFAULT, NGSC_DEFAULT, DATA_HEADER_DEFAULT, CLOSING_DEFAULT, ECOMAP_DEFAULT } from './content-defaults';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -743,16 +743,21 @@ function PollVoteSection({ pollId, article, t, isMobile, user, sessionValid }: {
   );
 }
 
-export default function ReportGSTER26() {
+export default function ReportGSTER26({ content, preview = false }: {
+  /** Editorial content to render instead of fetching it — the admin editor's
+   *  preview passes the draft here (see app/report-preview/gster26). */
+  content?: Record<string, any> | null;
+  preview?: boolean;
+} = {}) {
   const reportLocation = usePathname();
-  const isGster26 = reportLocation === "/reports/gster26";
+  const isGster26 = preview || reportLocation === "/reports/gster26";
 
   // ── Phase 3: DB-editable editorial content ───────────────────────────────
   // Fetch the report's editorial override (reports.content jsonb); each block
   // falls back to the committed default so the report renders identically until
   // an edition is edited in the DB. The heavy computed chart data stays static.
-  const { data: reportDoc } = useSWR<{ content?: Record<string, any> | null }>(qk.reports.detail("gster26"));
-  const ov = reportDoc?.content ?? null;
+  const { data: reportDoc } = useSWR<{ content?: Record<string, any> | null }>(content !== undefined ? null : qk.reports.detail("gster26"));
+  const ov = content !== undefined ? content : (reportDoc?.content ?? null);
   const INNOVATOR_RESPONSES   = ov?.innovatorResponses   ?? INNOVATOR_RESPONSES_DEFAULT;
   const watchInnovators       = ov?.watchInnovators      ?? watchInnovators_DEFAULT;
   const watchPeak             = ov?.watchPeak            ?? watchPeak_DEFAULT;
@@ -766,6 +771,24 @@ export default function ReportGSTER26() {
   const PEAK_PARTNERS_TIER1   = ov?.peakPartnersTier1    ?? PEAK_PARTNERS_TIER1_DEFAULT;
   const PEAK_PARTNERS_TIER2   = ov?.peakPartnersTier2    ?? PEAK_PARTNERS_TIER2_DEFAULT;
   const PEAK_PARTNERS_TIER3   = ov?.peakPartnersTier3    ?? PEAK_PARTNERS_TIER3_DEFAULT;
+  // Page copy blocks: an edited object is merged field by field over its default,
+  // so a field added here later still renders for content saved before it existed.
+  const block = <T,>(key: string, def: T): T => {
+    const v = ov?.[key];
+    if (Array.isArray(def)) return (Array.isArray(v) ? v : def) as T;
+    return (v && typeof v === "object" && !Array.isArray(v) ? { ...def, ...v } : def) as T;
+  };
+  const NAV = block("nav", NAV_DEFAULT);
+  const HERO = block("hero", HERO_DEFAULT);
+  const TRENDS_HEADER = block("trendsHeader", TRENDS_HEADER_DEFAULT);
+  const PEAK_COPY = block("peakCopy", PEAK_COPY_DEFAULT);
+  const INNOVATORS_HEADER = block("innovatorsHeader", INNOVATORS_HEADER_DEFAULT);
+  const STARTUPS_HEADER = block("startupsHeader", STARTUPS_HEADER_DEFAULT);
+  const NGSC = block("ngsc", NGSC_DEFAULT);
+  const DATA_HEADER = block("dataHeader", DATA_HEADER_DEFAULT);
+  const CLOSING = block("closing", CLOSING_DEFAULT);
+  const ECOMAP = block("ecomap", ECOMAP_DEFAULT);
+  const TREND_CARDS = Object.fromEntries(Object.entries(TREND_CARDS_DEFAULT).map(([id, d]) => [id, { ...d, ...(ov?.trendCards?.[id] ?? {}) }])) as typeof TREND_CARDS_DEFAULT;
   const isPdf = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("pdf") === "true";
   const { user, sessionValid, loading: authLoading } = useAuthSession();
   const isAuthenticated = !authLoading && !!user && sessionValid;
@@ -1049,7 +1072,7 @@ export default function ReportGSTER26() {
     q_innovators: string; q_investors: string; q_sports_orgs: string;
     logo_url: string; photo_url: string; country: string; continent: string; linkedin: string;
   };
-  const notionData: { data: NotionInnovator[] } = { data: INNOVATORS_DATA as NotionInnovator[] };
+  const notionData: { data: NotionInnovator[] } = { data: (Array.isArray(ov?.innovators) ? ov.innovators : INNOVATORS_DATA) as NotionInnovator[] };
 
   type MaDealLive = {
     acquiree_name: string; acquirer_name: string;
@@ -1122,6 +1145,20 @@ export default function ReportGSTER26() {
   /* Stable randomised exit directions for hero + 6 sections (assigned once per page load) */
   const exitDirsRef = useRef<number[]>(Array.from({ length: 9 }, () => (Math.random() > 0.5 ? 1 : -1)));
   useReveal(`${isDark}-${factTab}-${trendsTab}-${watchTab}-${fundingRegion}-${maAcquireeRegion}-${maAcquirerRegion}-${fundingYear}-${maYear}-${isLoading}`);
+
+  /* Preview: the editor asks to jump to the part being edited. Uses Lenis like
+     the nav does, so the smooth-scroll position stays in sync. */
+  useEffect(() => {
+    if (!preview) return;
+    const onJump = (e: Event) => {
+      const el = document.querySelector((e as CustomEvent<string>).detail);
+      if (!el) return;
+      if (lenisRef.current) lenisRef.current.scrollTo(el as HTMLElement, { offset: -72, immediate: true });
+      else (el as HTMLElement).scrollIntoView();
+    };
+    window.addEventListener("gster26:jump", onJump);
+    return () => window.removeEventListener("gster26:jump", onJump);
+  }, [preview]);
 
   /* Resize Lenis when accordion content changes + auto-scroll to expanded block */
   useEffect(() => {
@@ -1395,7 +1432,7 @@ export default function ReportGSTER26() {
         {/* Desktop nav links */}
         {!isMobile && (
           <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-            {([["#trends","Insights",1],["#innovators","Innovators",2],["#ecosystem","Startups to Watch",3],["#ecomap","Ecosystem",4],["#dealflow","Data in Full",5]] as const).map(([href, label, dotIdx]) => {
+            {([["#trends",NAV.insights,1],["#innovators",NAV.innovators,2],["#ecosystem",NAV.startups,3],["#ecomap",NAV.ecosystem,4],["#dealflow",NAV.data,5]] as const).map(([href, label, dotIdx]) => {
               const isActive = activeDot === dotIdx;
               return (
                 <a key={href} href={href} className="stx-nav-link"
@@ -1440,7 +1477,7 @@ export default function ReportGSTER26() {
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                 onClick={() => { trackG26("nav_click", { section: "pdf_download" }); }}
-              >↓ Download PDF</a>
+              >{NAV.downloadPdf}</a>
             </>
           )}
         </div>
@@ -1455,7 +1492,7 @@ export default function ReportGSTER26() {
           display: authGateActive ? "none" : undefined,
         }}>
           <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 4 }}>
-            {([["#trends","Insights"],["#innovators","Innovators"],["#ecosystem","Startups to Watch"],["#ecomap","Ecosystem"],["#dealflow","Data in Full"]] as const).map(([href, label]) => (
+            {([["#trends",NAV.insights],["#innovators",NAV.innovators],["#ecosystem",NAV.startups],["#ecomap",NAV.ecosystem],["#dealflow",NAV.data]] as const).map(([href, label]) => (
               <a key={href} href={href}
                 style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: t.textMuted, textDecoration: "none", padding: "10px 0", borderBottom: `1px solid ${t.divider}`, fontFamily: "'DM Mono',monospace", transition: "color 0.2s" }}
                 onClick={(e) => {
@@ -1468,7 +1505,7 @@ export default function ReportGSTER26() {
                 {label}
               </a>
             ))}
-            <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
+            <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>{NAV.downloadPdf}</a>
           </div>
         </div>
       )}
@@ -1516,31 +1553,31 @@ export default function ReportGSTER26() {
           <div style={{ flex: isMobile ? "none" : "1 1 auto", maxWidth: isMobile ? "100%" : "50%" }}>
             <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? "clamp(64px,18vw,96px)" : "clamp(72px,8vw,130px)", lineHeight: 0.92, letterSpacing: -1, margin: 0 }}>
               <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                GLOBAL
+                {HERO.titleLine1}
               </span>
               <span style={{ display: "block", background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                SPORTSTECH
+                {HERO.titleLine2}
               </span>
               <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                ECOSYSTEM
+                {HERO.titleLine3}
               </span>
               <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                REPORT{" "}
-                <span style={{ background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>2026</span>
+                {HERO.titleLine4}{" "}
+                <span style={{ background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{HERO.titleYear}</span>
               </span>
             </h1>
             {/* Accent bar */}
             <div style={{ width: 48, height: 3, background: `linear-gradient(to right,${BRAND.pink},#ff6b9d)`, borderRadius: 2, marginTop: 24 }} />
-            <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", marginTop: 16, maxWidth: 560 }}>Welcome to the ninth edition of the most comprehensive annual review of investment, innovation, and technology in the global sports ecosystem.</p>
+            <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", marginTop: 16, maxWidth: 560 }}>{HERO.intro}</p>
             {/* Logos */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>Presented by</span>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.presentedBy}</span>
                 <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
               </div>
               <div style={{ width: 1, alignSelf: "stretch", background: "rgba(190,208,227,0.2)" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>Powered by</span>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.poweredBy}</span>
                 <img src={isGster26 ? "/peak-logo-nav.webp" : "/peak-logo.jpeg"} alt="PEAK" style={{ height: isGster26 ? 28 : 36, borderRadius: 6, opacity: 0.9 }} />
               </div>
             </div>
@@ -1548,14 +1585,7 @@ export default function ReportGSTER26() {
 
           {/* Right , Summary cards (desktop only , on mobile these are in a separate section below) */}
           {!isMobile && <div style={{ flex: "0 1 580px", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, minWidth: 0 }}>
-            {([
-              { icon: "funding" as const, num: "$35.8B", label: "Invested in SportsTech 2021–25, with $8.7B deployed in 2025 alone" },
-              { icon: "unicorn" as const, num: "46", label: "SportsTech unicorns with a combined $210.2B valuation" },
-              { icon: "investors" as const, num: "58", label: "New investors & initiatives in the sports ecosystem in the last 12 months" },
-              { icon: "globe" as const, num: "51%", label: "Europe's share of 2025 funding, overtaking North America for the first time ($4.5B vs $4.0B)" },
-              { icon: "trending" as const, num: "$43.6M", label: "Average deal value in 2025, up from $28.1M in 2024 despite a similar number of rounds (200 vs 194)" },
-              { icon: "ma" as const, num: "87%", label: "Of all 2025 acquisitions made by SportsTech companies, up from 47% in 2020" },
-            ]).map((card, i) => (
+            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
               <div key={i} style={{
                 padding: "26px 24px 22px", borderRadius: 12,
                 background: isDark ? t.bgCard : "#fff",
@@ -1563,7 +1593,7 @@ export default function ReportGSTER26() {
                 position: "relative", overflow: "hidden",
                 boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.2)",
               }}>
-                <div style={{ position: "absolute", top: 16, right: 16, opacity: 0.55 }}>{STAT_ICONS[card.icon](isDark ? t.textMuted : BRAND.darkTitle)}</div>
+                <div style={{ position: "absolute", top: 16, right: 16, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(36px,3.5vw,50px)", color: BRAND.pink, lineHeight: 1 }}>{card.num}</div>
                 <div style={{ marginTop: 10, fontSize: 13, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
               </div>
@@ -1578,14 +1608,7 @@ export default function ReportGSTER26() {
           {/* Subtle background pattern */}
           <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.04 : 0.06, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", color: "#fff", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1, width: "100%", height: "calc(100svh - 140px)", display: "flex", flexDirection: "column", gap: 10 }}>
-            {([
-              { icon: "funding" as const, num: "$35.8B", label: "Invested in SportsTech 2021–25, with $8.7B deployed in 2025 alone" },
-              { icon: "unicorn" as const, num: "46", label: "SportsTech unicorns with a combined $210.2B valuation" },
-              { icon: "investors" as const, num: "58", label: "New investors & initiatives in the sports ecosystem in the last 12 months" },
-              { icon: "globe" as const, num: "51%", label: "Europe's share of 2025 funding, overtaking North America for the first time ($4.5B vs $4.0B)" },
-              { icon: "trending" as const, num: "$43.6M", label: "Average deal value in 2025, up from $28.1M in 2024 despite a similar number of rounds (200 vs 194)" },
-              { icon: "ma" as const, num: "87%", label: "Of all 2025 acquisitions made by SportsTech companies, up from 47% in 2020" },
-            ]).map((card, i) => (
+            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
               <div key={i} style={{
                 padding: "20px 18px", borderRadius: 10,
                 background: isDark ? t.bgCard : "#fff",
@@ -1595,7 +1618,7 @@ export default function ReportGSTER26() {
                 display: "flex", alignItems: "center", gap: 14,
                 flex: 1, minHeight: 0,
               }}>
-                <div style={{ position: "absolute", top: 10, right: 10, opacity: 0.55 }}>{STAT_ICONS[card.icon](isDark ? t.textMuted : BRAND.darkTitle)}</div>
+                <div style={{ position: "absolute", top: 10, right: 10, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: BRAND.pink, lineHeight: 1, flexShrink: 0, minWidth: 55 }}>{card.num}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
@@ -1614,7 +1637,7 @@ export default function ReportGSTER26() {
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
           <div className="stx-reveal">
             {sectionLabel("Executive Summary")}
-            {sectionTitle("THE NUMBERS\nTHAT MATTER")}
+            {sectionTitle(DATA_HEADER.title)}
             <SourceBadge chartId="CHART-01" source="sm_test · dm_test · ma_test_new (COUNT / SUM aggregates)" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16, marginTop: 40 }}>
@@ -1640,15 +1663,14 @@ export default function ReportGSTER26() {
       <div id="trends" style={{ background: t.bg, padding: isMobile ? "48px 0" : "88px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
           <div className="stx-reveal">
-            {sectionLabel("Trends | Deep Dives")}
-            {sectionTitle("THE FORCES RESHAPING\nSPORTSTECH")}
+            {sectionLabel(TRENDS_HEADER.eyebrow)}
+            {sectionTitle(TRENDS_HEADER.title)}
             <SourceBadge chartId="CHART-07" source="dm_test (Sector SUM) · sm_test (Sector COUNT) · ma_test_new (deal count 2024)" />
           </div>
 
           {/* ── Tab Switcher ── */}
           <div style={{ display: "flex", marginTop: 40, marginBottom: 40, borderBottom: `2px solid ${t.border}` }}>
-            {(["Trends", "Deep Dives"] as const).map(tab => {
-              const key = tab === "Trends" ? "trends" : "articles";
+            {([["trends", TRENDS_HEADER.trendsTab], ["articles", TRENDS_HEADER.deepDivesTab]] as const).map(([key, tab]) => {
               const active = trendsTab === key;
               return (
                 <button key={tab}
@@ -1663,8 +1685,8 @@ export default function ReportGSTER26() {
           {/* ── Tab description ── */}
           <p style={{ margin: "0 0 32px", fontSize: 15, lineHeight: 1.7, color: t.text }}>
             {trendsTab === "trends"
-              ? "Three signals that point to structural shifts, not temporary blips."
-              : "Three stories with implications that run deeper than the news cycle."}
+              ? TRENDS_HEADER.trendsIntro
+              : TRENDS_HEADER.deepDivesIntro}
           </p>
 
           {/* ── Trends accordion ── */}
@@ -1690,29 +1712,29 @@ export default function ReportGSTER26() {
             ];
             const trendBlocks = [
               {
-                id: "ma-sportstech", n: "01", tag: "M&A ACQUIRERS", title: "SPORTSTECH IS BUYING ITSELF",
-                summary: "SportsTech companies are now their own most active acquirers , sportstech-on-sportstech deals tripled from 21 in 2016 to 68 in 2025.",
+                id: "ma-sportstech", n: "01", tag: TREND_CARDS["ma-sportstech"].tag, title: TREND_CARDS["ma-sportstech"].title,
+                summary: TREND_CARDS["ma-sportstech"].summary,
                 body: "",
                 stat: data ? String(data.maByYearSportstech?.[data.maByYearSportstech.length - 1]?.sportstech || "—") : "…",
-                statLabel: "sportstech-on-sportstech deals in 2025",
+                statLabel: TREND_CARDS["ma-sportstech"].statLabel,
                 color: BRAND.teal,
                 expandedContent: true,
               },
               {
-                id: "running-renaissance", n: "02", tag: "PARTICIPATION & CULTURE", title: "COMPETITIVE RUNNING IS HAVING ITS MOMENT",
-                summary: "Record finishers, record revenues, and a new breed of runner turning race weekends into destination experiences , competitive running has become one of the fastest-growing segments in global sports.",
+                id: "running-renaissance", n: "02", tag: TREND_CARDS["running-renaissance"].tag, title: TREND_CARDS["running-renaissance"].title,
+                summary: TREND_CARDS["running-renaissance"].summary,
                 body: "",
-                stat: "3.1%",
-                statLabel: "race churn rate in 2025 , record low, signaling a maturing market",
+                stat: TREND_CARDS["running-renaissance"].stat,
+                statLabel: TREND_CARDS["running-renaissance"].statLabel,
                 color: BRAND.pink,
                 expandedContent: true,
               },
               {
-                id: "dtc-shift", n: "03", tag: "DTC & STREAMING", title: "SPORT IS GOING DIRECT",
-                summary: "A structural collapse in the US and a strategic awakening internationally have combined to make 2025/26 the year the DTC shift stopped being theoretical.",
+                id: "dtc-shift", n: "03", tag: TREND_CARDS["dtc-shift"].tag, title: TREND_CARDS["dtc-shift"].title,
+                summary: TREND_CARDS["dtc-shift"].summary,
                 body: "",
-                stat: "",
-                statLabel: "",
+                stat: TREND_CARDS["dtc-shift"].stat,
+                statLabel: TREND_CARDS["dtc-shift"].statLabel,
                 color: BRAND.tealBright,
                 expandedContent: true,
               },
@@ -2943,17 +2965,17 @@ export default function ReportGSTER26() {
               <img src="/peak-logo.jpeg" alt="PEAK" style={{ height: isMobile ? 40 : 48, borderRadius: 10, flexShrink: 0 }} />
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 28 : 38, lineHeight: 1, color: "#fff", margin: 0 }}>PEAK 2026 | LAS VEGAS</h2>
+                  <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 28 : 38, lineHeight: 1, color: "#fff", margin: 0 }}>{PEAK_COPY.title}</h2>
                 </div>
-                <p style={{ fontSize: isMobile ? 10 : 11, letterSpacing: 1.5, color: "#c9a0e8", margin: "2px 0 0", textTransform: "uppercase" }}>The Global Stage for SportsTech Startups</p>
+                <p style={{ fontSize: isMobile ? 10 : 11, letterSpacing: 1.5, color: "#c9a0e8", margin: "2px 0 0", textTransform: "uppercase" }}>{PEAK_COPY.subtitle}</p>
               </div>
             </div>
             {!isMobile && (
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-{["1,000+ Attendees", "100+ Speakers", "8+ Tracks", "50+ Countries", "100+ Exhibitors"].map((stat, i) => (
+{PEAK_COPY.stats.map((stat, i) => (
                   <span key={stat} style={{ fontSize: 10, letterSpacing: 1, color: "#fff", whiteSpace: "nowrap" }}>
                     <span style={{ color: "#fff", fontWeight: 700 }}>{stat.split(" ")[0]}</span>{" " + stat.split(" ").slice(1).join(" ")}
-                    {i < 4 && <span style={{ color: "rgba(255,255,255,0.3)", margin: "0 6px" }}>|</span>}
+                    {i < PEAK_COPY.stats.length - 1 && <span style={{ color: "rgba(255,255,255,0.3)", margin: "0 6px" }}>|</span>}
                   </span>
                 ))}
               </div>
@@ -2966,7 +2988,7 @@ export default function ReportGSTER26() {
             <div style={{ borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.3)" }}>
               <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
                 <iframe
-                  src="https://www.youtube.com/embed/fLBSnWkv40o"
+                  src={PEAK_COPY.videoUrl}
                   title="PEAK 2026"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -2979,13 +3001,8 @@ export default function ReportGSTER26() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 0.8fr", gap: isMobile ? 12 : 24, flex: 1 }}>
                 {/* Text */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    "PEAK brings together 1,000+ sports executives, investors, and founders shaping the future of sport.",
-                    "Raise capital, build partnerships, and stay ahead of SportsTech , all in one place.",
-                    "Three days at PEAK can replace months of meetings, so you can get back to building.",
-                    "APRIL 20–22, 2026 | Fontainebleau Las Vegas",
-                  ].map((text, i) => (
-                    <p key={i} style={{ fontSize: 12, color: "#fff", fontFamily: "'Open Sans',sans-serif", fontWeight: i === 3 ? 700 : 400, letterSpacing: i === 3 ? 0.5 : 0, lineHeight: 1.7, margin: 0 }}>{text}</p>
+                  {PEAK_COPY.about.map((text, i, all) => (
+                    <p key={i} style={{ fontSize: 12, color: "#fff", fontFamily: "'Open Sans',sans-serif", fontWeight: i === all.length - 1 ? 700 : 400, letterSpacing: i === all.length - 1 ? 0.5 : 0, lineHeight: 1.7, margin: 0 }}>{text}</p>
                   ))}
                 </div>
                 {/* Tracks */}
@@ -3003,12 +3020,12 @@ export default function ReportGSTER26() {
               {/* CTA box spanning full width below */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 8, padding: isMobile ? "10px 14px" : "10px 20px", gap: 16, marginTop: 8 }}>
                 <div>
-                  <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 14 : 16, color: BRAND.darkTitle, margin: 0, lineHeight: 1.2 }}>Discover the Future of Sports</p>
-                  <p style={{ fontSize: isMobile ? 9 : 10, color: BRAND.slate, margin: "2px 0 0", fontStyle: "italic" }}>Join the global SportsTech community at PEAK 2026</p>
+                  <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 14 : 16, color: BRAND.darkTitle, margin: 0, lineHeight: 1.2 }}>{PEAK_COPY.ctaTitle}</p>
+                  <p style={{ fontSize: isMobile ? 9 : 10, color: BRAND.slate, margin: "2px 0 0", fontStyle: "italic" }}>{PEAK_COPY.ctaSubtitle}</p>
                 </div>
-                <a href="https://peakconf.com/stxreport?utm_source=stxreport&utm_medium=report&utm_campaign=stxreport_link" target="_blank" rel="noopener noreferrer"
+                <a href={PEAK_COPY.ctaUrl} target="_blank" rel="noopener noreferrer"
                   style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: 2, color: "#fff", background: BRAND.pink, padding: "8px 28px", borderRadius: 50, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-                  SAVE $500 NOW
+                  {PEAK_COPY.ctaLabel}
                 </a>
               </div>
             </div>
@@ -3019,10 +3036,10 @@ export default function ReportGSTER26() {
             {/* SWC */}
             <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderLeft: "3px solid #c9a0e8", borderRadius: 8, padding: isMobile ? "14px 14px" : "16px 20px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-                <h4 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "#fff", margin: 0, letterSpacing: 1 }}>Startup World Cup Finals</h4>
-                <span style={{ fontSize: 9, color: "#c9a0e8", letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>AWS · $10K Prize</span>
+                <h4 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "#fff", margin: 0, letterSpacing: 1 }}>{PEAK_COPY.swcTitle}</h4>
+                <span style={{ fontSize: 9, color: "#c9a0e8", letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{PEAK_COPY.swcBadge}</span>
               </div>
-              <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>Nine finalists pitch live to leading sports executives and investors.</p>
+              <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>{PEAK_COPY.swcIntro}</p>
               {(() => {
                 const sectors = ["athletes", "fans", "executives"] as const;
                 const sectorLabels = { athletes: "For Athletes", fans: "For Fans", executives: "For Executives" };
@@ -3051,10 +3068,10 @@ export default function ReportGSTER26() {
             {/* Groundbreakers */}
             <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderLeft: "3px solid #c9a0e8", borderRadius: 8, padding: isMobile ? "14px 14px" : "16px 20px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-                <h4 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "#fff", margin: 0, letterSpacing: 1 }}>Groundbreakers Challenge</h4>
-                <span style={{ fontSize: 9, color: "#c9a0e8", letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>GSIC</span>
+                <h4 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "#fff", margin: 0, letterSpacing: 1 }}>{PEAK_COPY.groundbreakersTitle}</h4>
+                <span style={{ fontSize: 9, color: "#c9a0e8", letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>{PEAK_COPY.groundbreakersBadge}</span>
               </div>
-              <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>Connecting startups with leading sports organisations seeking tech-driven solutions.</p>
+              <p style={{ fontSize: 11, color: "#fff", lineHeight: 1.5, margin: "0 0 10px" }}>{PEAK_COPY.groundbreakersIntro}</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px 12px" }}>
                 {GROUNDBREAKERS_ORGS.map(org => {
                   const lUrl = org.domain ? `https://www.google.com/s2/favicons?sz=128&domain=${org.domain}` : null;
@@ -3071,7 +3088,7 @@ export default function ReportGSTER26() {
 
           {/* ── Row 4: Partners bar ── */}
           <div className="stx-reveal" style={{ padding: "8px 20px" }}>
-            <p style={{ fontSize: 9, letterSpacing: 2.5, color: "#c9a0e8", textTransform: "uppercase", margin: "0 0 6px", textAlign: "center" }}>Partners & Sponsors</p>
+            <p style={{ fontSize: 9, letterSpacing: 2.5, color: "#c9a0e8", textTransform: "uppercase", margin: "0 0 6px", textAlign: "center" }}>{PEAK_COPY.partnersTitle}</p>
             {(() => {
               const allPartners = [...PEAK_PARTNERS_TIER1, ...PEAK_PARTNERS_TIER2, ...PEAK_PARTNERS_TIER3];
               const row1 = allPartners.slice(0, 12);
@@ -3115,10 +3132,10 @@ export default function ReportGSTER26() {
           <div id="innovators" style={{ background: t.bgSec, padding: isMobile ? "48px 0" : "88px 0", position: "relative" }}>
             <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
               <div className="stx-reveal">
-                {sectionLabel("Innovators")}
-                {sectionTitle("DRIVING WHAT\nCOMES NEXT")}
+                {sectionLabel(INNOVATORS_HEADER.eyebrow)}
+                {sectionTitle(INNOVATORS_HEADER.title)}
                 <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: t.textMuted, marginTop: 16, lineHeight: 1.65 }}>
-                  The people and organisations defining where sports innovation and investment go from here.
+                  {INNOVATORS_HEADER.intro}
                 </p>
               </div>
 
@@ -3222,9 +3239,9 @@ export default function ReportGSTER26() {
               };
               const hardcoded = INNOVATOR_RESPONSES[p.name] || {};
               const questions = [
-                { label: "Are there any underserved areas in sports tech that you think are ripe for disruption?", answer: hardcoded.q_innovators || p.q_innovators || "" },
-                { label: "Which emerging technologies do you believe will reshape the sports industry in the next 3–5 years?", answer: hardcoded.q_investors || p.q_investors || "" },
-                { label: "In which operational areas are you actively seeking innovation?", answer: hardcoded.q_sports_orgs || p.q_sports_orgs || "" },
+                { label: INNOVATORS_HEADER.questionInnovators, answer: hardcoded.q_innovators || p.q_innovators || "" },
+                { label: INNOVATORS_HEADER.questionInvestors, answer: hardcoded.q_investors || p.q_investors || "" },
+                { label: INNOVATORS_HEADER.questionSportsOrgs, answer: hardcoded.q_sports_orgs || p.q_sports_orgs || "" },
               ].filter(q => q.answer.trim().length > 0);
 
               return (
@@ -3420,8 +3437,8 @@ export default function ReportGSTER26() {
       <div id="ecosystem" style={{ background: t.bg, padding: isMobile ? "48px 0" : "88px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
           <div className="stx-reveal">
-            {sectionLabel("Startups to Watch")}
-            {sectionTitle("COMPANIES WORTH\nYOUR ATTENTION")}
+            {sectionLabel(STARTUPS_HEADER.eyebrow)}
+            {sectionTitle(STARTUPS_HEADER.title)}
           </div>
           {/* ── Tab Switcher + Sector Legend ── */}
           <div style={{ display: "flex", alignItems: "flex-end", marginTop: 32, marginBottom: 16, borderBottom: `2px solid ${t.border}`, flexWrap: "wrap" }}>
@@ -3450,10 +3467,10 @@ export default function ReportGSTER26() {
           {/* ── Tab description ── */}
           <p style={{ margin: "0 0 32px", fontSize: 15, lineHeight: 1.7, color: t.text, }}>
             {watchTab === "innovators"
-              ? "Nominated by this year's featured innovators: the startups they're watching, backing, or building alongside."
+              ? STARTUPS_HEADER.innovatorsIntro
               : watchTab === "peak"
-              ? "Finalists in the PEAK Startup World Cup: pitching in Las Vegas on April 21 in front of investors and industry leaders."
-              : "Companies that stood out to our team: for the problem they address, or the moment they're in."}
+              ? STARTUPS_HEADER.peakIntro
+              : STARTUPS_HEADER.picksIntro}
           </p>
 
           {/* ── Card Grid ── */}
@@ -3538,10 +3555,10 @@ export default function ReportGSTER26() {
             <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
             <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
             <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Is your company on the global sports tech database?</div>
-              <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>ADD or VERIFY your company to get discovered by investors, programs, and sports organizations worldwide</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>{STARTUPS_HEADER.ctaTitle}</div>
+              <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>{STARTUPS_HEADER.ctaText}</div>
             </div>
-            <a href="/companies" target="_blank" rel="noopener noreferrer" style={{
+            <a href={STARTUPS_HEADER.ctaUrl} target="_blank" rel="noopener noreferrer" style={{
               position: "relative", zIndex: 1,
               display: "inline-block", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: 2,
               color: "#fff", background: BRAND.pink, textDecoration: "none",
@@ -3551,7 +3568,7 @@ export default function ReportGSTER26() {
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${BRAND.pink}55`; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${BRAND.pink}44`; }}
-            >VERIFY YOUR COMPANY</a>
+            >{STARTUPS_HEADER.ctaLabel}</a>
           </div>
 
         </div>
@@ -3562,7 +3579,7 @@ export default function ReportGSTER26() {
       {/* ── ECOSYSTEM MAP: INVESTORS, INNOVATION & PROGRAMS ──────────────── */}
       <div id="ecomap">
         <Suspense fallback={<div style={{ height: 500, background: t.bgSec, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: t.textMuted, letterSpacing: 2 }}>LOADING ECOSYSTEM MAP…</span></div>}>
-          <EcosystemMapSection t={t} isDark={isDark} isMobile={isMobile} />
+          <EcosystemMapSection t={t} isDark={isDark} isMobile={isMobile} eyebrow={ECOMAP.eyebrow} title={ECOMAP.title} intro={ECOMAP.intro || undefined} />
         </Suspense>
       </div>
 
@@ -3576,19 +3593,19 @@ export default function ReportGSTER26() {
           {/* ── Row 1: Header + date inline ── */}
           <div className="stx-reveal" style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", gap: 16, marginBottom: isMobile ? 20 : 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <img src="https://newglobalsportconference.com/wp-content/uploads/2025/08/EWCF_V1.0_White-1.svg" alt="Esports World Cup Foundation" style={{ height: isMobile ? 32 : 40, flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              <img src={NGSC.logoUrl} alt="Esports World Cup Foundation" style={{ height: isMobile ? 32 : 40, flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 26 : 36, lineHeight: 1, color: "#fff", margin: 0 }}>NGSC 2025</h2>
+                  <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 26 : 36, lineHeight: 1, color: "#fff", margin: 0 }}>{NGSC.title}</h2>
                 </div>
-                <p style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? 9 : 10, letterSpacing: 2, color: BRAND.ngsc, margin: "2px 0 0", textTransform: "uppercase" }}>23–24 August 2025 · Four Seasons Hotel Riyadh, Saudi Arabia</p>
+                <p style={{ fontFamily: "'DM Mono',monospace", fontSize: isMobile ? 9 : 10, letterSpacing: 2, color: BRAND.ngsc, margin: "2px 0 0", textTransform: "uppercase" }}>{NGSC.dateLine}</p>
               </div>
             </div>
             {!isMobile && (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <a href="https://newglobalsportconference.com/n9cxy3/" target="_blank" rel="noopener noreferrer"
+                <a href={NGSC.registerUrl} target="_blank" rel="noopener noreferrer"
                   style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: 2, color: "#0a0a0a", background: BRAND.ngsc, padding: "7px 20px", borderRadius: 50, textDecoration: "none", boxShadow: `0 3px 12px ${BRAND.ngsc}55` }}>
-                  REGISTER INTEREST
+                  {NGSC.registerLabel}
                 </a>
                 {[
                   { href: "https://newglobalsportconference.com", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
@@ -3614,19 +3631,19 @@ export default function ReportGSTER26() {
             {/* Stage photo */}
             <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${BRAND.ngsc}20`, minHeight: isMobile ? 180 : 340 }}>
               <img
-                src="https://newglobalsportconference.com/wp-content/uploads/2025/06/webready-about.webp"
+                src={NGSC.stageImage}
                 alt="Panel discussion at NGSC with global sports and esports leaders on stage in Riyadh"
                 style={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "center center" }}
               />
             </div>
             {/* About text */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 3, color: BRAND.ngsc, textTransform: "uppercase", margin: "0 0 8px" }}>About the Conference</p>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 3, color: BRAND.ngsc, textTransform: "uppercase", margin: "0 0 8px" }}>{NGSC.aboutLabel}</p>
               <p style={{ fontSize: 12, color: "#c8c8c8", lineHeight: 1.7, margin: "0 0 8px" }}>
-                The New Global Sport Conference (NGSC 2025) is the premier global platform for industry leaders at the intersection of gaming, esports and sport , bringing together CEOs, founders and investors to drive groundbreaking initiatives.
+                {NGSC.about1}
               </p>
               <p style={{ fontSize: 12, color: "#c8c8c8", lineHeight: 1.7, margin: "0 0 8px" }}>
-                A flagship event of the Esports World Cup Foundation, NGSC is held annually in Riyadh during the closing weekend of the Esports World Cup , the world's largest esports and gaming event.
+                {NGSC.about2}
               </p>
               <p style={{ fontSize: 12, color: "#c8c8c8", lineHeight: 1.7, margin: 0 }}>
                 NGSC 2025 official theme, <em style={{ color: "#fff" }}>"The Next Game,"</em> reflects the accelerating convergence of competitive gaming and global sports.
@@ -3635,7 +3652,7 @@ export default function ReportGSTER26() {
             {/* Crowd photo */}
             <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${BRAND.ngsc}20`, minHeight: isMobile ? 180 : 340 }}>
               <img
-                src="https://newglobalsportconference.com/wp-content/uploads/2025/06/biggest-global-esport-conference-ngsc-2-e1750325522595.webp"
+                src={NGSC.crowdImage}
                 alt="Attendees of NGSC sharing a selfie moment during the esports and sports networking session in Riyadh"
                 style={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "center center" }}
               />
@@ -3647,28 +3664,24 @@ export default function ReportGSTER26() {
             {/* Left: theme heading */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <h3 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 22 : 26, lineHeight: 1.05, color: "#fff", margin: "0 0 12px" }}>
-                TRANSFORMING THE FUTURE OF COMPETITIVE PLAY
+                {NGSC.themeHeading}
               </h3>
               {isMobile && (
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
-                  <a href="https://newglobalsportconference.com/n9cxy3/" target="_blank" rel="noopener noreferrer"
+                  <a href={NGSC.registerUrl} target="_blank" rel="noopener noreferrer"
                     style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: 2, color: "#0a0a0a", background: BRAND.ngsc, padding: "7px 20px", borderRadius: 50, textDecoration: "none" }}>
-                    REGISTER INTEREST
+                    {NGSC.registerLabel}
                   </a>
-                  <a href="https://newglobalsportconference.com" target="_blank" rel="noopener noreferrer"
+                  <a href={NGSC.websiteUrl} target="_blank" rel="noopener noreferrer"
                     style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 1.5, color: BRAND.ngsc, border: `1px solid ${BRAND.ngsc}55`, padding: "7px 14px", borderRadius: 50, textDecoration: "none" }}>
-                    WEBSITE
+                    {NGSC.websiteLabel}
                   </a>
                 </div>
               )}
             </div>
             {/* Middle: three pillars */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14, justifyContent: "center" }}>
-              {[
-                { n: "01", text: "Bringing together the world's most influential voices." },
-                { n: "02", text: "Where industries converge to spark dialogue and challenge convention." },
-                { n: "03", text: "The leading platform where gaming, esports and sport's future takes shape." },
-              ].map(p => (
+              {NGSC.pillars.map((text, i) => ({ n: String(i + 1).padStart(2, "0"), text })).map(p => (
                 <div key={p.n} style={{ display: "flex", gap: 12, alignItems: "center" }}>
                   <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: BRAND.ngsc, lineHeight: 1, flexShrink: 0 }}>{p.n}</span>
                   <p style={{ fontSize: 12, color: "#c8c8c8", lineHeight: 1.5, margin: 0, fontWeight: 600 }}>{p.text}</p>
@@ -3677,9 +3690,9 @@ export default function ReportGSTER26() {
             </div>
             {/* Right: program highlights */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 3, color: BRAND.ngsc, textTransform: "uppercase", margin: "0 0 8px" }}>The Program</p>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 3, color: BRAND.ngsc, textTransform: "uppercase", margin: "0 0 8px" }}>{NGSC.programLabel}</p>
               <p style={{ fontSize: 12, color: "#c8c8c8", lineHeight: 1.7, margin: 0 }}>
-                The curated program features over 1,500 industry leaders, including HRH Prince Faisal bin Bandar bin Sultan Al Saud, HRH Prince Fahad bin Mansour bin Nasser Al Saud, and representatives from the LA28 Olympic Games, Sony, SEGA, and more. Through keynotes, panels, strategic roundtables and private forums, attendees will define the next stage of industry growth and innovation.
+                {NGSC.program}
               </p>
             </div>
           </div>
@@ -3695,20 +3708,20 @@ export default function ReportGSTER26() {
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
 
           <div className="stx-reveal">
-            {sectionLabel("Data in Full")}
-            {sectionTitle("THE NUMBERS\nTHAT MATTER")}
+            {sectionLabel(DATA_HEADER.eyebrow)}
+            {sectionTitle(DATA_HEADER.title)}
             <p style={{ fontSize: 15, color: t.textMuted, lineHeight: 1.7, maxWidth: 600, marginTop: 16 }}>
-              The complete dataset behind this year's report: every company, every deal, every number behind the story.
+              {DATA_HEADER.intro}
             </p>
           </div>
 
           {/* ── Tab Switcher ── */}
           <div style={{ display: "flex", marginTop: 40, marginBottom: 56, borderBottom: `2px solid ${t.border}` }}>
-            {(["Equity", "Mergers & Acquisitions"] as const).map(tab => {
-              const active = (tab === "Equity" && factTab === "funding") || (tab === "Mergers & Acquisitions" && factTab === "ma");
+            {([["funding", DATA_HEADER.equityTab], ["ma", DATA_HEADER.maTab]] as const).map(([key, tab]) => {
+              const active = factTab === key;
               return (
-                <button key={tab}
-                  onClick={() => setFactTab(tab === "Equity" ? "funding" : "ma")}
+                <button key={key}
+                  onClick={() => setFactTab(key)}
                   style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, letterSpacing: 2, padding: isMobile ? "8px 18px 10px" : "10px 36px 13px", background: "none", border: "none", borderBottom: active ? `3px solid ${BRAND.pink}` : "3px solid transparent", color: active ? BRAND.pink : t.textMuted, cursor: "pointer", transition: "color 0.2s, border-color 0.2s", marginBottom: -2, outline: "none" }}>
                   {tab}
                 </button>
@@ -3726,7 +3739,7 @@ export default function ReportGSTER26() {
 
               {/* CHART-02: Funding By Year */}
               <div className="stx-reveal">
-                {fundingHeader("FUNDING BY YEAR")}
+                {fundingHeader(DATA_HEADER.fundingByYear)}
                 <SourceBadge chartId="CHART-02" source="dm_test · SUM(Round_Amount_USD) GROUP BY Deal_Year · VC_Date 2021–2025" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 40 }}>
                   Peaked at $13.3B in 2021, the all-time high. 2025 marked a decisive return to growth.
@@ -3738,7 +3751,7 @@ export default function ReportGSTER26() {
 
               {/* CHART-06: Regional Share */}
               <div style={{ marginTop: 48 }} className="stx-reveal">
-                {fundingHeader("REGIONAL SHARE OF GLOBAL DEALFLOW", "clamp(22px,2.8vw,36px)")}
+                {fundingHeader(DATA_HEADER.regionalShare, "clamp(22px,2.8vw,36px)")}
                 <SourceBadge chartId="CHART-06" source="dm_test · SUM(Round_Amount_USD) GROUP BY VC_Report_Region" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 20 }}>
                   North America leads on volume, but Europe closed the gap in 2025.
@@ -3758,7 +3771,7 @@ export default function ReportGSTER26() {
 
               {/* CHART-03: Top Countries */}
               <div style={{ marginTop: 72 }} className="stx-reveal">
-                {fundingHeader("TOP COUNTRIES BY FUNDING")}
+                {fundingHeader(DATA_HEADER.topCountries)}
                 <SourceBadge chartId="CHART-03" source="dm_test · SUM(Round_Amount_USD) GROUP BY Country · VC_Date 2021–2025" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 20 }}>
                   The USA accounts for the majority of capital raised, but the gap to the next tier is narrowing.
@@ -3787,12 +3800,12 @@ export default function ReportGSTER26() {
                 <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "#fff", pointerEvents: "none" }} />
                 <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX Atlas" style={{ width: isMobile ? 120 : 160, opacity: 0.9, position: "relative", zIndex: 1, flexShrink: 0, objectFit: "contain" }} />
                 <div style={{ position: "relative", zIndex: 1, textAlign: isMobile ? "center" : "left" }}>
-                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>Dive Deeper into the Data</div>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 20 : 26, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>{DATA_HEADER.ctaTitle}</div>
                   <div style={{ fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.6)" }}>
-                    Interactive charts, custom filters, and real-time analytics across every deal, sector, and region
+                    {DATA_HEADER.ctaText}
                   </div>
                 </div>
-                <a href="/analytics" target="_blank" rel="noopener noreferrer" style={{
+                <a href={DATA_HEADER.ctaUrl} target="_blank" rel="noopener noreferrer" style={{
                   position: "relative", zIndex: 1,
                   display: "inline-block", fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: 2,
                   color: "#fff", background: BRAND.pink, textDecoration: "none",
@@ -3802,12 +3815,12 @@ export default function ReportGSTER26() {
                 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${BRAND.pink}55`; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${BRAND.pink}44`; }}
-                >OPEN ANALYTICS </a>
+                >{DATA_HEADER.ctaLabel}</a>
               </div>
 
               {/* CHART-04: Sector Split */}
               <div style={{ marginTop: 72 }} className="stx-reveal">
-                {fundingHeader("SECTOR SPLIT BY INVESTMENT")}
+                {fundingHeader(DATA_HEADER.sectorSplit)}
                 <SourceBadge chartId="CHART-04" source="dm_test · SUM(Round_Amount_USD) GROUP BY Sector → Sub-Sector → Sub-Sub-Sector · VC_Date 2021–2025" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 20 }}>
                   'For Fans' companies attract the most capital by volume, and their share is growing.
@@ -3831,7 +3844,7 @@ export default function ReportGSTER26() {
 
               {/* CHART-05: Top Funded Companies by Region */}
               <div style={{ marginTop: 72 }} className="stx-reveal">
-                {fundingHeader("TOP FUNDED COMPANIES")}
+                {fundingHeader(DATA_HEADER.topFunded)}
                 <SourceBadge chartId="CHART-05" source="dm_test · SUM(Round_Amount_USD) GROUP BY Name, VC_Report_Region · top 5 per region" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 20 }}>
                   The names that defined the 2021–2025 cycle, by region.
@@ -3892,7 +3905,7 @@ export default function ReportGSTER26() {
 
               {/* CHART-08: M&A By Year */}
               <div className="stx-reveal">
-                {maHeader("M&A BY YEAR")}
+                {maHeader(DATA_HEADER.maByYear)}
                 <SourceBadge chartId="CHART-08" source="ma_test_new · SUM(round_amount_usd) GROUP BY acquisition_year · date 2021–2025" />
                 <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 40 }}>
                   Deal volume peaked in 2023 at $10.9B across 70 deals, consolidation has accelerated sharply since 2022.
@@ -3908,7 +3921,7 @@ export default function ReportGSTER26() {
                 const cols09 = isMobile ? "1fr auto" : "1fr 120px 1fr 120px 70px 100px";
                 return (
                   <div style={{ marginTop: 72 }} className="stx-reveal">
-                    {maHeader("NOTABLE ACQUISITIONS")}
+                    {maHeader(DATA_HEADER.notableAcquisitions)}
                     <SourceBadge chartId="CHART-09" source="ma_test_new · WHERE round_amount_usd > 0 · ORDER BY round_amount_usd DESC · date 2021–2025" />
                     <p style={{ fontSize: 14, color: t.textMuted, maxWidth: 580, lineHeight: 1.8, marginBottom: 20 }}>
                       The largest disclosed SportsTech acquisitions of the 2021–2025 cycle, ranked by deal value.
@@ -3974,17 +3987,17 @@ export default function ReportGSTER26() {
       </div>
 
       {/* ── CLOSING QUOTE ───────────────────────────────────────────────── */}
-      <div style={{ background: isDark ? BRAND.darkTitle : BRAND.lightBlue, padding: isMobile ? "48px 0" : "88px 0" }}>
+      <div id="closing" style={{ background: isDark ? BRAND.darkTitle : BRAND.lightBlue, padding: isMobile ? "48px 0" : "88px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px", textAlign: "center" }}>
           <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(28px,4vw,52px)", lineHeight: 1.1, maxWidth: 860, margin: "0 auto 24px", color: isDark ? BRAND.white : BRAND.darkTitle }}>
-            The data is clear. Sports technology is not a trend. It is the infrastructure of modern sport.
+            {CLOSING.quote}
           </p>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0 }}>
               <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 32, opacity: 0.9 }} />
             </a>
             <cite style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: 2, color: BRAND.pink, fontStyle: "normal" }}>
-              2025
+              {CLOSING.cite}
             </cite>
           </div>
         </div>
