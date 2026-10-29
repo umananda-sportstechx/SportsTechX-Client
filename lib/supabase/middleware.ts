@@ -5,8 +5,12 @@ import { isPrivatePath } from '@/lib/public-paths';
  * Auth pages a *signed-in* user shouldn't see — visiting these redirects them
  * to the dashboard (or their original destination) so they don't have to
  * manually navigate away after returning to a logged-in tab.
+ *
+ * NOT `/reset-password`: a reset link signs the user in (a recovery session)
+ * and then sends them there, so it is only ever reached signed in. Listing it
+ * bounced every password reset to /home before the form could show.
  */
-const AUTH_PAGES = ['/login', '/signup', '/forgot-password', '/reset-password'];
+const AUTH_PAGES = ['/login', '/signup', '/forgot-password'];
 
 /**
  * Cookie names @supabase/ssr writes for the session. The auth-token cookie

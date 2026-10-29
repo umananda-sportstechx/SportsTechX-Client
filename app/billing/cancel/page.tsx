@@ -15,11 +15,12 @@ import { useUserProfile } from '@/hooks/use-user-profile';
  */
 export default function BillingCancelPage() {
 	const router = useRouter();
-	const { data: profile } = useUserProfile();
+	const { data: profile, isLoading } = useUserProfile();
 	const unanswered = !!profile && !profile.paywall_shown_at;
 
 	useEffect(() => { if (unanswered) router.replace('/plans?welcome=1'); }, [unanswered, router]);
-	if (!profile || unanswered) return null;
+	// Blank only while deciding; a missing profile still gets the card.
+	if (unanswered || (!profile && isLoading)) return null;
 
 	return (
 		<div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--a-page)', color: 'var(--a-ink)' }}>
