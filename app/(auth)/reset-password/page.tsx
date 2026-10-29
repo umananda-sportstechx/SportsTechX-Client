@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/atlas';
 import { AuthBrand, AuthNotice, AuthSpinner, AuthThemeToggle, PasswordField } from '@/components/auth/auth-shell';
@@ -30,7 +31,9 @@ export default function ResetPasswordPage() {
 		const { error: err } = await supabase.auth.updateUser({ password });
 		setLoading(false);
 		if (err) setError(err.message);
-		else router.push('/login?message=password_updated');
+		// The reset link already signed them in, so /login would only bounce
+		// them to /home and drop the message — go there directly and say so.
+		else { toast.success('Password updated'); router.replace('/home'); }
 	};
 
 	return (
