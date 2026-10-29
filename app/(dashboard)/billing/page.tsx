@@ -136,10 +136,10 @@ export default function BillingPage() {
 			</Card>
 
 			<Card style={{ marginBottom: 24 }}>
-				<div style={{ ...CARD_TITLE, marginBottom: 6 }}>Change plan</div>
+				<div style={{ ...CARD_TITLE, marginBottom: 6 }}>{hasActiveSub ? 'Your subscription' : 'Choose a plan'}</div>
 				{hasActiveSub ? (
 					<>
-						<p style={{ ...BODY, margin: '0 0 16px' }}>Switch to a different plan or cancel in the billing portal — changes are prorated by Stripe.</p>
+						<p style={{ ...BODY, margin: '0 0 16px' }}>Update your payment method, see invoices or cancel in the billing portal. Plans can’t be switched mid-subscription: to move to another plan, cancel this one (you keep access until the end of the billing period), then subscribe to the new plan.</p>
 						<Button size="sm" disabled={busy !== null} onClick={() => void manage()}>{busy === 'portal' ? <Loader2 className="animate-spin" size={13} /> : 'Open billing portal'}</Button>
 					</>
 				) : (
