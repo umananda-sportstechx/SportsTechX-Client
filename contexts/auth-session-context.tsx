@@ -189,8 +189,13 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 					monitorIntervalRef.current = null;
 				}
 				setState({ user: null, loading: false, sessionValid: false });
+				// Only a real sign-out has someone's data to drop. Supabase also lands
+				// here for a visitor who was never signed in (INITIAL_SESSION, no
+				// session), and wiping then threw away public data already loaded —
+				// the logged-out /plans page lost its prices.
+				const wasSignedIn = authedUserId !== null;
 				authedUserId = null;
-				if (!logoutState.isLoggingOut()) void globalMutate(() => true, undefined, { revalidate: false });
+				if (wasSignedIn && !logoutState.isLoggingOut()) void globalMutate(() => true, undefined, { revalidate: false });
 				if (logoutState.isLoggingOut()) {
 					logoutState.setLoggingOut(false);
 					enableQueryPolling();

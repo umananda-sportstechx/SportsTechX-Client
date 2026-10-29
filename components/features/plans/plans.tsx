@@ -14,7 +14,7 @@ import { qk } from '@/lib/query-keys';
 import { track, Events } from '@/lib/analytics';
 import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
 import { useAuthSession } from '@/hooks/use-auth-session';
-import { useFeatureAccessContext } from '@/contexts/feature-access-context';
+import type { Feature } from '@/contexts/feature-access-context';
 import { PRODUCT } from '@/components/features/tier-gate/tier-gate';
 import type { Tier } from '@/lib/access';
 import './plans.css';
@@ -22,14 +22,14 @@ import './plans.css';
 /**
  * Every tier, side by side — the single plan surface, in three contexts:
  *
- *   - **app** (default): a signed-in user on /plans. Marks their current plan,
+ *   - **app** (default): a signed-in user on /plans. Tags their current plan,
  *     checks out a paid one, or cancels at period end.
- *   - **onboarding** (`onboarding` prop): the first step of signup. Explore is
+ *   - **onboarding** (`onboarding` prop): /plans?welcome after signup. Explore is
  *     chosen directly (no payment, stamps the paywall); a paid plan hands off to
  *     Stripe; "maybe later" keeps the current plan. Same API calls the old
  *     PaywallGate made, so signup behaviour is unchanged — only the UI unifies.
- *   - **public** (logged-out on /plans): a pricing page. Every CTA goes to
- *     signup; nothing is marked "current".
+ *   - **public** (logged-out on /plans): the same page — prices and the full
+ *     comparison, both public endpoints. Every CTA goes to signup.
  *
  * Nothing here is hardcoded that the system already knows: prices come from
  * `GET /api/billing/plans` (public, cached), the comparison from `GET /api/features`
@@ -62,17 +62,20 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 	const { sessionValid, loading: authLoading } = useAuthSession();
 	const loggedOut = !authLoading && !sessionValid;
 	const current = getUserType(profile);
-	const { features, isLoading: featuresLoading } = useFeatureAccessContext();
+	// Straight from the public endpoint, not the access context — that one only
+	// loads for a signed-in user, which hid the table from visitors.
+	const { data: featureRows, isLoading: featuresLoading } = useSWR<Feature[]>(qk.features());
+	const features = featureRows ?? [];
 	const plans = useSWR<{ data: PlanRow[] }>(qk.billing.plans());
 	const [busy, setBusy] = useState<string | null>(null);
 	const [err, setErr] = useState('');
 	const confirm = useConfirm();
 	// `subscription_cancel_at` is already on this payload; no new endpoint needed
 	// to know whether they have something to cancel.
-	const sub = useSWR<{ stripe_subscription_id?: string; subscription_cancel_at?: string | null } | null>(loggedOut ? null : qk.billing.subscription());
+	const sub = useSWR<{ stripe_subscription_id?: string; subscription_cancel_at?: string | null } | null>(sessionValid ? qk.billing.subscription() : null);
 	const hasPaidPlan = !loggedOut && current !== 'explore' && !!sub.data?.stripe_subscription_id;
 	// Only the signed-in in-app view marks one card as "yours".
-	const showCurrent = !onboarding && !loggedOut;
+	const showCurrent = !onboarding && sessionValid && !!profile;
 
 	const byTier = new Map((plans.data?.data ?? []).map((p) => [p.tier, p]));
 	const goSignup = () => router.push('/signup');
@@ -248,7 +251,7 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 					<span className="atlas-section-aside">Data access, straight from the entitlement matrix. Raise and Scout differ by workspace, not by data.</span>
 				</div>
 				{featuresLoading ? <Loading /> : features.length === 0 ? (
-					<p className="plans-muted">Sign in to compare what each plan includes.</p>
+					<p className="plans-muted">The comparison couldn&rsquo;t be loaded. Please refresh.</p>
 				) : (
 					<div className="plans-table-scroll">
 						<table className="plans-table">

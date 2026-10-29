@@ -61,6 +61,7 @@
 .atlas .plans-later button:disabled { opacity: 0.6; cursor: default; }
 
 /* Public, chrome-less pricing page surface (app/plans). */
+.atlas .plans-brand { display: inline-flex; margin-bottom: 32px; color: var(--a-ink); text-decoration: none; }
 .atlas.plans-public { min-height: 100dvh; background: var(--a-page); padding: 48px 20px 64px; }
 .atlas.plans-public .atlas-screen { margin: 0 auto; }
 

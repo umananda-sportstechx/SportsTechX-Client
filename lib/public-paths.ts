@@ -18,7 +18,7 @@
  * Entries match as an exact path or a path prefix (`/w` covers `/w/<token>`).
  *
  * Now that the signed-in product is all under `/app`, this could invert into
- * "gate `/app`, `/onboarding` and `/billing`" — shorter, and a new public page
+ * "gate `/app` and `/billing`" — shorter, and a new public page
  * could no longer be private by accident. It deliberately hasn't: the failure
  * directions are not symmetric. Forgetting to add a public page here makes that
  * page ask for a login, which someone notices immediately. Forgetting to list a
@@ -93,9 +93,9 @@ export const PRIVATE_PREFIXES = [
   '/investors', '/ma', '/my-market', '/newsletter', '/pipeline', '/programs',
   '/recently-funded', '/recommended', '/reports', '/resources', '/roundup', '/settings',
   '/signals', '/strategy', '/thesis', '/verify', '/watchlists',
-  // Not in ROUTES: the onboarding tree, the integration docs, and the
-  // verified-company report (reached from an email, not the sidebar).
-  '/onboarding', '/docs', '/verified-reports',
+  // Not in ROUTES: the integration docs and the verified-company report
+  // (reached from an email, not the sidebar).
+  '/docs', '/verified-reports',
 ] as const;
 
 export function isPrivatePath(pathname: string): boolean {
