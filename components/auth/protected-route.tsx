@@ -2,7 +2,10 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useAuthSession } from '@/hooks/use-auth-session';
+import { AtlasLogo } from '@/components/atlas/brand/atlas-logo';
+import '@/components/atlas/styles/tokens.css';
 
 /**
  * Client-side auth gate.
@@ -35,31 +38,22 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		}
 	}, [loading, sessionValid, router, pathname]);
 
-	if (loading || !sessionValid) return <AuthPlaceholder label={loading ? 'Authenticating…' : 'Redirecting…'} />;
+	if (loading || !sessionValid) return <AuthPlaceholder label={loading ? 'Loading…' : 'Redirecting…'} />;
 
 	return <>{children}</>;
 }
 
 /**
- * The full-height "Authenticating…" screen. Also the Suspense fallback of the
+ * The full-height loading screen (logo + spinner). Also the Suspense fallback of the
  * protected layouts, so a statically built page's first paint is the same
  * screen the session check shows next — no flash between the two.
  */
-export function AuthPlaceholder({ label = 'Authenticating…' }: { label?: string }) {
+export function AuthPlaceholder({ label = 'Loading…' }: { label?: string }) {
 	return (
-		<div
-			style={{
-				display: 'grid',
-				placeItems: 'center',
-				minHeight: '100vh',
-				fontFamily: 'var(--font-mono)',
-				color: 'var(--fg-muted)',
-				fontSize: 11,
-				textTransform: 'uppercase',
-				letterSpacing: '0.12em',
-			}}
-		>
-			{label}
+		<div className="atlas auth-placeholder" role="status" aria-live="polite">
+			<AtlasLogo height={30} />
+			<Loader2 className="animate-spin" size={18} aria-hidden="true" />
+			<span>{label}</span>
 		</div>
 	);
 }

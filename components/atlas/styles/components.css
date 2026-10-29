@@ -591,6 +591,13 @@ span.atlas-fbar__pill-main { cursor: default; }
 }
 [data-theme="dark"] .atlas .atlas-logo__product { color: #7FA8F5; }
 
+/* Full-screen loading (auth check, then the tier). Same page colour as the app. */
+.atlas.auth-placeholder {
+  min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 16px;
+  background: var(--a-page); color: var(--a-muted);
+  font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+}
+
 /* ── Section header (Figma "Section Header": Satoshi 24 + meta, hairline below) ── */
 .atlas-sectionhead {
   display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap;
