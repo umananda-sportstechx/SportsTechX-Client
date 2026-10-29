@@ -1,30 +1,25 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Brand } from '@/components/ui/brand';
 import { Button, Card } from '@/components/atlas';
-import { Plans } from '@/components/features/plans/plans';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 /**
  * Stripe Checkout cancel landing — no charge was made.
  *
- * Someone who backs out of Stripe mid-onboarding arrives here with no plan
- * chosen and nothing stamped, so this offers the plan step again (the shared
- * Plans UI, onboarding mode — choosing Explore / "maybe later" stamps and drops
- * back to the card). An already-stamped user just sees the "cancelled" card.
+ * Someone who backs out of Stripe mid-signup arrives here with no plan chosen
+ * and nothing stamped, so they go back to the plan choice (/plans?welcome). An
+ * already-stamped user just sees the "cancelled" card.
  */
 export default function BillingCancelPage() {
-	const { data: profile, mutate } = useUserProfile();
+	const router = useRouter();
+	const { data: profile } = useUserProfile();
+	const unanswered = !!profile && !profile.paywall_shown_at;
 
-	if (profile && !profile.paywall_shown_at) {
-		return (
-			<div className="atlas plans-public">
-				<div style={{ maxWidth: 1120, margin: '0 auto' }}>
-					<Plans onboarding={{ onDone: () => { void mutate(); } }} />
-				</div>
-			</div>
-		);
-	}
+	useEffect(() => { if (unanswered) router.replace('/plans?welcome=1'); }, [unanswered, router]);
+	if (!profile || unanswered) return null;
 
 	return (
 		<div className="atlas" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--a-page)', color: 'var(--a-ink)' }}>
