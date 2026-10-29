@@ -7,6 +7,8 @@ import { getSupabaseBrowser } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/atlas';
 import { AuthBrand } from '@/components/auth/auth-shell';
 import { callPostLogin } from '@/lib/post-login';
+import { refreshAccount } from '@/lib/invalidate';
+import { safeRedirect } from '@/lib/safe-redirect';
 
 /**
  * Email confirmation landing — UNAUTHENTICATED route.
@@ -46,7 +48,8 @@ export default function ConfirmPage() {
 	const tokenHash = params.get('token_hash');
 	const type = (params.get('type') ?? 'signup') as
 		| 'signup' | 'invite' | 'recovery' | 'magiclink' | 'email_change';
-	const next = params.get('next') ?? '/home';
+	// Same-origin paths only — this comes straight from the URL.
+	const next = safeRedirect(params.get('next'));
 
 	useEffect(() => {
 		if (!tokenHash) {
@@ -65,6 +68,9 @@ export default function ConfirmPage() {
 				// email-confirmed signups got no welcome credits.
 				if (data.session && type !== 'recovery' && type !== 'email_change') {
 					await callPostLogin(data.session.access_token);
+					// Post-login can link claims, grant credits and settle the tier —
+					// re-read anything fetched before it finished, as login/signup do.
+					void refreshAccount();
 				}
 				setStatus('ok');
 				// A recovery link is a password reset, not a sign-in: verifyOtp just
