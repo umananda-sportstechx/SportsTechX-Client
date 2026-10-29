@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['*.trycloudflare.com'],
   // The onboarding page is gone; confirmation emails already sent still carry
   // `next=/onboarding`, so send them to the plan choice that replaced it.
+  // The GSTER26 editor preview may be framed by the admin panel only.
+  async headers() {
+    return [{
+      source: "/report-preview/:path*",
+      headers: [{
+        key: "Content-Security-Policy",
+        value: `frame-ancestors 'self' ${process.env.NEXT_PUBLIC_ADMIN_URL ?? "https://admin.sportstechx.com"} http://localhost:*`,
+      }],
+    }];
+  },
   async redirects() {
     return [{ source: "/onboarding", destination: "/plans?welcome=1", permanent: false }];
   },
