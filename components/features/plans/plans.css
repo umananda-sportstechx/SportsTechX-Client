@@ -9,7 +9,7 @@
 }
 
 .atlas .plans-card { display: flex; flex-direction: column; gap: 6px; }
-.atlas .plans-card__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.atlas .plans-card__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding-top: 12px; /* room for the product tag above the wordmark */ }
 .atlas .plans-card__price { font-family: var(--a-font); font-size: 34px; font-weight: 500; line-height: 1.05; color: var(--a-ink); }
 .atlas .plans-card__interval { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--a-faint); }
 .atlas .plans-card__blurb { font-size: 13px; line-height: 1.55; color: var(--a-muted); margin: 10px 0 0; }

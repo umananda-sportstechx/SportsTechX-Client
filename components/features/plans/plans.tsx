@@ -6,16 +6,18 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { Check, Loader2, Minus } from 'lucide-react';
-import { Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
+import { AtlasLogo, Badge, Button, Card, Loading, PageHead } from '@/components/atlas';
 import { apiRequest } from '@/lib/query-client';
 import { noteCancellation } from '@/lib/invalidate';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { qk } from '@/lib/query-keys';
 import { track, Events } from '@/lib/analytics';
-import { getUserType, useUserProfile } from '@/hooks/use-user-profile';
+import { getUserType, TIER_LABEL, useUserProfile } from '@/hooks/use-user-profile';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import type { Feature } from '@/contexts/feature-access-context';
 import { PRODUCT } from '@/components/features/tier-gate/tier-gate';
+import { EXPLORE_COLOR } from '@/components/explore/shell-config';
+import { SCOUT_COLOR } from '@/components/scout/shell-config';
 import type { Tier } from '@/lib/access';
 import './plans.css';
 
@@ -52,13 +54,16 @@ const WELCOME_CREDITS = 300;
 /** Display order, cheapest first. Explore is never a checkout target. */
 const ORDER: Tier[] = ['explore', 'raise', 'scout'];
 
+/** Same product tags as the sidebar logo (Raise uses the logo's default blue). */
+const TAG_COLOR: Record<Tier, string | undefined> = { explore: EXPLORE_COLOR, raise: undefined, scout: SCOUT_COLOR };
+
 const money = (cents: number, ccy: string) =>
 	new Intl.NumberFormat(undefined, { style: 'currency', currency: (ccy || 'eur').toUpperCase(), maximumFractionDigits: 0 })
 		.format((cents ?? 0) / 100);
 
 export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = {}) {
 	const router = useRouter();
-	const { data: profile, mutate: refreshProfile } = useUserProfile();
+	const { data: profile, isLoading: profileLoading, mutate: refreshProfile } = useUserProfile();
 	const { sessionValid, loading: authLoading } = useAuthSession();
 	const loggedOut = !authLoading && !sessionValid;
 	const current = getUserType(profile);
@@ -150,7 +155,9 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 		} finally { setBusy(null); }
 	};
 
-	if (plans.isLoading) return <Loading />;
+	// A signed-in viewer waits for their tier and subscription too: rendering
+	// before them showed every paying user the Explore defaults for a beat.
+	if (plans.isLoading || authLoading || (sessionValid && (profileLoading || sub.isLoading))) return <Loading />;
 
 	const ctaFor = (tier: Tier, isCurrent: boolean) => {
 		const copy = tier === 'explore' ? null : PRODUCT[tier];
@@ -197,7 +204,7 @@ export function Plans({ onboarding }: { onboarding?: { onDone: () => void } } = 
 					return (
 						<Card key={tier} glow={isCurrent ? 'blue' : undefined} focus={isCurrent} className={`plans-card${recommended ? ' plans-card--rec' : ''}`}>
 							<div className="plans-card__head">
-								<span className="atlas-eyebrow">{copy?.name ?? 'Atlas Explore'}</span>
+								<AtlasLogo height={24} product={TIER_LABEL[tier]} productColor={TAG_COLOR[tier]} />
 								{isCurrent ? <Badge tone="ok">Current plan</Badge> : recommended ? <Badge tone="navy">Recommended</Badge> : null}
 							</div>
 							<div className="plans-card__price">
