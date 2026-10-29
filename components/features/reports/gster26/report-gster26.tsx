@@ -56,6 +56,7 @@ function AuthModal() { return null; }
 
 /* ── gster26 Mixpanel helper ─────────────────────────────────────────── */
 function trackG26(event: string, props?: Record<string, any>) {
+  if (window.location.pathname.startsWith("/report-preview")) return; // the admin editor's preview isn't a reader
   // Through the shared wrapper: it loads the light SDK lazily (and is a no-op without a token).
   track(`gster26_${event}`, { report: "gster26", ...props });
 }
