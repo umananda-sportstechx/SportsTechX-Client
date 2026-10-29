@@ -54,7 +54,8 @@ export default function Gster26PreviewPage() {
 
 	if (!content) return <div style={{ minHeight: '100vh', background: '#0c0f1a' }} />;
 	return (
-		<ReportErrorBoundary>
+		// Shows the error while the draft breaks the page; the next draft retries.
+		<ReportErrorBoundary resetKey={content}>
 			<ReportGSTER26 content={content} preview />
 		</ReportErrorBoundary>
 	);
