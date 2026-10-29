@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
 import { BRAND } from './brand';
+import { INNOVATORS_DATA } from './data/gster26-innovators-data';
 
 export const INNOVATOR_RESPONSES_DEFAULT: Record<string, { q_innovators?: string; q_investors?: string; q_sports_orgs?: string }> = {
   "Alexander Janssen": {
@@ -384,3 +385,201 @@ export const FEATURED_ARTICLES_DEFAULT: FeaturedArticle[] = [
     color: BRAND.athletes,
   },
 ];
+
+
+// ── Page copy (extracted from report-gster26.tsx so the admin can edit it) ──
+
+export const NAV_DEFAULT = {
+  insights: "Insights",
+  innovators: "Innovators",
+  startups: "Startups to Watch",
+  ecosystem: "Ecosystem",
+  data: "Data in Full",
+  downloadPdf: "↓ Download PDF",
+};
+
+/** `icon` is one of: funding, unicorn, investors, globe, trending, ma. */
+export const HERO_DEFAULT = {
+  titleLine1: "GLOBAL",
+  titleLine2: "SPORTSTECH",
+  titleLine3: "ECOSYSTEM",
+  titleLine4: "REPORT",
+  titleYear: "2026",
+  intro: "Welcome to the ninth edition of the most comprehensive annual review of investment, innovation, and technology in the global sports ecosystem.",
+  presentedBy: "Presented by",
+  poweredBy: "Powered by",
+  kpis: [
+    { icon: "funding", num: "$35.8B", label: "Invested in SportsTech 2021–25, with $8.7B deployed in 2025 alone" },
+    { icon: "unicorn", num: "46", label: "SportsTech unicorns with a combined $210.2B valuation" },
+    { icon: "investors", num: "58", label: "New investors & initiatives in the sports ecosystem in the last 12 months" },
+    { icon: "globe", num: "51%", label: "Europe's share of 2025 funding, overtaking North America for the first time ($4.5B vs $4.0B)" },
+    { icon: "trending", num: "$43.6M", label: "Average deal value in 2025, up from $28.1M in 2024 despite a similar number of rounds (200 vs 194)" },
+    { icon: "ma", num: "87%", label: "Of all 2025 acquisitions made by SportsTech companies, up from 47% in 2020" },
+  ],
+};
+
+export const TRENDS_HEADER_DEFAULT = {
+  eyebrow: "Trends | Deep Dives",
+  title: "THE FORCES RESHAPING\nSPORTSTECH",
+  trendsTab: "Trends",
+  deepDivesTab: "Deep Dives",
+  trendsIntro: "Three signals that point to structural shifts, not temporary blips.",
+  deepDivesIntro: "Three stories with implications that run deeper than the news cycle.",
+};
+
+/** The three Trends cards, by id. The expanded article bodies stay in code; the M&A stat is computed. */
+export const TREND_CARDS_DEFAULT = {
+  "ma-sportstech": {
+    tag: "M&A ACQUIRERS", title: "SPORTSTECH IS BUYING ITSELF",
+    summary: "SportsTech companies are now their own most active acquirers , sportstech-on-sportstech deals tripled from 21 in 2016 to 68 in 2025.",
+    statLabel: "sportstech-on-sportstech deals in 2025",
+  },
+  "running-renaissance": {
+    tag: "PARTICIPATION & CULTURE", title: "COMPETITIVE RUNNING IS HAVING ITS MOMENT",
+    summary: "Record finishers, record revenues, and a new breed of runner turning race weekends into destination experiences , competitive running has become one of the fastest-growing segments in global sports.",
+    stat: "3.1%",
+    statLabel: "race churn rate in 2025 , record low, signaling a maturing market",
+  },
+  "dtc-shift": {
+    tag: "DTC & STREAMING", title: "SPORT IS GOING DIRECT",
+    summary: "A structural collapse in the US and a strategic awakening internationally have combined to make 2025/26 the year the DTC shift stopped being theoretical.",
+    stat: "",
+    statLabel: "",
+  },
+};
+
+export const PEAK_COPY_DEFAULT = {
+  "title": "PEAK 2026 | LAS VEGAS",
+  "subtitle": "The Global Stage for SportsTech Startups",
+  "stats": [
+    "1,000+ Attendees",
+    "100+ Speakers",
+    "8+ Tracks",
+    "50+ Countries",
+    "100+ Exhibitors"
+  ],
+  "videoUrl": "https://www.youtube.com/embed/fLBSnWkv40o",
+  "about": [
+    "PEAK brings together 1,000+ sports executives, investors, and founders shaping the future of sport.",
+    "Raise capital, build partnerships, and stay ahead of SportsTech , all in one place.",
+    "Three days at PEAK can replace months of meetings, so you can get back to building.",
+    "APRIL 20–22, 2026 | Fontainebleau Las Vegas"
+  ],
+  "ctaTitle": "Discover the Future of Sports",
+  "ctaSubtitle": "Join the global SportsTech community at PEAK 2026",
+  "ctaLabel": "SAVE $500 NOW",
+  "ctaUrl": "https://peakconf.com/stxreport?utm_source=stxreport&utm_medium=report&utm_campaign=stxreport_link",
+  "swcTitle": "Startup World Cup Finals",
+  "swcBadge": "AWS · $10K Prize",
+  "swcIntro": "Nine finalists pitch live to leading sports executives and investors.",
+  "groundbreakersTitle": "Groundbreakers Challenge",
+  "groundbreakersBadge": "GSIC",
+  "groundbreakersIntro": "Connecting startups with leading sports organisations seeking tech-driven solutions.",
+  "partnersTitle": "Partners & Sponsors"
+};
+
+export const INNOVATORS_HEADER_DEFAULT = {
+  "eyebrow": "Innovators",
+  "title": "DRIVING WHAT\nCOMES NEXT",
+  "intro": "The people and organisations defining where sports innovation and investment go from here.",
+  "questionInnovators": "Are there any underserved areas in sports tech that you think are ripe for disruption?",
+  "questionInvestors": "Which emerging technologies do you believe will reshape the sports industry in the next 3–5 years?",
+  "questionSportsOrgs": "In which operational areas are you actively seeking innovation?"
+};
+
+export const STARTUPS_HEADER_DEFAULT = {
+  "eyebrow": "Startups to Watch",
+  "title": "COMPANIES WORTH\nYOUR ATTENTION",
+  "innovatorsIntro": "Nominated by this year's featured innovators: the startups they're watching, backing, or building alongside.",
+  "peakIntro": "Finalists in the PEAK Startup World Cup: pitching in Las Vegas on April 21 in front of investors and industry leaders.",
+  "picksIntro": "Companies that stood out to our team: for the problem they address, or the moment they're in.",
+  "ctaTitle": "Is your company on the global sports tech database?",
+  "ctaText": "ADD or VERIFY your company to get discovered by investors, programs, and sports organizations worldwide",
+  "ctaLabel": "VERIFY YOUR COMPANY",
+  "ctaUrl": "/companies"
+};
+
+export const NGSC_DEFAULT = {
+  "title": "NGSC 2025",
+  "dateLine": "23–24 August 2025 · Four Seasons Hotel Riyadh, Saudi Arabia",
+  "logoUrl": "https://newglobalsportconference.com/wp-content/uploads/2025/08/EWCF_V1.0_White-1.svg",
+  "registerLabel": "REGISTER INTEREST",
+  "registerUrl": "https://newglobalsportconference.com/n9cxy3/",
+  "websiteLabel": "WEBSITE",
+  "websiteUrl": "https://newglobalsportconference.com",
+  "stageImage": "https://newglobalsportconference.com/wp-content/uploads/2025/06/webready-about.webp",
+  "crowdImage": "https://newglobalsportconference.com/wp-content/uploads/2025/06/biggest-global-esport-conference-ngsc-2-e1750325522595.webp",
+  "aboutLabel": "About the Conference",
+  "about1": "The New Global Sport Conference (NGSC 2025) is the premier global platform for industry leaders at the intersection of gaming, esports and sport , bringing together CEOs, founders and investors to drive groundbreaking initiatives.",
+  "about2": "A flagship event of the Esports World Cup Foundation, NGSC is held annually in Riyadh during the closing weekend of the Esports World Cup , the world's largest esports and gaming event.",
+  "themeHeading": "TRANSFORMING THE FUTURE OF COMPETITIVE PLAY",
+  "pillars": [
+    "Bringing together the world's most influential voices.",
+    "Where industries converge to spark dialogue and challenge convention.",
+    "The leading platform where gaming, esports and sport's future takes shape."
+  ],
+  "programLabel": "The Program",
+  "program": "The curated program features over 1,500 industry leaders, including HRH Prince Faisal bin Bandar bin Sultan Al Saud, HRH Prince Fahad bin Mansour bin Nasser Al Saud, and representatives from the LA28 Olympic Games, Sony, SEGA, and more. Through keynotes, panels, strategic roundtables and private forums, attendees will define the next stage of industry growth and innovation."
+};
+
+export const DATA_HEADER_DEFAULT = {
+  "eyebrow": "Data in Full",
+  "title": "THE NUMBERS\nTHAT MATTER",
+  "intro": "The complete dataset behind this year's report: every company, every deal, every number behind the story.",
+  "equityTab": "Equity",
+  "maTab": "Mergers & Acquisitions",
+  "fundingByYear": "FUNDING BY YEAR",
+  "regionalShare": "REGIONAL SHARE OF GLOBAL DEALFLOW",
+  "topCountries": "TOP COUNTRIES BY FUNDING",
+  "sectorSplit": "SECTOR SPLIT BY INVESTMENT",
+  "topFunded": "TOP FUNDED COMPANIES",
+  "maByYear": "M&A BY YEAR",
+  "notableAcquisitions": "NOTABLE ACQUISITIONS",
+  "ctaTitle": "Dive Deeper into the Data",
+  "ctaText": "Interactive charts, custom filters, and real-time analytics across every deal, sector, and region",
+  "ctaLabel": "OPEN ANALYTICS ",
+  "ctaUrl": "/analytics"
+};
+
+export const CLOSING_DEFAULT = {
+  "quote": "The data is clear. Sports technology is not a trend. It is the infrastructure of modern sport.",
+  "cite": "2025"
+};
+
+/** Leave intro empty to use the automatic one (counts of investors, initiatives and programs). */
+export const ECOMAP_DEFAULT = {
+  "eyebrow": "Ecosystem",
+  "title": "THE GLOBAL\nECOSYSTEM MAP",
+  "intro": ""
+};
+
+/**
+ * Every editable block, keyed as in `reports.content`. The report reads
+ * `content.<key> ?? <default>`; the admin editor's preview sends this map to
+ * the editor so a block that was never edited still shows (and edits from)
+ * the copy the page really renders. PEAK_TRACKS stays code-only (lucide icons).
+ */
+export const GSTER26_DEFAULTS: Record<string, unknown> = {
+  innovatorResponses: INNOVATOR_RESPONSES_DEFAULT,
+  watchInnovators: watchInnovators_DEFAULT,
+  watchPeak: watchPeak_DEFAULT,
+  watchStxRecommends: watchStxRecommends_DEFAULT,
+  featuredArticles: FEATURED_ARTICLES_DEFAULT,
+  peakSwcFinalists: PEAK_SWC_FINALISTS_DEFAULT,
+  groundbreakersOrgs: GROUNDBREAKERS_ORGS_DEFAULT,
+  peakPartnersTier1: PEAK_PARTNERS_TIER1_DEFAULT,
+  peakPartnersTier2: PEAK_PARTNERS_TIER2_DEFAULT,
+  peakPartnersTier3: PEAK_PARTNERS_TIER3_DEFAULT,
+  nav: NAV_DEFAULT,
+  hero: HERO_DEFAULT,
+  trendsHeader: TRENDS_HEADER_DEFAULT,
+  trendCards: TREND_CARDS_DEFAULT,
+  peakCopy: PEAK_COPY_DEFAULT,
+  innovatorsHeader: INNOVATORS_HEADER_DEFAULT,
+  startupsHeader: STARTUPS_HEADER_DEFAULT,
+  ngsc: NGSC_DEFAULT,
+  dataHeader: DATA_HEADER_DEFAULT,
+  closing: CLOSING_DEFAULT,
+  ecomap: ECOMAP_DEFAULT,
+  innovators: INNOVATORS_DATA,
+};
