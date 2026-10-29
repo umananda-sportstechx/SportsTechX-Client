@@ -65,8 +65,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	// (logo, nav, home) until their profile landed — for as long as a slow
 	// network took. `isLoading`, not `!ready`, so a failed profile request
 	// falls through to the frame instead of spinning forever.
-	const { isLoading: profileLoading } = useUserProfile();
-	if (!ready && profileLoading) return <AuthPlaceholder label="Loading…" />;
+	const { isLoading: profileLoading, error: profileError } = useUserProfile();
+	if (!ready && profileLoading && !profileError) return <AuthPlaceholder label="Loading…" />;
 
 	return (
 		<>
