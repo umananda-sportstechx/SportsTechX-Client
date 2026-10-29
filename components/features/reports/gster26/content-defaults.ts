@@ -997,7 +997,11 @@ export const TREND_DTC_DEFAULT = {
  * the editor so a block that was never edited still shows (and edits from)
  * the copy the page really renders. PEAK_TRACKS stays code-only (lucide icons).
  */
+/** The reorderable page parts between the hero and the closing quote, in page order. */
+export const GSTER26_PART_ORDER = ['trends', 'peak', 'innovators', 'startups', 'ecomap', 'ngsc', 'data'];
+
 export const GSTER26_DEFAULTS: Record<string, unknown> = {
+  partOrder: GSTER26_PART_ORDER,
   innovatorResponses: INNOVATOR_RESPONSES_DEFAULT,
   watchInnovators: watchInnovators_DEFAULT,
   watchPeak: watchPeak_DEFAULT,

@@ -14,7 +14,7 @@ import "./gster26.css";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import "@/components/landing/landing.css";
 import { BRAND } from './brand';
-import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT, NAV_DEFAULT, HERO_DEFAULT, TRENDS_HEADER_DEFAULT, TREND_CARDS_DEFAULT, PEAK_COPY_DEFAULT, INNOVATORS_HEADER_DEFAULT, STARTUPS_HEADER_DEFAULT, NGSC_DEFAULT, DATA_HEADER_DEFAULT, CLOSING_DEFAULT, ECOMAP_DEFAULT, TREND_MA_DEFAULT, TREND_RUNNING_DEFAULT, TREND_DTC_DEFAULT } from './content-defaults';
+import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT, NAV_DEFAULT, HERO_DEFAULT, TRENDS_HEADER_DEFAULT, TREND_CARDS_DEFAULT, PEAK_COPY_DEFAULT, INNOVATORS_HEADER_DEFAULT, STARTUPS_HEADER_DEFAULT, NGSC_DEFAULT, DATA_HEADER_DEFAULT, CLOSING_DEFAULT, ECOMAP_DEFAULT, TREND_MA_DEFAULT, TREND_RUNNING_DEFAULT, TREND_DTC_DEFAULT, GSTER26_PART_ORDER } from './content-defaults';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -1433,243 +1433,9 @@ export default function ReportGSTER26({ content, preview = false }: {
     </div>
   );
 
-  return (
-    <div ref={reportContainerRef} style={{ background: t.bg, color: t.text, fontFamily: "'Open Sans','system-ui',sans-serif", overflowX: "hidden", minHeight: "100vh", transition: "background 0.35s, color 0.35s" }}>
-      {/* ── NAV ─────────────────────────────────────────────────────────── */}
-      <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
-        <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0, flexShrink: 0 }}>
-          <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, display: "block" }} />
-        </a>
-        {/* Desktop nav links */}
-        {!isMobile && (
-          <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-            {([["#trends",NAV.insights,1],["#innovators",NAV.innovators,2],["#ecosystem",NAV.startups,3],["#ecomap",NAV.ecosystem,4],["#dealflow",NAV.data,5]] as const).map(([href, label, dotIdx]) => {
-              const isActive = activeDot === dotIdx;
-              return (
-                <a key={href} href={href} className="stx-nav-link"
-                  style={{
-                    fontFamily: "var(--font-space-grotesk), system-ui, sans-serif",
-                    fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase",
-                    color: isActive ? BRAND.pink : t.textMuted,
-                    textDecoration: "none", transition: "color 0.2s",
-                    fontWeight: 500,
-                    paddingBottom: 4,
-                    borderBottom: isActive ? `2px solid ${BRAND.pink}` : "2px solid transparent",
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    trackG26("nav_click", { section: label });
-                    const target = document.querySelector(href);
-                    if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.6, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-                  }}>
-                  {label}
-                </a>
-              );
-            })}
-          </div>
-        )}
-        <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
-          {/* Dark/Light toggle */}
-          <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", background: isDark ? "rgba(243,33,99,0.16)" : "rgba(243,33,99,0.08)", border: `1px solid ${isDark ? "rgba(243,33,99,0.7)" : "rgba(243,33,99,0.5)"}`, borderRadius: 99, padding: isMobile ? "6px 9px" : "6px 11px", fontSize: isMobile ? 10 : 12, color: isDark ? "#ffa7c2" : "#f32163", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", transition: "background 0.25s, color 0.25s" }}>
-            {isDark ? <Sun size={isMobile ? 14 : 16} strokeWidth={2} /> : <Moon size={isMobile ? 14 : 16} strokeWidth={2} />}
-          </button>
-          {/* Desktop: Hub link / Mobile: Hamburger */}
-          {isMobile ? (
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              style={{ background: "none", border: `1px solid ${BRAND.pink}`, borderRadius: 8, padding: "5px 8px", color: BRAND.pink, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          ) : (
-            <>
-              <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf"
-                style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontSize: 11, letterSpacing: 1.6, fontWeight: 500, color: "#fff", background: "#f32163", border: "1px solid #f32163", padding: "8px 18px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                onClick={() => { trackG26("nav_click", { section: "pdf_download" }); }}
-              >{NAV.downloadPdf}</a>
-            </>
-          )}
-        </div>
-      </nav>
-      {/* Mobile dropdown menu */}
-      {isMobile && (
-        <div style={{
-          position: "fixed", top: 52, left: 0, right: 0, zIndex: 99,
-          maxHeight: mobileMenuOpen ? 400 : 0, opacity: mobileMenuOpen ? 1 : 0, overflow: "hidden",
-          background: t.navBg, backdropFilter: "blur(20px)", borderBottom: mobileMenuOpen ? `1px solid ${t.divider}` : "none",
-          transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease",
-          display: authGateActive ? "none" : undefined,
-        }}>
-          <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 4 }}>
-            {([["#trends",NAV.insights],["#innovators",NAV.innovators],["#ecosystem",NAV.startups],["#ecomap",NAV.ecosystem],["#dealflow",NAV.data]] as const).map(([href, label]) => (
-              <a key={href} href={href}
-                style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: t.textMuted, textDecoration: "none", padding: "10px 0", borderBottom: `1px solid ${t.divider}`, fontFamily: "'DM Mono',monospace", transition: "color 0.2s" }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  trackG26("nav_click", { section: label, mobile: true });
-                  setMobileMenuOpen(false);
-                  const target = document.querySelector(href);
-                  if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.6, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-                }}>
-                {label}
-              </a>
-            ))}
-            <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>{NAV.downloadPdf}</a>
-          </div>
-        </div>
-      )}
-      {/* ── Back to Top button for trends/explained articles ── */}
-      {!isPdf && <button
-        onClick={() => {
-          trackG26("back_to_top");
-          const target = document.querySelector("#trends");
-          if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.0, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-        }}
-        style={{
-          position: "fixed", bottom: isMobile ? 20 : 32, right: isMobile ? 20 : 32, zIndex: 140,
-          background: BRAND.pink, color: "#fff", border: "none", borderRadius: 50,
-          padding: isMobile ? "10px 16px" : "10px 20px",
-          fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
-          cursor: "pointer", boxShadow: "0 4px 20px rgba(237,26,94,0.4)",
-          opacity: showBackToTop ? 1 : 0, pointerEvents: showBackToTop ? "auto" : "none",
-          transform: showBackToTop ? "translateY(0)" : "translateY(12px)",
-          transition: "opacity 0.3s ease, transform 0.3s ease",
-          display: "flex", alignItems: "center", gap: 6,
-        }}
-      >
-        <span style={{ fontSize: 14, lineHeight: 1 }}>↑</span> BACK TO TOP
-      </button>}
-      {/* ── HERO ────────────────────────────────────────────────────────── */}
-      <section id="stx-hero" style={{ minHeight: isPdf ? "auto" : "100vh", height: isPdf ? "auto" : (isMobile ? "100svh" : "100vh"), position: "relative", display: "flex", alignItems: "center", overflow: "hidden", background: isDark ? "#0c0f1a" : BRAND.darkTitle, margin: 0, padding: isPdf ? "60px 0" : 0, width: "100%" }}>
-        <ParticleCanvas dark={isDark} />
-        {/* Radial overlay */}
-        <div style={{ position: "absolute", inset: 0, background: isDark ? "radial-gradient(ellipse at 25% 50%,transparent 0%,rgba(12,15,26,0.6) 100%)" : "radial-gradient(ellipse at 25% 50%,transparent 0%,rgba(45,59,73,0.5) 100%)" }} />
-        {/* Diagonal accent lines */}
-        <div style={{ position: "absolute", top: 0, left: "38%", width: 2, height: "140%", background: `linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.15) 50%, transparent 90%)`, transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: 0, left: "42%", width: 1, height: "140%", background: `linear-gradient(to bottom, transparent 15%, rgba(237,26,94,0.08) 50%, transparent 85%)`, transform: "rotate(12deg)", transformOrigin: "top center", pointerEvents: "none" }} />
-        {/* Grid dot pattern */}
-        <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", color: "#fff", pointerEvents: "none" }} />
-        {/* Soft pink glow behind cards area */}
-        <div style={{ position: "absolute", top: "20%", right: "10%", width: "50%", height: "60%", background: "radial-gradient(ellipse, rgba(237,26,94,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-        <div ref={heroContentRef} style={{
-          position: "relative", zIndex: 2, width: "100%", maxWidth: 1360, margin: "0 auto",
-          padding: isMobile ? "0px 20px" : "120px 48px 80px",
-          display: "flex", alignItems: isMobile ? "center" : "flex-start", justifyContent: isMobile ? "center" : undefined, gap: isMobile ? 0 : 64,
-          flexDirection: isMobile ? "column" : "row", willChange: "transform",
-        }}>
-          {/* Left , Title (on mobile this is the only thing in the hero) */}
-          <div style={{ flex: isMobile ? "none" : "1 1 auto", maxWidth: isMobile ? "100%" : "50%" }}>
-            <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? "clamp(64px,18vw,96px)" : "clamp(72px,8vw,130px)", lineHeight: 0.92, letterSpacing: -1, margin: 0 }}>
-              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {HERO.titleLine1}
-              </span>
-              <span style={{ display: "block", background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {HERO.titleLine2}
-              </span>
-              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {HERO.titleLine3}
-              </span>
-              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {HERO.titleLine4}{" "}
-                <span style={{ background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{HERO.titleYear}</span>
-              </span>
-            </h1>
-            {/* Accent bar */}
-            <div style={{ width: 48, height: 3, background: `linear-gradient(to right,${BRAND.pink},#ff6b9d)`, borderRadius: 2, marginTop: 24 }} />
-            <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", marginTop: 16, maxWidth: 560 }}>{HERO.intro}</p>
-            {/* Logos */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.presentedBy}</span>
-                <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
-              </div>
-              <div style={{ width: 1, alignSelf: "stretch", background: "rgba(190,208,227,0.2)" }} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.poweredBy}</span>
-                <img src={isGster26 ? "/peak-logo-nav.webp" : "/peak-logo.jpeg"} alt="PEAK" style={{ height: isGster26 ? 28 : 36, borderRadius: 6, opacity: 0.9 }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Right , Summary cards (desktop only , on mobile these are in a separate section below) */}
-          {!isMobile && <div style={{ flex: "0 1 580px", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, minWidth: 0 }}>
-            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
-              <div key={i} style={{
-                padding: "26px 24px 22px", borderRadius: 12,
-                background: isDark ? t.bgCard : "#fff",
-                border: isDark ? `1px solid ${t.border}` : "none",
-                position: "relative", overflow: "hidden",
-                boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.2)",
-              }}>
-                <div style={{ position: "absolute", top: 16, right: 16, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
-                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(36px,3.5vw,50px)", color: BRAND.pink, lineHeight: 1 }}>{card.num}</div>
-                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
-              </div>
-            ))}
-          </div>}
-        </div>
-
-      </section>
-      {/* ── Mobile Summary Cards (separate section , horizontal rows) ── */}
-      {isMobile && (
-        <section style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "#0c0f1a" : BRAND.darkTitle, padding: "40px 16px", position: "relative", overflow: "hidden" }}>
-          {/* Subtle background pattern */}
-          <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.04 : 0.06, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", color: "#fff", pointerEvents: "none" }} />
-          <div style={{ position: "relative", zIndex: 1, width: "100%", height: "calc(100svh - 140px)", display: "flex", flexDirection: "column", gap: 10 }}>
-            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
-              <div key={i} style={{
-                padding: "20px 18px", borderRadius: 10,
-                background: isDark ? t.bgCard : "#fff",
-                border: isDark ? `1px solid ${t.border}` : "none",
-                position: "relative", overflow: "hidden",
-                boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.2)",
-                display: "flex", alignItems: "center", gap: 14,
-                flex: 1, minHeight: 0,
-              }}>
-                <div style={{ position: "absolute", top: 10, right: 10, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
-                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: BRAND.pink, lineHeight: 1, flexShrink: 0, minWidth: 55 }}>{card.num}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {/* ── SKEW WRAPPER: velocity-based tilt applied to all content below hero ── */}
-      <div ref={skewWrapRef} style={{ willChange: "transform", transformOrigin: "center top", position: "relative", zIndex: 1 }}>
-
-      {/* ── CHART-01: EXECUTIVE SUMMARY STATS ──────────────────────────── */}
-      {/* Executive Summary section , commented out
-      <div id="facts" style={{ background: t.bgSec, padding: isMobile ? "48px 0" : "88px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
-          <div className="stx-reveal">
-            {sectionLabel("Executive Summary")}
-            {sectionTitle(DATA_HEADER.title)}
-            <SourceBadge chartId="CHART-01" source="sm_test · dm_test · ma_test_new (COUNT / SUM aggregates)" />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16, marginTop: 40 }}>
-            {isLoading ? Array(6).fill(0).map((_,i) => (
-              <div key={i} style={{ background: t.bgCard, height: 156, opacity: 0.35, border: `1px solid ${t.border}`, borderRadius: 14 }} />
-            )) : (
-              <>
-                <StatCard t={t} icon="funding" num="$35.8B" label="Invested in SportsTech 2021–25, with $8.7B deployed in 2025 alone" />
-                <StatCard t={t} icon="unicorn" num="46" label="SportsTech unicorns with a combined $210.2B valuation" />
-                <StatCard t={t} icon="investors" num="58" label="New investors & initiatives in the sports ecosystem in the last 12 months" />
-                <StatCard t={t} icon="globe" num="51%" label="Europe's share of 2025 funding, overtaking North America for the first time ($4.5B vs $4.0B)" />
-                <StatCard t={t} icon="trending" num="$43.6M" label="Average deal value in 2025, up from $28.1M in 2024 despite a similar number of rounds (200 vs 194)" />
-                <StatCard t={t} icon="ma" num="87%" label="Of all 2025 acquisitions made by SportsTech companies, up from 47% in 2020" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-      */}
-
-
+  // Page parts the admin can reorder (content.partOrder); each renders exactly as before.
+  const PARTS: Record<string, React.ReactNode> = {
+    trends: (<>
       {/* ── CHART-07: KEY TRENDS (THREE FORCES) ─────────────────────────── */}
       <div id="trends" style={{ background: t.bg, padding: isMobile ? "48px 0" : "88px 0" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
@@ -2839,6 +2605,8 @@ export default function ReportGSTER26({ content, preview = false }: {
         </div>
       </div>
 
+    </>),
+    peak: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)` }} />
 
       {/* ── PEAK 2026 FEATURED SECTION ─────────────────────────────────── */}
@@ -3002,6 +2770,8 @@ export default function ReportGSTER26({ content, preview = false }: {
       </div>
       </div>
 
+    </>),
+    innovators: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)` }} />
 
       {/* ── GSTER26 INNOVATORS ────────────────────────────────────────────── */}
@@ -3320,6 +3090,8 @@ export default function ReportGSTER26({ content, preview = false }: {
         );
       })()}
 
+    </>),
+    startups: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)` }} />
 
       {/* ── CHART-10 + CHART-11: ECOSYSTEM SNAPSHOT ─────────────────────── */}
@@ -3463,6 +3235,8 @@ export default function ReportGSTER26({ content, preview = false }: {
         </div>
       </div>
 
+    </>),
+    ecomap: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)` }} />
 
       {/* ── ECOSYSTEM MAP: INVESTORS, INNOVATION & PROGRAMS ──────────────── */}
@@ -3472,6 +3246,8 @@ export default function ReportGSTER26({ content, preview = false }: {
         </Suspense>
       </div>
 
+    </>),
+    ngsc: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: isMobile ? "24px 0" : "40px 0" }} />
 
       {/* ── NGSC FEATURED SECTION ────────────────────────────────────────── */}
@@ -3590,6 +3366,8 @@ export default function ReportGSTER26({ content, preview = false }: {
       </div>
       </div>
 
+    </>),
+    data: (<>
       <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.ngsc}55,transparent)`, margin: isMobile ? "24px 0" : "40px 0" }} />
 
       {/* ── FACTS & FIGURES: FUNDING + M&A TABS ─────────────────────────── */}
@@ -3874,6 +3652,249 @@ export default function ReportGSTER26({ content, preview = false }: {
 
         </div>
       </div>
+
+    </>),
+  };
+  const partOrder = [...new Set([...(Array.isArray(ov?.partOrder) ? ov.partOrder : []), ...GSTER26_PART_ORDER])].filter((id) => id in PARTS);
+
+  return (
+    <div ref={reportContainerRef} style={{ background: t.bg, color: t.text, fontFamily: "'Open Sans','system-ui',sans-serif", overflowX: "hidden", minHeight: "100vh", transition: "background 0.35s, color 0.35s" }}>
+      {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
+        <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0, flexShrink: 0 }}>
+          <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, display: "block" }} />
+        </a>
+        {/* Desktop nav links */}
+        {!isMobile && (
+          <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
+            {([["#trends",NAV.insights,1],["#innovators",NAV.innovators,2],["#ecosystem",NAV.startups,3],["#ecomap",NAV.ecosystem,4],["#dealflow",NAV.data,5]] as const).map(([href, label, dotIdx]) => {
+              const isActive = activeDot === dotIdx;
+              return (
+                <a key={href} href={href} className="stx-nav-link"
+                  style={{
+                    fontFamily: "var(--font-space-grotesk), system-ui, sans-serif",
+                    fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase",
+                    color: isActive ? BRAND.pink : t.textMuted,
+                    textDecoration: "none", transition: "color 0.2s",
+                    fontWeight: 500,
+                    paddingBottom: 4,
+                    borderBottom: isActive ? `2px solid ${BRAND.pink}` : "2px solid transparent",
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    trackG26("nav_click", { section: label });
+                    const target = document.querySelector(href);
+                    if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.6, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+                  }}>
+                  {label}
+                </a>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
+          {/* Dark/Light toggle */}
+          <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", background: isDark ? "rgba(243,33,99,0.16)" : "rgba(243,33,99,0.08)", border: `1px solid ${isDark ? "rgba(243,33,99,0.7)" : "rgba(243,33,99,0.5)"}`, borderRadius: 99, padding: isMobile ? "6px 9px" : "6px 11px", fontSize: isMobile ? 10 : 12, color: isDark ? "#ffa7c2" : "#f32163", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", transition: "background 0.25s, color 0.25s" }}>
+            {isDark ? <Sun size={isMobile ? 14 : 16} strokeWidth={2} /> : <Moon size={isMobile ? 14 : 16} strokeWidth={2} />}
+          </button>
+          {/* Desktop: Hub link / Mobile: Hamburger */}
+          {isMobile ? (
+            <button onClick={() => setMobileMenuOpen(o => !o)}
+              style={{ background: "none", border: `1px solid ${BRAND.pink}`, borderRadius: 8, padding: "5px 8px", color: BRAND.pink, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          ) : (
+            <>
+              <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf"
+                style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontSize: 11, letterSpacing: 1.6, fontWeight: 500, color: "#fff", background: "#f32163", border: "1px solid #f32163", padding: "8px 18px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 99 }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                onClick={() => { trackG26("nav_click", { section: "pdf_download" }); }}
+              >{NAV.downloadPdf}</a>
+            </>
+          )}
+        </div>
+      </nav>
+      {/* Mobile dropdown menu */}
+      {isMobile && (
+        <div style={{
+          position: "fixed", top: 52, left: 0, right: 0, zIndex: 99,
+          maxHeight: mobileMenuOpen ? 400 : 0, opacity: mobileMenuOpen ? 1 : 0, overflow: "hidden",
+          background: t.navBg, backdropFilter: "blur(20px)", borderBottom: mobileMenuOpen ? `1px solid ${t.divider}` : "none",
+          transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease",
+          display: authGateActive ? "none" : undefined,
+        }}>
+          <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 4 }}>
+            {([["#trends",NAV.insights],["#innovators",NAV.innovators],["#ecosystem",NAV.startups],["#ecomap",NAV.ecosystem],["#dealflow",NAV.data]] as const).map(([href, label]) => (
+              <a key={href} href={href}
+                style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: t.textMuted, textDecoration: "none", padding: "10px 0", borderBottom: `1px solid ${t.divider}`, fontFamily: "'DM Mono',monospace", transition: "color 0.2s" }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  trackG26("nav_click", { section: label, mobile: true });
+                  setMobileMenuOpen(false);
+                  const target = document.querySelector(href);
+                  if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.6, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+                }}>
+                {label}
+              </a>
+            ))}
+            <a href={GSTER26_PDF_URL} download="GSTER26-LITE.pdf" onClick={() => { trackG26("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: "#fff", background: "#f32163", textDecoration: "none", padding: "11px 20px", fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", fontWeight: 500, borderRadius: 99, display: "inline-block", marginTop: 4 }}>{NAV.downloadPdf}</a>
+          </div>
+        </div>
+      )}
+      {/* ── Back to Top button for trends/explained articles ── */}
+      {!isPdf && <button
+        onClick={() => {
+          trackG26("back_to_top");
+          const target = document.querySelector("#trends");
+          if (target) lenisRef.current?.scrollTo(target as HTMLElement, { offset: -72, duration: 1.0, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+        }}
+        style={{
+          position: "fixed", bottom: isMobile ? 20 : 32, right: isMobile ? 20 : 32, zIndex: 140,
+          background: BRAND.pink, color: "#fff", border: "none", borderRadius: 50,
+          padding: isMobile ? "10px 16px" : "10px 20px",
+          fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
+          cursor: "pointer", boxShadow: "0 4px 20px rgba(237,26,94,0.4)",
+          opacity: showBackToTop ? 1 : 0, pointerEvents: showBackToTop ? "auto" : "none",
+          transform: showBackToTop ? "translateY(0)" : "translateY(12px)",
+          transition: "opacity 0.3s ease, transform 0.3s ease",
+          display: "flex", alignItems: "center", gap: 6,
+        }}
+      >
+        <span style={{ fontSize: 14, lineHeight: 1 }}>↑</span> BACK TO TOP
+      </button>}
+      {/* ── HERO ────────────────────────────────────────────────────────── */}
+      <section id="stx-hero" style={{ minHeight: isPdf ? "auto" : "100vh", height: isPdf ? "auto" : (isMobile ? "100svh" : "100vh"), position: "relative", display: "flex", alignItems: "center", overflow: "hidden", background: isDark ? "#0c0f1a" : BRAND.darkTitle, margin: 0, padding: isPdf ? "60px 0" : 0, width: "100%" }}>
+        <ParticleCanvas dark={isDark} />
+        {/* Radial overlay */}
+        <div style={{ position: "absolute", inset: 0, background: isDark ? "radial-gradient(ellipse at 25% 50%,transparent 0%,rgba(12,15,26,0.6) 100%)" : "radial-gradient(ellipse at 25% 50%,transparent 0%,rgba(45,59,73,0.5) 100%)" }} />
+        {/* Diagonal accent lines */}
+        <div style={{ position: "absolute", top: 0, left: "38%", width: 2, height: "140%", background: `linear-gradient(to bottom, transparent 10%, rgba(237,26,94,0.15) 50%, transparent 90%)`, transform: "rotate(15deg)", transformOrigin: "top center", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: 0, left: "42%", width: 1, height: "140%", background: `linear-gradient(to bottom, transparent 15%, rgba(237,26,94,0.08) 50%, transparent 85%)`, transform: "rotate(12deg)", transformOrigin: "top center", pointerEvents: "none" }} />
+        {/* Grid dot pattern */}
+        <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.06 : 0.08, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", color: "#fff", pointerEvents: "none" }} />
+        {/* Soft pink glow behind cards area */}
+        <div style={{ position: "absolute", top: "20%", right: "10%", width: "50%", height: "60%", background: "radial-gradient(ellipse, rgba(237,26,94,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+        <div ref={heroContentRef} style={{
+          position: "relative", zIndex: 2, width: "100%", maxWidth: 1360, margin: "0 auto",
+          padding: isMobile ? "0px 20px" : "120px 48px 80px",
+          display: "flex", alignItems: isMobile ? "center" : "flex-start", justifyContent: isMobile ? "center" : undefined, gap: isMobile ? 0 : 64,
+          flexDirection: isMobile ? "column" : "row", willChange: "transform",
+        }}>
+          {/* Left , Title (on mobile this is the only thing in the hero) */}
+          <div style={{ flex: isMobile ? "none" : "1 1 auto", maxWidth: isMobile ? "100%" : "50%" }}>
+            <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? "clamp(64px,18vw,96px)" : "clamp(72px,8vw,130px)", lineHeight: 0.92, letterSpacing: -1, margin: 0 }}>
+              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {HERO.titleLine1}
+              </span>
+              <span style={{ display: "block", background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {HERO.titleLine2}
+              </span>
+              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {HERO.titleLine3}
+              </span>
+              <span style={{ display: "block", background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {HERO.titleLine4}{" "}
+                <span style={{ background: `linear-gradient(135deg,${BRAND.pink},#ff6b9d)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{HERO.titleYear}</span>
+              </span>
+            </h1>
+            {/* Accent bar */}
+            <div style={{ width: 48, height: 3, background: `linear-gradient(to right,${BRAND.pink},#ff6b9d)`, borderRadius: 2, marginTop: 24 }} />
+            <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", marginTop: 16, maxWidth: 560 }}>{HERO.intro}</p>
+            {/* Logos */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 28, marginTop: 28, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.presentedBy}</span>
+                <img src="/landing/atlas-wordmark-white.svg" alt="SportsTechX" style={{ height: 33, opacity: 0.9 }} />
+              </div>
+              <div style={{ width: 1, alignSelf: "stretch", background: "rgba(190,208,227,0.2)" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(190,208,227,0.45)", letterSpacing: 2, textTransform: "uppercase" }}>{HERO.poweredBy}</span>
+                <img src={isGster26 ? "/peak-logo-nav.webp" : "/peak-logo.jpeg"} alt="PEAK" style={{ height: isGster26 ? 28 : 36, borderRadius: 6, opacity: 0.9 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right , Summary cards (desktop only , on mobile these are in a separate section below) */}
+          {!isMobile && <div style={{ flex: "0 1 580px", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, minWidth: 0 }}>
+            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
+              <div key={i} style={{
+                padding: "26px 24px 22px", borderRadius: 12,
+                background: isDark ? t.bgCard : "#fff",
+                border: isDark ? `1px solid ${t.border}` : "none",
+                position: "relative", overflow: "hidden",
+                boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.2)",
+              }}>
+                <div style={{ position: "absolute", top: 16, right: 16, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(36px,3.5vw,50px)", color: BRAND.pink, lineHeight: 1 }}>{card.num}</div>
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
+              </div>
+            ))}
+          </div>}
+        </div>
+
+      </section>
+      {/* ── Mobile Summary Cards (separate section , horizontal rows) ── */}
+      {isMobile && (
+        <section style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "#0c0f1a" : BRAND.darkTitle, padding: "40px 16px", position: "relative", overflow: "hidden" }}>
+          {/* Subtle background pattern */}
+          <div style={{ position: "absolute", inset: 0, opacity: isDark ? 0.04 : 0.06, backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", color: "#fff", pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 1, width: "100%", height: "calc(100svh - 140px)", display: "flex", flexDirection: "column", gap: 10 }}>
+            {(HERO.kpis as { icon: keyof typeof STAT_ICONS; num: string; label: string }[]).map((card, i) => (
+              <div key={i} style={{
+                padding: "20px 18px", borderRadius: 10,
+                background: isDark ? t.bgCard : "#fff",
+                border: isDark ? `1px solid ${t.border}` : "none",
+                position: "relative", overflow: "hidden",
+                boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.2)",
+                display: "flex", alignItems: "center", gap: 14,
+                flex: 1, minHeight: 0,
+              }}>
+                <div style={{ position: "absolute", top: 10, right: 10, opacity: 0.55 }}>{(STAT_ICONS[card.icon] ?? STAT_ICONS.funding)(isDark ? t.textMuted : BRAND.darkTitle)}</div>
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: BRAND.pink, lineHeight: 1, flexShrink: 0, minWidth: 55 }}>{card.num}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: isDark ? t.titleColor : BRAND.darkTitle, lineHeight: 1.4 }}>{card.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {/* ── SKEW WRAPPER: velocity-based tilt applied to all content below hero ── */}
+      <div ref={skewWrapRef} style={{ willChange: "transform", transformOrigin: "center top", position: "relative", zIndex: 1 }}>
+
+      {/* ── CHART-01: EXECUTIVE SUMMARY STATS ──────────────────────────── */}
+      {/* Executive Summary section , commented out
+      <div id="facts" style={{ background: t.bgSec, padding: isMobile ? "48px 0" : "88px 0" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 40px" }}>
+          <div className="stx-reveal">
+            {sectionLabel("Executive Summary")}
+            {sectionTitle(DATA_HEADER.title)}
+            <SourceBadge chartId="CHART-01" source="sm_test · dm_test · ma_test_new (COUNT / SUM aggregates)" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16, marginTop: 40 }}>
+            {isLoading ? Array(6).fill(0).map((_,i) => (
+              <div key={i} style={{ background: t.bgCard, height: 156, opacity: 0.35, border: `1px solid ${t.border}`, borderRadius: 14 }} />
+            )) : (
+              <>
+                <StatCard t={t} icon="funding" num="$35.8B" label="Invested in SportsTech 2021–25, with $8.7B deployed in 2025 alone" />
+                <StatCard t={t} icon="unicorn" num="46" label="SportsTech unicorns with a combined $210.2B valuation" />
+                <StatCard t={t} icon="investors" num="58" label="New investors & initiatives in the sports ecosystem in the last 12 months" />
+                <StatCard t={t} icon="globe" num="51%" label="Europe's share of 2025 funding, overtaking North America for the first time ($4.5B vs $4.0B)" />
+                <StatCard t={t} icon="trending" num="$43.6M" label="Average deal value in 2025, up from $28.1M in 2024 despite a similar number of rounds (200 vs 194)" />
+                <StatCard t={t} icon="ma" num="87%" label="Of all 2025 acquisitions made by SportsTech companies, up from 47% in 2020" />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      */}
+
+
+      {partOrder.map((id) => <React.Fragment key={id}>{PARTS[id]}</React.Fragment>)}
 
       {/* ── CLOSING QUOTE ───────────────────────────────────────────────── */}
       <div id="closing" style={{ background: isDark ? BRAND.darkTitle : BRAND.lightBlue, padding: isMobile ? "48px 0" : "88px 0" }}>
