@@ -26,8 +26,8 @@ import Link from 'next/link';
    on a sub-route and scrolls nowhere. Shared by the nav and the drawer. */
 export const LINKS: [string, string][] = [
 	['EXPLORE', '/#explore'],
-	['RAISE', '/#how-to-join'],
-	['SCOUT', '/#explore'],
+	['RAISE', '/#dash-raise'],
+	['SCOUT', '/#dash-scout'],
 	['FAQ', '/#faq'],
 ];
 
