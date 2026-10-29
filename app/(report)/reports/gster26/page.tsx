@@ -14,7 +14,8 @@ const ReportGSTER26 = dynamic(
 
 export default function Gster26ReportPage() {
 	return (
-		<ReportErrorBoundary>
+		// If edited copy breaks the page, readers get the report with its original copy instead.
+		<ReportErrorBoundary fallback={<ReportErrorBoundary><ReportGSTER26 content={{}} /></ReportErrorBoundary>}>
 			<ReportGSTER26 />
 		</ReportErrorBoundary>
 	);
