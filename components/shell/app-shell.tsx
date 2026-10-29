@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AtlasShell } from '@/components/atlas';
 import { RouteGate } from '@/components/auth/route-gate';
+import { AuthPlaceholder } from '@/components/auth/protected-route';
 import { Navbar } from './navbar';
 import { RailAccount } from './rail-account';
 // Raise-only, so a static import here shipped the co-pilot to Explore and
@@ -15,7 +16,7 @@ import { EXPLORE_COLOR } from '@/components/explore/shell-config';
 import { SCOUT_COLOR } from '@/components/scout/shell-config';
 import { useNav } from '@/hooks/use-nav';
 import { useRealtime } from '@/hooks/use-realtime';
-import { TIER_LABEL } from '@/hooks/use-user-profile';
+import { TIER_LABEL, useUserProfile } from '@/hooks/use-user-profile';
 import type { Tier } from '@/lib/access';
 import { hrefOf } from '@/lib/routes';
 import { trackPage } from '@/lib/analytics';
@@ -59,6 +60,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const { ready, tier, nav, homePath, accountPath } = useNav();
 	// Server pushes (claim verified, plan changed, notifications) → fresh screens.
 	useRealtime(ready);
+	// Hold the loading screen until the tier is known. `getUserType(undefined)`
+	// is 'explore', so drawing the frame early showed paying users Atlas Explore
+	// (logo, nav, home) until their profile landed — for as long as a slow
+	// network took. `isLoading`, not `!ready`, so a failed profile request
+	// falls through to the frame instead of spinning forever.
+	const { isLoading: profileLoading } = useUserProfile();
+	if (!ready && profileLoading) return <AuthPlaceholder label="Loading…" />;
 
 	return (
 		<>
