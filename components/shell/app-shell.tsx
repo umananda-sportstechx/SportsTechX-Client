@@ -35,9 +35,9 @@ import '@/components/scout/scout.css';
  * `stx:<product>-rail-collapsed` and `stx:<product>-nav-closed` from it, so
  * flattening it would silently reset everyone's sidebar preferences.
  *
- * It no longer sniffs paths. The two branches it had — billing/coming-soon and
+ * It no longer sniffs paths. The branches it had — billing/coming-soon and
  * onboarding, both wanting the Atlas palette with no chrome — are route
- * *layouts* now (`app/billing/layout.tsx`, `app/(onboarding)/layout.tsx`),
+ * *layouts* now (`app/billing/layout.tsx`, `app/plans/layout.tsx`),
  * which is where "this page has different chrome" belongs. `/coming-soon` is
  * gone entirely.
  */
@@ -95,9 +95,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			    that and broke something worse: 2,769 existing accounts have never
 			    been stamped, 126 of them paying for Raise, and every one would have
 			    been met by a full-screen "choose your plan" overlay.
-			    It now lives on `/onboarding`, which is where the flow actually puts
-			    it — right after email confirmation — and which an existing account
-			    never passes through again. */}
+			    It now lives on `/plans?welcome`, which is where the flow actually
+			    puts it — right after email confirmation — and which an existing
+			    account never passes through again. */}
 		</>
 	);
 }

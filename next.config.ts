@@ -24,6 +24,11 @@ if (!BACKEND_URL) {
 const nextConfig: NextConfig = {
   // Dev only: let Cloudflare quick-tunnel links (cloudflared) load dev assets/HMR.
   allowedDevOrigins: ['*.trycloudflare.com'],
+  // The onboarding page is gone; confirmation emails already sent still carry
+  // `next=/onboarding`, so send them to the plan choice that replaced it.
+  async redirects() {
+    return [{ source: "/onboarding", destination: "/plans?welcome=1", permanent: false }];
+  },
   async rewrites() {
     return [
       {
