@@ -59,7 +59,13 @@ export function LandingNav() {
 				    at x=617 on a 390 viewport, i.e. the only way to close the
 				    drawer was invisible. */}
 				<MobileMenuButton />
-				<Link href="/" className="lp-nav-mark" aria-label="Atlas">
+				<Link href="/" className="lp-nav-mark" aria-label="Atlas" onClick={(e) => {
+					// Already home (maybe at /#faq): back to the hero, and drop the hash.
+					if (location.pathname !== '/') return;
+					e.preventDefault();
+					history.replaceState(null, '', '/');
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				}}>
 					{/* The full lockup, not the bare A: the three sites show their whole
 					    wordmark in the bar now. */}
 					{/* eslint-disable-next-line @next/next/no-img-element -- SVG; next/image does not optimise it */}
