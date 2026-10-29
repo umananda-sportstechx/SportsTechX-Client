@@ -200,7 +200,12 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 					logoutState.setLoggingOut(false);
 					enableQueryPolling();
 				}
-			} else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+			} else if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY' || event === 'USER_UPDATED')) {
+				// A password-reset link signs in with PASSWORD_RECOVERY (not
+				// SIGNED_IN), and setting the new password emits USER_UPDATED. Both
+				// carry a live session; ignoring them left the app "signed out"
+				// while the cookie was valid, so /home sat on "Redirecting…"
+				// between ProtectedRoute and the middleware.
 				logoutState.setSessionValid(true);
 				logoutState.setLoggingOut(false);
 				// Supabase re-emits SIGNED_IN on every tab focus. Allocating a new
@@ -214,7 +219,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 				);
 				if (session!.expires_at) scheduleRefresh(session!.expires_at);
 				startMonitoring();
-				if (event === 'SIGNED_IN') {
+				if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
 					const uid = session!.user.id;
 					if (!hasFiredInitialSignIn) {
 						// First SIGNED_IN at subscription = the existing-session
