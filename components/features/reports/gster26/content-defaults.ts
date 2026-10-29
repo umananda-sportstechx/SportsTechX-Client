@@ -553,6 +553,444 @@ export const ECOMAP_DEFAULT = {
   "intro": ""
 };
 
+// The three Trends article bodies (the expanded view of each Trends card).
+
+export const TREND_MA_DEFAULT = {
+  "statLabels": [
+    "of 2025 M&A deals by sportstech acquirers",
+    "of all M&A deals (2016–2025) had a sportstech acquirer",
+    "more sportstech-on-sportstech deals in 2025 than in 2016 (21 → 68)"
+  ],
+  "insightTitle": "INSIGHT",
+  "insight": [
+    "Over the past decade, sportstech-on-sportstech acquisitions have tripled, rising from 21 deals in 2016 to 68 in 2025. The industry is consolidating from within.",
+    "Companies like Teamworks, Hudl, and Sportradar are assembling platform stacks through acquisition, buying adjacent capabilities rather than building them.",
+    "The goal is the same: become the single vendor a club or league can't live without."
+  ],
+  "chartTitle": "M&A BY ACQUIRER TYPE",
+  "countLabel": "# Deals",
+  "valueLabel": "$ Value",
+  "legendSportstech": "SportsTech Acquirer",
+  "legendNonSportstech": "Non-SportsTech Acquirer",
+  "topAcquirersTitle": "TOP ACQUIRERS",
+  "tableHeaders": [
+    "#",
+    "Acquirer",
+    "Deals"
+  ],
+  "notSportstechTag": "NOT ST",
+  "acquireeTitle": "ACQUIREE PROFILE",
+  "bySectorTitle": "BY SECTOR",
+  "byRegionTitle": "BY REGION",
+  "byModelTitle": "BY BUSINESS MODEL",
+  "sectorLabels": {
+    "Activity & Performance": "For Athletes",
+    "Fans & Content": "For Fans",
+    "Management & Organisation": "For Executives",
+    "Non STX Sector Framework": "Not SportsTech"
+  },
+  "acquirerLogos": [
+    {
+      "name": "Teamworks",
+      "domain": "teamworks.com"
+    },
+    {
+      "name": "NODWIN Gaming",
+      "domain": "nodwingaming.com"
+    },
+    {
+      "name": "Blue Star Sports",
+      "domain": "bluestarsports.com"
+    },
+    {
+      "name": "Hudl",
+      "domain": "hudl.com"
+    },
+    {
+      "name": "Sportradar AG",
+      "domain": "sportradar.com"
+    },
+    {
+      "name": "Fanatics",
+      "domain": "fanatics.com"
+    },
+    {
+      "name": "Playtomic",
+      "domain": "playtomic.io"
+    },
+    {
+      "name": "Catapult",
+      "domain": "catapultsports.com"
+    },
+    {
+      "name": "Better Collective",
+      "domain": "bettercollective.com"
+    },
+    {
+      "name": "DraftKings",
+      "domain": "draftkings.com"
+    },
+    {
+      "name": "Bruin Sports Capital",
+      "domain": "bruinsportscapital.com"
+    },
+    {
+      "name": "FanDuel",
+      "domain": "fanduel.com"
+    },
+    {
+      "name": "Napster Corp. (formerly Infinite Reality)",
+      "domain": "napster.com"
+    },
+    {
+      "name": "Fastbreak AI",
+      "domain": "fastbreak.ai"
+    }
+  ],
+  "whyHappeningTitle": "WHY IT'S HAPPENING",
+  "whyHappening": [
+    {
+      "title": "Scale Now a Prerequisite",
+      "desc": "Clubs, leagues, and federations are consolidating , multi-club ownership, global expansions, centralised contracts. They need mature, scalable solutions to manage their growing complexity. For providers, acquisition has been faster than building , though AI may be the first credible alternative."
+    },
+    {
+      "title": "The Platform Playbook: Land & Expand",
+      "desc": "Even the best 'point solutions' are losing ground to integrated stacks. Companies are acquiring adjacent capabilities , not to diversify, but to become the single vendor a club or league can't extract itself from."
+    },
+    {
+      "title": "Window of Opportunity",
+      "desc": "The 2022 funding contraction left well-built but undercapitalised SportsTech companies exposed , strong products, weak balance sheets. For cash-generating operators, this created an acquisition window at prices unavailable during peak funding years."
+    }
+  ],
+  "whyMattersTitle": "WHY IT MATTERS",
+  "whyMatters": [
+    {
+      "title": "For Solution Providers",
+      "desc": "The market is bifurcating into platforms and point solutions and the gap is widening. For smaller companies the options are clear: scale your niche fast, or get acquired. Or risk irrelevance as platforms build around you."
+    },
+    {
+      "title": "For Sports Organisations",
+      "desc": "Integration reduces complexity but also reduces leverage. Any organisation embedding a single vendor across its entire operation should be negotiating contractual protections now, while the market is still competitive."
+    },
+    {
+      "title": "For Investors",
+      "desc": "Value is concentrating among companies that control scale and distribution. The major acquirers have the capital, the customer relationships, and the strategic clarity to consolidate before the window closes."
+    }
+  ]
+};
+
+export const TREND_RUNNING_DEFAULT = {
+  "stats": [
+    {
+      "value": "59,226",
+      "label": "finishers at 2025 NYC Marathon , largest US race ever"
+    },
+    {
+      "value": "3.1%",
+      "label": "race churn rate in 2025 , record low"
+    },
+    {
+      "value": "$13.8B",
+      "label": "global marathon events market (2024)"
+    }
+  ],
+  "insightTitle": "INSIGHT",
+  "insight": [
+    "Competitive running is shifting from a niche endurance sport into a global, event-driven participation economy.",
+    "Record-breaking marathon participation is no longer an outlier, it's the new baseline. The 2025 TCS New York City Marathon reached 59,226 finishers, while London matched that scale with 56,000. This growth is not episodic , it is structural.",
+    "The clearest signal: only 129 of the 4,209 races with over 500 participants failed to return in 2025 , a churn rate of 3.1%, down from 3.9% in 2024 and 5.0% in 2023, and a record low. The market isn't just expanding , it is stabilizing, professionalizing, and consolidating."
+  ],
+  "tableTitle": "2025 MAJOR MARATHONS",
+  "tableHeaders": {
+    "name": "Marathon",
+    "y2023": "2023",
+    "y2024": "2024",
+    "y2025": "2025",
+    "yoy": "YOY"
+  },
+  "marathons": [
+    {
+      "name": "TCS New York City",
+      "y2023": "51,402",
+      "y2024": "55,646",
+      "y2025": "59,226",
+      "g2324": "+8.2%",
+      "g2425": "+6.4%",
+      "domain": "nyrr.org"
+    },
+    {
+      "name": "TCS London",
+      "y2023": "48,000*",
+      "y2024": "53,851",
+      "y2025": "56,000",
+      "g2324": "+12.2%",
+      "g2425": "+4.0%",
+      "domain": "tcslondonmarathon.com"
+    },
+    {
+      "name": "Chicago",
+      "y2023": "48,398",
+      "y2024": "52,150",
+      "y2025": "54,351",
+      "g2324": "+7.8%",
+      "g2425": "+4.2%",
+      "domain": "chicagomarathon.com"
+    },
+    {
+      "name": "Berlin",
+      "y2023": "43,010",
+      "y2024": "54,280",
+      "y2025": "49,831",
+      "g2324": "+26.2%",
+      "g2425": "−8.2%",
+      "domain": "berlin-marathon.com"
+    },
+    {
+      "name": "Sydney",
+      "y2023": "13,294",
+      "y2024": "20,284",
+      "y2025": "32,963",
+      "g2324": "+52.6%",
+      "g2425": "+62.5%",
+      "domain": "tcssydneymarathon.com"
+    }
+  ],
+  "footnotes": [
+    "*Approximate figure , official communications cited \"around 48,000 finishers.\"",
+    "Note on Berlin: the 2024 figure was the race's 50th anniversary edition, which inflated participation significantly. The 2025 figure of 49,831 remains the second-highest in Berlin's history."
+  ],
+  "whyHappeningTitle": "WHY IT'S HAPPENING",
+  "drivers": [
+    {
+      "title": "Events as the Anchor",
+      "desc": "75% of Gen Z athletes report that a signed-up race is the primary driver keeping them training. A race entry creates a fixed goal, social accountability, and a financial commitment. It anchors training in a way gym memberships don't."
+    },
+    {
+      "title": "Running as Social Currency",
+      "desc": "Running has become a visible identity. Training runs, gear, and race completion are shared across platforms for status , from Strava to TikTok and even LinkedIn. Especially as major races are oversubscribed, lottery-based, and increasingly exclusive. Entry itself has become a signal: something to earn, not just buy."
+    },
+    {
+      "title": "The New Third Space",
+      "desc": "As traditional social venues decline, run clubs have emerged as vital community infrastructure. For Gen Z and Millennials, they replace dating apps and networking events , one in five Gen Z users has gone on a date with someone they met through exercise."
+    },
+    {
+      "title": "Move for Mental Health",
+      "desc": "Runners cite stress and anxiety management as a major motivator. The structured, goal-oriented nature of race training creates routine and focus. Completing a race, a goal set months in advance, delivers a measurable sense of progress and accomplishment that few other activities can replicate."
+    }
+  ],
+  "whyMattersTitle": "WHY IT MATTERS",
+  "whyMattersIntro": "Competitive running is evolving into a high-value, experience-led event economy , with expanding layers of monetization.",
+  "impactStats": [
+    {
+      "value": "$13.8B",
+      "label": "Global Marathon Events Market in 2024, projected $23.6B by 2033 (6.2% CAGR)"
+    },
+    {
+      "value": "59%",
+      "label": "of participants stay three to five nights at the destination"
+    },
+    {
+      "value": "$161.8B",
+      "label": "Global Running Apparel Market projected by 2031"
+    }
+  ],
+  "opportunities": [
+    {
+      "title": "The Race-cation Economy",
+      "desc": "Events are now tourism engines, with location the top factor runners cite in race selection. Runners plan trips around races, extending stays and increasing per-capita spend. The Boston Marathon generated $509M in economic activity in 2024 alone, with 30% of participants travelling internationally."
+    },
+    {
+      "title": "The Global Circuit Playbook",
+      "desc": "The Ultra-Trail du Mont-Blanc (UTMB) and Ironman playbook is now the template , popular independent races consolidated into global circuits, with broadcast potential and non-endemic sponsor appeal, including luxury brands."
+    },
+    {
+      "title": "The Performance Economy",
+      "desc": "Performance footwear delivers measurable gains, smart wearables capture real-time data, and AI coaching platforms like Runna are replacing expensive personal trainers. As participation scales, so does the addressable market. Competitive running is becoming as much a technology category as a sports one."
+    }
+  ]
+};
+
+export const TREND_DTC_DEFAULT = {
+  "stats": [
+    {
+      "value": "22/30",
+      "label": "MLB clubs with in-market DTC streaming by March 2026"
+    },
+    {
+      "value": "1M+",
+      "label": "Ligue 1+ subscribers within one month of launch"
+    },
+    {
+      "value": "29",
+      "label": "franchises affected by the RSN collapse (Diamond → Main Street → liquidation)"
+    }
+  ],
+  "insightTitle": "INSIGHT",
+  "insight": [
+    "The question of whether leagues and teams would go direct-to-consumer was treated as a thought experiment for years. Infrastructure wasn't ready, rights structures were too complex, broadcasters were paying too well."
+  ],
+  "insightEmphasis": "Not anymore.",
+  "launchesTitle": "KEY DTC LAUNCHES 2025–2026",
+  "launchesSubtitle": "12 launches across MLB, NHL, Premier League, Ligue 1 and more , the RSN collapse accelerated everything",
+  "launchesHeaders": [
+    "Date",
+    "Entity",
+    "Country",
+    "Description"
+  ],
+  "whyHappeningTitle": "WHY IT'S HAPPENING",
+  "whyHappening": [
+    {
+      "title": "The US Catalyst",
+      "paragraphs": [
+        "Diamond Sports Group filed for bankruptcy in 2023, rebranded as Main Street Sports Group, and is now heading for full liquidation in April 2026, taking the local broadcast rights of 29 MLB, NBA, and NHL franchises with it.",
+        "The Regional Sports Network (RSN) model isn't struggling. It's over. And leagues and teams aren't waiting for a replacement, they're building one."
+      ],
+      "points": [
+        {
+          "label": "MLB:",
+          "text": " Braves and Tigers are launching new DTC networks, while the Astros already operate one; MLB had in-market streaming available for 22 of 30 clubs by March 2026."
+        },
+        {
+          "label": "NBA:",
+          "text": " Fast-tracking a streaming hub for 2026/27; Amazon, YouTube TV, ESPN, and DAZN all in talks; up to 22 franchises, a deal worth billions."
+        }
+      ]
+    },
+    {
+      "title": "The Global Wave",
+      "paragraphs": [
+        "The US collapse is the loudest signal, but it isn't the only one. Across Europe, leagues facing a different problem , eroding broadcast revenues and a shrinking pool of viable rights buyers , are arriving at the same conclusion: own the platform, own the relationship."
+      ],
+      "points": [
+        {
+          "label": "Ligue 1:",
+          "text": " Announced Ligue 1+ in July 2025 after the domestic market failed to produce a viable rights buyer; passed one million subscribers within a month."
+        },
+        {
+          "label": "Top 14 Rugby:",
+          "text": " Launched TOP 14 Rugby TV in November 2025, across 170+ territories; not a domestic fallback but a deliberate global growth play."
+        },
+        {
+          "label": "Premier League:",
+          "text": " Announced Premier League+ in February 2026, in Singapore for 2026/27; explicitly framed as a learning exercise before any broader rollout."
+        }
+      ]
+    },
+    {
+      "title": "The Infrastructure Moment",
+      "paragraphs": [
+        "The technology that made DTC prohibitively expensive five years ago is now commoditised. Cloud-based streaming infrastructure, white-label OTT platforms, and AI-driven personalisation have collapsed the cost of building a direct viewing product. Simultaneously, rights structures are being renegotiated with DTC carve-outs as standard. Leagues are no longer signing away digital rights wholesale. The window that broadcasters held for decades is closing, not because leagues are being bold, but because the barriers to going direct have largely disappeared."
+      ],
+      "points": []
+    }
+  ],
+  "quote": "\"For the first time, the Premier League is going to have its own customers.\"",
+  "quoteAttribution": ", Premier League CEO Richard Masters",
+  "whyMattersTitle": "WHY IT MATTERS",
+  "whyMatters": [
+    {
+      "title": "Data Layer Shifts to the League",
+      "desc": "Viewing habits, purchase behaviour, device preferences , data that is extraordinarily valuable, and now owned by the league, not the broadcaster. For the first time, leagues know exactly who their fans are, what they watch, and what they'll pay for."
+    },
+    {
+      "title": "Broadcasters' Role Shift",
+      "desc": "The big players aren't disappearing, they're repositioning. DAZN, Amazon, and YouTube TV are in talks to carry the NBA's streaming hub not as rights holders, but as distribution partners."
+    },
+    {
+      "title": "The Fragmentation Problem",
+      "desc": "Every new DTC launch adds another paywall. The Premier League's own CEO flagged piracy as a live concern. Fragmentation is both the inevitable consequence of every league going direct at once, and the biggest threat to the reach they're trying to build."
+    }
+  ],
+  "closingLine": "The infrastructure is shifting, the rights structures are moving, and the broadcasters are adapting. The only question left is who pays , and how much fragmentation fans will accept before they stop paying altogether.",
+  "launches": [
+    {
+      "entity": "ESPN",
+      "desc": "Launched full DTC streaming service (ESPN Unlimited) for the first time, unbundling all 12 linear networks from cable at $29.99/month with 47,000 live events/year",
+      "date": "Aug 2025",
+      "country": "USA",
+      "domain": "espn.com"
+    },
+    {
+      "entity": "Ligue 1 (LFP)",
+      "desc": "First major men's football league in Europe to launch its own DTC service (Ligue 1+), hitting 1M+ subscribers within one month",
+      "date": "Aug 2025",
+      "country": "France",
+      "domain": "ligue1.com"
+    },
+    {
+      "entity": "Tampa Bay Lightning",
+      "desc": "Launched team-powered DTC streaming service (TBLightning.tv) at $66/season ahead of the 2025-26 NHL season, produced by Scripps Sports and powered by ViewLift",
+      "date": "Sep 2025",
+      "country": "USA",
+      "domain": "nhl.com"
+    },
+    {
+      "entity": "Top 14 / LNR",
+      "desc": "French rugby's Top 14 launched Top 14 Rugby TV , its first-ever global DTC service , in 170+ territories via Two Circles' StayLive platform, covering markets without broadcast deals including Australia, New Zealand, and South Africa",
+      "date": "Nov 2025",
+      "country": "France",
+      "domain": "lnr.fr"
+    },
+    {
+      "entity": "Houston Astros & Rockets",
+      "desc": "Launched Space City Home Network (SCHN+) , the last MLB and NBA teams to go DTC , at $19.99/month, recording over 500K streams within two months of launch",
+      "date": "Dec 2025",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "Texas Rangers",
+      "desc": "Formed Rangers Sports Media & Entertainment Company and launched Rangers Sports Network, one of the earliest team-owned local media moves in the MLB RSN collapse",
+      "date": "2025",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "Seattle Mariners",
+      "desc": "Root Sports Northwest closed after the 2025 season; Mariners moved to MLB Local Media's centralised DTC infrastructure rather than building their own platform",
+      "date": "Jan 2026",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "Washington Nationals",
+      "desc": "Signed with MLB Local Media for DTC distribution after resolving a long-running rights dispute with the Baltimore Orioles over MASN",
+      "date": "Jan 2026",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "Atlanta Braves",
+      "desc": "Launched BravesVision / Braves.TV , fully team-owned network with no-blackout DTC streaming , after departing Main Street Sports Group, covering a 6-state Southeast territory",
+      "date": "Feb 2026",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "6 MLB Teams (Brewers, Cardinals, Marlins, Rays, Reds, Royals)",
+      "desc": "All six exited Main Street Sports Group / FanDuel Sports Network and moved to MLB Local Media's platform for DTC distribution in the 2026 season",
+      "date": "Feb 2026",
+      "country": "USA",
+      "domain": "mlb.com"
+    },
+    {
+      "entity": "Premier League",
+      "desc": "Confirmed Premier League+ DTC platform launching in Singapore for 2026/27 , its first-ever DTC service , built on in-house production after ending its long-running IMG international production deal",
+      "date": "Feb 2026",
+      "country": "England",
+      "domain": "premierleague.com"
+    },
+    {
+      "entity": "Detroit Tigers & Red Wings",
+      "desc": "Jointly launched Detroit SportsNet , covering MLB and NHL , with in-market DTC streaming at $19.99/month, produced with MLB Local Media support",
+      "date": "Feb 2026",
+      "country": "USA",
+      "domain": "nhl.com"
+    }
+  ]
+};
+
 /**
  * Every editable block, keyed as in `reports.content`. The report reads
  * `content.<key> ?? <default>`; the admin editor's preview sends this map to
@@ -582,4 +1020,7 @@ export const GSTER26_DEFAULTS: Record<string, unknown> = {
   closing: CLOSING_DEFAULT,
   ecomap: ECOMAP_DEFAULT,
   innovators: INNOVATORS_DATA,
+  trendMa: TREND_MA_DEFAULT,
+  trendRunning: TREND_RUNNING_DEFAULT,
+  trendDtc: TREND_DTC_DEFAULT,
 };

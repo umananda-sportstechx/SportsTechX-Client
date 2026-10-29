@@ -14,7 +14,7 @@ import "./gster26.css";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import "@/components/landing/landing.css";
 import { BRAND } from './brand';
-import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT, NAV_DEFAULT, HERO_DEFAULT, TRENDS_HEADER_DEFAULT, TREND_CARDS_DEFAULT, PEAK_COPY_DEFAULT, INNOVATORS_HEADER_DEFAULT, STARTUPS_HEADER_DEFAULT, NGSC_DEFAULT, DATA_HEADER_DEFAULT, CLOSING_DEFAULT, ECOMAP_DEFAULT } from './content-defaults';
+import { INNOVATOR_RESPONSES_DEFAULT, watchInnovators_DEFAULT, watchPeak_DEFAULT, PEAK_SWC_FINALISTS_DEFAULT, GROUNDBREAKERS_ORGS_DEFAULT, PEAK_PARTNERS_TIER1_DEFAULT, PEAK_PARTNERS_TIER2_DEFAULT, PEAK_PARTNERS_TIER3_DEFAULT, watchStxRecommends_DEFAULT, FEATURED_ARTICLES_DEFAULT, NAV_DEFAULT, HERO_DEFAULT, TRENDS_HEADER_DEFAULT, TREND_CARDS_DEFAULT, PEAK_COPY_DEFAULT, INNOVATORS_HEADER_DEFAULT, STARTUPS_HEADER_DEFAULT, NGSC_DEFAULT, DATA_HEADER_DEFAULT, CLOSING_DEFAULT, ECOMAP_DEFAULT, TREND_MA_DEFAULT, TREND_RUNNING_DEFAULT, TREND_DTC_DEFAULT } from './content-defaults';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -788,6 +788,10 @@ export default function ReportGSTER26({ content, preview = false }: {
   const DATA_HEADER = block("dataHeader", DATA_HEADER_DEFAULT);
   const CLOSING = block("closing", CLOSING_DEFAULT);
   const ECOMAP = block("ecomap", ECOMAP_DEFAULT);
+  const TREND_MA = block("trendMa", TREND_MA_DEFAULT);
+  const TREND_RUNNING = block("trendRunning", TREND_RUNNING_DEFAULT);
+  const TREND_DTC = block("trendDtc", TREND_DTC_DEFAULT);
+  const numbered = <T,>(items: T[]) => items.map((d, i) => ({ n: String(i + 1).padStart(2, "0"), ...d }));
   const TREND_CARDS = Object.fromEntries(Object.entries(TREND_CARDS_DEFAULT).map(([id, d]) => [id, { ...d, ...(ov?.trendCards?.[id] ?? {}) }])) as typeof TREND_CARDS_DEFAULT;
   const isPdf = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("pdf") === "true";
   const { user, sessionValid, loading: authLoading } = useAuthSession();
@@ -1151,7 +1155,13 @@ export default function ReportGSTER26({ content, preview = false }: {
   useEffect(() => {
     if (!preview) return;
     const onJump = (e: Event) => {
-      const el = document.querySelector((e as CustomEvent<string>).detail);
+      let anchor = (e as CustomEvent<string>).detail;
+      // Parts that live behind a tab or a closed card: open them first (raw
+      // setters, so a preview doesn't log reader analytics).
+      const trend = anchor.match(/^#trend-expanded-(.+)$/);
+      if (trend) { _setTrendsTab("trends"); _setExpandedBlock(trend[1]); if (trend[1] === "dtc-shift") _setOpenRevTab("dtc-launches"); }
+      if (anchor === "#deep-dives") { _setTrendsTab("articles"); anchor = "#trends"; }
+      const el = document.querySelector(anchor);
       if (!el) return;
       if (lenisRef.current) lenisRef.current.scrollTo(el as HTMLElement, { offset: -72, immediate: true });
       else (el as HTMLElement).scrollIntoView();
@@ -1691,20 +1701,7 @@ export default function ReportGSTER26({ content, preview = false }: {
 
           {/* ── Trends accordion ── */}
           {(isPdf || trendsTab === "trends") && (() => {
-            const dtcExamples: { entity: string; desc: string; date: string; country: string; domain: string }[] = [
-              { entity: "ESPN", desc: "Launched full DTC streaming service (ESPN Unlimited) for the first time, unbundling all 12 linear networks from cable at $29.99/month with 47,000 live events/year", date: "Aug 2025", country: "USA", domain: "espn.com" },
-              { entity: "Ligue 1 (LFP)", desc: "First major men's football league in Europe to launch its own DTC service (Ligue 1+), hitting 1M+ subscribers within one month", date: "Aug 2025", country: "France", domain: "ligue1.com" },
-              { entity: "Tampa Bay Lightning", desc: "Launched team-powered DTC streaming service (TBLightning.tv) at $66/season ahead of the 2025-26 NHL season, produced by Scripps Sports and powered by ViewLift", date: "Sep 2025", country: "USA", domain: "nhl.com" },
-              { entity: "Top 14 / LNR", desc: "French rugby's Top 14 launched Top 14 Rugby TV , its first-ever global DTC service , in 170+ territories via Two Circles' StayLive platform, covering markets without broadcast deals including Australia, New Zealand, and South Africa", date: "Nov 2025", country: "France", domain: "lnr.fr" },
-              { entity: "Houston Astros & Rockets", desc: "Launched Space City Home Network (SCHN+) , the last MLB and NBA teams to go DTC , at $19.99/month, recording over 500K streams within two months of launch", date: "Dec 2025", country: "USA", domain: "mlb.com" },
-              { entity: "Texas Rangers", desc: "Formed Rangers Sports Media & Entertainment Company and launched Rangers Sports Network, one of the earliest team-owned local media moves in the MLB RSN collapse", date: "2025", country: "USA", domain: "mlb.com" },
-              { entity: "Seattle Mariners", desc: "Root Sports Northwest closed after the 2025 season; Mariners moved to MLB Local Media's centralised DTC infrastructure rather than building their own platform", date: "Jan 2026", country: "USA", domain: "mlb.com" },
-              { entity: "Washington Nationals", desc: "Signed with MLB Local Media for DTC distribution after resolving a long-running rights dispute with the Baltimore Orioles over MASN", date: "Jan 2026", country: "USA", domain: "mlb.com" },
-              { entity: "Atlanta Braves", desc: "Launched BravesVision / Braves.TV , fully team-owned network with no-blackout DTC streaming , after departing Main Street Sports Group, covering a 6-state Southeast territory", date: "Feb 2026", country: "USA", domain: "mlb.com" },
-              { entity: "6 MLB Teams (Brewers, Cardinals, Marlins, Rays, Reds, Royals)", desc: "All six exited Main Street Sports Group / FanDuel Sports Network and moved to MLB Local Media's platform for DTC distribution in the 2026 season", date: "Feb 2026", country: "USA", domain: "mlb.com" },
-              { entity: "Premier League", desc: "Confirmed Premier League+ DTC platform launching in Singapore for 2026/27 , its first-ever DTC service , built on in-house production after ending its long-running IMG international production deal", date: "Feb 2026", country: "England", domain: "premierleague.com" },
-              { entity: "Detroit Tigers & Red Wings", desc: "Jointly launched Detroit SportsNet , covering MLB and NHL , with in-market DTC streaming at $19.99/month, produced with MLB Local Media support", date: "Feb 2026", country: "USA", domain: "nhl.com" },
-            ];
+            const dtcExamples: { entity: string; desc: string; date: string; country: string; domain: string }[] = TREND_DTC.launches;
             const infraProviders: { name: string; location: string; desc: string; domain: string }[] = [
               { name: "ViewLift", location: "New York", desc: "Most active in the US , powered Seattle Mariners and Tampa Bay Lightning platforms. 16 pro sports team clients. Launched a joint venture with Monumental Sports to offer a managed 'go DTC' playbook.", domain: "viewlift.com" },
               { name: "Deltatre / Endeavor Streaming", location: "Italy / US", desc: "Dominant global player. Powered Ligue 1+. Combined client list covers NFL, UEFA, UFC, NBA, MLB, and World Rugby. Largest pure-play sports OTT provider after the September 2025 acquisition.", domain: "deltatre.com" },
@@ -1780,22 +1777,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                             <p style={{ fontSize: 14, lineHeight: 1.7, color: t.textMuted, marginTop: 8 }}>{block.summary}</p>
                           </div>
                           {block.id === "ma-sportstech" && data?.maByYearSportstech ? (() => {
-                            const acquirerDomains: Record<string, string> = {
-                              "Teamworks": "teamworks.com",
-                              "NODWIN Gaming": "nodwingaming.com",
-                              "Blue Star Sports": "bluestarsports.com",
-                              "Hudl": "hudl.com",
-                              "Sportradar AG": "sportradar.com",
-                              "Fanatics": "fanatics.com",
-                              "Playtomic": "playtomic.io",
-                              "Catapult": "catapultsports.com",
-                              "Better Collective": "bettercollective.com",
-                              "DraftKings": "draftkings.com",
-                              "Bruin Sports Capital": "bruinsportscapital.com",
-                              "FanDuel": "fanduel.com",
-                              "Napster Corp. (formerly Infinite Reality)": "napster.com",
-                              "Fastbreak AI": "fastbreak.ai",
-                            };
+                            const acquirerDomains: Record<string, string> = Object.fromEntries(TREND_MA.acquirerLogos.map((a) => [a.name, a.domain]));
                             const chartData = data.maByYearSportstech;
                             const latest = chartData[chartData.length - 1];
                             const latestTotal = latest ? latest.sportstech + latest.non_sportstech : 0;
@@ -1809,9 +1791,9 @@ export default function ReportGSTER26({ content, preview = false }: {
                                 {/* Summary stats */}
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
                                   {[
-                                    { value: `${latestStPct}%`, label: "of 2025 M&A deals by sportstech acquirers" },
-                                    { value: `${stPctAll}%`, label: "of all M&A deals (2016–2025) had a sportstech acquirer" },
-                                    { value: `${growthX}x`, label: "more sportstech-on-sportstech deals in 2025 than in 2016 (21 → 68)" },
+                                    { value: `${latestStPct}%`, label: TREND_MA.statLabels[0] },
+                                    { value: `${stPctAll}%`, label: TREND_MA.statLabels[1] },
+                                    { value: `${growthX}x`, label: TREND_MA.statLabels[2] },
                                   ].map((s, si) => (
                                     <div key={si} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: BRAND.pink, lineHeight: 1 }}>{s.value}</div>
@@ -1822,23 +1804,15 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* Insight text */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "0 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>INSIGHT</div>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_MA.insightTitle}</div>
                                 <div>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    Over the past decade, sportstech-on-sportstech acquisitions have tripled, rising from 21 deals in 2016 to 68 in 2025. The industry is consolidating from within.
-                                  </p>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    Companies like Teamworks, Hudl, and Sportradar are assembling platform stacks through acquisition, buying adjacent capabilities rather than building them.
-                                  </p>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    The goal is the same: become the single vendor a club or league can't live without.
-                                  </p>
+                                  {TREND_MA.insight.map((text, pi) => <p key={pi} style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>{text}</p>)}
                                 </div>
 
                                 {/* Stacked bar chart */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.teal}55,transparent)`, margin: "36px 0 28px" }} />
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-                                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase" }}>M&A BY ACQUIRER TYPE</div>
+                                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase" }}>{TREND_MA.chartTitle}</div>
                                   {/* Count / Value toggle */}
                                   <div style={{ display: "flex", borderRadius: 4, overflow: "hidden", border: `1px solid ${t.border}` }}>
                                     {(["count", "value"] as const).map(m => (
@@ -1848,7 +1822,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                         color: maChartMode === m ? "#fff" : t.textMuted,
                                         fontWeight: maChartMode === m ? 700 : 400,
                                         transition: "all 0.2s",
-                                      }}>{m === "count" ? "# Deals" : "$ Value"}</button>
+                                      }}>{m === "count" ? TREND_MA.countLabel : TREND_MA.valueLabel}</button>
                                     ))}
                                   </div>
                                 </div>
@@ -1856,11 +1830,11 @@ export default function ReportGSTER26({ content, preview = false }: {
                                 <div style={{ display: "flex", gap: 20, marginBottom: 16 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: BRAND.teal }} />
-                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: t.textMuted }}>SportsTech Acquirer</span>
+                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: t.textMuted }}>{TREND_MA.legendSportstech}</span>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: BRAND.slate }} />
-                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: t.textMuted }}>Non-SportsTech Acquirer</span>
+                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: t.textMuted }}>{TREND_MA.legendNonSportstech}</span>
                                   </div>
                                 </div>
                                 <MaStackedBarChart chartData={chartData} mode={maChartMode} t={t} isPdf={isPdf} />
@@ -1870,12 +1844,12 @@ export default function ReportGSTER26({ content, preview = false }: {
                                 <div style={{ display: "flex", gap: isMobile ? 16 : 32, flexWrap: "wrap" }}>
                                   {/* Left: Top Acquirers */}
                                   <div style={{ flex: "1 1 340px", minWidth: 0 }}>
-                                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase", marginBottom: 16 }}>TOP ACQUIRERS</div>
+                                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase", marginBottom: 16 }}>{TREND_MA.topAcquirersTitle}</div>
                                     <div style={{ overflowX: "auto" }}>
                                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 13 }}>
                                         <thead>
                                           <tr>
-                                            {["#", "Acquirer", "Deals"].map(h => (
+                                            {TREND_MA.tableHeaders.map(h => (
                                               <th key={h} style={{ textAlign: "left", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.teal, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>{h}</th>
                                             ))}
                                           </tr>
@@ -1895,7 +1869,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                                       <div style={{ width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: isNonSt ? BRAND.slate : BRAND.teal, borderRadius: 4, color: "#fff", fontWeight: 700, fontSize: 10, fontFamily: "'Bebas Neue',sans-serif" }}>{row.name.charAt(0)}</div>
                                                     </div>
                                                     {row.name}
-                                                    {isNonSt && <span style={{ fontSize: 8, fontFamily: "'DM Mono',monospace", color: BRAND.slate, letterSpacing: 1, opacity: 0.7, marginLeft: 4 }}>NOT ST</span>}
+                                                    {isNonSt && <span style={{ fontSize: 8, fontFamily: "'DM Mono',monospace", color: BRAND.slate, letterSpacing: 1, opacity: 0.7, marginLeft: 4 }}>{TREND_MA.notSportstechTag}</span>}
                                                   </div>
                                                 </td>
                                                 <td style={{ padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600, color: t.titleColor, borderBottom: `1px solid ${t.border}` }}>{row.deals}</td>
@@ -1910,16 +1884,16 @@ export default function ReportGSTER26({ content, preview = false }: {
                                   {/* Right: Acquiree Profile */}
                                   {data.acquireeProfile && (
                                     <div style={{ flex: "1 1 300px", minWidth: 0 }}>
-                                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase", marginBottom: 16 }}>ACQUIREE PROFILE</div>
+                                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.teal, textTransform: "uppercase", marginBottom: 16 }}>{TREND_MA.acquireeTitle}</div>
 
                                       {/* By Sector */}
                                       {(() => {
                                         const sectorColors: Record<string, string> = { "Activity & Performance": BRAND.athletes, "Fans & Content": BRAND.fans, "Management & Organisation": BRAND.execs };
-                                        const sectorLabels: Record<string, string> = { "Activity & Performance": "For Athletes", "Fans & Content": "For Fans", "Management & Organisation": "For Executives", "Non STX Sector Framework": "Not SportsTech" };
+                                        const sectorLabels: Record<string, string> = TREND_MA.sectorLabels;
                                         const totalDeals = data.acquireeProfile.bySector.reduce((s, d) => s + d.deals, 0);
                                         return (
                                           <div style={{ marginBottom: 28 }}>
-                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>BY SECTOR</div>
+                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>{TREND_MA.bySectorTitle}</div>
                                             {/* Stacked bar */}
                                             <div style={{ display: "flex", height: 18, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
                                               {data.acquireeProfile.bySector.map((d) => (
@@ -1957,7 +1931,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                         const totalDeals = regions.reduce((s, d) => s + d.deals, 0);
                                         return (
                                           <div style={{ marginBottom: 28 }}>
-                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>BY REGION</div>
+                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>{TREND_MA.byRegionTitle}</div>
                                             <div style={{ display: "flex", height: 18, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
                                               {regions.map((d) => (
                                                 <div key={d.name} style={{ width: `${(d.deals / totalDeals) * 100}%`, background: regionColors[d.name] || BRAND.slate, transition: "width 0.4s" }} title={`${d.name}: ${d.deals} deals (${Math.round((d.deals / totalDeals) * 100)}%)`} />
@@ -1985,7 +1959,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                         const totalDeals = data.acquireeProfile.byModel.reduce((s, d) => s + d.deals, 0);
                                         return (
                                           <div>
-                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>BY BUSINESS MODEL</div>
+                                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", marginBottom: 10 }}>{TREND_MA.byModelTitle}</div>
                                             <div style={{ display: "flex", height: 18, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
                                               {data.acquireeProfile.byModel.map((d) => (
                                                 <div key={d.model} style={{ width: `${(d.deals / totalDeals) * 100}%`, background: modelColors[d.model] || BRAND.slate, transition: "width 0.4s" }} title={`${d.model}: ${d.deals} deals (${Math.round((d.deals / totalDeals) * 100)}%)`} />
@@ -2012,13 +1986,9 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* WHY IT'S HAPPENING */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>WHY IT'S HAPPENING</div>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_MA.whyHappeningTitle}</div>
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16 }}>
-                                  {[
-                                    { n: "01", title: "Scale Now a Prerequisite", desc: "Clubs, leagues, and federations are consolidating , multi-club ownership, global expansions, centralised contracts. They need mature, scalable solutions to manage their growing complexity. For providers, acquisition has been faster than building , though AI may be the first credible alternative." },
-                                    { n: "02", title: "The Platform Playbook: Land & Expand", desc: "Even the best 'point solutions' are losing ground to integrated stacks. Companies are acquiring adjacent capabilities , not to diversify, but to become the single vendor a club or league can't extract itself from." },
-                                    { n: "03", title: "Window of Opportunity", desc: "The 2022 funding contraction left well-built but undercapitalised SportsTech companies exposed , strong products, weak balance sheets. For cash-generating operators, this created an acquisition window at prices unavailable during peak funding years." },
-                                  ].map(d => (
+                                  {numbered(TREND_MA.whyHappening).map(d => (
                                     <div key={d.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                         <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>{d.n}</span>
@@ -2031,13 +2001,9 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* WHY IT MATTERS */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>WHY IT MATTERS</div>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_MA.whyMattersTitle}</div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                  {[
-                                    { n: "01", title: "For Solution Providers", desc: "The market is bifurcating into platforms and point solutions and the gap is widening. For smaller companies the options are clear: scale your niche fast, or get acquired. Or risk irrelevance as platforms build around you." },
-                                    { n: "02", title: "For Sports Organisations", desc: "Integration reduces complexity but also reduces leverage. Any organisation embedding a single vendor across its entire operation should be negotiating contractual protections now, while the market is still competitive." },
-                                    { n: "03", title: "For Investors", desc: "Value is concentrating among companies that control scale and distribution. The major acquirers have the capital, the customer relationships, and the strategic clarity to consolidate before the window closes." },
-                                  ].map(d => (
+                                  {numbered(TREND_MA.whyMatters).map(d => (
                                     <div key={d.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                         <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>{d.n}</span>
@@ -2051,19 +2017,8 @@ export default function ReportGSTER26({ content, preview = false }: {
                               </>
                             );
                           })() : block.id === "running-renaissance" ? (() => {
-                            const marathons: { name: string; y2023: string; y2024: string; y2025: string; g2324: string; g2425: string; domain: string; note?: string }[] = [
-                              { name: "TCS New York City", y2023: "51,402", y2024: "55,646", y2025: "59,226", g2324: "+8.2%", g2425: "+6.4%", domain: "nyrr.org" },
-                              { name: "TCS London", y2023: "48,000*", y2024: "53,851", y2025: "56,000", g2324: "+12.2%", g2425: "+4.0%", domain: "tcslondonmarathon.com" },
-                              { name: "Chicago", y2023: "48,398", y2024: "52,150", y2025: "54,351", g2324: "+7.8%", g2425: "+4.2%", domain: "chicagomarathon.com" },
-                              { name: "Berlin", y2023: "43,010", y2024: "54,280", y2025: "49,831", g2324: "+26.2%", g2425: "\u22128.2%", domain: "berlin-marathon.com", note: "2024 was 50th anniversary edition" },
-                              { name: "Sydney", y2023: "13,294", y2024: "20,284", y2025: "32,963", g2324: "+52.6%", g2425: "+62.5%", domain: "tcssydneymarathon.com" },
-                            ];
-                            const drivers: { n: string; title: string; desc: string }[] = [
-                              { n: "01", title: "Events as the Anchor", desc: "75% of Gen Z athletes report that a signed-up race is the primary driver keeping them training. A race entry creates a fixed goal, social accountability, and a financial commitment. It anchors training in a way gym memberships don't." },
-                              { n: "02", title: "Running as Social Currency", desc: "Running has become a visible identity. Training runs, gear, and race completion are shared across platforms for status , from Strava to TikTok and even LinkedIn. Especially as major races are oversubscribed, lottery-based, and increasingly exclusive. Entry itself has become a signal: something to earn, not just buy." },
-                              { n: "03", title: "The New Third Space", desc: "As traditional social venues decline, run clubs have emerged as vital community infrastructure. For Gen Z and Millennials, they replace dating apps and networking events , one in five Gen Z users has gone on a date with someone they met through exercise." },
-                              { n: "04", title: "Move for Mental Health", desc: "Runners cite stress and anxiety management as a major motivator. The structured, goal-oriented nature of race training creates routine and focus. Completing a race, a goal set months in advance, delivers a measurable sense of progress and accomplishment that few other activities can replicate." },
-                            ];
+                            const marathons: { name: string; y2023: string; y2024: string; y2025: string; g2324: string; g2425: string; domain: string; note?: string }[] = TREND_RUNNING.marathons;
+                            const drivers: { n: string; title: string; desc: string }[] = numbered(TREND_RUNNING.drivers);
                             const impacts: { label: string; value: string; detail: string }[] = [
                               { label: "Top 50 Marathons", value: "$5.2B", detail: "annual economic contribution , Chicago alone: $627M, Berlin: $505M" },
                               { label: "Global Marathon Events Market", value: "$13.8B", detail: "in 2024, projected $23.6B by 2033 (6.2% CAGR)" },
@@ -2073,11 +2028,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                               <>
                                 {/* Summary stats */}
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-                                  {[
-                                    { value: "59,226", label: "finishers at 2025 NYC Marathon , largest US race ever" },
-                                    { value: "3.1%", label: "race churn rate in 2025 , record low" },
-                                    { value: "$13.8B", label: "global marathon events market (2024)" },
-                                  ].map((s, si) => (
+                                  {TREND_RUNNING.stats.map((s, si) => (
                                     <div key={si} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: BRAND.pink, lineHeight: 1 }}>{s.value}</div>
                                       <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
@@ -2087,32 +2038,24 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* INSIGHT */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "0 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>INSIGHT</div>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_RUNNING.insightTitle}</div>
                                 <div>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    Competitive running is shifting from a niche endurance sport into a global, event-driven participation economy.
-                                  </p>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    Record-breaking marathon participation is no longer an outlier, it's the new baseline. The 2025 TCS New York City Marathon reached 59,226 finishers, while London matched that scale with 56,000. This growth is not episodic , it is structural.
-                                  </p>
-                                  <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                    The clearest signal: only 129 of the 4,209 races with over 500 participants failed to return in 2025 , a churn rate of 3.1%, down from 3.9% in 2024 and 5.0% in 2023, and a record low. The market isn't just expanding , it is stabilizing, professionalizing, and consolidating.
-                                  </p>
+                                  {TREND_RUNNING.insight.map((text, pi) => <p key={pi} style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>{text}</p>)}
                                 </div>
 
                                 {/* Major marathons table */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "36px 0 28px" }} />
-                                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.pink, textTransform: "uppercase", marginBottom: 16 }}>2025 MAJOR MARATHONS</div>
+                                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 3, color: BRAND.pink, textTransform: "uppercase", marginBottom: 16 }}>{TREND_RUNNING.tableTitle}</div>
                                 <div style={{ overflowX: "auto" }}>
                                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 13, minWidth: isMobile ? undefined : 700 }}>
                                     <thead>
                                       <tr>
-                                        <th style={{ textAlign: "left", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>Marathon</th>
-                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>2023</th>
-                                        <th style={{ textAlign: "center", padding: "10px 6px", fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 1, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}`, opacity: 0.6 }}>YOY</th>
-                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>2024</th>
-                                        <th style={{ textAlign: "center", padding: "10px 6px", fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 1, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}`, opacity: 0.6 }}>YOY</th>
-                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>2025</th>
+                                        <th style={{ textAlign: "left", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>{TREND_RUNNING.tableHeaders.name}</th>
+                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>{TREND_RUNNING.tableHeaders.y2023}</th>
+                                        <th style={{ textAlign: "center", padding: "10px 6px", fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 1, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}`, opacity: 0.6 }}>{TREND_RUNNING.tableHeaders.yoy}</th>
+                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: t.textMuted, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>{TREND_RUNNING.tableHeaders.y2024}</th>
+                                        <th style={{ textAlign: "center", padding: "10px 6px", fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: 1, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}`, opacity: 0.6 }}>{TREND_RUNNING.tableHeaders.yoy}</th>
+                                        <th style={{ textAlign: "right", padding: "10px 12px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}` }}>{TREND_RUNNING.tableHeaders.y2025}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -2144,13 +2087,12 @@ export default function ReportGSTER26({ content, preview = false }: {
                                 </div>
                                 {/* Footnotes */}
                                 <div style={{ marginTop: 12, fontSize: 11, color: t.textMuted, lineHeight: 1.6, fontStyle: "italic", maxWidth: 700 }}>
-                                  <p style={{ margin: "4px 0" }}>*Approximate figure , official communications cited "around 48,000 finishers."</p>
-                                  <p style={{ margin: "4px 0" }}>Note on Berlin: the 2024 figure was the race's 50th anniversary edition, which inflated participation significantly. The 2025 figure of 49,831 remains the second-highest in Berlin's history.</p>
+                                  {TREND_RUNNING.footnotes.map((text, fi) => <p key={fi} style={{ margin: "4px 0" }}>{text}</p>)}
                                 </div>
 
                                 {/* Drivers section */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>WHY IT'S HAPPENING</div>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_RUNNING.whyHappeningTitle}</div>
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
                                   {drivers.map(d => (
                                     <div key={d.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
@@ -2165,16 +2107,12 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* WHY IT MATTERS */}
                                 <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 8 }}>WHY IT MATTERS</div>
-                                <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 24 }}>Competitive running is evolving into a high-value, experience-led event economy , with expanding layers of monetization.</p>
+                                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 8 }}>{TREND_RUNNING.whyMattersTitle}</div>
+                                <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 24 }}>{TREND_RUNNING.whyMattersIntro}</p>
 
                                 {/* Impact stat boxes */}
                                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-                                  {[
-                                    { value: "$13.8B", label: "Global Marathon Events Market in 2024, projected $23.6B by 2033 (6.2% CAGR)" },
-                                    { value: "59%", label: "of participants stay three to five nights at the destination" },
-                                    { value: "$161.8B", label: "Global Running Apparel Market projected by 2031" },
-                                  ].map((s, si) => (
+                                  {TREND_RUNNING.impactStats.map((s, si) => (
                                     <div key={si} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: BRAND.pink, lineHeight: 1 }}>{s.value}</div>
                                       <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
@@ -2184,11 +2122,7 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                                 {/* Impact boxes , full width stacked */}
                                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                  {[
-                                    { n: "01", title: "The Race-cation Economy", desc: "Events are now tourism engines, with location the top factor runners cite in race selection. Runners plan trips around races, extending stays and increasing per-capita spend. The Boston Marathon generated $509M in economic activity in 2024 alone, with 30% of participants travelling internationally." },
-                                    { n: "02", title: "The Global Circuit Playbook", desc: "The Ultra-Trail du Mont-Blanc (UTMB) and Ironman playbook is now the template , popular independent races consolidated into global circuits, with broadcast potential and non-endemic sponsor appeal, including luxury brands." },
-                                    { n: "03", title: "The Performance Economy", desc: "Performance footwear delivers measurable gains, smart wearables capture real-time data, and AI coaching platforms like Runna are replacing expensive personal trainers. As participation scales, so does the addressable market. Competitive running is becoming as much a technology category as a sports one." },
-                                  ].map(d => (
+                                  {numbered(TREND_RUNNING.opportunities).map(d => (
                                     <div key={d.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                         <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>{d.n}</span>
@@ -2205,11 +2139,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                             <>
                               {/* Summary stats */}
                               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-                                {[
-                                  { value: "22/30", label: "MLB clubs with in-market DTC streaming by March 2026" },
-                                  { value: "1M+", label: "Ligue 1+ subscribers within one month of launch" },
-                                  { value: "29", label: "franchises affected by the RSN collapse (Diamond → Main Street → liquidation)" },
-                                ].map((s, si) => (
+                                {TREND_DTC.stats.map((s, si) => (
                                   <div key={si} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                     <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: BRAND.pink, lineHeight: 1 }}>{s.value}</div>
                                     <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
@@ -2219,14 +2149,10 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                               {/* INSIGHT */}
                               <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "0 0 28px" }} />
-                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>INSIGHT</div>
+                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_DTC.insightTitle}</div>
                               <div>
-                                <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>
-                                  The question of whether leagues and teams would go direct-to-consumer was treated as a thought experiment for years. Infrastructure wasn't ready, rights structures were too complex, broadcasters were paying too well.
-                                </p>
-                                <p style={{ fontSize: 15, lineHeight: 1.8, color: t.titleColor, fontWeight: 600, marginBottom: 16 }}>
-                                  Not anymore.
-                                </p>
+                                {TREND_DTC.insight.map((text, pi) => <p key={pi} style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, marginBottom: 16 }}>{text}</p>)}
+                                {TREND_DTC.insightEmphasis && <p style={{ fontSize: 15, lineHeight: 1.8, color: t.titleColor, fontWeight: 600, marginBottom: 16 }}>{TREND_DTC.insightEmphasis}</p>}
                               </div>
 
                               {/* KEY DTC LAUNCHES , collapsible table */}
@@ -2237,8 +2163,8 @@ export default function ReportGSTER26({ content, preview = false }: {
                                   style={{ width: "100%", background: openRevTab === "dtc-launches" ? `${BRAND.pink}06` : t.bgCard, border: `1px solid ${openRevTab === "dtc-launches" ? BRAND.pink + "44" : t.border}`, borderRadius: 10, cursor: "pointer", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, outline: "none", transition: "all 0.3s", zIndex: 2, fontFamily: "inherit" }}
                                 >
                                   <div style={{ textAlign: "left" }}>
-                                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: t.titleColor, lineHeight: 1.2 }}>KEY DTC LAUNCHES 2025–2026</div>
-                                    <div style={{ fontSize: 11, color: t.textMuted, fontStyle: "italic", marginTop: 4 }}>12 launches across MLB, NHL, Premier League, Ligue 1 and more , the RSN collapse accelerated everything</div>
+                                    <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: t.titleColor, lineHeight: 1.2 }}>{TREND_DTC.launchesTitle}</div>
+                                    <div style={{ fontSize: 11, color: t.textMuted, fontStyle: "italic", marginTop: 4 }}>{TREND_DTC.launchesSubtitle}</div>
                                   </div>
                                   <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: openRevTab === "dtc-launches" ? BRAND.pink : t.textMuted, flexShrink: 0, transition: "transform 0.3s", transform: openRevTab === "dtc-launches" ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
                                 </button>
@@ -2247,7 +2173,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 10 : 12 }}>
                                       <thead>
                                         <tr>
-                                          {["Date", "Entity", "Country", "Description"].map(h => (
+                                          {TREND_DTC.launchesHeaders.map(h => (
                                             <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: 2, color: BRAND.pink, textTransform: "uppercase", borderBottom: `2px solid ${t.border}`, whiteSpace: "nowrap" }}>{h}</th>
                                           ))}
                                         </tr>
@@ -2269,83 +2195,45 @@ export default function ReportGSTER26({ content, preview = false }: {
 
                               {/* WHY IT'S HAPPENING */}
                               <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>WHY IT'S HAPPENING</div>
+                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_DTC.whyHappeningTitle}</div>
                               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                                {/* 01 , The US Catalyst */}
-                                <div style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>01</span>
-                                    <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: t.titleColor, lineHeight: 1 }}>The US Catalyst</span>
+                                {numbered(TREND_DTC.whyHappening).map((w) => (
+                                  <div key={w.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                                      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>{w.n}</span>
+                                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: t.titleColor, lineHeight: 1 }}>{w.title}</span>
+                                    </div>
+                                    {w.paragraphs.map((text, pi) => (
+                                      <p key={pi} style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: pi === w.paragraphs.length - 1 && !w.points.length ? 0 : "0 0 12px" }}>{text}</p>
+                                    ))}
+                                    {w.points.length > 0 && (
+                                      <div style={{ paddingLeft: 16, borderLeft: `3px solid ${BRAND.tealBright}`, marginTop: 12 }}>
+                                        {w.points.map((pt, qi) => (
+                                          <p key={qi} style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: qi === w.points.length - 1 ? 0 : "0 0 6px" }}>
+                                            <strong style={{ color: t.titleColor }}>{pt.label}</strong>{pt.text}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                  <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 12px" }}>
-                                    Diamond Sports Group filed for bankruptcy in 2023, rebranded as Main Street Sports Group, and is now heading for full liquidation in April 2026, taking the local broadcast rights of 29 MLB, NBA, and NHL franchises with it.
-                                  </p>
-                                  <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 12px" }}>
-                                    The Regional Sports Network (RSN) model isn't struggling. It's over. And leagues and teams aren't waiting for a replacement, they're building one.
-                                  </p>
-                                  <div style={{ paddingLeft: 16, borderLeft: `3px solid ${BRAND.tealBright}`, marginTop: 12 }}>
-                                    <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 6px" }}>
-                                      <strong style={{ color: t.titleColor }}>MLB:</strong> Braves and Tigers are launching new DTC networks, while the Astros already operate one; MLB had in-market streaming available for 22 of 30 clubs by March 2026.
-                                    </p>
-                                    <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: 0 }}>
-                                      <strong style={{ color: t.titleColor }}>NBA:</strong> Fast-tracking a streaming hub for 2026/27; Amazon, YouTube TV, ESPN, and DAZN all in talks; up to 22 franchises, a deal worth billions.
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* 02 , The Global Wave */}
-                                <div style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>02</span>
-                                    <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: t.titleColor, lineHeight: 1 }}>The Global Wave</span>
-                                  </div>
-                                  <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 12px" }}>
-                                    The US collapse is the loudest signal, but it isn't the only one. Across Europe, leagues facing a different problem , eroding broadcast revenues and a shrinking pool of viable rights buyers , are arriving at the same conclusion: own the platform, own the relationship.
-                                  </p>
-                                  <div style={{ paddingLeft: 16, borderLeft: `3px solid ${BRAND.tealBright}`, marginTop: 12 }}>
-                                    <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 6px" }}>
-                                      <strong style={{ color: t.titleColor }}>Ligue 1:</strong> Announced Ligue 1+ in July 2025 after the domestic market failed to produce a viable rights buyer; passed one million subscribers within a month.
-                                    </p>
-                                    <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: "0 0 6px" }}>
-                                      <strong style={{ color: t.titleColor }}>Top 14 Rugby:</strong> Launched TOP 14 Rugby TV in November 2025, across 170+ territories; not a domestic fallback but a deliberate global growth play.
-                                    </p>
-                                    <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: 0 }}>
-                                      <strong style={{ color: t.titleColor }}>Premier League:</strong> Announced Premier League+ in February 2026, in Singapore for 2026/27; explicitly framed as a learning exercise before any broader rollout.
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* 03 , The Infrastructure Moment */}
-                                <div style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>03</span>
-                                    <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: t.titleColor, lineHeight: 1 }}>The Infrastructure Moment</span>
-                                  </div>
-                                  <p style={{ fontSize: 12, lineHeight: 1.7, color: t.textMuted, margin: 0 }}>
-                                    The technology that made DTC prohibitively expensive five years ago is now commoditised. Cloud-based streaming infrastructure, white-label OTT platforms, and AI-driven personalisation have collapsed the cost of building a direct viewing product. Simultaneously, rights structures are being renegotiated with DTC carve-outs as standard. Leagues are no longer signing away digital rights wholesale. The window that broadcasters held for decades is closing, not because leagues are being bold, but because the barriers to going direct have largely disappeared.
-                                  </p>
-                                </div>
+                                ))}
                               </div>
 
                               {/* Quote block */}
                               <div style={{ margin: isMobile ? "24px 0" : "32px 0 32px 0", padding: isMobile ? "20px 18px" : "28px 36px", borderLeft: `4px solid ${BRAND.pink}`, background: `${BRAND.pink}08`, borderRadius: "0 10px 10px 0" }}>
                                 <p style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: isMobile ? 16 : 20, lineHeight: 1.5, color: t.titleColor, fontStyle: "italic", fontWeight: 700, marginBottom: 10 }}>
-                                  "For the first time, the Premier League is going to have its own customers."
+                                  {TREND_DTC.quote}
                                 </p>
                                 <p style={{ fontSize: 11, color: t.textMuted, fontFamily: "'DM Mono',monospace", letterSpacing: 1.5 }}>
-                                  , Premier League CEO Richard Masters
+                                  {TREND_DTC.quoteAttribution}
                                 </p>
                               </div>
 
                               {/* WHY IT MATTERS */}
                               <div style={{ height: 1, background: `linear-gradient(to right,transparent,${BRAND.pink}55,transparent)`, margin: "40px 0 28px" }} />
-                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>WHY IT MATTERS</div>
+                              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: t.titleColor, marginBottom: 20 }}>{TREND_DTC.whyMattersTitle}</div>
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                {[
-                                  { n: "01", title: "Data Layer Shifts to the League", desc: "Viewing habits, purchase behaviour, device preferences , data that is extraordinarily valuable, and now owned by the league, not the broadcaster. For the first time, leagues know exactly who their fans are, what they watch, and what they'll pay for." },
-                                  { n: "02", title: "Broadcasters' Role Shift", desc: "The big players aren't disappearing, they're repositioning. DAZN, Amazon, and YouTube TV are in talks to carry the NBA's streaming hub not as rights holders, but as distribution partners." },
-                                  { n: "03", title: "The Fragmentation Problem", desc: "Every new DTC launch adds another paywall. The Premier League's own CEO flagged piracy as a live concern. Fragmentation is both the inevitable consequence of every league going direct at once, and the biggest threat to the reach they're trying to build." },
-                                ].map(d => (
+                                {numbered(TREND_DTC.whyMatters).map(d => (
                                   <div key={d.n} style={{ padding: "20px 24px", background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                       <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: BRAND.pink, letterSpacing: 2, opacity: 0.6 }}>{d.n}</span>
@@ -2356,7 +2244,7 @@ export default function ReportGSTER26({ content, preview = false }: {
                                 ))}
                               </div>
                               <p style={{ fontSize: 14, lineHeight: 1.8, color: t.textMuted, fontStyle: "italic", marginTop: 24 }}>
-                                The infrastructure is shifting, the rights structures are moving, and the broadcasters are adapting. The only question left is who pays , and how much fragmentation fans will accept before they stop paying altogether.
+                                {TREND_DTC.closingLine}
                               </p>
                             </>
                           ) : (
