@@ -52,7 +52,7 @@ function Mockup({ tab, label, shots }: { tab: number; label: string; shots?: Sit
 		: undefined;
 	if (shot?.url) {
 		return (
-			<div className="lp-mockup">
+			<div className="lp-mockup lp-mockup--img">
 				<img className="lp-mockup-img" src={shot.url} alt={shot.alt || `Atlas ${label} view`} />
 			</div>
 		);
