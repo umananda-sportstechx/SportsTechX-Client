@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { ArrowUpRight, Calendar, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExportButton } from '@/components/features/exports/export-button';
@@ -11,7 +11,12 @@ import { ResultCapNote } from '../market/result-cap-note';
 import { MONTHS } from '@/lib/catalog-options';
 import { useSportOptions, useLocationFacetOptions, useCountryOptions } from '@/hooks/use-catalog-options';
 import { useFeatureAccess } from '@/contexts/feature-access-context';
+import { useUrlModal } from '@/hooks/use-url-state';
+import { EventDrawer } from './event-drawer';
 import './events-calendar.css';
+
+/** Opens an event's details drawer — provided by EventsList to its table, cards and calendar. */
+const OpenEvent = createContext<((id: string) => void) | null>(null);
 
 /**
  * Ecosystem catalogues — Programs and Events lists (shared by Raise and Scout;
@@ -223,6 +228,8 @@ export function EventsList() {
 
 	const listRows = listRes.data?.data ?? [];
 	const calRows = calRes.data?.data ?? [];
+	const [eventId, setEventId] = useUrlModal('event');
+	const selectedEvent = listRows.find((e) => e.id === eventId) ?? calRows.find((e) => e.id === eventId);
 	const anyFilter = !!(dq || mode || sport || month || country || city || continent || region);
 
 	const prevMonth = () => {
@@ -240,7 +247,7 @@ export function EventsList() {
 		: (listRes.data?.total ?? 0);
 
 	return (
-		<>
+		<OpenEvent.Provider value={setEventId}>
 			<FilterBar
 				search={{ value: q, onChange: (v) => { setQ(v); reset(); }, placeholder: 'Search events by name or website' }}
 				groups={[
@@ -299,7 +306,8 @@ export function EventsList() {
 					<Pager page={page} totalPages={listRes.data?.totalPages ?? 1} onPage={setPage} />
 				</>
 			)}
-		</>
+			<EventDrawer id={eventId} row={selectedEvent} onClose={() => setEventId(null)} />
+		</OpenEvent.Provider>
 	);
 }
 
@@ -439,21 +447,20 @@ function CalendarGrid({ year, month, events }: { year: number; month: number; ev
 }
 
 function CalendarEvent({ event }: { event: Eco }) {
+	const open = useContext(OpenEvent);
 	const modeLabel = event.mode ? MODE_LABEL[event.mode] : null;
-	const href = extUrl(event.website);
-	const Tag = href ? 'a' : 'div';
-	const linkProps = href ? { href, target: '_blank', rel: 'noopener noreferrer' } : {};
 	return (
-		<Tag className={`ecal__event ecal__event--${event.mode ?? 'default'}`} {...linkProps} title={event.name}>
+		<button type="button" className={`ecal__event ecal__event--${event.mode ?? 'default'}`} onClick={() => open?.(event.id)} title={event.name}>
 			<span className="ecal__event-name">{event.name}</span>
 			{modeLabel && <span className="ecal__event-mode">{modeLabel}</span>}
-		</Tag>
+		</button>
 	);
 }
 
 /* ── Table view ─────────────────────────────────────────────────────────── */
 
 function EventsTable({ rows }: { rows: Eco[] }) {
+	const open = useContext(OpenEvent);
 	return (
 		<div className="ecal-table-wrap">
 			<table className="ecal-table">
@@ -475,7 +482,7 @@ function EventsTable({ rows }: { rows: Eco[] }) {
 								: fmtDate(e.start_date)
 							: '—';
 						return (
-							<tr key={e.id}>
+							<tr key={e.id} onClick={() => open?.(e.id)} style={{ cursor: 'pointer' }} title="View details">
 								<td className="ecal-table__date">{dateRange}</td>
 								<td>
 									<div className="ecal-table__event">
@@ -488,7 +495,7 @@ function EventsTable({ rows }: { rows: Eco[] }) {
 								</td>
 								<td>{e.hq_country ? <span className="ecal-table__loc"><Flag cc={e.hq_country} size={12} /> {loc}</span> : loc || '—'}</td>
 								<td>{e.mode ? <span className={`ecal-table__mode ecal-table__mode--${e.mode}`}>{MODE_LABEL[e.mode] ?? e.mode}</span> : '—'}</td>
-								<td>{e.website ? <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="ecal-table__link"><ArrowUpRight size={13} /> Visit</a> : '—'}</td>
+								<td>{e.website ? <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="ecal-table__link" onClick={(ev) => ev.stopPropagation()}><ArrowUpRight size={13} /> Visit</a> : '—'}</td>
 							</tr>
 						);
 					})}
@@ -505,12 +512,14 @@ function Divider() {
 }
 
 function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
+	const open = useContext(OpenEvent);
+	const onOpen = isEvent && open ? () => open(e.id) : undefined;
 	const loc = [e.hq_city, e.hq_country].filter(Boolean).join(', ');
 	const dateLine = isEvent && e.start_date ? fmtDate(e.start_date) : null;
 	const modeLine = isEvent && e.mode ? (MODE_LABEL[e.mode] ?? e.mode) : null;
 	const eyebrow = isEvent ? modeLine : e.category;
 	return (
-		<div className="atlas-card atlas-entity-card">
+		<div className="atlas-card atlas-entity-card" onClick={onOpen} style={onOpen ? { cursor: 'pointer' } : undefined}>
 			<div className="atlas-entity-card__head">
 				<Logo co={{ name: e.name, website: e.website }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
@@ -525,7 +534,7 @@ function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
 			<div className="atlas-entity-card__foot">
 				{dateLine && <span className="atlas-entity-card__date">{dateLine}</span>}
 				{!dateLine && !isEvent && <span />}
-				{e.website && <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="atlas-entity-card__link" title="Visit website"><ArrowUpRight size={15} /></a>}
+				{e.website && <a href={extUrl(e.website)} target="_blank" rel="noopener noreferrer" className="atlas-entity-card__link" title="Visit website" onClick={(ev) => ev.stopPropagation()}><ArrowUpRight size={15} /></a>}
 			</div>
 		</div>
 	);
