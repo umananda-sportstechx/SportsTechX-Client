@@ -14,7 +14,7 @@ import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Menu, X } from "lucide-react";
+import { Menu, X, SunMedium, MoonStar } from "lucide-react";
 import { getCountryFlag, getFlagByCountryCode } from "./lib/flags";
 import { BRAND, DARK, LIGHT, WORLDCUP_TECH_COLORS, type Theme } from "./lib/report-theme";
 import {
@@ -762,7 +762,7 @@ export default function ReportFTABR26({ content, preview = false }: {
       @keyframes stxPulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
       .stx-trend-card:hover { border-color:${PITCH}!important; }
       .stx-nav-link:hover { color:${BRAND.pink}!important; }
-      .stx-toggle { cursor:pointer; user-select:none; }
+      .stx-toggle { cursor:pointer; user-select:none; transition: opacity 0.2s; } .stx-toggle:hover { opacity: 0.7; } .stx-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 6px; }
       @media (max-width: 639px) {
         .stx-nav-links { display:none!important; }
         .stx-nav-hub { display:none!important; }
@@ -1004,9 +1004,9 @@ export default function ReportFTABR26({ content, preview = false }: {
         )}
         <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
           <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            style={{ background: isDark ? "rgba(237,26,94,0.15)" : BRAND.peach, border: `1px solid ${BRAND.pink}`, borderRadius: 20, padding: isMobile ? "5px 10px" : "5px 14px", fontSize: isMobile ? 10 : 12, color: BRAND.pink, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, transition: "background 0.25s" }}>
-            {isDark ? "☀" : "☾"}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{ background: "none", border: "none", padding: 6, color: BRAND.pink, display: "flex", alignItems: "center", lineHeight: 0 }}>
+            {isDark ? <SunMedium size={isMobile ? 18 : 20} strokeWidth={1.75} /> : <MoonStar size={isMobile ? 18 : 20} strokeWidth={1.75} />}
           </button>
           {isMobile ? (
             <button onClick={() => setMobileMenuOpen(o => !o)}
