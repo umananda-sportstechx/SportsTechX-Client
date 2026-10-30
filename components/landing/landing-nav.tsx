@@ -64,7 +64,7 @@ export function LandingNav() {
 					if (location.pathname !== '/') return;
 					e.preventDefault();
 					history.replaceState(null, '', '/');
-					window.scrollTo({ top: 0, behavior: 'smooth' });
+					window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 				}}>
 					{/* The full lockup, not the bare A: the three sites show their whole
 					    wordmark in the bar now. */}
