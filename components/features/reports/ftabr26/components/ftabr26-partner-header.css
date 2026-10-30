@@ -1,0 +1,81 @@
+.ft26-partner-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+  min-width: 0;
+}
+.ft26-partner-header__logo { min-width: 0; }
+.ft26-partner-header__logo > img { display: block; height: 34px; max-width: 160px; object-fit: contain; }
+.ft26-partner-header__title {
+  min-width: 0;
+  border-left: 1px solid var(--partner-rule);
+  padding-left: 18px;
+}
+.ft26-partner-header .ft26-partner-header__headline {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.05;
+  color: #edf3f9;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ft26-partner-header .ft26-partner-header__subline {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--partner-accent);
+  margin: 4px 0 0;
+}
+.ft26-partner-header__actions { display: flex; align-items: center; gap: 8px; }
+.ft26-partner-header__visit {
+  color: #edf3f9;
+  background: var(--partner-button);
+  border-radius: 50px;
+  padding: 7px 20px;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ft26-partner-header__website {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--partner-rule);
+  border-radius: 50%;
+  color: var(--partner-accent);
+}
+.ft26-partner-header a:hover { opacity: 0.8; }
+.ft26-partner-header a:focus-visible { outline: 2px solid var(--partner-accent); outline-offset: 5px; }
+@media (max-width: 767px) {
+  .ft26-partner-header { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 20px; }
+  .ft26-partner-header__logo > img { height: 26px; }
+  .ft26-partner-header__title { border-left: 0; padding-left: 0; }
+  .ft26-partner-header .ft26-partner-header__headline { font-size: 26px; }
+  .ft26-partner-header .ft26-partner-header__subline { font-size: 9px; }
+  .ft26-partner-header__actions { margin-top: 6px; }
+}
+/* Keep long headlines out of the narrow space between logo and CTA in PDF.
+   Both partners use the same full-width title row, regardless of viewport. */
+.ft26-partner-header--print {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-bottom: 20px;
+  break-inside: avoid;
+}
+.ft26-partner-header--print .ft26-partner-header__logo > img { height: 30px; max-width: 140px; }
+.ft26-partner-header--print .ft26-partner-header__title { grid-column: 1 / -1; grid-row: 2; padding-left: 0; border-left: 0; }
+.ft26-partner-header--print .ft26-partner-header__headline { font-size: 26px; }
+.ft26-partner-header--print .ft26-partner-header__subline { font-size: 9px; letter-spacing: 1.5px; }
+.ft26-partner-header--print .ft26-partner-header__actions { grid-column: 2; grid-row: 1; margin-top: 0; }
+.ft26-partner-header--print .ft26-partner-header__visit { font-size: 10px; letter-spacing: 1px; padding: 6px 12px; }

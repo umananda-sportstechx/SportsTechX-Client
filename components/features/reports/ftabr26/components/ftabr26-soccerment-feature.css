@@ -1,0 +1,105 @@
+.ft26-soccerment {
+  --soc-blue: #38b7e4;
+  --soc-text: #c8d0db;
+  color: var(--soc-text);
+  background: #09121f;
+  border: 2px solid #247caa;
+  border-radius: 20px;
+  padding: 32px 40px;
+  /* Match Playermaker's report font: Open Sans on web, IBM Plex Sans in PDF. */
+  font-family: inherit;
+}
+.ft26-soccerment * { box-sizing: border-box; }
+.ft26-soccerment .soc-inner { max-width: 1280px; margin: 0 auto; }
+/* Crop only the transparent source margins. Both layers retain the original
+   aspect ratio; the supplied blue emblem overlays the lightened wordmark. */
+.ft26-soccerment .soc-logo { position: relative; flex: 0 0 119px; width: 119px; height: 34px; overflow: hidden; }
+.ft26-soccerment .soc-logo img { position: absolute; width: 153px; max-width: none; height: auto; left: -17px; top: -14px; filter: brightness(0) invert(0.95); }
+.ft26-soccerment .soc-logo img.soc-logo-emblem { filter: none; clip-path: inset(0 65% 0 0); }
+.ft26-soccerment a:focus-visible { outline: 2px solid var(--soc-blue); outline-offset: 5px; }
+.ft26-soccerment .soc-label { font-family: "DM Mono", monospace; color: var(--soc-blue); font-size: 9px; line-height: 1.5; letter-spacing: 3px; text-transform: uppercase; font-weight: 400; margin: 0 0 8px; }
+.ft26-soccerment .soc-story-row { display: grid; grid-template-columns: 1fr 1.25fr; gap: 32px; align-items: stretch; margin-bottom: 24px; }
+.ft26-soccerment .soc-story { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.ft26-soccerment .soc-about { margin: 0; }
+.ft26-soccerment .soc-body { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--soc-text); }
+.ft26-soccerment .soc-intro { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+.ft26-soccerment .soc-bottom { display: grid; grid-template-columns: 1fr 1.25fr; gap: 32px; align-items: start; padding-top: 22px; border-top: 1px solid #38b7e422; }
+.ft26-soccerment .soc-achievement-panel { min-width: 0; }
+.ft26-soccerment .soc-achievements { padding: 0; margin: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ft26-soccerment .soc-achievements li { display: flex; gap: 12px; align-items: baseline; }
+.ft26-soccerment .soc-index { font-family: "Bebas Neue", sans-serif; font-size: 22px; line-height: 1; color: var(--soc-blue); flex: 0 0 22px; }
+.ft26-soccerment .soc-achievements p { font-size: 12.5px; font-weight: 600; line-height: 1.5; margin: 0; }
+.ft26-soccerment .soc-mosaic { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1.5fr 1fr; gap: 10px; height: 320px; min-width: 0; align-self: start; }
+.ft26-soccerment .soc-figure { margin: 0; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; border: 1px solid #38b7e420; border-radius: 10px; overflow: hidden; background: #050b12; }
+.ft26-soccerment .soc-figure--lead { grid-column: 1 / -1; }
+.ft26-soccerment .soc-screen { width: 100%; height: 100%; max-width: 100%; max-height: 100%; display: block; object-fit: contain; object-position: center; }
+.ft26-soccerment .soc-founder { display: flex; align-items: center; gap: 12px; }
+.ft26-soccerment .soc-founder img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: center 20%; border: 2px solid var(--soc-blue); flex-shrink: 0; }
+.ft26-soccerment .soc-founder strong { display: block; color: #edf3f9; font-weight: 700; font-size: 13px; }
+.ft26-soccerment .soc-founder span { display: block; margin-top: 2px; font-family: "DM Mono", monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soc-blue); }
+.ft26-soccerment .soc-copy-link { color: #e7f7fc; text-decoration: underline; text-decoration-color: var(--soc-blue); text-underline-offset: 2px; }
+.ft26-soccerment .soc-copy-link:hover { color: #fff; text-decoration-color: #fff; }
+
+@media (max-width: 767px) {
+  .ft26-soccerment { padding: 28px 16px; }
+  .ft26-soccerment .soc-logo { flex-basis: auto; }
+  .ft26-soccerment .soc-story-row { grid-template-columns: 1fr; gap: 22px; }
+  .ft26-soccerment .soc-story { gap: 22px; }
+  .ft26-soccerment .soc-mosaic { height: auto; grid-template-rows: auto auto; gap: 14px; }
+  .ft26-soccerment .soc-screen { width: 100%; height: auto; max-width: 100%; max-height: none; }
+  .ft26-soccerment .soc-bottom { grid-template-columns: 1fr; gap: 18px; padding-top: 20px; }
+}
+
+/* Match Playermaker's print hierarchy: images, full-width story, three-column footer. */
+.ft26-soccerment.soc-print {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 28px;
+  border-radius: 16px;
+}
+.ft26-soccerment.soc-print .soc-inner {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.2fr);
+  grid-template-rows: auto 460px auto 1fr;
+  grid-template-areas:
+    "header header header"
+    "mosaic mosaic mosaic"
+    "about about about"
+    "founder achievements next";
+  column-gap: 20px;
+  row-gap: 14px;
+}
+.ft26-soccerment.soc-print .soc-header { grid-area: header; }
+.ft26-soccerment.soc-print .soc-story-row,
+.ft26-soccerment.soc-print .soc-story,
+.ft26-soccerment.soc-print .soc-bottom { display: contents; }
+.ft26-soccerment.soc-print .soc-logo { flex-basis: 105px; width: 105px; height: 30px; }
+.ft26-soccerment.soc-print .soc-logo img { width: 135px; left: -15px; top: -12px; }
+.ft26-soccerment.soc-print .soc-mosaic { grid-area: mosaic; }
+.ft26-soccerment.soc-print .soc-about { grid-area: about; }
+.ft26-soccerment.soc-print .soc-achievement-panel { grid-area: achievements; }
+.ft26-soccerment.soc-print .soc-founder { grid-area: founder; }
+.ft26-soccerment.soc-print .soc-next { grid-area: next; }
+.ft26-soccerment.soc-print .soc-achievement-panel,
+.ft26-soccerment.soc-print .soc-founder,
+.ft26-soccerment.soc-print .soc-next { align-self: start; padding-top: 18px; border-top: 1px solid #38b7e422; }
+.ft26-soccerment.soc-print .soc-label { font-size: 8px; letter-spacing: 3px; }
+.ft26-soccerment.soc-print .soc-body { font-size: 10px; line-height: 1.65; }
+.ft26-soccerment.soc-print .soc-about { font-size: 11px; }
+.ft26-soccerment.soc-print .soc-intro { font-size: 12.5px; }
+.ft26-soccerment.soc-print .soc-achievements p { font-size: 10px; line-height: 1.5; }
+.ft26-soccerment.soc-print .soc-achievements li { gap: 10px; }
+.ft26-soccerment.soc-print .soc-index { font-size: 22px; flex-basis: 20px; }
+.ft26-soccerment.soc-print .soc-mosaic { width: 100%; height: 460px; grid-template-rows: 1.25fr 1fr; gap: 8px; }
+.ft26-soccerment.soc-print .soc-figure { border: 0; border-radius: 10px; overflow: hidden; background: transparent; }
+.ft26-soccerment.soc-print .soc-screen { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; }
+.ft26-soccerment.soc-print .soc-figure--lead { grid-column: 1 / -1; }
+.ft26-soccerment.soc-print .soc-founder { gap: 10px; }
+.ft26-soccerment.soc-print .soc-founder img { width: 46px; height: 46px; }
+.ft26-soccerment.soc-print .soc-founder strong { font-size: 11.5px; }
+.ft26-soccerment.soc-print .soc-founder span { font-size: 8px; }
