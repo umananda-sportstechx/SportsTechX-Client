@@ -503,7 +503,9 @@ body:has(.lp) {
 /* Variant b mirrors variant a: the header sits on the white section and the
    window overhangs the panel’s TOP edge instead of its bottom. */
 .lp-gallery-panel--bare { padding: 0 63px 62px; margin-top: 163px; }
-.lp-gallery-panel--bare .lp-mockup { margin-top: -163px; margin-bottom: 0; }
+/* The headwrap's 62px bottom margin collapses into the panel's 163px top one, so
+   -163 put the window flush under the switcher. -115 leaves a 48px gap. */
+.lp-gallery-panel--bare .lp-mockup { margin-top: -115px; margin-bottom: 0; }
 .lp-gallery-headwrap { max-width: var(--lp-card-max); margin: 0 auto 62px; padding: 0 4px; color: var(--lp-ink); }
 
 .lp-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
@@ -535,9 +537,12 @@ body:has(.lp) {
 .lp-mockup-avatar { width: 32px; height: 32px; border-radius: 99px; background: #e6e6e6; }
 .lp-mockup-body { display: grid; gap: 32px; padding: 46px 40px; }
 .lp-sk { width: 194px; height: 10px; border-radius: 5px; background: #ededed; }
-/* An uploaded dashboard screenshot replaces the whole fake window. object-fit
-   keeps it from stretching when its own ratio differs from 1223/649. */
-.lp-mockup-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+/* An uploaded dashboard screenshot replaces the whole fake window and sizes the
+   card to itself: full width, natural height, nothing cropped. Only the skeleton
+   placeholder keeps the fixed 1223/649 window. Two classes, so it also beats the
+   breakpoints' fixed heights. */
+.lp-mockup.lp-mockup--img { aspect-ratio: auto; height: auto; }
+.lp-mockup-img { display: block; width: 100%; height: auto; }
 
 /* ── Testimonials ──────────────────────────────────────────────────────── */
 /* Centred serif label with a long rule running out to either side. */
@@ -786,7 +791,7 @@ body:has(.lp) {
 	   derived dimension (460 x 1223/649 = 867px) and overflows the panel. */
 	.lp-mockup { height: 460px; aspect-ratio: auto; margin-bottom: -170px; }
 	.lp-gallery-panel--bare { margin-top: 110px; padding-bottom: 44px; }
-	.lp-gallery-panel--bare .lp-mockup { margin-top: -110px; margin-bottom: 0; }
+	.lp-gallery-panel--bare .lp-mockup { margin-top: -70px; margin-bottom: 0; }
 }
 /* The links capsule is ~400px intrinsic; with the 56px mark and the LOG IN pill
    the bar measures ~666px, so it clears 768 by barely 100px and one copy change
@@ -950,7 +955,7 @@ body:has(.lp) {
 	.lp-mockup { height: 320px; aspect-ratio: auto; margin-top: 32px; margin-bottom: -110px; }
 	.lp-gallery--light { padding: 56px var(--lp-pad) 70px; }
 	.lp-gallery-panel--bare { margin-top: 70px; padding: 0 20px 28px; }
-	.lp-gallery-panel--bare .lp-mockup { margin-top: -70px; margin-bottom: 0; }
+	.lp-gallery-panel--bare .lp-mockup { margin-top: -46px; margin-bottom: 0; }
 	.lp-mockup-bar { height: 56px; padding: 0 18px; }
 	/* 8 skeleton rows is the CONNECT tab's count and it did not fit: 8 x (10 +
 	   20 gap) + 52 padding = 292px inside a 264px box, silently cut by the
