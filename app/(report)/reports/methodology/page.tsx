@@ -39,7 +39,7 @@ export default function MethodologyPage() {
 					Methodology
 				</h1>
 
-				<div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.8, color: isDark ? 'rgba(190, 208, 227, 0.75)' : t.textMuted }}>
+				<div className="methodology-body" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, lineHeight: 1.8, color: isDark ? 'rgba(190, 208, 227, 0.75)' : t.textMuted }}>
 					<p>The data from this report was obtained by reviewing over 7,500+ startups and nearly 7,500+ funding deals in Global Sports Tech. Here are some key things to know about how this analysis was approached.</p>
 
 					<p>While we always want to be as inclusive as possible, we have applied certain criteria to ensure that all data is representative of current trends. All companies founded before the year 2000 have been excluded unless otherwise stated, such as Fanatics. Only deals announced during the period of Jan 1, 2021 - Jun 30, 2026 were considered. Deals completed in that period for companies that are not currently active have also been included.</p>
