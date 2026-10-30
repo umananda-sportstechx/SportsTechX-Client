@@ -423,14 +423,22 @@ export default function PublicReport({ data = REPORT }: { data?: PublicReportDat
     return () => mq.removeEventListener("change", on);
   }, []);
   /* The section in view, for the header's active link (as the STX section rail did). */
+  // The last section whose top has passed a line 30% down the viewport; none above the first.
   const [active, setActive] = useState(0);
   useEffect(() => {
-    const io = new IntersectionObserver((entries) => {
-      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (vis) setActive(NAV.findIndex((n) => n.id === vis.target.id) + 1);
-    }, { rootMargin: "-20% 0px -70% 0px" });
-    NAV.forEach((n) => { const el = document.getElementById(n.id); if (el) io.observe(el); });
-    return () => io.disconnect();
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const line = window.innerHeight * 0.3;
+      let idx = 0;
+      NAV.forEach((n, i) => { const el = document.getElementById(n.id); if (el && el.getBoundingClientRect().top <= line) idx = i + 1; });
+      setActive(idx);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, []);
   const site = closing.cta.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
