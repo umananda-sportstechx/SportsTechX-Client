@@ -1,0 +1,498 @@
+{
+  "schema": "stx.public-report/1",
+  "meta": {
+    "id": "deal-sourcing-benchmark-2026",
+    "edition": 2026,
+    "title": "Sports Tech VC Deal Sourcing Benchmark 2026",
+    "subtitle": "How 30 sports tech investors find, screen and close deals, and where the gaps are.",
+    "kind": "public report",
+    "published": "2026-09",
+    "fieldwork": "2026-04/2026-07",
+    "publisher": "SportsTechX",
+    "funds": 30,
+    "deals_traced": 86,
+    "footer": "30 sports tech investors · fielded 2026 · self-reported",
+    "source_csv": "Fillout_Sports_Tech_VC_Deal_Sourcing_Benchmark_Study_2026_results.csv"
+  },
+  "intro": {
+    "heading": "Why this benchmark, and why now",
+    "subtitle": "Capital has returned to sports tech. The competition to reach the right founders first has intensified with it.",
+    "body": [
+      "Funding in the sector fell from $13.3B in 2021 to $2.3B in 2023, then recovered to $8.8B in 2025. Europe took the larger share of global investment for the first time, and 46 sports tech companies now carry valuations above a billion dollars.",
+      "The recovery has drawn more investors into sports tech than at any point in its history, competing for a limited number of credible companies through many of the same networks. How a fund finds companies now matters as much as how it judges them.",
+      "Sourcing is also the least documented part of the venture process. Firms describe their deal flow as proprietary, and there has been no shared reference point to measure that against. This study builds one, and it is designed to run every year.",
+      "Between April and July 2026, 30 investors with active sports tech portfolios answered the same questions on how they find companies, how many they review each month, which channels deliver and where the process slows down. They also gave us their fund profile: type, stage focus, geography, fund size and how many sports tech investments they have made, so the answers could be read in context. Each traced their last three investments back to source, which gave us 86 closed deals with an origin attached.",
+      "Thirty funds took part. Twenty agreed to be named as founding contributors, shown below, and ten took part confidentially. Every one of them receives a personalised snapshot comparing their own sourcing with the rest of the sample. The findings follow over the next three sections, with the method on the final page."
+    ],
+    "external_figures": {
+      "source": "SportsTechX, Global SportsTech Ecosystem Report 2026",
+      "note": "Market figures are from GSTER 2026, not from this survey. Charts use study data only.",
+      "funding_usd_bn": {
+        "2021": 13.3,
+        "2022": 8.7,
+        "2023": 2.3,
+        "2024": 2.8,
+        "2025": 8.8
+      },
+      "unicorns": 46
+    },
+    "contributors": {
+      "named": 20,
+      "confidential": 10,
+      "logo_map": "logomap.png"
+    }
+  },
+  "sections": [
+    {
+      "id": "deal-sourcing-reality",
+      "number": 1,
+      "heading": "Where the deals come from",
+      "subtitle": "Six in ten investments started with an introduction from someone the investor already knew.",
+      "intro": "We asked every fund to trace its last three sports tech investments back to the moment the company first appeared on their radar. That produced 86 deals with a source attached to each one. Set against the roughly 1,700 companies these funds screen every month, the result is lopsided. One channel produces most of the deals, two of the seven produce almost none, and the channel that produces the second most is one of the lowest rated.",
+      "stats": [
+        {
+          "value": "~1,700",
+          "label": "companies screened every month across the 30 funds",
+          "key": "screened_per_month"
+        },
+        {
+          "value": "86",
+          "label": "recent investments traced back to their source",
+          "key": "deals_traced"
+        },
+        {
+          "value": "3 of 7",
+          "label": "channels score 4 or higher out of 5 with the investors who use them",
+          "key": "channels_rated_4plus"
+        }
+      ],
+      "charts": [
+        {
+          "id": "channels",
+          "type": "bar+rating",
+          "title": "Where deals come from, and what investors think of each channel",
+          "subtitle": "Share of 86 closed deals · quality rating out of 5",
+          "basis": "Q12 quality ratings (users of each channel only) and the source of each fund's last three investments",
+          "rows": [
+            {
+              "id": "warm-introductions",
+              "label": "Warm introductions (inbound)",
+              "closed_deals": 51,
+              "closed_deals_pct": 59,
+              "quality_mean": 4.3,
+              "quality_raters": 30
+            },
+            {
+              "id": "direct-founder-outreach",
+              "label": "Direct founder outreach (inbound)",
+              "closed_deals": 13,
+              "closed_deals_pct": 15,
+              "quality_mean": 2.73,
+              "quality_raters": 30
+            },
+            {
+              "id": "co-investor-referral",
+              "label": "Co-investor / portfolio referral",
+              "closed_deals": 12,
+              "closed_deals_pct": 14,
+              "quality_mean": 4.17,
+              "quality_raters": 29
+            },
+            {
+              "id": "outbound-identification",
+              "label": "Outbound identification",
+              "closed_deals": 6,
+              "closed_deals_pct": 7,
+              "quality_mean": 4.21,
+              "quality_raters": 28
+            },
+            {
+              "id": "events-conferences",
+              "label": "Events and conferences",
+              "closed_deals": 2,
+              "closed_deals_pct": 2,
+              "quality_mean": 2.82,
+              "quality_raters": 28
+            },
+            {
+              "id": "research-platform",
+              "label": "Research platform / sector network",
+              "closed_deals": 2,
+              "closed_deals_pct": 2,
+              "quality_mean": 3.12,
+              "quality_raters": 25
+            },
+            {
+              "id": "data-platforms",
+              "label": "Data platforms",
+              "closed_deals": 0,
+              "closed_deals_pct": 0,
+              "quality_mean": 2.76,
+              "quality_raters": 25
+            }
+          ]
+        }
+      ],
+      "takeaways": [
+        "Warm introductions are the biggest source of deals and the highest rated channel. Nothing else is close on either count.",
+        "Direct founder outreach is the second biggest source of deals and sits at the bottom of the quality ratings alongside data platforms, at 2.7 and 2.8 out of 5. Investors close one deal in seven through a route they rate poorly.",
+        "Events and research networks produced two deals each. Data platforms produced none at all, despite being used by 11 of the 30 funds."
+      ],
+      "data": {
+        "screening_bands": [
+          {
+            "band": "Fewer than 10",
+            "funds": 6,
+            "midpoint": 5
+          },
+          {
+            "band": "10–25",
+            "funds": 4,
+            "midpoint": 17.5
+          },
+          {
+            "band": "26–50",
+            "funds": 7,
+            "midpoint": 38
+          },
+          {
+            "band": "51–100",
+            "funds": 5,
+            "midpoint": 75
+          },
+          {
+            "band": "100+",
+            "funds": 8,
+            "midpoint": 125
+          }
+        ],
+        "screened_per_month_estimate": 1741
+      }
+    },
+    {
+      "id": "sourcing-process",
+      "number": 2,
+      "heading": "Inside the sourcing process",
+      "subtitle": "Seven in ten investors are satisfied with their deal flow. Seven in ten of those same funds still name finding new companies as a top challenge.",
+      "intro": "21 of the 30 funds rate their deal flow 4 or 5 out of 5. Fifteen of those same funds also name finding qualified companies they have not already seen as a top-two challenge. Investors are content with what reaches them and frustrated by what does not.",
+      "stats": [
+        {
+          "value": "21 of 30",
+          "label": "rate deal flow 4 or 5, where 1 is very dissatisfied and 5 very satisfied",
+          "key": "satisfied"
+        },
+        {
+          "value": "15 of 30",
+          "label": "are satisfied and still name finding new companies as a top-two challenge",
+          "key": "satisfied_and_challenged"
+        },
+        {
+          "value": "4.5 vs 3.0",
+          "label": "average satisfaction, funds screening 100+ a month against those screening under 10",
+          "key": "satisfaction_by_volume"
+        }
+      ],
+      "charts": [
+        {
+          "id": "challenges",
+          "type": "bar",
+          "title": "Their biggest sourcing challenges",
+          "subtitle": "Share of the 30 funds naming each as one of their two biggest challenges (each fund chose two)",
+          "basis": "Q14, first two choices",
+          "rows": [
+            {
+              "label": "Finding qualified companies we haven’t already seen",
+              "funds": 21,
+              "funds_pct": 70
+            },
+            {
+              "label": "Accessing pre-fundraise companies before they run a formal process",
+              "funds": 15,
+              "funds_pct": 50
+            },
+            {
+              "label": "Getting beyond the same companies every fund in the space already knows",
+              "funds": 9,
+              "funds_pct": 30
+            },
+            {
+              "label": "Keeping pace with a fast-moving sector without dedicated analyst capacity",
+              "funds": 8,
+              "funds_pct": 27
+            },
+            {
+              "label": "Differentiating our fund to founders in an increasingly competitive market",
+              "funds": 4,
+              "funds_pct": 13
+            },
+            {
+              "label": "Too many companies offered",
+              "funds": 1,
+              "funds_pct": 3
+            },
+            {
+              "label": "Finding lead / co-lead investors",
+              "funds": 1,
+              "funds_pct": 3
+            },
+            {
+              "label": "Being on top of newly arising verticals within sport",
+              "funds": 1,
+              "funds_pct": 3
+            }
+          ]
+        },
+        {
+          "id": "time-costs",
+          "type": "dots",
+          "title": "Where their time goes",
+          "subtitle": "Number of funds naming each as one of their two biggest time costs (each fund chose two)",
+          "basis": "Q13, first two choices",
+          "dots_per_row": 30,
+          "rows": [
+            {
+              "label": "Initial screening and qualification of companies",
+              "funds": 16,
+              "funds_pct": 53
+            },
+            {
+              "label": "Identifying companies that fit our investment thesis",
+              "funds": 16,
+              "funds_pct": 53
+            },
+            {
+              "label": "Building and maintaining relationships with founders before they begin raising",
+              "funds": 11,
+              "funds_pct": 37
+            },
+            {
+              "label": "Staying on top of the competitive landscape and sector developments",
+              "funds": 10,
+              "funds_pct": 33
+            },
+            {
+              "label": "Getting warm access or introductions to founders",
+              "funds": 6,
+              "funds_pct": 20
+            },
+            {
+              "label": "Tracking and monitoring companies over time",
+              "funds": 1,
+              "funds_pct": 3
+            }
+          ]
+        }
+      ],
+      "takeaways": [
+        "21 funds name finding qualified companies they have not already seen as a top-two challenge, and 15 name reaching companies before a formal process.",
+        "Time follows the same pattern. Identifying thesis-fit companies and initial screening are named by 16 funds each, ahead of pre-raise relationships at 11."
+      ],
+      "data": {
+        "satisfaction_scale": "1 = very dissatisfied, 5 = very satisfied",
+        "satisfaction_mean": 3.8,
+        "satisfaction_by_screening_band": {
+          "Fewer than 10": 3.0,
+          "10–25": 3.5,
+          "26–50": 3.9,
+          "51–100": 3.8,
+          "100+": 4.5
+        }
+      }
+    },
+    {
+      "id": "outbound-and-tools",
+      "number": 3,
+      "heading": "Going out to find deals",
+      "subtitle": "Nine in ten funds want to find companies themselves rather than wait for them. Most have nothing to do it with.",
+      "intro": "Outbound sourcing means a team spotting a company itself instead of waiting for it to arrive through an introduction or an email. Investors rate it among the best channels they have, and it produces 7% of their deals. Two in three funds run their sourcing without any data platform at all, and that includes half of the funds who say outbound matters most to them.",
+      "stats": [
+        {
+          "value": "90%",
+          "label": "want to do more outbound sourcing in the next 12 months",
+          "key": "want_more_outbound"
+        },
+        {
+          "value": "7%",
+          "label": "of closed deals currently come from outbound",
+          "key": "outbound_share_of_deals"
+        },
+        {
+          "value": "2 in 3",
+          "label": "funds use no data platform for sports tech at all",
+          "key": "no_data_platform"
+        }
+      ],
+      "charts": [
+        {
+          "id": "outbound-vs-tools",
+          "type": "stacked-bar",
+          "title": "What funds want versus what they have",
+          "subtitle": "Number of funds · grouped by how much more outbound sourcing they want",
+          "basis": "Q16 crossed with Q15",
+          "series": [
+            "no_platform",
+            "uses_platform"
+          ],
+          "rows": [
+            {
+              "answer": "4- High priority",
+              "label": "Want a lot more outbound sourcing",
+              "funds": 12,
+              "no_platform": 6,
+              "uses_platform": 6
+            },
+            {
+              "answer": "3- Moderate priority",
+              "label": "Want somewhat more outbound sourcing",
+              "funds": 15,
+              "no_platform": 10,
+              "uses_platform": 5
+            },
+            {
+              "answer": "1- Not a priority",
+              "label": "Happy with how they source today",
+              "funds": 3,
+              "no_platform": 3,
+              "uses_platform": 0
+            }
+          ]
+        }
+      ],
+      "takeaways": [
+        "Outbound is one of the three channels investors rate highly, and it produces 7% of their deals. Almost every fund says it wants more of it.",
+        "Of the 12 funds who want a lot more outbound sourcing, six have no data platform. None of the funds that do use one treats it as a primary source, and they rate its sports tech coverage 3.0 out of 5.",
+        "Asked what would help, investors chose introductions through a sector community (7.2 out of 10) and quarterly research on emerging subsectors (6.9). A data feed into their CRM came last at 5.7."
+      ],
+      "data": {
+        "platform_users": 11,
+        "platform_fit_mean": 3.0,
+        "platform_fit_raters": 11,
+        "support_value": [
+          {
+            "option": "A",
+            "label": "Introductions to sports tech founders via a sector-focused community network",
+            "mean": 7.2,
+            "raters": 30
+          },
+          {
+            "option": "E",
+            "label": "Quarterly research reports on emerging sports tech subsectors relevant to your investment thesis",
+            "mean": 6.9,
+            "raters": 30
+          },
+          {
+            "option": "B",
+            "label": "A monthly curated list of sports tech startups matched to your investment thesis",
+            "mean": 6.8,
+            "raters": 30
+          },
+          {
+            "option": "C",
+            "label": "Weekly alerts on new companies, funding rounds, and M&A activity in your target subsectors",
+            "mean": 6.8,
+            "raters": 30
+          },
+          {
+            "option": "F",
+            "label": "Content creation and distribution to increase your fund's visibility among sports tech founders and operators",
+            "mean": 5.9,
+            "raters": 30
+          },
+          {
+            "option": "D",
+            "label": "API integration pushing sports tech deal data directly into your CRM or deal management system",
+            "mean": 5.7,
+            "raters": 30
+          }
+        ],
+        "support_scale": "1 = no value, 10 = extremely valuable"
+      }
+    }
+  ],
+  "closing": {
+    "heading": "What this means for investors",
+    "subtitle": "Three readings of the 2026 benchmark, and an invitation to help build the 2027 one.",
+    "intro": "The study describes current practice across 30 funds. It shows what is common and what is rare, and it associates rather than proves. Read the following as prompts for your own process, not as prescriptions.",
+    "points": [
+      {
+        "title": "Relationships still carry the market",
+        "body": "Warm introductions produced 59% of the 86 closed deals and are the highest rated channel at 4.3 out of 5. Co-investor and portfolio referrals close a further 14% at 4.2. No channel in the study has emerged as a substitute for either, which makes the quality of a fund's network its most consequential asset."
+      },
+      {
+        "title": "New names are the scarce input",
+        "body": "21 of the 30 funds name finding qualified companies they have not already seen as a top-two challenge, and 15 name reaching companies before a formal process. Satisfaction rises with screening volume, from 3.0 among the six funds reviewing fewer than ten companies a month to 4.5 among the eight reviewing more than 100."
+      },
+      {
+        "title": "Outbound is an intention more than a practice",
+        "body": "27 of the 30 funds want to increase proactive sourcing over the next year, and it currently accounts for 7% of closed deals. Two in three funds use no data platform, and the 11 that do rate its sports tech coverage 3.0 out of 5. The ambition is close to universal, the tooling is not."
+      }
+    ],
+    "cta": {
+      "title": "Take part in the 2027 edition",
+      "body": "The benchmark runs annually, and its value grows with the number of funds in it. Participating takes about ten minutes. Every fund receives a personalised snapshot comparing its own sourcing with the full sample, and can choose to be named or to take part confidentially.",
+      "email": "hello@sportstechx.com",
+      "url": "https://sportstechx.com"
+    }
+  },
+  "methodology": {
+    "heading": "Method and data notes",
+    "subtitle": "How the study was run, how the numbers were calculated, and where to read them carefully.",
+    "intro": "The benchmark is built on 30 complete survey responses and 86 individually sourced investments. Everything below explains what sits behind the figures on the previous pages.",
+    "blocks": [
+      {
+        "title": "The sample",
+        "body": "30 venture investors with active sports tech portfolios, surveyed between April and July 2026. 67% are sector-focused funds, 70% invest at seed or early stage, and 87% manage $100M or less."
+      },
+      {
+        "title": "How figures are calculated",
+        "body": "Percentages use all 30 funds unless stated. Challenge and time figures count funds placing an option in their first two choices. Closed deal shares draw on each fund's last three sports tech investments, 86 in total."
+      },
+      {
+        "title": "Screening estimate",
+        "body": "The monthly screening figure applies the midpoint of each response band, with the open top band counted as 125 companies. It is an estimate of scale rather than a precise count."
+      },
+      {
+        "title": "Data notes",
+        "body": "All figures are self-reported and grouped across the full sample. Comparisons between smaller groups rest on small numbers and should be read as indicative. Individual responses appear only in aggregate."
+      },
+      {
+        "title": "Quality ratings",
+        "body": "Investors rated each channel they use from 1 (very low) to 5 (very high). Ratings exclude funds that do not use a given channel, so they reflect the experience of users only."
+      },
+      {
+        "title": "Disclosure",
+        "body": "The study was designed and run by SportsTechX. Some of the forms of support tested in the survey resemble services SportsTechX offers."
+      }
+    ],
+    "note": {
+      "title": "Contributors and outside sources",
+      "body": "20 funds agreed to be named as founding contributors of this first edition, and 10 took part confidentially. The market figures cited on page 2 are drawn from the SportsTechX Global SportsTech Ecosystem Report 2026 rather than from this survey."
+    },
+    "sample_profile": {
+      "sector_focused_pct": 67,
+      "seed_or_early_pct": 70,
+      "under_100m_pct": 87,
+      "fund_type_counts": {
+        "Sector-focused VC fund (any from: sports, media, entertainment, gaming, fitness & wellness)": 20,
+        "Corporate venture / strategic investor": 3,
+        "Other": 2,
+        "Accelerator or venture studio": 2,
+        "Multi-stage / growth equity fund": 1,
+        "Generalist VC fund with a sports tech thesis or allocation": 1,
+        "Family office": 1
+      },
+      "stage_counts": {
+        "Early Stage (Pre-Series A – Series A)": 12,
+        "Seed Stage (Pre-Seed – Seed)": 9,
+        "Multi-stage / Stage Agnostic": 8,
+        "Late Stage (Series B+)": 1
+      },
+      "fund_size_counts": {
+        "$26M – $100M": 14,
+        "Under $25M": 12,
+        "$101 – $250M": 3,
+        "Over $250M": 1
+      }
+    }
+  }
+}

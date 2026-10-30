@@ -15,6 +15,10 @@ const toResource = (r: ReportListItem): Resource => ({
 	date: r.report_year
 		? `${r.report_year}-${String(r.report_month ?? 1).padStart(2, '0')}-01`
 		: r.created_at,
+	// Reports are dated by month (or only year) — never show an invented day.
+	dateLabel: r.report_year
+		? (r.report_month ? new Date(r.report_year, r.report_month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : String(r.report_year))
+		: undefined,
 	access: r.has_pro_version ? 'Premium' : 'Free',
 	tags: r.tags ?? [],
 	cover: r.cover_url,
