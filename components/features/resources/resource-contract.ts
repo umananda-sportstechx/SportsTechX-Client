@@ -14,6 +14,8 @@ export interface Resource {
 	title: string;
 	desc: string;
 	date: string;
+	/** Shown instead of the full date when the source only knows month/year (reports). */
+	dateLabel?: string;
 	access: Access;
 	tags: string[];
 	cover?: string | null;

@@ -1915,6 +1915,7 @@ export default function ReportFTABR26({ content, preview = false }: {
                 </div>
               ))}
             </div>
+            <a href="/reports/methodology" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 20, fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: BRAND.pink, textDecoration: "none", textTransform: "uppercase", borderBottom: `1px solid ${BRAND.pink}55`, paddingBottom: 2 }}>Full methodology ↗</a>
           </div>
         </div>
       </div>
