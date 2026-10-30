@@ -19,7 +19,8 @@ interface EventDetails { mode: string | null; start_date: string | null; end_dat
 
 const MODE_LABEL: Record<string, string> = { in_person: 'In person', virtual: 'Virtual', hybrid: 'Hybrid' };
 const extUrl = (u: string | null | undefined) => (u ? (/^https?:\/\//i.test(u) ? u : `https://${u}`) : undefined);
-const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+// Event dates are calendar days ('YYYY-MM-DD' = UTC midnight): format in UTC so no time zone shifts them a day.
+const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 /**
  * Event details in the right-side drawer (the old Intelligence Hub showed the
