@@ -56,6 +56,9 @@ const Ftabr26EcosystemMap = lazy(() => import("./components/ftabr26-ecosystem-ma
    always authenticated. The figures, ecosystem rows and startups STX fetched
    live from /api/report/ftabr26/* are stored in reports.content (facts,
    ecosystem, startups); editorial copy is reports.content.<block> ?? default. */
+// The STX-generated PDF, hosted in Supabase storage (public_bucket) like GSTER26's. `?download`
+// makes Supabase serve it as an attachment — the HTML `download` attr is ignored cross-origin.
+const FTABR26_PDF_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/public_bucket/reports/FTABR26.pdf?download=FTABR26.pdf`;
 function useAuthSession() { return { user: { id: "viewer" }, sessionValid: true, loading: false }; }
 function AuthModal() { return null; }
 const isPlainObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -1015,14 +1018,12 @@ export default function ReportFTABR26({ content, preview = false }: {
             </button>
           ) : (
             <>
-              {/* PDF download temporarily hidden.
-              <a href="/api/report/ftabr26/download"
+              <a href={FTABR26_PDF_URL} download="FTABR26.pdf"
                 style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: "#fff", background: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "6px 14px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 4 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                 onClick={() => trackFT("nav_click", { section: "pdf_download" })}
               >↓ Download PDF</a>
-              */}
             </>
           )}
         </div>
@@ -1045,9 +1046,7 @@ export default function ReportFTABR26({ content, preview = false }: {
                 {label}
               </a>
             ))}
-            {/* PDF download temporarily hidden.
-            <a href="/api/report/ftabr26/download" onClick={() => { trackFT("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 14px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 4, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
-            */}
+            <a href={FTABR26_PDF_URL} download="FTABR26.pdf" onClick={() => { trackFT("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 14px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 4, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
           </div>
         </div>
       )}
