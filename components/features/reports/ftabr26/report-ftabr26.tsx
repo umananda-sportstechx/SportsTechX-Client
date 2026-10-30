@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { qk } from "@/lib/query-keys";
 import { track } from "@/lib/analytics";
+import { ReportNav } from "../report-nav";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import "@/components/landing/landing.css";
 import "./ftabr26.css";
@@ -14,7 +15,7 @@ import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Menu, X, SunMedium, MoonStar } from "lucide-react";
+
 import { getCountryFlag, getFlagByCountryCode } from "./lib/flags";
 import { BRAND, DARK, LIGHT, WORLDCUP_TECH_COLORS, type Theme } from "./lib/report-theme";
 import {
@@ -980,76 +981,14 @@ export default function ReportFTABR26({ content, preview = false }: {
         <div ref={progressBarRef} style={{ height: "100%", background: BRAND.pink, transform: "scaleX(0)", transformOrigin: "left center" }} />
       </div>
 
-      {/* ── NAV ─────────────────────────────────────────────────────────── */}
-      <nav ref={navRef} style={{ position: "fixed", top: 3, left: 0, right: 0, zIndex: 100, padding: isMobile ? "12px 16px" : "16px 40px", display: (authGateActive || isPdf) ? "none" : "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(20px)", background: t.navBg, borderBottom: `1px solid ${t.divider}`, gap: 16, transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)", willChange: "transform" }}>
-        <a href="https://atlas.sportstechx.com" target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0, flexShrink: 0 }}>
-          <img src={isDark ? "/landing/atlas-wordmark-white.svg" : "/landing/atlas-wordmark-dark.svg"} alt="Atlas" style={{ height: isMobile ? 26 : 34, display: "block" }} />
-        </a>
-        {!isMobile && (
-          <div className="stx-nav-links" style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-            {NAV_ITEMS.map(({ href, label }, i) => {
-              const isActive = activeDot === i + 1;
-              return (
-                <a key={href} href={href} className="stx-nav-link"
-                  style={{
-                    fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
-                    color: isActive ? BRAND.pink : t.textMuted,
-                    textDecoration: "none", transition: "color 0.2s",
-                    fontWeight: 500, paddingBottom: 4,
-                    borderBottom: isActive ? `2px solid ${BRAND.pink}` : "2px solid transparent",
-                  }}
-                  onClick={(e) => { e.preventDefault(); jumpTo(href, label); }}>
-                  {label}
-                </a>
-              );
-            })}
-          </div>
-        )}
-        <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
-          <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            style={{ background: "none", border: "none", padding: 6, color: BRAND.pink, display: "flex", alignItems: "center", lineHeight: 0 }}>
-            {isDark ? <SunMedium size={isMobile ? 18 : 20} strokeWidth={1.75} /> : <MoonStar size={isMobile ? 18 : 20} strokeWidth={1.75} />}
-          </button>
-          {isMobile ? (
-            <button onClick={() => setMobileMenuOpen(o => !o)}
-              style={{ background: "none", border: `1px solid ${BRAND.pink}`, borderRadius: 8, padding: "5px 8px", color: BRAND.pink, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          ) : (
-            <>
-              <a href={FTABR26_PDF_URL} download="FTABR26.pdf"
-                style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: 2, color: "#fff", background: BRAND.pink, border: `1px solid ${BRAND.pink}`, padding: "6px 14px", textDecoration: "none", textTransform: "uppercase", transition: "opacity 0.2s", borderRadius: 4 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                onClick={() => trackFT("nav_click", { section: "pdf_download" })}
-              >↓ Download PDF</a>
-            </>
-          )}
-        </div>
-      </nav>
-
-      {/* Mobile dropdown menu */}
-      {isMobile && (
-        <div style={{
-          position: "fixed", top: 52, left: 0, right: 0, zIndex: 99,
-          maxHeight: mobileMenuOpen ? 400 : 0, opacity: mobileMenuOpen ? 1 : 0, overflow: "hidden",
-          background: t.navBg, backdropFilter: "blur(20px)", borderBottom: mobileMenuOpen ? `1px solid ${t.divider}` : "none",
-          transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease",
-          display: authGateActive ? "none" : undefined,
-        }}>
-          <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 4 }}>
-            {NAV_ITEMS.map(({ href, label }) => (
-              <a key={href} href={href}
-                style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: t.textMuted, textDecoration: "none", padding: "10px 0", borderBottom: `1px solid ${t.divider}`, fontFamily: "'DM Mono',monospace", transition: "color 0.2s" }}
-                onClick={(e) => { e.preventDefault(); jumpTo(href, label, true); }}>
-                {label}
-              </a>
-            ))}
-            <a href={FTABR26_PDF_URL} download="FTABR26.pdf" onClick={() => { trackFT("nav_click", { section: "pdf_download", mobile: true }); setMobileMenuOpen(false); }} style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#fff", background: BRAND.pink, textDecoration: "none", padding: "10px 14px", fontFamily: "'DM Mono',monospace", fontWeight: 600, borderRadius: 4, display: "inline-block", marginTop: 4 }}>↓ Download PDF</a>
-          </div>
-        </div>
-      )}
+      {/* ── NAV (shared with every custom report — only the section links differ) ── */}
+      <ReportNav ref={navRef}
+        items={NAV_ITEMS} activeIndex={activeDot} isDark={isDark} isMobile={isMobile} hidden={authGateActive || isPdf} theme={t}
+        pdf={{ url: FTABR26_PDF_URL, file: "FTABR26.pdf" }}
+        mobileOpen={mobileMenuOpen} onToggleMobile={() => setMobileMenuOpen(o => !o)} onToggleDark={() => setIsDark((d: boolean) => !d)}
+        onNavigate={(href, label, mobile) => jumpTo(href, label, mobile)}
+        onDownload={(mobile) => { trackFT("nav_click", { section: "pdf_download", mobile }); if (mobile) setMobileMenuOpen(false); }}
+      />
 
       {/* ── HERO ────────────────────────────────────────────────────────── */}
       <section id="stx-hero" style={{ minHeight: isPdf ? "auto" : "100vh", height: isPdf ? "auto" : (isMobile ? "100svh" : "100vh"), position: "relative", display: "flex", alignItems: "center", overflow: "hidden", background: isDark ? "#0c0f1a" : BRAND.darkTitle, margin: 0, padding: isPdf ? "60px 0" : 0, width: "100%" }}>
