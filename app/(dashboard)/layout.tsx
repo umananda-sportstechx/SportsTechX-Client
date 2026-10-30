@@ -3,7 +3,8 @@ import { Suspense } from 'react';
 import { AuthPlaceholder, ProtectedRoute } from '@/components/auth/protected-route';
 import { AppShell } from '@/components/shell/app-shell';
 
-export const metadata: Metadata = { title: 'Atlas' };
+// Absolute, so the root template doesn't make it "Atlas | Atlas"; the navbar then names each page.
+export const metadata: Metadata = { title: { absolute: 'Atlas' } };
 
 // Built statically, served from the CDN. Every page here is client-rendered
 // behind the session check, so a per-request server render (the old

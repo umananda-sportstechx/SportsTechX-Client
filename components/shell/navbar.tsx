@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { ChevronRight, LogOut, Search, Settings, ShieldCheck, CreditCard } from 'lucide-react';
 import { cx, useDismiss } from '@/components/atlas';
@@ -44,6 +44,9 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const crumbs = useBreadcrumbs(nav, homePath, pathname, searchParams, tier);
+	// The browser tab names the page — "Companies | Atlas", a company's own name on its page.
+	const pageTitle = crumbs[crumbs.length - 1]?.label;
+	useEffect(() => { document.title = pageTitle ? `${pageTitle} | Atlas` : 'Atlas'; }, [pageTitle]);
 
 	return (
 		<header className="atlas-navbar">
