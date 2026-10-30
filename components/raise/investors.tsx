@@ -54,7 +54,10 @@ const CATEGORY_OPTIONS: [string, string][] = [
 ];
 /** The API sends the raw enum ('venture_capital'); show the label. Unknown values pass through. */
 export const categoryLabel = (c: string | null | undefined) => (c ? CATEGORY_OPTIONS.find(([v]) => v === c)?.[1] ?? c : null);
-const SORT_OPTIONS: [string, string][] = [['-created_at', 'Newest'], ['name', 'Name A–Z'], ['-deals', 'Most deals']];
+const SORT_OPTIONS: [string, string][] = [['-deals', 'Most deals'], ['-created_at', 'Newest'], ['name', 'Name A–Z']];
+/** Most active investors first — 'Newest' led with freshly added firms that have no deals yet. */
+const DEFAULT_SORT = '-deals';
+const DASH = <span className="atlas-dash">—</span>;
 
 /** Which investors are already in one of the founder's watchlists.
  *  The watchlist (raise pipeline) is a Raise-only feature — the endpoint is
@@ -193,7 +196,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 	const [deals, setDeals] = useState(() => url.str('deals'));
 	const [verified, setVerified] = useState(() => url.bool('verified'));
 	const [active, setActive] = useState(() => url.bool('active'));
-	const [sort, setSort] = useState(() => url.oneOf('sort', SORT_OPTIONS.map(([v]) => v), '-created_at'));
+	const [sort, setSort] = useState(() => url.oneOf('sort', SORT_OPTIONS.map(([v]) => v), DEFAULT_SORT));
 	const [page, setPage] = useState(() => url.num('page', 1));
 	const reset = () => setPage(1); // any filter/search change returns to page 1
 	useUrlSync({
@@ -201,7 +204,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 		q: dq, category, round: roundType, sector, sub: subSector, subsub: subSubSector,
 		sport, country, city, continent, region, tech: techTag, launched, deals,
 		verified, active,
-		sort: sort !== '-created_at' ? sort : undefined,
+		sort: sort !== DEFAULT_SORT ? sort : undefined,
 		page: page > 1 ? page : undefined,
 	});
 
@@ -252,7 +255,7 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 	const total = all.data?.total ?? 0;
 	const totalPages = all.data?.totalPages ?? 1;
 	const anyFilter = !!(dq || category || roundType || sector || subSector || subSubSector || sport || country || city || continent || region || techTag || launched || deals || verified || active);
-	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setSector(''); setSubSector(''); setSubSubSector(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setTechTag(''); setLaunched(''); setDeals(''); setVerified(false); setActive(false); setSort('-created_at'); setPage(1); };
+	const clearAll = () => { setQ(''); setCategory(''); setRoundType(''); setSector(''); setSubSector(''); setSubSubSector(''); setSport(''); setCountry(''); setCity(''); setContinent(''); setRegion(''); setTechTag(''); setLaunched(''); setDeals(''); setVerified(false); setActive(false); setSort(DEFAULT_SORT); setPage(1); };
 	// Filter defs for the toolbar — each change resets to page 1, as before.
 	const sel = (key: string, label: string, value: string, options: [string, string][], set: (v: string) => void): FilterDef =>
 		({ kind: 'select', key, label, value, options, onChange: (v) => { set(v); reset(); } });
@@ -296,17 +299,20 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 				sort={{ value: sort, options: SORT_OPTIONS, onChange: (v) => { setSort(v); reset(); } }}
 				canClear={anyFilter}
 				onClear={clearAll}
-				count={`${total.toLocaleString()} investor${total === 1 ? '' : 's'}`}
-				actions={<><ViewToggle value={view} onChange={setView} /><ExportButton entity="investors" search={dq} params={params} /></>}
 			/>
-			<div style={{ borderTop: '1px solid var(--a-border)', margin: '6px 0 30px' }} />
 
 			{/* `!filtersReady` counts as loading — with a null key SWR reports
 			    isLoading=false, which would show the empty state first. */}
 			{(all.isLoading || !filtersReady) && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No investors match your filters.</Empty>
-				: view === 'cards'
-					? <Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} canAdd={canWatchlist} />)}</Grid>
+				: (
+				<div className="atlas-card atlas-chart-card" style={{ marginTop: 10 }}>
+					<div className="atlas-chart-card__head" style={{ padding: '17px 25px 16px', fontSize: 13, color: 'var(--a-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+						<span>{total.toLocaleString()} investor{total === 1 ? '' : 's'}{anyFilter ? ' match your filters' : ' · Filter to refine results'}</span>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ViewToggle value={view} onChange={setView} /><ExportButton entity="investors" search={dq} params={params} /></div>
+					</div>
+				{view === 'cards'
+					? <div style={{ padding: 20 }}><Grid>{rows.map((inv) => <InvestorCard key={inv.id} inv={inv} added={inPipeline.has(inv.id)} canAdd={canWatchlist} />)}</Grid></div>
 					: (
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
@@ -314,9 +320,8 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Type</span>
 							<span className="atlas-table__col hide-sm" style={{ width: 110 }}>Location</span>
 							<span className="atlas-table__col hide-sm hide-md" style={{ width: 60 }}>Deals</span>
-							<span className="atlas-table__col hide-sm hide-md" style={{ width: 80 }}>Investments</span>
-							<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>Launched</span>
-							<span className="atlas-table__col hide-sm" style={{ width: 70 }}>Status</span>
+							<span className="atlas-table__col hide-sm hide-md" style={{ width: 84 }}>Launched</span>
+							<span className="atlas-table__col hide-sm" style={{ width: 72 }}>Status</span>
 							{canWatchlist && <span className="atlas-table__col atlas-table__col--action" style={{ width: 190 }}>Watchlist</span>}
 						</div>
 						{/* List is the default view, so the watchlist picker the cards carry
@@ -331,12 +336,11 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 										{inv.description && <div style={{ fontSize: 11, color: 'var(--a-muted)' }} className="atlas-ellipsis">{inv.description}</div>}
 									</div>
 								</div>
-								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{categoryLabel(inv.category) ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.hq_country ? canonicalCountry(inv.hq_country) : '—'}</span>
-								<span className="atlas-table__col hide-sm hide-md" style={{ width: 60 }}>{inv.deals_count ?? '—'}</span>
-								<span className="atlas-table__col hide-sm hide-md" style={{ width: 80 }}>{inv.num_investments ?? '—'}</span>
-								<span className="atlas-table__col hide-sm hide-md" style={{ width: 70 }}>{inv.year_launched ?? '—'}</span>
-								<span className="atlas-table__col hide-sm" style={{ width: 70 }}>{inv.actively_investing ? 'Active' : '—'}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{categoryLabel(inv.category) ?? DASH}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 110 }}>{inv.hq_country ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Flag cc={inv.hq_country} size={11} />{canonicalCountry(inv.hq_country)}</span> : DASH}</span>
+								<span className="atlas-table__col hide-sm hide-md" style={{ width: 60, fontWeight: inv.deals_count ? 600 : 400, color: inv.deals_count ? 'var(--a-ink)' : undefined }}>{inv.deals_count || DASH}</span>
+								<span className="atlas-table__col hide-sm hide-md" style={{ width: 84 }}>{inv.year_launched ?? DASH}</span>
+								<span className="atlas-table__col hide-sm" style={{ width: 72 }}>{inv.actively_investing ? <span className="atlas-chip-sm">ACTIVE</span> : DASH}</span>
 								{canWatchlist && (
 									<span className="atlas-table__col atlas-table__col--action" style={{ width: 190 }} onClick={(e) => e.stopPropagation()}>
 										<SaveInvestorToWatchlist investorId={inv.id} investorName={inv.name} align="end" portal />
@@ -346,6 +350,8 @@ function AllInvestorsTab({ inPipeline, canWatchlist }: { inPipeline: Set<string>
 						))}
 					</div>
 					)}
+				</div>
+				)}
 
 			{totalPages > 1 && (
 				<div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 22 }}>
