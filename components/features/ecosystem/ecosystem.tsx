@@ -13,6 +13,7 @@ import { useSportOptions, useLocationFacetOptions, useCountryOptions } from '@/h
 import { useFeatureAccess } from '@/contexts/feature-access-context';
 import { useUrlModal } from '@/hooks/use-url-state';
 import { EventDrawer } from './event-drawer';
+import { ProgramDrawer } from './program-drawer';
 import './events-calendar.css';
 
 /** Opens an event's details drawer — provided by EventsList to its table, cards and calendar. */
@@ -58,6 +59,7 @@ export function ProgramsList() {
 	const [continent, setContinent] = useState('');
 	const [region, setRegion] = useState('');
 	const [entriesOpen, setEntriesOpen] = useState(false);
+	const [programId, setProgramId] = useUrlModal('program');
 	const [page, setPage] = useState(1);
 	const reset = () => setPage(1);
 	const sportOptions = useSportOptions();
@@ -118,7 +120,7 @@ export function ProgramsList() {
 			{res.isLoading && rows.length === 0 ? <Loading />
 				: rows.length === 0 ? <Empty>No programs match your filters.</Empty>
 				: view === 'cards'
-					? <CardGrid>{rows.map((e) => <EcoCard key={e.id} e={e} />)}</CardGrid>
+					? <CardGrid>{rows.map((e) => <EcoCard key={e.id} e={e} onOpen={() => setProgramId(e.id)} />)}</CardGrid>
 					: (
 					<div className="atlas-table" role="table">
 						<div className="atlas-table__head">
@@ -131,7 +133,7 @@ export function ProgramsList() {
 							const loc = [e.hq_city, e.hq_country].filter(Boolean).join(', ');
 							const href = extUrl(e.website);
 							return (
-								<div key={e.id} className="atlas-table__row" style={href ? { cursor: 'pointer' } : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined}>
+								<div key={e.id} className="atlas-table__row" style={{ cursor: 'pointer' }} onClick={() => setProgramId(e.id)} {...activate(() => setProgramId(e.id))} aria-label={`${e.name} — view details`}>
 									<div className="atlas-table__name">
 										<Logo co={{ name: e.name, website: e.website }} size={28} radius={5} />
 										<div className="atlas-table__name-main">
@@ -148,6 +150,7 @@ export function ProgramsList() {
 					</div>
 					)}
 			<Pager page={page} totalPages={res.data?.totalPages ?? 1} onPage={setPage} />
+			<ProgramDrawer id={programId} row={rows.find((r) => r.id === programId)} onClose={() => setProgramId(null)} />
 		</>
 	);
 }
@@ -513,9 +516,9 @@ function Divider() {
 	return <div style={{ borderTop: '1px solid var(--a-border)', margin: '6px 0 30px' }} />;
 }
 
-function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
+function EcoCard({ e, isEvent, onOpen: openProp }: { e: Eco; isEvent?: boolean; onOpen?: () => void }) {
 	const open = useContext(OpenEvent);
-	const onOpen = isEvent && open ? () => open(e.id) : undefined;
+	const onOpen = openProp ?? (isEvent && open ? () => open(e.id) : undefined);
 	const loc = [e.hq_city, e.hq_country].filter(Boolean).join(', ');
 	const dateLine = isEvent && e.start_date ? fmtDate(e.start_date) : null;
 	const modeLine = isEvent && e.mode ? (MODE_LABEL[e.mode] ?? e.mode) : null;
