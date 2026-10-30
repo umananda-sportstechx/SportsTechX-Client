@@ -26,7 +26,10 @@ export interface SiteItem {
 export interface SiteSections {
 	gallery?: SiteItem[];
 	team?: SiteItem[];
+	/** Explore's gallery; Raise and Scout have their own. */
 	dashboard?: SiteItem[];
+	dashboard_raise?: SiteItem[];
+	dashboard_scout?: SiteItem[];
 	testimonials?: SiteItem[];
 }
 
