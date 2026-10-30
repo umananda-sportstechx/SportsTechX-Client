@@ -1,0 +1,516 @@
+/* ---------------------------------------------------------------------------
+   SportsTechX public report — scoped stylesheet.
+
+   Every rule is scoped under .stx-report (the report's root element), so
+   nothing here reaches the rest of the host app, and light/dark is the
+   .dark class on that same root (toggled by PublicReport.tsx), not on <html>.
+
+   Type: Oswald (headings), Barlow (body), Space Mono (labels), loaded below.
+   No grey type: every text token resolves to one full-contrast ink per theme;
+   hierarchy is weight, size and the pink accent.
+   --------------------------------------------------------------------------- */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap");
+
+html:has(.stx-report) { scroll-behavior: smooth; }
+
+.stx-report {
+  /* ---------------------------------------------- shared: type + geometry */
+  --head: "Oswald", system-ui, sans-serif;
+  --body: "Barlow", system-ui, sans-serif;
+  --mono: "Space Mono", ui-monospace, monospace;
+
+  --gut: clamp(20px, 5vw, 48px);
+  --max: 900px;
+  --gap: 24px;
+  --r-card: 8px;
+  --r-chip: 5px;
+  --r-bar: 3px;
+
+  /* ------------------------------------------------------------- light */
+  color-scheme: light;
+
+  --page: #ffffff;
+  --panel: #f5f7f9;
+  --tile: #eef1f4;
+  --rule: #dfe4e9;
+  --rule-strong: #c9d2da;
+  --hover: rgba(33, 51, 72, 0.045);
+
+  --ink: #0e1b28;
+  --ink-strong: var(--ink);
+  --ink-head: var(--ink);
+  --muted: var(--ink);
+  --muted-2: var(--ink);
+  --muted-3: var(--ink);
+
+  --pink: #ed1a5e;
+  --pink-ink: #d0114e;
+  --pink-on: #ffffff;
+  --grey: #c3cbd4;
+
+  /* chart fills (the PDF's slate) */
+  --pub-bar: #5b6379;
+  --pub-bar-soft: #c9cde0;
+  --pub-dot: #3a4157;
+  --pub-dot-off: #d6dbe3;
+  --pub-on-bar: #ffffff;
+  --pub-on-soft: #111321;
+
+  /* ------------------------------------------------------------ base */
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.stx-report.dark {
+  color-scheme: dark;
+
+  --page: #111321;
+  --panel: #2b2c39;
+  --tile: #232736;
+  --rule: #2e3140;
+  --rule-strong: #3a3d4c;
+  --hover: rgba(255, 255, 255, 0.05);
+
+  --ink: #ffffff;
+  --pink-ink: #f4608d;
+  --grey: #d5d9df;
+
+  --pub-bar: #5b6280;
+  --pub-dot: #e4e6ee;
+  --pub-dot-off: #3a3d4c;
+}
+
+.stx-report,
+.stx-report *,
+.stx-report *::before,
+.stx-report *::after { box-sizing: border-box; }
+
+.stx-report img { max-width: 100%; }
+
+.stx-report .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gut); }
+
+/* ------------------------------------------------------- floating side nav */
+
+.stx-report .snav {
+  position: fixed; z-index: 30;
+  right: clamp(12px, 1.6vw, 24px); top: clamp(12px, 1.6vw, 24px);
+  display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 10px;
+  pointer-events: none;
+}
+.stx-report .snav-bar,
+.stx-report .snav-panel {
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--panel) 44%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rule-strong) 72%, transparent);
+  box-shadow: 0 14px 32px -24px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  backdrop-filter: blur(20px) saturate(135%);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.stx-report .snav-bar {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px; border-radius: 14px;
+}
+.stx-report .snav-fab {
+  display: grid; place-items: center;
+  width: 36px; height: 36px; padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  color: var(--muted);
+}
+.stx-report .snav-fab:hover { color: var(--ink-strong); background: var(--hover); border-color: var(--rule); }
+.stx-report .snav-panel {
+  --icon: 16px;
+  --icon-gap: 10px;
+  --row-pad: 11px;
+  display: flex; flex-direction: column; gap: 10px;
+  width: 208px; padding: 12px;
+  border-radius: 16px;
+  max-height: calc(100vh - 2 * clamp(12px, 1.6vw, 24px)); overflow-y: auto;
+  transform-origin: top right;
+}
+.stx-report .snav-closed .snav-panel { opacity: 0; transform: translateX(10px) scale(.97); pointer-events: none; }
+.stx-report .snav-top {
+  display: flex; align-items: center; gap: var(--icon-gap);
+  padding: 2px 2px 0 var(--row-pad);
+}
+.stx-report .snav-eyebrow {
+  flex: 1 1 auto;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--muted-3);
+}
+.stx-report .snav-download {
+  flex: none; display: grid; place-items: center;
+  width: 36px; height: 36px; padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 10px; color: var(--muted);
+  text-decoration: none;
+}
+.stx-report .snav-download:hover { color: var(--ink-strong); background: var(--hover); border-color: var(--rule); }
+.stx-report .snav-links { display: flex; flex-direction: column; gap: 2px; }
+.stx-report .snav-links a {
+  position: relative;
+  display: flex; align-items: center; gap: var(--icon-gap);
+  padding: 9px var(--row-pad); border-radius: 9px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted-3); text-decoration: none;
+  transition: color .15s ease, background-color .15s ease;
+}
+.stx-report .snav-links a::before {
+  content: ""; position: absolute; left: 0; top: 50%;
+  width: 2px; height: 0;
+  background: var(--pink); border-radius: 2px;
+  transform: translateY(-50%);
+  transition: height .18s ease;
+}
+.stx-report .snav-links a:hover { color: var(--ink); background: var(--hover); }
+.stx-report .snav-links a.on { color: var(--ink-strong); background: var(--hover); font-weight: 700; }
+.stx-report .snav-links a.on::before { height: 18px; }
+.stx-report .snav-n { flex: none; width: var(--icon); color: var(--muted-3); font-size: 9.5px; }
+.stx-report .snav-links a.on .snav-n { color: var(--pink-ink); }
+.stx-report .snav-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.stx-report .theme-toggle {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; min-width: 0; padding: 0; margin: 0; cursor: pointer;
+  background: none; border: 1px solid transparent; border-radius: 10px;
+  color: var(--muted);
+}
+.stx-report .theme-toggle:hover { color: var(--ink-strong); border-color: var(--rule); background: var(--hover); }
+.stx-report .theme-toggle-icon { display: inline-flex; width: 13px; height: 13px; color: var(--pink); }
+
+@media (max-width: 640px) {
+  .stx-report .snav-panel { width: 190px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stx-report .snav-panel,
+.stx-report .snav-links a,
+.stx-report .snav-links a::before { transition: none; }
+}
+
+/* ------------------------------------------------------------- prose */
+
+.stx-report .lead {
+  font-family: var(--body); font-size: clamp(15px, 2.2vw, 17px); line-height: 1.55;
+  color: var(--muted); max-width: 82ch; margin: 0;
+}
+.stx-report .sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ------------------------------------------------------- footer card */
+
+.stx-report .block {
+  background: var(--panel);
+  border-radius: var(--r-card);
+  padding: 20px 22px 24px;
+  margin: 0;
+}
+.stx-report .block h3 {
+  display: flex; align-items: baseline; gap: 9px;
+  font-family: var(--body); font-weight: 700; font-size: 15px; line-height: 1.3;
+  text-transform: none; letter-spacing: 0.01em; color: var(--ink-strong);
+  margin: 0;
+}
+.stx-report .foot { background: none; color: var(--ink); padding: 0 0 clamp(32px, 6vw, 56px); font-size: 14px; }
+.stx-report .foot h3 {
+  font-family: var(--head); color: var(--ink-strong); text-transform: uppercase;
+  font-size: 22px; margin: 0 0 12px;
+}
+.stx-report .foot a { color: var(--pink-ink); }
+.stx-report .foot a.cta { color: var(--pink-on); }
+.stx-report .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.stx-report .cta {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--pink); color: var(--pink-on); text-decoration: none;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; padding: 14px 24px; border-radius: var(--r-chip);
+  border: 1px solid var(--pink);
+}
+.stx-report .cta-alt { background: none; border-color: var(--rule-strong); }
+.stx-report .foot a.cta-alt { color: var(--ink-strong); }
+.stx-report .foot a.cta-alt:hover { border-color: var(--pink); color: var(--pink-ink); }
+.stx-report .foot-lede { max-width: 58ch; margin: 0; }
+.stx-report .foot-legal { margin: clamp(22px, 3.5vw, 30px) 0 0; font-size: 12.5px; color: var(--muted-2); line-height: 1.55; }
+.stx-report .foot-strap {
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: clamp(28px, 5vw, 44px); padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted-3);
+}
+
+/* Show / Hide cue on the collapsible method heading. */
+.stx-report .appx-cue {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-weight: 400; font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-2);
+}
+.stx-report .appx-caret { transition: transform .2s ease; }
+
+/* ------------------------------------------------------------------ public report */
+
+.stx-report .pub-pink { color: var(--pink); }
+
+/* The PDF's first-page layout, with colors following the report's theme. */
+.stx-report .pub-cover {
+  background: var(--page); color: var(--ink);
+  min-height: min(94vh, 920px);
+  display: flex;
+}
+.stx-report .pub-cover .pub-cover-in {
+  flex: 1; width: 100%;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 48px;
+  padding-block: clamp(28px, 5vw, 56px) clamp(20px, 3vw, 28px);
+}
+.stx-report .pub-logo { width: clamp(118px, 16vw, 150px); height: auto; display: block; filter: brightness(0); }
+.stx-report.dark .pub-logo { filter: none; }
+.stx-report .pub-eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+}
+.stx-report .pub-rule { width: 64px; height: 3px; background: var(--pink); margin: 20px 0 22px; }
+.stx-report .pub-h1 {
+  font-family: var(--head); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(42px, 9vw, 96px); line-height: 0.98; letter-spacing: -0.005em;
+  margin: 0 0 22px; max-width: 14ch; color: var(--ink);
+}
+/* The PDF gives the edition its own line. */
+.stx-report .pub-h1 .pub-pink { display: block; }
+.stx-report .pub-cover-sub { margin: 0; font-size: clamp(16px, 2.2vw, 19px); max-width: 60ch; }
+.stx-report .pub-strap {
+  display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap;
+  padding-top: 14px; border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase;
+}
+
+/* Sections: a rule under each heading, and air above it. */
+.stx-report .pub-section {
+  padding: clamp(64px, 10vw, 120px) 0 0;
+  scroll-margin-top: 24px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.stx-report .pub-head {
+  display: flex; align-items: baseline; gap: clamp(12px, 2vw, 20px);
+  padding-bottom: clamp(14px, 2vw, 20px);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.stx-report .pub-no {
+  flex: none; font-family: var(--head); font-weight: 700; line-height: 1.04;
+  font-size: clamp(30px, 5.4vw, 46px); color: var(--pink);
+}
+.stx-report .pub-h2 {
+  font-family: var(--head); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(30px, 5.4vw, 46px); line-height: 1.04; margin: 0;
+  color: var(--ink-head);
+}
+.stx-report .pub-sub {
+  margin: 4px 0 0; font-weight: 600; font-size: clamp(16px, 2.3vw, 19px); line-height: 1.4;
+}
+.stx-report .pub-h3 {
+  font-family: var(--head); font-weight: 600; text-transform: uppercase;
+  font-size: 15px; letter-spacing: 0.12em; line-height: 1.25; margin: 0;
+  color: var(--ink-head);
+}
+
+/* Stats */
+.stx-report .pub-stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 8px; border-block: 1px solid var(--rule);
+}
+.stx-report .pub-stat {
+  display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px;
+  padding: 20px 20px 22px;
+}
+.stx-report .pub-stat + .pub-stat { border-left: 1px solid var(--rule); }
+.stx-report .pub-stat:first-child { padding-left: 0; }
+.stx-report .pub-stat dd {
+  margin: 0; font-family: var(--head); font-weight: 700;
+  font-size: clamp(30px, 4.6vw, 42px); line-height: 1;
+}
+.stx-report .pub-stat dt { font-size: 13.5px; line-height: 1.4; max-width: 30ch; }
+
+/* Cards */
+.stx-report .pub-card {
+  margin: 0; background: var(--panel); border-radius: var(--r-card);
+  padding: clamp(20px, 3vw, 28px);
+}
+.stx-report .pub-card figcaption { margin-bottom: 22px; }
+.stx-report .pub-meta {
+  margin: 6px 0 0; font-family: var(--mono); font-size: 10.5px; line-height: 1.5;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* Charts */
+.stx-report .pub-rows { display: flex; flex-direction: column; gap: 14px; }
+.stx-report .pub-row {
+  display: grid; align-items: center; gap: 16px;
+  grid-template-columns: minmax(150px, 32%) minmax(0, 1fr) 120px;
+}
+.stx-report .pub-row-2 { grid-template-columns: minmax(150px, 36%) minmax(0, 1fr); }
+.stx-report .pub-label { font-size: 13.5px; line-height: 1.35; }
+.stx-report .pub-label small {
+  display: block; margin-top: 3px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+}
+.stx-report .pub-colhead {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+  margin-bottom: -2px;
+}
+.stx-report .pub-colhead > :last-child { text-align: right; }
+.stx-report .pub-track { display: flex; align-items: center; gap: 10px; height: 22px; padding-right: 44px; }
+.stx-report .pub-track i {
+  display: block; height: 100%; background: var(--pub-bar); border-radius: var(--r-bar);
+  transition: width .8s cubic-bezier(.2,.7,.3,1);
+}
+.stx-report .pub-track b,
+.stx-report .pub-rating b,
+.stx-report .pub-dotrow b {
+  font-family: var(--head); font-weight: 700; font-size: 15px; white-space: nowrap;
+}
+.stx-report .pub-rating { display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.stx-report .pub-pips { display: inline-flex; gap: 4px; }
+.stx-report .pub-pips i,
+.stx-report .pub-dots i {
+  display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--pub-dot-off);
+}
+.stx-report .pub-pips i.on { background: var(--pub-dot); }
+.stx-report .pub-dotrow { display: flex; align-items: center; gap: 14px; }
+.stx-report .pub-dotrow b { flex: none; width: 22px; text-align: right; }
+.stx-report .pub-dots { display: grid; grid-template-columns: repeat(30, minmax(0, 9px)); gap: 5px; flex: 1; }
+.stx-report .pub-dots i { width: 100%; height: auto; aspect-ratio: 1; transition: background-color .25s ease; }
+.stx-report .pub-dots i.on { background: var(--pub-dot); }
+.stx-report .pub-stack { gap: 26px; }
+.stx-report .pub-segs {
+  display: flex; height: 40px; overflow: hidden; border-radius: var(--r-bar);
+  transition: width .8s cubic-bezier(.2,.7,.3,1);
+}
+.stx-report .pub-segs i,
+.stx-report .pub-key i { font-style: normal; }
+.stx-report .pub-segs i {
+  display: grid; place-items: center; flex-basis: 0; min-width: 0;
+  font-family: var(--head); font-weight: 700; font-size: 16px;
+}
+.stx-report .pub-segs .s0,
+.stx-report .pub-key .s0 { background: var(--pub-bar-soft); color: var(--pub-on-soft); }
+.stx-report .pub-segs .s1,
+.stx-report .pub-key .s1 { background: var(--pub-bar); color: var(--pub-on-bar); }
+.stx-report .pub-key {
+  display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 24px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+}
+.stx-report .pub-key span { display: inline-flex; align-items: center; gap: 8px; }
+.stx-report .pub-key i { display: block; width: 12px; height: 12px; border-radius: 2px; }
+
+/* Takeaways */
+.stx-report .pub-takes { padding-top: 18px; border-top: 1px solid var(--rule); margin-top: 8px; }
+.stx-report .pub-takes ol { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.stx-report .pub-takes li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; }
+.stx-report .pub-take-n { font-family: var(--head); font-weight: 700; color: var(--pink); font-size: 16px; line-height: 1.5; }
+.stx-report .pub-takes p { margin: 0; font-size: 15px; line-height: 1.6; }
+
+/* Contributor logo wall: one image on a white plate, as in the PDF. */
+.stx-report .pub-logos {
+  margin: 16px 0 0; background: #ffffff; border-radius: 14px;
+  padding: clamp(16px, 3vw, 30px) clamp(16px, 3.5vw, 36px);
+}
+.stx-report .pub-logos img { display: block; width: 100%; height: auto; }
+
+/* Closing points */
+.stx-report .pub-points { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.stx-report .pub-points li {
+  display: grid; grid-template-columns: 64px 1fr; gap: 12px;
+  padding: 24px 0; border-bottom: 1px solid var(--rule);
+}
+.stx-report .pub-point-n { font-family: var(--head); font-weight: 700; font-size: 30px; line-height: 1; color: var(--pink); }
+.stx-report .pub-points p,
+.stx-report .pub-method p,
+.stx-report .pub-card > p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; }
+
+/* Collapsible method section: the button fills the heading row. */
+.stx-report .pub-toggle {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  width: 100%; padding: 0; cursor: pointer;
+  background: none; border: 0; border-radius: 4px;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left;
+}
+.stx-report .pub-h2-toggle { flex: 1; }
+.stx-report .pub-toggle:hover .appx-cue { color: var(--pink-ink); }
+.stx-report .pub-toggle[aria-expanded="true"] .appx-caret { transform: rotate(180deg); }
+.stx-report .pub-collapse { display: flex; flex-direction: column; gap: 20px; }
+.stx-report .pub-collapse[hidden] { display: none; }
+.stx-report .pub-method {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px clamp(28px, 5vw, 56px); margin-top: 12px;
+}
+.stx-report .pub-note { margin-top: 12px; }
+
+/* Footer: space above the card. */
+.stx-report .pub-foot { padding-top: clamp(48px, 8vw, 80px); }
+
+/* ---------------------------------------------------------- focus rings */
+
+.stx-report .cta:focus-visible,
+.stx-report .snav-links a:focus-visible,
+.stx-report .snav-fab:focus-visible,
+.stx-report .snav-download:focus-visible,
+.stx-report .theme-toggle:focus-visible,
+.stx-report .pub-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--pink-ink);
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (min-width: 1024px) {
+  .stx-report {
+    --max: 1180px;
+    --gap: 28px;
+  }
+  .stx-report .lead { font-size: 18px; line-height: 1.6; max-width: none; }
+  .stx-report .foot-lede { max-width: none; }
+  .stx-report .block { padding: 22px 26px 26px; }
+}
+
+/* Until the viewport leaves the rail a gutter, keep the eyebrow clear of it. */
+@media (max-width: 1340px) {
+  .stx-report .pub-cover .pub-eyebrow { padding-right: 68px; }
+}
+
+@media (max-width: 820px) {
+  .stx-report .foot-strap { flex-direction: column; gap: 6px; }
+  .stx-report .pub-stats { grid-template-columns: 1fr; }
+  .stx-report .pub-stat { padding: 16px 0; }
+  .stx-report .pub-stat + .pub-stat { border-left: 0; border-top: 1px solid var(--rule); }
+  .stx-report .pub-method { grid-template-columns: 1fr; }
+}
+
+/* Labels go above their bars; the channel chart keeps its rating beside the bar. */
+@media (max-width: 640px) {
+  .stx-report .pub-row,
+.stx-report .pub-row-2 { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .stx-report .pub-row-2 { grid-template-columns: 1fr; }
+  .stx-report .pub-label { grid-column: 1 / -1; }
+  .stx-report .pub-colhead > :first-child { display: none; }
+  .stx-report .pub-dots { gap: 3px; }
+  .stx-report .pub-points li { grid-template-columns: 44px 1fr; }
+  .stx-report .pub-point-n { font-size: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stx-report .pub-track i,
+.stx-report .pub-segs,
+.stx-report .pub-dots i,
+.stx-report .appx-caret { transition: none; }
+}
+
+/* ── Atlas port ─────────────────────────────────────────────────────────────
+   The shared report header is fixed at the top (68px); the cover clears it. */
+.stx-report .pub-cover .pub-cover-in { padding-top: calc(clamp(28px, 5vw, 56px) + 72px); }
+.stx-report [id] { scroll-margin-top: 84px; }

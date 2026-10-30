@@ -69,7 +69,7 @@ export function ResourceLibrary({ items, kind, intro, featuredLabel, libraryTitl
 	);
 	const metaFor = (r: Resource) => (
 		<>
-			<span>{fmtLongDate(r.date)}</span>
+			<span>{r.dateLabel ?? fmtLongDate(r.date)}</span>
 			<span aria-hidden="true">·</span>
 			<span className={r.access === 'Premium' ? 'is-premium' : undefined}>{r.access}</span>
 		</>
@@ -85,7 +85,7 @@ export function ResourceLibrary({ items, kind, intro, featuredLabel, libraryTitl
 			<FeaturedPost
 				cover={featured.cover}
 				metaIcon={<MetaIcon size={12} strokeWidth={1.5} aria-hidden="true" />}
-				meta={<>{featuredLabel} · Published {fmtLongDate(featured.date)} · <span className={featured.access === 'Premium' ? 'is-premium' : undefined}>{featured.access}</span></>}
+				meta={<>{featuredLabel} · Published {featured.dateLabel ?? fmtLongDate(featured.date)} · <span className={featured.access === 'Premium' ? 'is-premium' : undefined}>{featured.access}</span></>}
 				title={featured.title}
 				desc={featured.desc}
 				tags={featured.tags}

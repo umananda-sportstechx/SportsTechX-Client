@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 
-export const metadata: Metadata = { title: 'Report · Atlas' };
+export const metadata: Metadata = { title: 'Report' }; // root template appends " | Atlas"
 
 // Reports read per-user (tier-gated) data — no static pre-render.
 export const dynamic = 'force-dynamic';
