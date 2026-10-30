@@ -32,7 +32,7 @@ const PEAK_TRACKS_DEFAULT = [
 ];
 import * as topojsonClient from "topojson-client";
 import { geoMercator, geoPath } from "d3-geo";
-import { Users, Building2, Activity, Bot, Trophy, TrendingUp, Lightbulb, BarChart3, Monitor, GitMerge, Footprints, Landmark, DollarSign, Globe, Menu, X, Sun, Moon } from "lucide-react";
+import { Users, Building2, Activity, Bot, Trophy, TrendingUp, Lightbulb, BarChart3, Monitor, GitMerge, Footprints, Landmark, DollarSign, Globe, Menu, X, SunMedium, MoonStar } from "lucide-react";
 import { GSTER25_FACTS } from "./data/gster25-facts-data";
 import { GSTER25_MA_DEALS } from "./data/gster25-ma-deals-data";
 import { INNOVATORS_DATA } from "./data/gster26-innovators-data";
@@ -1342,7 +1342,7 @@ export default function ReportGSTER26({ content, preview = false }: {
       @keyframes stxPulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
       .stx-trend-card:hover { border-color:${BRAND.pink}!important; transform:translateY(-6px)!important; }
       .stx-nav-link:hover { color:${BRAND.pink}!important; }
-      .stx-toggle { cursor:pointer; user-select:none; }
+      .stx-toggle { cursor:pointer; user-select:none; transition: opacity 0.2s; } .stx-toggle:hover { opacity: 0.7; } .stx-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 6px; }
       @media (max-width: 639px) {
         .stx-dot-nav { display:none!important; }
         .stx-nav-links { display:none!important; }
@@ -3695,9 +3695,9 @@ export default function ReportGSTER26({ content, preview = false }: {
         <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
           {/* Dark/Light toggle */}
           <button className="stx-toggle" onClick={() => setIsDark((d: boolean) => !d)}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            style={{ fontFamily: "var(--font-space-grotesk), system-ui, sans-serif", background: isDark ? "rgba(243,33,99,0.16)" : "rgba(243,33,99,0.08)", border: `1px solid ${isDark ? "rgba(243,33,99,0.7)" : "rgba(243,33,99,0.5)"}`, borderRadius: 99, padding: isMobile ? "6px 9px" : "6px 11px", fontSize: isMobile ? 10 : 12, color: isDark ? "#ffa7c2" : "#f32163", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", transition: "background 0.25s, color 0.25s" }}>
-            {isDark ? <Sun size={isMobile ? 14 : 16} strokeWidth={2} /> : <Moon size={isMobile ? 14 : 16} strokeWidth={2} />}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{ background: "none", border: "none", padding: 6, color: isDark ? "#ffa7c2" : "#f32163", display: "flex", alignItems: "center", lineHeight: 0, transition: "color 0.25s" }}>
+            {isDark ? <SunMedium size={isMobile ? 18 : 20} strokeWidth={1.75} /> : <MoonStar size={isMobile ? 18 : 20} strokeWidth={1.75} />}
           </button>
           {/* Desktop: Hub link / Mobile: Hamburger */}
           {isMobile ? (
