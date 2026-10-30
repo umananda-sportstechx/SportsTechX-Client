@@ -176,8 +176,12 @@ export function useUrlModal(
 		// The router (not history API) so the modal actually opens/closes: it
 		// re-renders useSearchParams consumers. Opening pushes (Back closes it),
 		// closing replaces (no dead entry).
+		// Closing goes through the history API: `router.replace` silently drops a
+		// navigation that only REMOVES query params (verified live on Next 16 — the
+		// URL and the drawer stayed put), while native replaceState is mirrored into
+		// useSearchParams, so the modal closes. Opening still pushes (Back closes it).
 		if (open) router.push(url, { scroll: false });
-		else router.replace(url, { scroll: false });
+		else window.history.replaceState(null, '', url);
 	}, [router, key, validate]);
 	return [value, set];
 }

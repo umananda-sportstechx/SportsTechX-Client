@@ -17,6 +17,8 @@ import './events-calendar.css';
 
 /** Opens an event's details drawer — provided by EventsList to its table, cards and calendar. */
 const OpenEvent = createContext<((id: string) => void) | null>(null);
+/** Keyboard parity for a clickable row/card: focusable, Enter/Space opens. */
+const activate = (fn: () => void) => ({ tabIndex: 0, role: 'button' as const, onKeyDown: (ev: React.KeyboardEvent) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); fn(); } } });
 
 /**
  * Ecosystem catalogues — Programs and Events lists (shared by Raise and Scout;
@@ -482,7 +484,7 @@ function EventsTable({ rows }: { rows: Eco[] }) {
 								: fmtDate(e.start_date)
 							: '—';
 						return (
-							<tr key={e.id} onClick={() => open?.(e.id)} style={{ cursor: 'pointer' }} title="View details">
+							<tr key={e.id} onClick={() => open?.(e.id)} {...(open ? activate(() => open(e.id)) : {})} style={{ cursor: 'pointer' }} title="View details" aria-label={`${e.name} — view details`}>
 								<td className="ecal-table__date">{dateRange}</td>
 								<td>
 									<div className="ecal-table__event">
@@ -519,7 +521,7 @@ function EcoCard({ e, isEvent }: { e: Eco; isEvent?: boolean }) {
 	const modeLine = isEvent && e.mode ? (MODE_LABEL[e.mode] ?? e.mode) : null;
 	const eyebrow = isEvent ? modeLine : e.category;
 	return (
-		<div className="atlas-card atlas-entity-card" onClick={onOpen} style={onOpen ? { cursor: 'pointer' } : undefined}>
+		<div className="atlas-card atlas-entity-card" onClick={onOpen} {...(onOpen ? activate(onOpen) : {})} style={onOpen ? { cursor: 'pointer' } : undefined}>
 			<div className="atlas-entity-card__head">
 				<Logo co={{ name: e.name, website: e.website }} size={62} radius={9} />
 				<div style={{ minWidth: 0, paddingTop: 11 }}>
