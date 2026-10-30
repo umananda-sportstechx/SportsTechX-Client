@@ -9,6 +9,7 @@ import { qk } from "@/lib/query-keys";
 import { track } from "@/lib/analytics";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import "@/components/landing/landing.css";
+import "./ftabr26.css";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import gsap from "gsap";
