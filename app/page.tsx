@@ -54,9 +54,9 @@ export default async function LandingPage() {
 				<section className="lp-gallery-wrap" id="explore">
 					<ProductGallery id="dash-explore" title="Inside Atlas" accent="Explore" desc={DASH_EXPLORE_DESC} variant="a" shots={cms.dashboard} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery id="dash-raise" title="Inside Atlas" accent="Raise" desc={DASH_RAISE_DESC} variant="b" shots={cms.dashboard} />
+					<ProductGallery id="dash-raise" title="Inside Atlas" accent="Raise" desc={DASH_RAISE_DESC} variant="b" shots={cms.dashboard_raise} />
 					<div className="lp-gallery-divider" />
-					<ProductGallery id="dash-scout" title="Inside Atlas" accent="Scout" desc={DASH_SCOUT_DESC} variant="c" shots={cms.dashboard} />
+					<ProductGallery id="dash-scout" title="Inside Atlas" accent="Scout" desc={DASH_SCOUT_DESC} variant="c" shots={cms.dashboard_scout} />
 				</section>
 				<Testimonials items={cms.testimonials} />
 				<Team items={cms.team} />
