@@ -45,7 +45,8 @@ function NavbarInner({ tier, nav, homePath, accountPath }: {
 	const searchParams = useSearchParams();
 	const crumbs = useBreadcrumbs(nav, homePath, pathname, searchParams, tier);
 	// The browser tab names the page — "Companies | Atlas", a company's own name on its page.
-	const pageTitle = crumbs[crumbs.length - 1]?.label;
+	// Home has no trail of its own, so it is named outright.
+	const pageTitle = crumbs[crumbs.length - 1]?.label ?? (pathname === homePath ? 'Home' : undefined);
 	useEffect(() => { document.title = pageTitle ? `${pageTitle} | Atlas` : 'Atlas'; }, [pageTitle]);
 
 	return (
