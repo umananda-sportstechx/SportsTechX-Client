@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 
-export const metadata: Metadata = { title: 'Report' }; // root template appends " | Atlas"
+// Re-declare the site template here: a segment's own title stops the root template from reaching
+// its children, so each report page reads "<report title> | Atlas" (and this fallback "Report | Atlas").
+export const metadata: Metadata = { title: { default: 'Report', template: '%s | Atlas' } };
 
 // Reports read per-user (tier-gated) data — no static pre-render.
 export const dynamic = 'force-dynamic';
